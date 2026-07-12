@@ -1,0 +1,4 @@
+# Temporary NBA Stats links
+
+- [Rockets 2024-25 official on/off JSON via reader](https://r.jina.ai/http://stats.nba.com/stats/teamplayeronoffsummary?DateFrom=&DateTo=&GameSegment=&LastNGames=0&LeagueID=&Location=&MeasureType=Advanced&Month=0&OpponentTeamID=0&Outcome=&PaceAdjust=N&PerMode=Totals&Period=0&PlusMinus=N&Rank=N&Season=2024-25&SeasonSegment=&SeasonType=Regular%20Season&TeamID=1610612745&VsConference=&VsDivision=)
+- [Rockets 2025-26 official on/off JSON via reader](https://r.jina.ai/http://stats.nba.com/stats/teamplayeronoffsummary?DateFrom=&DateTo=&GameSegment=&LastNGames=0&LeagueID=&Location=&MeasureType=Advanced&Month=0&OpponentTeamID=0&Outcome=&PaceAdjust=N&PerMode=Totals&Period=0&PlusMinus=N&Rank=N&Season=2025-26&SeasonSegment=&SeasonType=Regular%20Season&TeamID=1610612745&VsConference=&VsDivision=)
