@@ -1,0 +1,9 @@
+name: Build Expanded Rebound Data Parallel
+on:
+  workflow_dispatch:
+
+jobs:
+  disabled:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Superseded by the direct career collector."

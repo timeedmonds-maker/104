@@ -1,0 +1,30 @@
+name: Build Career 22 Direct
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/build_career_22.py'
+      - '.github/workflows/build-career-22.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: career-22-direct-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests beautifulsoup4 lxml
+      - run: python tools/build_career_22.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: career-22-direct
+          path: career_22_output/
+          if-no-files-found: warn
