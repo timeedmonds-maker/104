@@ -1,0 +1,2852 @@
+{
+  "source": "Basketball-Reference player regular-season on/off pages",
+  "coverage": "1996-97 through 2025-26 where player seasons are available",
+  "aggregation": "On and off TRB% are weighted separately by Basketball-Reference on/off minutes for every team-season stint; swing = weighted on minus weighted off.",
+  "rounding": "Final percentages and swing rounded to one decimal because source percentages are displayed to one decimal.",
+  "players_requested": 27,
+  "players_with_data": 27,
+  "detail_rows": 387,
+  "discovery": {
+    "Andre Drummond": {
+      "player_id": "drumman01",
+      "years": [
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/d/drumman01.html"
+    },
+    "DeAndre Jordan": {
+      "player_id": "jordade01",
+      "years": [
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/j/jordade01.html"
+    },
+    "Nikola Vucevic": {
+      "player_id": "vucevni01",
+      "years": [
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/v/vucevni01.html"
+    },
+    "Rudy Gobert": {
+      "player_id": "goberru01",
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/g/goberru01.html"
+    },
+    "Kevin Love": {
+      "player_id": "loveke01",
+      "years": [
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/l/loveke01.html"
+    },
+    "Al Horford": {
+      "player_id": "horfoal01",
+      "years": [
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/h/horfoal01.html"
+    },
+    "Jonas Valanciunas": {
+      "player_id": "valanjo01",
+      "years": [
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/v/valanjo01.html"
+    },
+    "Nikola Jokic": {
+      "player_id": "jokicni01",
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/j/jokicni01.html"
+    },
+    "Giannis Antetokounmpo": {
+      "player_id": "antetgi01",
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/a/antetgi01.html"
+    },
+    "Anthony Davis": {
+      "player_id": "davisan02",
+      "years": [
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/d/davisan02.html"
+    },
+    "Karl-Anthony Towns": {
+      "player_id": "townska01",
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/t/townska01.html"
+    },
+    "Clint Capela": {
+      "player_id": "capelca01",
+      "years": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/c/capelca01.html"
+    },
+    "Domantas Sabonis": {
+      "player_id": "sabondo01",
+      "years": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/s/sabondo01.html"
+    },
+    "Julius Randle": {
+      "player_id": "randlju01",
+      "years": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/r/randlju01.html"
+    },
+    "Brook Lopez": {
+      "player_id": "lopezbr01",
+      "years": [
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/l/lopezbr01.html"
+    },
+    "Draymond Green": {
+      "player_id": "greendr01",
+      "years": [
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/g/greendr01.html"
+    },
+    "Steven Adams": {
+      "player_id": "adamsst01",
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/a/adamsst01.html"
+    },
+    "Tobias Harris": {
+      "player_id": "harrito02",
+      "years": [
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/h/harrito02.html"
+    },
+    "Mason Plumlee": {
+      "player_id": "plumlma01",
+      "years": [
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/p/plumlma01.html"
+    },
+    "Bam Adebayo": {
+      "player_id": "adebaba01",
+      "years": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/a/adebaba01.html"
+    },
+    "Taj Gibson": {
+      "player_id": "gibsota01",
+      "years": [
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/g/gibsota01.html"
+    },
+    "Jarrett Allen": {
+      "player_id": "allenja01",
+      "years": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/a/allenja01.html"
+    },
+    "Jusuf Nurkic": {
+      "player_id": "nurkiju01",
+      "years": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/n/nurkiju01.html"
+    },
+    "Joel Embiid": {
+      "player_id": "embiijo01",
+      "years": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/e/embiijo01.html"
+    },
+    "Ivica Zubac": {
+      "player_id": "zubaciv01",
+      "years": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/z/zubaciv01.html"
+    },
+    "Bismack Biyombo": {
+      "player_id": "biyombi01",
+      "years": [
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/b/biyombi01.html"
+    },
+    "Bobby Portis": {
+      "player_id": "portibo01",
+      "years": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020,
+        2021,
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ],
+      "profile_url": "https://www.basketball-reference.com/players/p/portibo01.html"
+    }
+  },
+  "errors": [],
+  "requests": [
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1255647
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 176190
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 176188
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 176188
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 191415
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 176190
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 176188
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 191415
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 189983
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 205206
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 205221
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 176188
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 176195
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 176191
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/drumman01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 191421
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1420706
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2009",
+      "status": 200,
+      "attempt": 1,
+      "length": 181378
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2010",
+      "status": 200,
+      "attempt": 1,
+      "length": 181380
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2011",
+      "status": 200,
+      "attempt": 1,
+      "length": 181382
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2012",
+      "status": 200,
+      "attempt": 1,
+      "length": 196608
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 196606
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 196601
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 196616
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 196609
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 196600
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 181380
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 195173
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 181380
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 181380
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 210408
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 196609
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 196608
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 196610
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jordade01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 181380
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1152198
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2012",
+      "status": 200,
+      "attempt": 1,
+      "length": 189451
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 174203
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 174203
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 174202
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 174203
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 174206
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 174204
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 189435
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 189427
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 187997
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 189428
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 174203
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 174204
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 174205
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/vucevni01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 203221
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1090901
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 170862
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 170863
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 170862
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 186085
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 186083
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 186086
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 186084
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 186085
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 186083
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 186087
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 186089
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 186086
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/goberru01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 186081
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1230811
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2009",
+      "status": 200,
+      "attempt": 1,
+      "length": 177435
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2010",
+      "status": 200,
+      "attempt": 1,
+      "length": 177435
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2011",
+      "status": 200,
+      "attempt": 1,
+      "length": 177434
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2012",
+      "status": 200,
+      "attempt": 1,
+      "length": 177435
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 177439
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 177436
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 192657
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 192654
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 192655
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 192652
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 177433
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 177435
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 177434
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 177433
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 206443
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 192663
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 177432
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/loveke01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 177434
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1459894
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2008",
+      "status": 200,
+      "attempt": 1,
+      "length": 194952
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2009",
+      "status": 200,
+      "attempt": 1,
+      "length": 194950
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2010",
+      "status": 200,
+      "attempt": 1,
+      "length": 194947
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2011",
+      "status": 200,
+      "attempt": 1,
+      "length": 194945
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2012",
+      "status": 200,
+      "attempt": 1,
+      "length": 194943
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 194948
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 179720
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 194940
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 194948
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 194947
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 194944
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 194944
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 194949
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 179722
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 194949
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 194943
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 194953
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 194946
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/horfoal01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 179722
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1195073
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 173629
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 188866
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 188859
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 188849
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 188850
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 188856
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 187422
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 173632
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 188864
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 188855
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 173633
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 188857
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 187423
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/v/valanjo01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 188854
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 991621
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 168536
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 168535
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 168535
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 183753
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 183752
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 183757
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 183764
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 183759
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 183759
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 183764
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/j/jokicni01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 183763
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1104289
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 171594
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 186821
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 171595
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 186825
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 186815
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 186816
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 186815
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 186814
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 186820
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 186810
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 171594
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 186814
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/antetgi01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 171596
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1181702
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 173747
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 173745
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 188971
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 173745
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 173746
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 188972
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 173747
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 188975
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 188965
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 173746
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 188964
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 188967
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 187537
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/d/davisan02/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 173743
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 993880
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 169730
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 169728
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 184952
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 169730
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 169733
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 169735
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 184956
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 184949
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 184953
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 184952
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/t/townska01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 184959
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1028223
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 185065
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 185071
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 185067
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 185063
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 185067
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 169843
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 185069
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 185072
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 185057
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 169841
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 169839
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/c/capelca01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 185074
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 925885
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 184175
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 184154
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 184158
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 168935
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 168935
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 182727
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 184172
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 168935
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 168935
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/s/sabondo01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 168934
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 911554
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 170688
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 170680
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 170679
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 170677
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 170678
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 170677
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 185902
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 170677
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 185898
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 170677
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 185898
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/r/randlju01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 185900
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1210903
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2009",
+      "status": 200,
+      "attempt": 1,
+      "length": 178244
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2010",
+      "status": 200,
+      "attempt": 1,
+      "length": 178243
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2011",
+      "status": 200,
+      "attempt": 1,
+      "length": 178243
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2012",
+      "status": 200,
+      "attempt": 1,
+      "length": 178243
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 193464
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 178243
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 193471
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 178247
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 178248
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 178245
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 193469
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 193467
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 193466
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 193463
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 193467
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 193466
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 193467
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/l/lopezbr01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 178246
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1090602
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 186842
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 186849
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 186846
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 186850
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 186853
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 186855
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 186849
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 171623
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 171624
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 186845
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 186845
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 171623
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 186847
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/greendr01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 171625
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1045472
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 185658
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 170438
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 185660
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 185670
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 185667
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 185664
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 185658
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 170438
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 185666
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 170447
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 185683
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adamsst01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 170443
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1273426
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2012",
+      "status": 200,
+      "attempt": 1,
+      "length": 175574
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 189365
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 175576
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 175577
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 204595
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 175575
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 189369
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 204592
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 190801
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 190798
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 190796
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 190798
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 190798
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 190810
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/h/harrito02/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 190807
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1278342
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 192026
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 192017
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 192015
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 190586
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 176794
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 192018
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 192015
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 176798
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 176797
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 205808
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 192019
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 176794
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/plumlma01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 205828
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 840464
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 181154
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 165932
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 181150
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 181152
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 181150
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 181149
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 181160
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 181156
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/adebaba01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 165930
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1341012
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2010",
+      "status": 200,
+      "attempt": 1,
+      "length": 193424
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2011",
+      "status": 200,
+      "attempt": 1,
+      "length": 193427
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2012",
+      "status": 200,
+      "attempt": 1,
+      "length": 193433
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 193424
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 193429
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 193429
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 178206
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 207226
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 193425
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 178206
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 178207
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 193428
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 178204
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 178203
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 192014
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 178206
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/g/gibsota01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 178206
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 897811
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 165917
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 181143
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 181144
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 179710
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 165918
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 181145
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 181139
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 181140
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/a/allenja01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 181135
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1007208
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 170755
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 170755
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 199783
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 185977
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 170757
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 185979
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 185982
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 170757
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 170756
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 185982
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 184548
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/n/nurkiju01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 170757
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 876761
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 168167
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 183390
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 183390
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 183384
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 183393
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 183390
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 183390
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 183395
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 168164
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/e/embiijo01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 183390
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 914003
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 167312
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 167312
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 196333
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 182537
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 182536
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 167313
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 182536
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 182535
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 182540
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/z/zubaciv01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 181105
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 1119402
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2012",
+      "status": 200,
+      "attempt": 1,
+      "length": 176925
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2013",
+      "status": 200,
+      "attempt": 1,
+      "length": 176930
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2014",
+      "status": 200,
+      "attempt": 1,
+      "length": 192146
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2015",
+      "status": 200,
+      "attempt": 1,
+      "length": 176926
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 192145
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 176927
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 176927
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 176926
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 176926
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 176926
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 192155
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 192148
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 190721
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 176926
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/b/biyombi01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 192157
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01.html",
+      "status": 200,
+      "attempt": 1,
+      "length": 954744
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2016",
+      "status": 200,
+      "attempt": 1,
+      "length": 170197
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2017",
+      "status": 200,
+      "attempt": 1,
+      "length": 185422
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2018",
+      "status": 200,
+      "attempt": 1,
+      "length": 170197
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2019",
+      "status": 200,
+      "attempt": 1,
+      "length": 183990
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2020",
+      "status": 200,
+      "attempt": 1,
+      "length": 170196
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2021",
+      "status": 200,
+      "attempt": 1,
+      "length": 185419
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2022",
+      "status": 200,
+      "attempt": 1,
+      "length": 185419
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2023",
+      "status": 200,
+      "attempt": 1,
+      "length": 185418
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2024",
+      "status": 200,
+      "attempt": 1,
+      "length": 185424
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2025",
+      "status": 200,
+      "attempt": 1,
+      "length": 185417
+    },
+    {
+      "url": "https://www.basketball-reference.com/players/p/portibo01/on-off/2026",
+      "status": 200,
+      "attempt": 1,
+      "length": 170196
+    }
+  ],
+  "generated_utc": "2026-07-17T08:44:35Z"
+}
