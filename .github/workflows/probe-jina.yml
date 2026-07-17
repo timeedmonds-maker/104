@@ -5,6 +5,8 @@ on:
     paths:
       - 'tools/probe_jina.py'
       - '.github/workflows/probe-jina.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
