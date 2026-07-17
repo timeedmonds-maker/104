@@ -3,8 +3,6 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'tools/build_additional_22.py'
-      - 'tools/patch_expanded_parser.py'
       - '.github/workflows/build-expanded-rebound-data.yml'
   workflow_dispatch:
 
@@ -13,25 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-data:
+  superseded:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests beautifulsoup4 lxml
-      - run: python tools/patch_expanded_parser.py
-      - run: python tools/build_additional_22.py
-        env:
-          OUT_DIR: expanded_output
-          CACHE_DIR: cache_bref
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: expanded-rebound-data
-          path: |
-            expanded_output/
-            cache_bref/
-          if-no-files-found: warn
+      - run: echo "Superseded by the parallel expanded rebound data workflow."
