@@ -1,25 +1,9 @@
 name: Probe Jina Basketball Reference
 on:
-  push:
-    branches: [expanded-rebound-db]
-    paths:
-      - 'tools/probe_jina.py'
-      - '.github/workflows/probe-jina.yml'
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
-  probe:
+  disabled:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: pip install requests
-      - run: python tools/probe_jina.py
-      - uses: actions/upload-artifact@v4
-        with:
-          name: probe-output
-          path: probe_output/
+      - run: echo "Probe disabled on the final build branch."
