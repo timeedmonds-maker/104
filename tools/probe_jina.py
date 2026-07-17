@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-# Wait until the temporary Jina/Basketball-Reference block window has expired.
+# Immediate health check for Basketball-Reference access through Jina.
 target = datetime(2026, 7, 17, 19, 41, 0, tzinfo=timezone.utc)
 wait = max(0, (target - datetime.now(timezone.utc)).total_seconds())
 if wait:
@@ -19,8 +19,9 @@ out = Path('probe_output')
 out.mkdir(exist_ok=True)
 for name, url in urls.items():
     try:
+        started = time.time()
         r = requests.get(url, timeout=90, headers={'User-Agent': 'Mozilla/5.0'})
-        print(name, r.status_code, len(r.text), flush=True)
+        print(name, r.status_code, len(r.text), f'{time.time()-started:.2f}s', flush=True)
         (out / f'{name}.txt').write_text(r.text, encoding='utf-8')
     except Exception as exc:
         print(name, type(exc).__name__, exc, flush=True)
