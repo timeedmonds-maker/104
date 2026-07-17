@@ -1,19 +1,30 @@
+import json
 import requests
 from pathlib import Path
+from urllib.parse import quote
 
 out = Path('probe_output')
 out.mkdir(exist_ok=True)
-urls = {
-    'pau_2013': 'https://web.archive.org/web/20130412104327id_/http://www.basketball-reference.com/players/g/gasolpa01/on-off/',
-    'chandler_2013': 'https://web.archive.org/web/20130426052613id_/http://www.basketball-reference.com/players/c/chandty01/on-off/',
-    'brand_2015': 'https://web.archive.org/web/20150905224450id_/http://www.basketball-reference.com/players/b/brandel01/on-off/',
-    'millsap_2013': 'https://web.archive.org/web/20130514233455id_/http://www.basketball-reference.com/players/m/millspa01/on-off/',
-}
-for name, url in urls.items():
+players = {'pau':'gasolpa01','nene':'nenexx01','millsap':'millspa01','dwight':'howardw01'}
+for name,pid in players.items():
+    target=f'https://www.basketball-reference.com/players/{pid[0]}/{pid}/on-off/'
+    api='https://archive.org/wayback/available?url='+quote(target,safe='')+'&timestamp=20261231'
     try:
-        r = requests.get(url, timeout=120, headers={'User-Agent': 'Mozilla/5.0'})
-        print(name, r.status_code, len(r.text), r.url, flush=True)
-        (out / f'{name}.txt').write_text(r.text, encoding='utf-8')
+        r=requests.get(api,timeout=60,headers={'User-Agent':'Mozilla/5.0'})
+        print(name,'api',r.status_code,len(r.text),r.text[:300],flush=True)
+        (out/f'{name}_available.json').write_text(r.text,encoding='utf-8')
+        if r.status_code==200:
+            data=r.json(); closest=data.get('archived_snapshots',{}).get('closest',{})
+            url=closest.get('url')
+            if url:
+                # id_ avoids replay toolbar rewriting.
+                url=url.replace('/web/','/web/').replace('/https://','id_/https://') if 'id_/' not in url else url
+                # More reliable construction from timestamp and original target.
+                ts=closest.get('timestamp')
+                snap=f'https://web.archive.org/web/{ts}id_/{target}'
+                rr=requests.get(snap,timeout=120,headers={'User-Agent':'Mozilla/5.0'})
+                print(name,'snap',rr.status_code,len(rr.text),snap,flush=True)
+                (out/f'{name}_snapshot.txt').write_text(rr.text,encoding='utf-8')
     except Exception as exc:
-        print(name, type(exc).__name__, exc, flush=True)
-        (out / f'{name}.txt').write_text(repr(exc), encoding='utf-8')
+        print(name,type(exc).__name__,exc,flush=True)
+        (out/f'{name}_error.txt').write_text(repr(exc),encoding='utf-8')
