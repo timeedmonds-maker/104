@@ -1,0 +1,111 @@
+name: Build Expanded Rebound Data Parallel
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/build_additional_22.py'
+      - 'tools/patch_expanded_parser.py'
+      - '.github/workflows/build-expanded-rebound-parallel.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: expanded-rebound-parallel-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  collect-player:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        idx: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests beautifulsoup4 lxml
+      - run: python tools/patch_expanded_parser.py
+      - name: Collect one player
+        env:
+          PLAYER_IDX: ${{ matrix.idx }}
+        run: |
+          python - <<'PY'
+          import os, sys
+          from pathlib import Path
+          sys.path.insert(0, 'tools')
+          import build_additional_22 as m
+          idx = int(os.environ['PLAYER_IDX'])
+          m.PLAYERS = [m.PLAYERS[idx]]
+          m.OUT = Path(f'expanded_output/{idx}')
+          m.CACHE = Path(f'cache_bref/{idx}')
+          m.OUT.mkdir(parents=True, exist_ok=True)
+          m.CACHE.mkdir(parents=True, exist_ok=True)
+          m.main()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: expanded-player-${{ matrix.idx }}
+          path: expanded_output/${{ matrix.idx }}/
+          if-no-files-found: warn
+
+  merge:
+    needs: collect-player
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: expanded-player-*
+          path: collected
+      - name: Merge player outputs
+        run: |
+          python - <<'PY'
+          import csv, json
+          from pathlib import Path
+          root = Path('collected')
+          out = Path('merged_output'); out.mkdir()
+          detail_files = sorted(root.glob('**/additional_22_detail.csv'))
+          total_files = sorted(root.glob('**/additional_22_team_totals.csv'))
+          if len(detail_files) != 22:
+              raise SystemExit(f'Expected 22 detail files, found {len(detail_files)}')
+          detail_rows = []
+          detail_fields = None
+          for f in detail_files:
+              with f.open(encoding='utf-8-sig', newline='') as fh:
+                  reader = csv.DictReader(fh)
+                  detail_fields = detail_fields or reader.fieldnames
+                  detail_rows.extend(reader)
+          detail_rows.sort(key=lambda r: (r['Player'], int(r['Season End Year']), r['Team']))
+          with (out/'additional_22_detail.csv').open('w', encoding='utf-8-sig', newline='') as fh:
+              w = csv.DictWriter(fh, fieldnames=detail_fields); w.writeheader(); w.writerows(detail_rows)
+          totals = {}
+          total_fields = None
+          for f in total_files:
+              with f.open(encoding='utf-8-sig', newline='') as fh:
+                  reader = csv.DictReader(fh)
+                  total_fields = total_fields or reader.fieldnames
+                  for r in reader:
+                      totals[(int(r['Season End Year']), r['Team'])] = r
+          total_rows = [totals[k] for k in sorted(totals)]
+          with (out/'additional_22_team_totals.csv').open('w', encoding='utf-8-sig', newline='') as fh:
+              w = csv.DictWriter(fh, fieldnames=total_fields); w.writeheader(); w.writerows(total_rows)
+          counts = {}
+          failures = []
+          for f in root.glob('**/player_row_counts.json'):
+              counts.update(json.loads(f.read_text()))
+          for f in root.glob('**/scrape_failures.json'):
+              failures.extend(json.loads(f.read_text()))
+          (out/'player_row_counts.json').write_text(json.dumps(counts, indent=2))
+          (out/'scrape_failures.json').write_text(json.dumps(failures, indent=2))
+          manifest = {'players': len(counts), 'team_season_stints': len(detail_rows), 'team_seasons': len(total_rows), 'failures': len(failures)}
+          (out/'manifest.json').write_text(json.dumps(manifest, indent=2))
+          print(json.dumps(manifest, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: expanded-rebound-data-parallel
+          path: merged_output/
