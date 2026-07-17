@@ -14,10 +14,10 @@ text = text.replace(
     'def parse_onoff(text: str) -> list[dict]:\n    rows = parse_markdown_rows(text) or parse_html_rows(text)',
     'def parse_onoff(text: str) -> list[dict]:\n    regular = re.search(r"## [^\\n]*Regular Season\\n(.*?)(?=\\n## [^\\n]*Playoffs|\\n## More )", text, flags=re.S)\n    if regular:\n        text = regular.group(1)\n    rows = parse_markdown_rows(text) or parse_html_rows(text)'
 )
-text = text.replace('def request_text(url: str, attempts: int = 8, min_delay: float = 0.8)', 'def request_text(url: str, attempts: int = 8, min_delay: float = 0.15)')
+text = text.replace('def request_text(url: str, attempts: int = 8, min_delay: float = 0.8)', 'def request_text(url: str, attempts: int = 5, min_delay: float = 1.2)')
 text = text.replace(
     'targets = [(url, "direct")]\n    if "basketball-reference.com" in url:\n        targets.append(("https://r.jina.ai/http://" + url.split("://", 1)[1], "jina"))',
     'targets = [("https://r.jina.ai/http://" + url.split("://", 1)[1], "jina")] if "basketball-reference.com" in url else [(url, "direct")]'
 )
 path.write_text(text, encoding='utf-8')
-print('patched parser: regular season only, Jina links normalized, Jina-only fetch')
+print('patched parser: regular season only, Jina links normalized, paced Jina-only fetch')
