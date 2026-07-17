@@ -8,6 +8,10 @@ on:
       - '.github/workflows/build-expanded-rebound-data.yml'
   workflow_dispatch:
 
+concurrency:
+  group: expanded-rebound-data-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-data:
     runs-on: ubuntu-latest
