@@ -1,28 +1,19 @@
-import json
 import requests
-import time
 from pathlib import Path
-from urllib.parse import quote
 
 out = Path('probe_output')
 out.mkdir(exist_ok=True)
-source = 'http://www.basketball-reference.com/players/d/duncati01/on-off/'
-cdx = 'https://web.archive.org/cdx/search/cdx?url=' + quote(source, safe=':/') + '&output=json&filter=statuscode:200&filter=mimetype:text/html&fl=timestamp,original,statuscode,digest&collapse=digest&from=2012&to=2020'
-
-for name, url in {'duncan_career_cdx': cdx}.items():
+urls = {
+    'pau_2013': 'https://web.archive.org/web/20130412104327id_/http://www.basketball-reference.com/players/g/gasolpa01/on-off/',
+    'chandler_2013': 'https://web.archive.org/web/20130426052613id_/http://www.basketball-reference.com/players/c/chandty01/on-off/',
+    'brand_2015': 'https://web.archive.org/web/20150905224450id_/http://www.basketball-reference.com/players/b/brandel01/on-off/',
+    'millsap_2013': 'https://web.archive.org/web/20130514233455id_/http://www.basketball-reference.com/players/m/millspa01/on-off/',
+}
+for name, url in urls.items():
     try:
-        started = time.time()
         r = requests.get(url, timeout=120, headers={'User-Agent': 'Mozilla/5.0'})
-        print(name, r.status_code, len(r.text), f'{time.time()-started:.2f}s', flush=True)
+        print(name, r.status_code, len(r.text), r.url, flush=True)
         (out / f'{name}.txt').write_text(r.text, encoding='utf-8')
-        if r.status_code == 200:
-            data = r.json()
-            if len(data) > 1:
-                ts, orig = data[-1][0], data[-1][1]
-                snap = f'https://web.archive.org/web/{ts}id_/{orig}'
-                rr = requests.get(snap, timeout=120, headers={'User-Agent': 'Mozilla/5.0'})
-                print('duncan_career_snapshot', rr.status_code, len(rr.text), snap, flush=True)
-                (out / 'duncan_career_snapshot.txt').write_text(rr.text, encoding='utf-8')
     except Exception as exc:
         print(name, type(exc).__name__, exc, flush=True)
         (out / f'{name}.txt').write_text(repr(exc), encoding='utf-8')
