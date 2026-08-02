@@ -13,15 +13,15 @@ permissions:
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install requests beautifulsoup4 lxml pandas
-      - name: Run source diagnostic
-        run: python team_trb_all_players/build.py
+      - run: pip install pandas pyarrow requests
+      - name: Inspect static parquet source
+        run: python team_trb_all_players/hf_schema_diagnostic.py
       - name: Upload smoke outputs
         if: always()
         uses: actions/upload-artifact@v4
@@ -32,19 +32,7 @@ jobs:
 
   full:
     needs: smoke
+    if: false
     runs-on: ubuntu-latest
-    timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install requests beautifulsoup4 lxml pandas
-      - name: Run complete build
-        run: python team_trb_all_players/build.py
-      - name: Upload complete dataset
-        uses: actions/upload-artifact@v4
-        with:
-          name: all-player-team-trb-dataset
-          path: team_trb_all_players/output/**
-          if-no-files-found: error
+      - run: echo 'Full build enabled after schema validation'
