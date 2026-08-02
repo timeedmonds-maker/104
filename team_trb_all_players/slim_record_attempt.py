@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# This file is watched by the production workflow so a normal main-branch
+# update can force a registered single-job checkpoint cycle.
+
 import argparse
 import json
 from datetime import datetime, timezone
