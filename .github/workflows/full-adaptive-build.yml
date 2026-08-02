@@ -11,6 +11,8 @@ on:
       - 'team_trb_all_players/workflow_status.py'
       - '.github/workflows/full-adaptive-build.yml'
   workflow_dispatch:
+  issue_comment:
+    types: [created]
 
 concurrency:
   group: full-adaptive-team-rebound-dataset
@@ -27,6 +29,7 @@ env:
 
 jobs:
   plan:
+    if: ${{ github.event_name != 'issue_comment' || (github.event.issue.number == 9 && contains(github.event.comment.body, '/start-team-trb')) }}
     runs-on: ubuntu-slim
     timeout-minutes: 10
     outputs:
@@ -85,7 +88,7 @@ jobs:
 
   aggregate:
     needs: [plan, shards]
-    if: always()
+    if: ${{ always() && (github.event_name != 'issue_comment' || (github.event.issue.number == 9 && contains(github.event.comment.body, '/start-team-trb'))) }}
     runs-on: ubuntu-22.04
     timeout-minutes: 30
     steps:
