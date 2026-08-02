@@ -1,4 +1,4 @@
-name: Resumable team rebound dataset
+name: Single-job resumable team rebound dataset
 
 on:
   push:
@@ -10,14 +10,15 @@ on:
       - 'team_trb_all_players/slim_checkpoint_plan.py'
       - 'team_trb_all_players/slim_run_one.py'
       - 'team_trb_all_players/slim_collect.py'
+      - 'team_trb_all_players/slim_record_attempt.py'
       - 'team_trb_all_players/slim_checkpoint_aggregate.py'
   schedule:
-    - cron: '3,18,33,48 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 concurrency:
   group: resumable-team-rebound-checkpoints
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 permissions:
   contents: write
@@ -28,27 +29,28 @@ env:
   PYTHONUNBUFFERED: '1'
   STATUS_ISSUE: '9'
   PBPSTATS_CHECKPOINT_ROOT: team_trb_all_players/checkpoints
+  PBPSTATS_RETRY_ROOT: team_trb_all_players/retry_state
   PBPSTATS_FINAL_MARKER: team_trb_all_players/full_career_output/aggregate_complete.json
 
 jobs:
-  plan:
+  cycle:
     runs-on: ubuntu-slim
-    timeout-minutes: 8
-    outputs:
-      matrix: ${{ steps.plan.outputs.matrix }}
-      has_work: ${{ steps.plan.outputs.has_work }}
-      needs_aggregate: ${{ steps.plan.outputs.needs_aggregate }}
-      done: ${{ steps.plan.outputs.done }}
-      complete_count: ${{ steps.plan.outputs.complete_count }}
-      pending_total: ${{ steps.plan.outputs.pending_total }}
-      selected_count: ${{ steps.plan.outputs.selected_count }}
+    timeout-minutes: 14
     steps:
-      - name: Cancel superseded VM-based production runs
+      - name: Cancel superseded VM and probe runs
         uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
-            for (const run_id of [30763698484, 30766940270]) {
+            const stale = [
+              30763698484,
+              30766940270,
+              30770803566,
+              30770840311,
+              30770923950
+            ];
+            for (const run_id of stale) {
+              if (run_id === context.runId) continue;
               try {
                 await github.rest.actions.cancelWorkflowRun({
                   owner: context.repo.owner,
@@ -59,11 +61,17 @@ jobs:
                 core.info(`Run ${run_id} already finished or could not be cancelled: ${error.message}`);
               }
             }
+
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Compile checkpoint pipeline before scheduling extraction
+
+      - name: Compile the full checkpoint pipeline
         run: |
           python -m py_compile \
             team_trb_all_players/full_adaptive_batch.py \
@@ -71,169 +79,139 @@ jobs:
             team_trb_all_players/slim_checkpoint_plan.py \
             team_trb_all_players/slim_run_one.py \
             team_trb_all_players/slim_collect.py \
+            team_trb_all_players/slim_record_attempt.py \
             team_trb_all_players/slim_checkpoint_aggregate.py
-      - id: plan
-        env:
-          PBPSTATS_BATCH_SIZE: '20'
-        run: python team_trb_all_players/slim_checkpoint_plan.py
-      - name: Report checkpoint plan
-        if: ${{ steps.plan.outputs.done != 'true' }}
-        uses: actions/github-script@v7
-        env:
-          COMPLETE_COUNT: ${{ steps.plan.outputs.complete_count }}
-          PENDING_TOTAL: ${{ steps.plan.outputs.pending_total }}
-          SELECTED_COUNT: ${{ steps.plan.outputs.selected_count }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: Number(process.env.STATUS_ISSUE),
-              body: `Checkpoint run ${context.runId}: ${process.env.COMPLETE_COUNT}/780 team-seasons complete; selected ${process.env.SELECTED_COUNT}; ${process.env.PENDING_TOTAL} pending.`
-            });
 
-  extract:
-    needs: plan
-    if: ${{ needs.plan.outputs.has_work == 'true' }}
-    strategy:
-      fail-fast: false
-      max-parallel: 2
-      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    runs-on: ubuntu-slim
-    timeout-minutes: 14
-    env:
-      PBPSTATS_SEASON: ${{ matrix.season }}
-      PBPSTATS_FROM_DATE: ${{ matrix.from_date }}
-      PBPSTATS_TO_DATE: ${{ matrix.to_date }}
-      PBPSTATS_GROUP: ${{ matrix.group }}
-      PBPSTATS_TEAM_IDS: ${{ matrix.team_ids }}
-      PBPSTATS_TOP_WINDOW_DAYS: '14'
-      PBPSTATS_CONNECT_TIMEOUT: '8'
-      PBPSTATS_READ_TIMEOUT: '25'
-      PBPSTATS_REQUEST_PAUSE: '0.45'
-      PBPSTATS_RUNTIME_LIMIT_SECONDS: '600'
-      PBPSTATS_OUTPUT_DIR: checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Restore partial date-window work from an earlier attempt
-        id: restore-work
+      - name: Select one fair, incomplete team-season
+        id: plan
+        run: python team_trb_all_players/slim_checkpoint_plan.py
+
+      - name: Restore this team-season's partial date windows
+        if: ${{ steps.plan.outputs.has_work == 'true' }}
         uses: actions/cache/restore@v4
         with:
-          path: checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}
-          key: team-trb-work-${{ matrix.task_key }}-${{ github.run_id }}
+          path: checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}
+          key: team-trb-work-${{ steps.plan.outputs.task_key }}-${{ github.run_id }}
           restore-keys: |
-            team-trb-work-${{ matrix.task_key }}-
-      - run: python -m pip install --disable-pip-version-check requests
-      - name: Extract and validate one team-season within the slim time budget
-        id: extract-one
+            team-trb-work-${{ steps.plan.outputs.task_key }}-
+
+      - name: Install API dependency
+        if: ${{ steps.plan.outputs.has_work == 'true' }}
+        run: python -m pip install --disable-pip-version-check requests
+
+      - name: Extract and validate the selected team-season
+        if: ${{ steps.plan.outputs.has_work == 'true' }}
+        id: extract_one
+        env:
+          PBPSTATS_SEASON: ${{ steps.plan.outputs.season }}
+          PBPSTATS_FROM_DATE: ${{ steps.plan.outputs.from_date }}
+          PBPSTATS_TO_DATE: ${{ steps.plan.outputs.to_date }}
+          PBPSTATS_GROUP: ${{ steps.plan.outputs.group }}
+          PBPSTATS_TEAM_IDS: ${{ steps.plan.outputs.team_ids }}
+          PBPSTATS_TOP_WINDOW_DAYS: '14'
+          PBPSTATS_CONNECT_TIMEOUT: '8'
+          PBPSTATS_READ_TIMEOUT: '25'
+          PBPSTATS_REQUEST_PAUSE: '0.45'
+          PBPSTATS_RUNTIME_LIMIT_SECONDS: '480'
+          PBPSTATS_OUTPUT_DIR: checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}
         run: python team_trb_all_players/slim_run_one.py
-      - name: Preserve partial date windows for the next retry
-        if: ${{ always() && steps.extract-one.outputs.completed != 'true' }}
+
+      - name: Preserve partial date windows for a later retry
+        if: ${{ always() && steps.plan.outputs.has_work == 'true' && steps.extract_one.outputs.completed != 'true' }}
         uses: actions/cache/save@v4
         with:
-          path: checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}
-          key: team-trb-work-${{ matrix.task_key }}-${{ github.run_id }}
-      - name: Upload checkpoint payload or retry diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkpoint-${{ matrix.season }}-${{ matrix.team_id }}
-          path: |
-            checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}/batch_complete.json
-            checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}/batch_metadata.json
-            checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}/player_team_batch.csv
-            checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}/team_status.csv
-            checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}/request_audit.csv
-            checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}/window_manifest.csv
-            checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}/runner_result.json
-          if-no-files-found: error
-          retention-days: 14
+          path: checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}
+          key: team-trb-work-${{ steps.plan.outputs.task_key }}-${{ github.run_id }}
 
-  collect:
-    needs: [plan, extract]
-    if: ${{ always() && needs.plan.outputs.has_work == 'true' }}
-    runs-on: ubuntu-slim
-    timeout-minutes: 14
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Download this run's team-season payloads
-        uses: actions/download-artifact@v4
-        with:
-          pattern: checkpoint-*
-          path: downloaded-checkpoints
-      - id: collect
-        run: python team_trb_all_players/slim_collect.py downloaded-checkpoints team_trb_all_players/checkpoints
-      - name: Commit newly validated checkpoints
+      - name: Accept only a fully validated checkpoint
+        if: ${{ always() && steps.plan.outputs.has_work == 'true' }}
+        id: collect
+        run: python team_trb_all_players/slim_collect.py checkpoint_work team_trb_all_players/checkpoints
+
+      - name: Record retry state without blocking other team-seasons
+        if: ${{ always() && steps.plan.outputs.has_work == 'true' }}
+        run: |
+          python team_trb_all_players/slim_record_attempt.py \
+            --season '${{ steps.plan.outputs.season }}' \
+            --team-id '${{ steps.plan.outputs.team_id }}' \
+            --completed '${{ steps.extract_one.outputs.completed }}' \
+            --timed-out '${{ steps.extract_one.outputs.timed_out }}' \
+            --runner-result 'checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/runner_result.json'
+
+      - name: Recount checkpoints after this cycle
+        id: after_plan
+        run: python team_trb_all_players/slim_checkpoint_plan.py
+
+      - name: Build the final career leaderboard when all 780 checkpoints exist
+        if: ${{ steps.after_plan.outputs.needs_aggregate == 'true' }}
+        run: python team_trb_all_players/slim_checkpoint_aggregate.py team_trb_all_players/checkpoints team_trb_all_players/full_career_output
+
+      - name: Commit validated progress
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add team_trb_all_players/checkpoints
+          git add \
+            team_trb_all_players/checkpoints \
+            team_trb_all_players/retry_state \
+            team_trb_all_players/full_career_output
           if git diff --cached --quiet; then
-            echo "No new validated checkpoints to commit."
+            echo "No repository progress to commit."
           else
-            git commit -m "Checkpoint team rebound extraction run $GITHUB_RUN_ID"
+            git commit -m "Team rebound checkpoint cycle $GITHUB_RUN_ID"
             git pull --rebase origin main
             git push origin HEAD:main
           fi
-      - name: Report checkpoint collection
-        uses: actions/github-script@v7
-        env:
-          BEFORE_COUNT: ${{ needs.plan.outputs.complete_count }}
-          COPIED_COUNT: ${{ steps.collect.outputs.copied }}
-          INCOMPLETE_COUNT: ${{ steps.collect.outputs.incomplete }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const before = Number(process.env.BEFORE_COUNT || 0);
-            const copied = Number(process.env.COPIED_COUNT || 0);
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: Number(process.env.STATUS_ISSUE),
-              body: `Checkpoint run ${context.runId} collected ${copied} new validated team-seasons (${before + copied}/780 complete); ${process.env.INCOMPLETE_COUNT || 0} payloads require retry.`
-            });
 
-  aggregate:
-    needs: plan
-    if: ${{ needs.plan.outputs.needs_aggregate == 'true' }}
-    runs-on: ubuntu-slim
-    timeout-minutes: 14
-    steps:
-      - uses: actions/checkout@v4
+      - name: Upload this cycle's diagnostic payload
+        if: ${{ always() && steps.plan.outputs.has_work == 'true' }}
+        uses: actions/upload-artifact@v4
         with:
-          ref: main
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - name: Build and validate the complete career leaderboard
-        run: python team_trb_all_players/slim_checkpoint_aggregate.py team_trb_all_players/checkpoints team_trb_all_players/full_career_output
-      - name: Upload complete career dataset
+          name: checkpoint-cycle-${{ steps.plan.outputs.task_key }}-${{ github.run_id }}
+          path: |
+            checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/batch_complete.json
+            checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/batch_metadata.json
+            checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/player_team_batch.csv
+            checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/team_status.csv
+            checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/request_audit.csv
+            checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/window_manifest.csv
+            checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/runner_result.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload the completed career dataset
+        if: ${{ steps.after_plan.outputs.needs_aggregate == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: career-team-trb-complete-dataset
           path: team_trb_all_players/full_career_output/**
           if-no-files-found: error
           retention-days: 90
-      - name: Commit final dataset
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add team_trb_all_players/full_career_output
-          git commit -m "Complete career team rebound leaderboard"
-          git pull --rebase origin main
-          git push origin HEAD:main
-      - name: Report completion
+
+      - name: Report verified cycle outcome
+        if: ${{ always() && steps.plan.outputs.has_work == 'true' }}
+        uses: actions/github-script@v7
+        env:
+          TASK_KEY: ${{ steps.plan.outputs.task_key }}
+          PRIOR_ATTEMPTS: ${{ steps.plan.outputs.attempts }}
+          COMPLETED: ${{ steps.extract_one.outputs.completed }}
+          TIMED_OUT: ${{ steps.extract_one.outputs.timed_out }}
+          BEFORE_COUNT: ${{ steps.plan.outputs.complete_count }}
+          AFTER_COUNT: ${{ steps.after_plan.outputs.complete_count }}
+          PENDING_TOTAL: ${{ steps.after_plan.outputs.pending_total }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const completed = process.env.COMPLETED === 'true';
+            const result = completed ? 'validated and checkpointed' : 'incomplete; partial windows preserved for retry';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.STATUS_ISSUE),
+              body: `Cycle ${context.runId}: ${process.env.TASK_KEY} ${result}. Progress ${process.env.AFTER_COUNT}/780; ${process.env.PENDING_TOTAL} pending; prior attempts ${process.env.PRIOR_ATTEMPTS}; timed out ${process.env.TIMED_OUT || 'false'}.`
+            });
+
+      - name: Report final completion
+        if: ${{ steps.after_plan.outputs.done == 'true' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
@@ -242,5 +220,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: Number(process.env.STATUS_ISSUE),
-              body: `Career team rebound dataset completed and validated in run ${context.runId}.`
+              body: `Career team rebound dataset is complete and validated in run ${context.runId}.`
             });
