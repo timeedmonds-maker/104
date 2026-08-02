@@ -26,7 +26,8 @@ env:
 
 jobs:
   plan:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
