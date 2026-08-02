@@ -1,0 +1,50 @@
+name: Adaptive date-window lineup proof
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'team_trb_trigger/adaptive-proof.txt'
+      - 'team_trb_all_players/adaptive_window_proof.py'
+      - '.github/workflows/adaptive-window-proof.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: adaptive-window-proof-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: '1'
+      PBPSTATS_SEASON: '2025-26'
+      PBPSTATS_FROM_DATE: '2025-10-01'
+      PBPSTATS_TO_DATE: '2026-04-30'
+      PBPSTATS_TEAM_IDS: '1610612737,1610612738,1610612743,1610612745'
+      PBPSTATS_CONTROL_TEAM_IDS: '1610612743,1610612745'
+      PBPSTATS_TOP_WINDOW_DAYS: '31'
+      PBPSTATS_CONNECT_TIMEOUT: '10'
+      PBPSTATS_READ_TIMEOUT: '45'
+      PBPSTATS_MAX_ATTEMPTS: '3'
+      PBPSTATS_REQUEST_PAUSE: '0.8'
+      PBPSTATS_OUTPUT_DIR: 'team_trb_all_players/adaptive_proof_output'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests
+      - name: Run adaptive four-team proof
+        run: python team_trb_all_players/adaptive_window_proof.py
+      - name: Upload proof and raw window archive
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adaptive-window-lineup-proof
+          path: team_trb_all_players/adaptive_proof_output/**
+          if-no-files-found: error
+          retention-days: 30
