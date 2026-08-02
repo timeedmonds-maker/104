@@ -9,12 +9,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 OUTPUT_DIR = Path(os.environ["PBPSTATS_OUTPUT_DIR"])
-RUNTIME_LIMIT = int(os.getenv("PBPSTATS_RUNTIME_LIMIT_SECONDS", "650"))
-SCRIPT = Path(__file__).with_name("full_adaptive_batch.py")
+RUNTIME_LIMIT = int(os.getenv("PBPSTATS_RUNTIME_LIMIT_SECONDS", "600"))
+SCRIPT = Path(__file__).with_name("slim_cached_batch.py")
 
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def write_output(name: str, value: str) -> None:
+    output = os.environ.get("GITHUB_OUTPUT")
+    if output:
+        with open(output, "a", encoding="utf-8") as handle:
+            handle.write(f"{name}={value}\n")
 
 
 def main() -> int:
@@ -33,7 +40,7 @@ def main() -> int:
     except subprocess.TimeoutExpired as exc:
         timed_out = True
         error = f"Timed out after {RUNTIME_LIMIT} seconds: {exc}"
-    except Exception as exc:  # keep the artifact step alive for diagnosis/retry
+    except Exception as exc:  # keep collection and cache-saving steps alive
         error = repr(exc)
 
     complete_marker = OUTPUT_DIR / "batch_complete.json"
@@ -53,10 +60,12 @@ def main() -> int:
     (OUTPUT_DIR / "runner_result.json").write_text(
         json.dumps(payload, indent=2), encoding="utf-8"
     )
+    write_output("completed", "true" if completed else "false")
+    write_output("timed_out", "true" if timed_out else "false")
     print(json.dumps(payload, sort_keys=True), flush=True)
 
-    # A failed or timed-out team-season is intentionally retried by a later
-    # checkpoint run. Keep this wrapper successful so the collector always runs.
+    # A failed or timed-out team-season is retried later. Returning success keeps
+    # the artifact and partial-window cache steps alive for a genuinely resumable retry.
     return 0
 
 
