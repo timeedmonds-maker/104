@@ -11,28 +11,23 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pandas pyarrow requests
-      - name: Inspect static parquet source
+      - run: pip install requests
+      - name: Build complete 2000-01 through 2025-26 leaderboard
+        env:
+          PBPSTATS_WORKERS: '8'
         run: python team_trb_all_players/hf_schema_diagnostic.py
-      - name: Upload smoke outputs
+      - name: Upload complete dataset
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: team-trb-smoke-output
+          name: all-player-team-trb-dataset
           path: team_trb_all_players/output/**
           if-no-files-found: warn
-
-  full:
-    needs: smoke
-    if: false
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo 'Full build enabled after schema validation'
