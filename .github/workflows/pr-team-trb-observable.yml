@@ -1,33 +1,96 @@
-name: Observable all-player team TRB build
+name: Season-checkpoint all-player team TRB build
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - 'team_trb_trigger/**'
-      - 'team_trb_all_players/**'
+      - 'team_trb_trigger/checkpoint-run.txt'
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  season:
+    name: season-${{ matrix.start_year }}
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        start_year:
+          - 2025
+          - 2024
+          - 2023
+          - 2022
+          - 2021
+          - 2020
+          - 2019
+          - 2018
+          - 2017
+          - 2016
+          - 2015
+          - 2014
+          - 2013
+          - 2012
+          - 2011
+          - 2010
+          - 2009
+          - 2008
+          - 2007
+          - 2006
+          - 2005
+          - 2004
+          - 2003
+          - 2002
+          - 2001
+          - 2000
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install requests
-      - name: Build complete 2000-01 through 2025-26 leaderboard
+      - name: Build and validate one season
         env:
-          PBPSTATS_WORKERS: '8'
-        run: python team_trb_all_players/hf_schema_diagnostic.py
-      - name: Upload complete dataset
+          PBPSTATS_START_YEAR: '${{ matrix.start_year }}'
+          PBPSTATS_WORKERS: '2'
+          PBPSTATS_OUTPUT_DIR: 'team_trb_all_players/checkpoint_output/${{ matrix.start_year }}'
+        run: python team_trb_all_players/season_checkpoint_build.py
+      - name: Upload season checkpoint
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: all-player-team-trb-dataset
-          path: team_trb_all_players/output/**
+          name: team-trb-season-${{ matrix.start_year }}
+          path: team_trb_all_players/checkpoint_output/${{ matrix.start_year }}/**
+          if-no-files-found: warn
+
+  aggregate:
+    name: aggregate-checkpoints
+    needs: season
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download all completed season checkpoints
+        uses: actions/download-artifact@v4
+        with:
+          pattern: team-trb-season-*
+          path: team_trb_all_players/checkpoints
+          merge-multiple: false
+      - name: Build consolidated career leaderboard
+        env:
+          PBPSTATS_CHECKPOINT_ROOT: team_trb_all_players/checkpoints
+          PBPSTATS_CONSOLIDATED_DIR: team_trb_all_players/consolidated_output
+        run: python team_trb_all_players/aggregate_checkpoints.py
+      - name: Upload consolidated dataset
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-player-team-trb-checkpointed-dataset
+          path: team_trb_all_players/consolidated_output/**
           if-no-files-found: warn
