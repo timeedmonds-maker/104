@@ -18,11 +18,14 @@ CHECKPOINT_ROOT = Path(os.getenv(
     "PBPSTATS_CHECKPOINT_ROOT",
     "team_trb_all_players/checkpoints",
 ))
+RETRY_ROOT = Path(os.getenv(
+    "PBPSTATS_RETRY_ROOT",
+    "team_trb_all_players/retry_state",
+))
 FINAL_MARKER = Path(os.getenv(
     "PBPSTATS_FINAL_MARKER",
     "team_trb_all_players/full_career_output/aggregate_complete.json",
 ))
-BATCH_SIZE = max(1, min(200, int(os.getenv("PBPSTATS_BATCH_SIZE", "20"))))
 EXPECTED_TASKS = 26 * len(TEAM_IDS)
 
 
@@ -78,6 +81,14 @@ def checkpoint_complete(season: str, team_id: int) -> bool:
     )
 
 
+def retry_attempts(season: str, team_id: int) -> int:
+    state = read_json(RETRY_ROOT / season / f"{team_id}.json")
+    try:
+        return max(0, int(state.get("attempts", 0)))
+    except (TypeError, ValueError):
+        return 0
+
+
 def final_complete() -> bool:
     marker = read_json(FINAL_MARKER)
     return (
@@ -96,7 +107,7 @@ def write_output(name: str, value: str) -> None:
 
 
 def main() -> None:
-    tasks: list[dict[str, str]] = []
+    tasks: list[dict[str, Any]] = []
     complete_count = 0
     for start_year in range(2000, 2026):
         season = f"{start_year}-{str(start_year + 1)[-2:]}"
@@ -113,33 +124,53 @@ def main() -> None:
                 "group": str(team_id),
                 "team_ids": str(team_id),
                 "task_key": f"{season}-{team_id}",
+                "attempts": retry_attempts(season, team_id),
             })
 
-    selected = tasks[:BATCH_SIZE]
+    # Lowest-attempt tasks go first. This prevents one persistently failing API
+    # window from blocking the other 779 team-seasons, while task-specific caches
+    # preserve partial progress for the next pass.
+    tasks.sort(key=lambda row: (
+        int(row["attempts"]),
+        str(row["season"]),
+        int(row["team_id"]),
+    ))
+    selected = tasks[0] if tasks else None
     pending_total = len(tasks)
     done = pending_total == 0 and final_complete()
     needs_aggregate = pending_total == 0 and not done
-    matrix_include = selected or [{
-        "season": "none",
-        "from_date": "2000-01-01",
-        "to_date": "2000-01-01",
-        "team_id": "0",
-        "group": "0",
-        "team_ids": "0",
-        "task_key": "noop",
-    }]
-    matrix = json.dumps({"include": matrix_include}, separators=(",", ":"))
 
-    write_output("matrix", matrix)
     write_output("has_work", "true" if selected else "false")
     write_output("needs_aggregate", "true" if needs_aggregate else "false")
     write_output("done", "true" if done else "false")
     write_output("complete_count", str(complete_count))
     write_output("pending_total", str(pending_total))
-    write_output("selected_count", str(len(selected)))
+    if selected:
+        for name in (
+            "season", "from_date", "to_date", "team_id", "group",
+            "team_ids", "task_key",
+        ):
+            write_output(name, str(selected[name]))
+        write_output("attempts", str(selected["attempts"]))
+    else:
+        for name, value in {
+            "season": "none",
+            "from_date": "2000-01-01",
+            "to_date": "2000-01-01",
+            "team_id": "0",
+            "group": "0",
+            "team_ids": "0",
+            "task_key": "noop",
+            "attempts": "0",
+        }.items():
+            write_output(name, value)
+
+    selected_label = selected["task_key"] if selected else "none"
+    selected_attempts = selected["attempts"] if selected else 0
     print(
         f"CHECKPOINT PLAN complete={complete_count}/{EXPECTED_TASKS} "
-        f"pending={pending_total} selected={len(selected)} aggregate={needs_aggregate} done={done}",
+        f"pending={pending_total} selected={selected_label} "
+        f"prior_attempts={selected_attempts} aggregate={needs_aggregate} done={done}",
         flush=True,
     )
 
