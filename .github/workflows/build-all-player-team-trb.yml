@@ -1,0 +1,31 @@
+name: Build all-player team TRB leaderboard
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'team_trb_all_players/**'
+      - '.github/workflows/build-all-player-team-trb.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r team_trb_all_players/requirements.txt
+      - name: Build complete dataset
+        run: python team_trb_all_players/build.py
+      - name: Commit completed outputs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/output
+          git commit -m 'Build complete all-player team TRB leaderboard' || exit 0
+          git push
