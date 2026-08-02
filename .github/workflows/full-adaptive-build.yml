@@ -35,14 +35,33 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
+      - name: Cancel stale queued runs and announce live run
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const staleRuns = [30761334701, 30761334722, 30761493273];
+            for (const run_id of staleRuns) {
+              try {
+                await github.rest.actions.cancelWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id
+                });
+              } catch (error) {
+                core.warning(`Could not cancel ${run_id}: ${error.message}`);
+              }
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 9,
+              body: `Production extraction started: run ${context.runId}.`
+            });
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Cancel stale queued runs and announce live run
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: python team_trb_all_players/workflow_status.py start
       - id: plan
         run: python team_trb_all_players/full_adaptive_plan.py
       - name: Confirm matrix expansion
