@@ -1,0 +1,89 @@
+name: Full adaptive team rebound dataset
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'team_trb_trigger/full-adaptive-build.txt'
+      - 'team_trb_all_players/full_adaptive_batch.py'
+      - 'team_trb_all_players/full_adaptive_plan.py'
+      - 'team_trb_all_players/full_adaptive_aggregate.py'
+      - '.github/workflows/full-adaptive-build.yml'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        run: python team_trb_all_players/full_adaptive_plan.py
+
+  shards:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env:
+      PBPSTATS_SEASON: ${{ matrix.season }}
+      PBPSTATS_FROM_DATE: ${{ matrix.from_date }}
+      PBPSTATS_TO_DATE: ${{ matrix.to_date }}
+      PBPSTATS_GROUP: ${{ matrix.group }}
+      PBPSTATS_TEAM_IDS: ${{ matrix.team_ids }}
+      PBPSTATS_TOP_WINDOW_DAYS: '14'
+      PBPSTATS_CONNECT_TIMEOUT: '10'
+      PBPSTATS_READ_TIMEOUT: '35'
+      PBPSTATS_REQUEST_PAUSE: '0.45'
+      PBPSTATS_OUTPUT_DIR: team_trb_all_players/full_build_output
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install requests
+      - name: Extract and validate five-team season shard
+        run: python team_trb_all_players/full_adaptive_batch.py
+      - name: Upload raw shard and validation records
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-trb-${{ matrix.season }}-g${{ matrix.group }}
+          path: team_trb_all_players/full_build_output/**
+          if-no-files-found: error
+          retention-days: 90
+
+  aggregate:
+    needs: [plan, shards]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download every shard artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: team-trb-*
+          path: all-shards
+      - name: Build career leaderboard only when every shard validates
+        run: python team_trb_all_players/full_adaptive_aggregate.py all-shards team_trb_all_players/full_career_output
+      - name: Upload consolidated dataset and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: career-team-trb-complete-dataset
+          path: team_trb_all_players/full_career_output/**
+          if-no-files-found: error
+          retention-days: 90
