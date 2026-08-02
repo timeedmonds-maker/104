@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/full-adaptive-build.yml'
       - 'team_trb_all_players/full_adaptive_batch.py'
+      - 'team_trb_all_players/slim_cached_batch.py'
       - 'team_trb_all_players/slim_checkpoint_plan.py'
       - 'team_trb_all_players/slim_run_one.py'
       - 'team_trb_all_players/slim_collect.py'
@@ -20,6 +21,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write
   issues: write
 
 env:
@@ -41,10 +43,35 @@ jobs:
       pending_total: ${{ steps.plan.outputs.pending_total }}
       selected_count: ${{ steps.plan.outputs.selected_count }}
     steps:
+      - name: Cancel superseded VM-based production runs
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            for (const run_id of [30763698484, 30766940270]) {
+              try {
+                await github.rest.actions.cancelWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id
+                });
+              } catch (error) {
+                core.info(`Run ${run_id} already finished or could not be cancelled: ${error.message}`);
+              }
+            }
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Compile checkpoint pipeline before scheduling extraction
+        run: |
+          python -m py_compile \
+            team_trb_all_players/full_adaptive_batch.py \
+            team_trb_all_players/slim_cached_batch.py \
+            team_trb_all_players/slim_checkpoint_plan.py \
+            team_trb_all_players/slim_run_one.py \
+            team_trb_all_players/slim_collect.py \
+            team_trb_all_players/slim_checkpoint_aggregate.py
       - id: plan
         env:
           PBPSTATS_BATCH_SIZE: '20'
@@ -85,16 +112,31 @@ jobs:
       PBPSTATS_CONNECT_TIMEOUT: '8'
       PBPSTATS_READ_TIMEOUT: '25'
       PBPSTATS_REQUEST_PAUSE: '0.45'
-      PBPSTATS_RUNTIME_LIMIT_SECONDS: '650'
+      PBPSTATS_RUNTIME_LIMIT_SECONDS: '600'
       PBPSTATS_OUTPUT_DIR: checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Restore partial date-window work from an earlier attempt
+        id: restore-work
+        uses: actions/cache/restore@v4
+        with:
+          path: checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}
+          key: team-trb-work-${{ matrix.task_key }}-${{ github.run_id }}
+          restore-keys: |
+            team-trb-work-${{ matrix.task_key }}-
       - run: python -m pip install --disable-pip-version-check requests
       - name: Extract and validate one team-season within the slim time budget
+        id: extract-one
         run: python team_trb_all_players/slim_run_one.py
+      - name: Preserve partial date windows for the next retry
+        if: ${{ always() && steps.extract-one.outputs.completed != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: checkpoint_payload/${{ matrix.season }}/${{ matrix.team_id }}
+          key: team-trb-work-${{ matrix.task_key }}-${{ github.run_id }}
       - name: Upload checkpoint payload or retry diagnostics
         if: always()
         uses: actions/upload-artifact@v4
