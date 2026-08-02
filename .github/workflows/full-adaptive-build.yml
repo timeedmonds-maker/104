@@ -1,22 +1,9 @@
 name: Full adaptive team rebound dataset
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'team_trb_trigger/full-adaptive-build.txt'
-      - 'team_trb_all_players/full_adaptive_batch.py'
-      - 'team_trb_all_players/full_adaptive_plan.py'
-      - 'team_trb_all_players/full_adaptive_aggregate.py'
-      - 'team_trb_all_players/workflow_status.py'
-      - '.github/workflows/full-adaptive-build.yml'
   workflow_dispatch:
   issue_comment:
     types: [created]
-
-concurrency:
-  group: full-adaptive-team-rebound-dataset
-  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -28,30 +15,85 @@ env:
   STATUS_ISSUE: '9'
 
 jobs:
+  runner_probe_announce:
+    if: ${{ github.event_name == 'issue_comment' && github.event.issue.number == 9 && contains(github.event.comment.body, '/probe-team-trb') }}
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 9,
+              body: `Production-workflow runner probe started: run ${context.runId}.`
+            });
+
+  runner_probe_slim:
+    needs: runner_probe_announce
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - run: uname -a && python3 --version
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 9,
+              body: `Runner probe ${context.runId}: ubuntu-slim executed successfully.`
+            });
+
+  runner_probe_x64:
+    needs: runner_probe_announce
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - run: uname -a && python3 --version
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 9,
+              body: `Runner probe ${context.runId}: ubuntu-24.04 executed successfully.`
+            });
+
+  runner_probe_arm:
+    needs: runner_probe_announce
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+    steps:
+      - run: uname -a && python3 --version
+      - uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 9,
+              body: `Runner probe ${context.runId}: ubuntu-24.04-arm executed successfully.`
+            });
+
   plan:
-    if: ${{ github.event_name != 'issue_comment' || (github.event.issue.number == 9 && contains(github.event.comment.body, '/start-team-trb')) }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.number == 9 && contains(github.event.comment.body, '/start-team-trb')) }}
     runs-on: ubuntu-slim
     timeout-minutes: 10
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
-      - name: Cancel stale queued runs and announce live run
+      - name: Announce live production run
         uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
-            const staleRuns = [30761334701, 30761334722, 30761493273];
-            for (const run_id of staleRuns) {
-              try {
-                await github.rest.actions.cancelWorkflowRun({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  run_id
-                });
-              } catch (error) {
-                core.warning(`Could not cancel ${run_id}: ${error.message}`);
-              }
-            }
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -107,7 +149,7 @@ jobs:
 
   aggregate:
     needs: [plan, shards]
-    if: ${{ always() && (github.event_name != 'issue_comment' || (github.event.issue.number == 9 && contains(github.event.comment.body, '/start-team-trb'))) }}
+    if: ${{ always() && needs.plan.result != 'skipped' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 30
     steps:
