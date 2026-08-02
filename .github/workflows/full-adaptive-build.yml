@@ -1,14 +1,19 @@
 name: Full adaptive team rebound dataset
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
     paths:
       - 'team_trb_trigger/full-adaptive-build.txt'
       - 'team_trb_all_players/full_adaptive_batch.py'
       - 'team_trb_all_players/full_adaptive_plan.py'
       - 'team_trb_all_players/full_adaptive_aggregate.py'
       - '.github/workflows/full-adaptive-build.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: full-adaptive-team-rebound-dataset
+  cancel-in-progress: true
 
 permissions:
   contents: read
