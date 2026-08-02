@@ -8,6 +8,7 @@ on:
       - 'team_trb_all_players/full_adaptive_batch.py'
       - 'team_trb_all_players/full_adaptive_plan.py'
       - 'team_trb_all_players/full_adaptive_aggregate.py'
+      - 'team_trb_all_players/workflow_status.py'
       - '.github/workflows/full-adaptive-build.yml'
   workflow_dispatch:
 
@@ -31,21 +32,20 @@ jobs:
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Cancel stale queued runs and announce live run
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          for run_id in 30761334701 30761334722 30761493273; do
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/cancel" || true
-          done
-          gh issue comment "${STATUS_ISSUE}" --body "Production extraction started: run ${GITHUB_RUN_ID} on ${RUNNER_OS}."
-      - uses: actions/checkout@v4
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python team_trb_all_players/workflow_status.py start
       - id: plan
         run: python team_trb_all_players/full_adaptive_plan.py
       - name: Confirm matrix expansion
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh issue comment "${STATUS_ISSUE}" --body "Run ${GITHUB_RUN_ID}: planning completed and the 156-shard matrix is ready."
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python team_trb_all_players/workflow_status.py planned
 
   shards:
     needs: plan
@@ -111,6 +111,6 @@ jobs:
       - name: Report final workflow state
         if: always()
         env:
-          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
           FINAL_STATUS: ${{ job.status }}
-        run: gh issue comment "${STATUS_ISSUE}" --body "Run ${GITHUB_RUN_ID} reached the aggregate stage with status: ${FINAL_STATUS}."
+        run: python team_trb_all_players/workflow_status.py final
