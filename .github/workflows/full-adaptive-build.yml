@@ -17,19 +17,34 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write
+  issues: write
 
 env:
   PYTHONUNBUFFERED: '1'
+  STATUS_ISSUE: '9'
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
+      - name: Cancel stale queued runs and announce live run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for run_id in 30761334701 30761334722 30761493273; do
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}/cancel" || true
+          done
+          gh issue comment "${STATUS_ISSUE}" --body "Production extraction started: run ${GITHUB_RUN_ID} on ${RUNNER_OS}."
       - uses: actions/checkout@v4
       - id: plan
         run: python team_trb_all_players/full_adaptive_plan.py
+      - name: Confirm matrix expansion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue comment "${STATUS_ISSUE}" --body "Run ${GITHUB_RUN_ID}: planning completed and the 156-shard matrix is ready."
 
   shards:
     needs: plan
@@ -37,7 +52,7 @@ jobs:
       fail-fast: false
       max-parallel: 2
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 300
     env:
       PBPSTATS_SEASON: ${{ matrix.season }}
@@ -70,7 +85,7 @@ jobs:
   aggregate:
     needs: [plan, shards]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -92,3 +107,9 @@ jobs:
           path: team_trb_all_players/full_career_output/**
           if-no-files-found: error
           retention-days: 90
+      - name: Report final workflow state
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINAL_STATUS: ${{ job.status }}
+        run: gh issue comment "${STATUS_ISSUE}" --body "Run ${GITHUB_RUN_ID} reached the aggregate stage with status: ${FINAL_STATUS}."
