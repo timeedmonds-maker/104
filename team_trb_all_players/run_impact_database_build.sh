@@ -12,6 +12,6 @@ git pull --rebase origin main
 python -m pip install --disable-pip-version-check requests
 
 python team_trb_all_players/impact_database_preflight.py
-python team_trb_all_players/impact_database_build.py
+IMPACT_DB_STAGE=core python team_trb_all_players/impact_database_build.py
 
-echo "Historical player-impact database build finished and outputs were pushed."
+echo "Core historical player-impact database build finished and outputs were pushed."
