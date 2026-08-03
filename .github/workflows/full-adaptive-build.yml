@@ -13,12 +13,12 @@ on:
       - 'team_trb_all_players/slim_record_attempt.py'
       - 'team_trb_all_players/slim_checkpoint_aggregate.py'
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 concurrency:
   group: resumable-team-rebound-checkpoints
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -34,10 +34,22 @@ env:
 
 jobs:
   cycle:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 55
 
     steps:
+      - name: Report cycle start
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.STATUS_ISSUE),
+              body: `Standard-runner cycle ${context.runId} started on ${process.env.ImageOS || 'ubuntu-latest'}.`
+            });
+
       - uses: actions/checkout@v4
         with:
           ref: main
