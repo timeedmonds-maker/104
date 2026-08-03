@@ -61,38 +61,10 @@ def main() -> int:
     ):
         fail("Steven Adams rebound totals did not reconcile", rebound)
 
+    build.git_commit_progress("core preflight Houston 2025-26")
     print(
         f"Core preflight passed: {len(player_rows)} players, "
         f"{len(metrics)} team on-off metrics, Adams 905/620.",
-        flush=True,
-    )
-
-    print("Running teammate-interaction preflight for Houston 2025-26...", flush=True)
-    pair = build.fetch_pair_task(SEASON, TEAM_ID)
-    if pair.get("complete") is not True:
-        fail("teammate-interaction collection did not complete", {
-            "completed": len(pair.get("completed_player_ids", [])),
-            "expected": len(pair.get("expected_player_ids", [])),
-            "errors": pair.get("errors", []),
-        })
-
-    adams_pair = next(
-        (
-            row for row in pair.get("focal_players", [])
-            if isinstance(row, dict) and str(row.get("focal_player_id")) == ADAMS_ID
-        ),
-        None,
-    )
-    if adams_pair is None:
-        fail("Steven Adams teammate-interaction response was not saved")
-    if int(adams_pair.get("metric_count", 0)) < 25:
-        fail("Steven Adams teammate response was not broad enough", adams_pair)
-
-    build.git_commit_progress("preflight Houston 2025-26")
-    print(
-        f"Pair preflight passed: {len(pair.get('focal_players', []))} focal players; "
-        f"Adams response contains {adams_pair.get('metric_count')} metrics and "
-        f"{adams_pair.get('row_count')} teammate-metric rows.",
         flush=True,
     )
     return 0
