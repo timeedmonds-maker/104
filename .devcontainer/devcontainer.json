@@ -1,0 +1,22 @@
+{
+  "name": "NBA Team TRB Dataset Builder",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "python -m pip install --disable-pip-version-check requests && python -m py_compile team_trb_all_players/full_adaptive_batch.py team_trb_all_players/slim_cached_batch.py team_trb_all_players/slim_checkpoint_plan.py team_trb_all_players/slim_run_one.py team_trb_all_players/slim_collect.py team_trb_all_players/slim_record_attempt.py team_trb_all_players/slim_checkpoint_aggregate.py team_trb_all_players/codespace_runner.py",
+  "customizations": {
+    "codespaces": {
+      "openFiles": [
+        "CODESPACES_TEAM_TRB.md"
+      ]
+    },
+    "vscode": {
+      "settings": {
+        "task.allowAutomaticTasks": "on",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}
