@@ -27,10 +27,7 @@ def main() -> int:
             "requests": core.get("requests", {}),
         })
 
-    player_rows = [
-        row for row in core.get("player_totals", [])
-        if isinstance(row, dict)
-    ]
+    player_rows = [row for row in core.get("player_totals", []) if isinstance(row, dict)]
     adams_total = next(
         (
             row for row in player_rows
@@ -45,10 +42,7 @@ def main() -> int:
     if seconds is None or abs(seconds - 43821.9) > 1e-3:
         fail("Steven Adams seconds did not reconcile", {"seconds": seconds})
 
-    profiles = [
-        row for row in core.get("team_profiles", [])
-        if isinstance(row, dict)
-    ]
+    profiles = [row for row in core.get("team_profiles", []) if isinstance(row, dict)]
     adams_profile = next(
         (row for row in profiles if str(row.get("focal_player_id")) == ADAMS_ID),
         None,
@@ -80,38 +74,11 @@ def main() -> int:
     ):
         fail("Steven Adams rebound totals did not reconcile", rebound)
 
+    build.git_commit_progress("core preflight Houston 2025-26")
     print(
         f"Core preflight passed: {len(player_rows)} players, "
-        f"{len(metrics)} team metrics, Adams 905/620.",
-        flush=True,
-    )
-
-    print("Running teammate-interaction preflight for Houston 2025-26...", flush=True)
-    pair = build.fetch_pair_task(SEASON, TEAM_ID)
-    if pair.get("complete") is not True:
-        fail("teammate-interaction collection did not complete", {
-            "completed": len(pair.get("completed_player_ids", [])),
-            "expected": len(pair.get("expected_player_ids", [])),
-            "errors": pair.get("errors", [])[-5:],
-        })
-
-    adams_pair = next(
-        (
-            row for row in pair.get("focal_players", [])
-            if isinstance(row, dict) and str(row.get("focal_player_id")) == ADAMS_ID
-        ),
-        None,
-    )
-    if adams_pair is None:
-        fail("Steven Adams teammate-interaction response was not saved")
-    if int(adams_pair.get("metric_count", 0)) < 25:
-        fail("Steven Adams teammate response was not broad enough", adams_pair)
-
-    build.git_commit_progress("corrected preflight Houston 2025-26")
-    print(
-        f"Pair preflight passed: {len(pair.get('focal_players', []))} focal players; "
-        f"Adams response contains {adams_pair.get('metric_count')} metrics and "
-        f"{adams_pair.get('row_count')} teammate-metric rows.",
+        f"{len(metrics)} team metrics, Adams 905/620. "
+        "Teammate-pair collection is disabled.",
         flush=True,
     )
     return 0
