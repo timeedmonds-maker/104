@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build NBA team TRB dataset",
+      "label": "Build NBA historical player-impact core database",
       "type": "shell",
-      "command": "python team_trb_all_players/codespace_runner.py",
+      "command": "bash team_trb_all_players/run_impact_database_build.sh",
       "isBackground": true,
       "problemMatcher": [],
       "runOptions": {
