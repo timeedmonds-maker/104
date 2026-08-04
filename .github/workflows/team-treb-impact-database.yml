@@ -22,7 +22,7 @@ permissions:
 
 concurrency:
   group: team-treb-impact-database
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-core:
@@ -65,34 +65,27 @@ jobs:
           set -euo pipefail
           for check in 1 2 3 4 5 6; do
             body=$(gh api "repos/${GITHUB_REPOSITORY}/issues/comments/5161464311" --jq .body 2>/dev/null || true)
-            ready=$(STATUS_BODY="$body" python - <<'PY'
-          import os
-          import re
-          from datetime import datetime, timezone
 
-          body = os.environ.get("STATUS_BODY", "")
-          if "Execution: **GitHub Actions**" in body:
-              print("true")
-              raise SystemExit
-
-          match = re.search(
-              r"Updated:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[+-][0-9:]+))",
-              body,
-          )
-          if not match:
-              print("false")
-              raise SystemExit
-
-          stamp = match.group(1).replace("Z", "+00:00")
-          updated = datetime.fromisoformat(stamp)
-          age = (datetime.now(timezone.utc) - updated).total_seconds()
-          print("true" if age >= 300 else "false")
-          PY
-            )
-
-            if [ "$ready" = "true" ]; then
+            if printf '%s' "$body" | grep -Fq 'Execution: **GitHub Actions**'; then
               echo "ready=true" >> "$GITHUB_OUTPUT"
-              echo "Codespace status is inactive or the Actions chain already owns execution."
+              echo "The Actions chain already owns execution."
+              exit 0
+            fi
+
+            updated=$(printf '%s' "$body" | grep -oE 'Updated: [0-9T:+.-]+' | tail -1 | cut -d' ' -f2 | sed 's/\.$//' || true)
+            if [ -z "$updated" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              echo "No usable Codespace timestamp was found; Actions will take ownership."
+              exit 0
+            fi
+
+            updated_epoch=$(date -u -d "$updated" +%s 2>/dev/null || echo 0)
+            now_epoch=$(date -u +%s)
+            age=$((now_epoch - updated_epoch))
+
+            if [ "$updated_epoch" -gt 0 ] && [ "$age" -ge 300 ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              echo "Codespace status is ${age}s old; Actions will take ownership."
               exit 0
             fi
 
@@ -101,7 +94,7 @@ jobs:
           done
 
           echo "ready=false" >> "$GITHUB_OUTPUT"
-          echo "Codespace remained active during this handoff window. No duplicate collector will be started."
+          echo "Codespace remained active during this handoff window. A retry will be queued."
 
       - name: Run bounded two-worker chunk
         id: chunk
@@ -184,11 +177,12 @@ jobs:
             "repos/${GITHUB_REPOSITORY}/issues/comments/5161464311" \
             -f "body=$body"
 
-      - name: Queue the next chunk
+      - name: Queue the next handoff or build chunk
         if: always() && steps.state.outputs.complete != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CORE_COUNT: ${{ steps.state.outputs.count }}
+          HANDOFF_READY: ${{ steps.handoff.outputs.ready }}
         run: |
           sleep 30
           python - <<'PY'
@@ -200,6 +194,7 @@ jobs:
               "client_payload": {
                   "previous_run_id": os.environ["GITHUB_RUN_ID"],
                   "core_complete": os.environ.get("CORE_COUNT", "unknown"),
+                  "handoff_ready": os.environ.get("HANDOFF_READY", "unknown"),
               },
           }
           with open("/tmp/team-treb-dispatch.json", "w", encoding="utf-8") as handle:
@@ -208,7 +203,7 @@ jobs:
           gh api --method POST \
             "repos/${GITHUB_REPOSITORY}/dispatches" \
             --input /tmp/team-treb-dispatch.json
-          echo "Queued the next Team TREB Actions chunk."
+          echo "Queued the next Team TREB Actions run."
 
       - name: Confirm completion
         if: always() && steps.state.outputs.complete == 'true'
