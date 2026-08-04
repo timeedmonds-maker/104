@@ -4,76 +4,25 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
-  issue_comment:
-    types: [created]
-  repository_dispatch:
-    types:
-      - continue-team-treb-impact-database
 
 permissions:
   contents: write
   issues: write
-  actions: write
 
 env:
   PYTHONUNBUFFERED: '1'
-  STATUS_ISSUE: '9'
   STATUS_COMMENT_ID: '5161464311'
 
+concurrency:
+  group: team-treb-impact-database-production
+  cancel-in-progress: false
+
 jobs:
-  bootstrap:
-    if: ${{ github.event_name == 'schedule' }}
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 5
-    concurrency:
-      group: team-treb-impact-bootstrap-arm-v2
-      cancel-in-progress: true
-
-    steps:
-      - name: Start Actions chain when Codespace is stale
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const commentId = Number(process.env.STATUS_COMMENT_ID);
-            const { data: comment } = await github.rest.issues.getComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: commentId
-            });
-            const body = comment.body || '';
-            if (body.includes('Core player/team on-off layer: **780/780**')) return;
-            if (body.includes('Execution: **GitHub Actions**')) return;
-            const stampMatch = body.match(/Updated:\s*([0-9T:+.-]+)/);
-            const updatedMs = stampMatch ? Date.parse(stampMatch[1].replace(/\.$/, '')) : Number.NaN;
-            const ageSeconds = Number.isFinite(updatedMs) ? Math.floor((Date.now() - updatedMs) / 1000) : 999999;
-            if (ageSeconds < 300) return;
-            const countMatch = body.match(/Core player\/team on-off layer:\s*\*\*(\d+)\/780\*\*/);
-            const count = countMatch ? countMatch[1] : '279';
-            const takeoverBody = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. The Codespace handoff is complete and the first bounded two-worker chunk is being queued. Updated: ${new Date().toISOString()}.`;
-            await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: commentId, body: takeoverBody });
-            await github.rest.repos.createDispatchEvent({ owner: context.repo.owner, repo: context.repo.repo, event_type: 'continue-team-treb-impact-database', client_payload: { bootstrap_run_id: String(context.runId), core_complete: count } });
-
   impact_core:
-    if: ${{ github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.number == 9 && github.event.comment.body == '/start-team-treb-actions') }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 330
-    concurrency:
-      group: team-treb-impact-database-arm-v3
-      cancel-in-progress: true
 
     steps:
-      - name: Announce GitHub Actions ownership
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const { data: comment } = await github.rest.issues.getComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: Number(process.env.STATUS_COMMENT_ID) });
-            const match = (comment.body || '').match(/Core player\/team on-off layer:\s*\*\*(\d+)\/780\*\*/);
-            const count = match ? match[1] : '279';
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. ARM hosted runner chunk started. Updated: ${new Date().toISOString()}.`;
-            await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: Number(process.env.STATUS_COMMENT_ID), body });
-
       - name: Check out main
         uses: actions/checkout@v4
         with:
@@ -86,23 +35,58 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install runtime dependency
+      - name: Install dependency
         run: python -m pip install --disable-pip-version-check requests
 
-      - name: Configure checkpoint commits
+      - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Validate impact builder
+      - name: Determine current completion
+        id: before
+        run: |
+          count=$(python - <<'PY'
+          import sys
+          sys.path.insert(0, 'team_trb_all_players')
+          import impact_database_build as base
+          print(base.completed_count('core'))
+          PY
+          )
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" -ge 780 ]; then
+            echo "complete=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "complete=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Announce GitHub Actions ownership
+        if: steps.before.outputs.complete != 'true'
+        uses: actions/github-script@v7
+        env:
+          CORE_COUNT: ${{ steps.before.outputs.count }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Two-worker ARM build is running. Updated: ${new Date().toISOString()}.`;
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: Number(process.env.STATUS_COMMENT_ID),
+              body
+            });
+
+      - name: Validate builder
+        if: steps.before.outputs.complete != 'true'
         run: |
           python -m py_compile \
             team_trb_all_players/impact_database_build.py \
             team_trb_all_players/impact_database_build_fixed.py \
             team_trb_all_players/impact_database_actions_chunk.py
 
-      - name: Run bounded two-worker impact chunk
+      - name: Run bounded two-worker chunk
         id: chunk
+        if: steps.before.outputs.complete != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMPACT_DB_CORE_WORKERS: '2'
@@ -118,54 +102,38 @@ jobs:
           echo "runner_exit_code=$rc" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Commit and push final local checkpoints
-        if: always()
+      - name: Commit final checkpoints
+        if: always() && steps.before.outputs.complete != 'true'
         run: |
           set -euo pipefail
           git add -A -- team_trb_all_players/impact_database
           if ! git diff --cached --quiet; then
-            git commit -m "Impact database progress: Actions final checkpoint"
+            git commit -m "Impact database progress: scheduled Actions checkpoint"
           fi
           for attempt in 1 2 3 4 5 6; do
-            if git pull --rebase origin main && git push origin HEAD:main; then exit 0; fi
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
             git rebase --abort 2>/dev/null || true
             sleep $((attempt * 10))
           done
           exit 1
 
-      - name: Determine completion state
-        id: state
+      - name: Publish final status
         if: always()
-        run: |
-          count=$(python - <<'PY'
-          import sys
-          sys.path.insert(0, 'team_trb_all_players')
-          import impact_database_build as base
-          print(base.completed_count('core'))
-          PY
-          )
-          echo "count=$count" >> "$GITHUB_OUTPUT"
-          if [ "$count" -ge 780 ]; then echo "complete=true" >> "$GITHUB_OUTPUT"; else echo "complete=false" >> "$GITHUB_OUTPUT"; fi
-
-      - name: Publish continuation status
-        if: always() && steps.state.outputs.complete != 'true'
         uses: actions/github-script@v7
         env:
-          CORE_COUNT: ${{ steps.state.outputs.count }}
           RUNNER_EXIT_CODE: ${{ steps.chunk.outputs.runner_exit_code }}
         with:
           github-token: ${{ github.token }}
           script: |
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. The latest bounded chunk ended with runner code ${process.env.RUNNER_EXIT_CODE || 'unknown'}. A continuation is being queued automatically. Updated: ${new Date().toISOString()}.`;
-            await github.rest.issues.updateComment({ owner: context.repo.owner, repo: context.repo.repo, comment_id: Number(process.env.STATUS_COMMENT_ID), body });
-
-      - name: Queue next chunk
-        if: always() && steps.state.outputs.complete != 'true'
-        uses: actions/github-script@v7
-        env:
-          CORE_COUNT: ${{ steps.state.outputs.count }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            await new Promise(resolve => setTimeout(resolve, 30000));
-            await github.rest.repos.createDispatchEvent({ owner: context.repo.owner, repo: context.repo.repo, event_type: 'continue-team-treb-impact-database', client_payload: { previous_run_id: String(context.runId), core_complete: process.env.CORE_COUNT || 'unknown' } });
+            const { execSync } = require('child_process');
+            const count = execSync("python -c \"import sys; sys.path.insert(0, 'team_trb_all_players'); import impact_database_build as b; print(b.completed_count('core'))\"").toString().trim();
+            const complete = Number(count) >= 780;
+            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. ${complete ? 'Core build complete.' : `Scheduled chunk ended with runner code ${process.env.RUNNER_EXIT_CODE || 'unknown'}; the next five-minute schedule will resume remaining checkpoints.`} Updated: ${new Date().toISOString()}.`;
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: Number(process.env.STATUS_COMMENT_ID),
+              body
+            });
