@@ -5,15 +5,9 @@ on:
   repository_dispatch:
     types:
       - continue-team-treb-impact-database
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/team-treb-impact-database.yml
-      - team_trb_all_players/impact_database_actions_chunk.py
-      - team_trb_all_players/impact_database_supervisor.py
-      - team_trb_all_players/impact_database_build_fixed.py
-      - team_trb_all_players/impact_database_build.py
+  issue_comment:
+    types:
+      - created
 
 permissions:
   contents: write
@@ -26,6 +20,9 @@ concurrency:
 
 jobs:
   build-core:
+    if: >
+      github.event_name != 'issue_comment' ||
+      (github.event.issue.number == 9 && github.event.comment.body == '/start-team-treb-actions')
     runs-on: ubuntu-latest
     timeout-minutes: 330
 
