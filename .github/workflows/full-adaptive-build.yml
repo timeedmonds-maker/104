@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'team_trb_trigger/observable-impact-build.txt'
 
 permissions:
   contents: write
