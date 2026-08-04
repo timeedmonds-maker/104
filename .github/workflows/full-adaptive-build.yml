@@ -1,12 +1,12 @@
 name: Team TREB impact database
 
 on:
-  push:
+  pull_request:
     branches: [main]
     paths:
-      - '.github/workflows/full-adaptive-build.yml'
+      - 'team_trb_trigger/observable-impact-build.txt'
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -17,14 +17,10 @@ env:
   PYTHONUNBUFFERED: '1'
   STATUS_COMMENT_ID: '5161464311'
 
-concurrency:
-  group: team-treb-impact-database-production
-  cancel-in-progress: false
-
 jobs:
   impact_core:
-    runs-on: ubuntu-latest
-    timeout-minutes: 330
+    runs-on: ubuntu-slim
+    timeout-minutes: 14
 
     steps:
       - name: Check out main
@@ -72,7 +68,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Two-worker standard hosted build is running. Updated: ${new Date().toISOString()}.`;
+            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Root ubuntu-slim build is running. Updated: ${new Date().toISOString()}.`;
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -94,10 +90,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMPACT_DB_CORE_WORKERS: '2'
-          IMPACT_DB_CORE_COMMIT_EVERY: '6'
+          IMPACT_DB_CORE_COMMIT_EVERY: '2'
           IMPACT_DB_HEARTBEAT_SECONDS: '120'
-          IMPACT_DB_WATCHDOG_SECONDS: '1200'
-          IMPACT_DB_RUN_SECONDS: '15000'
+          IMPACT_DB_WATCHDOG_SECONDS: '600'
+          IMPACT_DB_RUN_SECONDS: '600'
           TEAM_TRB_STATUS_COMMENT_ID: '5161464311'
         run: |
           set +e
@@ -112,9 +108,9 @@ jobs:
           set -euo pipefail
           git add -A -- team_trb_all_players/impact_database
           if ! git diff --cached --quiet; then
-            git commit -m "Impact database progress: scheduled Actions checkpoint"
+            git commit -m "Impact database progress: slim Actions checkpoint"
           fi
-          for attempt in 1 2 3 4 5 6; do
+          for attempt in 1 2 3 4; do
             if git pull --rebase origin main && git push origin HEAD:main; then
               exit 0
             fi
@@ -134,7 +130,7 @@ jobs:
             const { execSync } = require('child_process');
             const count = execSync("python -c \"import sys; sys.path.insert(0, 'team_trb_all_players'); import impact_database_build as b; print(b.completed_count('core'))\"").toString().trim();
             const complete = Number(count) >= 780;
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. ${complete ? 'Core build complete.' : `Scheduled chunk ended with runner code ${process.env.RUNNER_EXIT_CODE || 'unknown'}; the next five-minute schedule will resume remaining checkpoints.`} Updated: ${new Date().toISOString()}.`;
+            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. ${complete ? 'Core build complete.' : `Slim chunk ended with runner code ${process.env.RUNNER_EXIT_CODE || 'unknown'}; the next scheduled chunk will resume remaining checkpoints.`} Updated: ${new Date().toISOString()}.`;
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
