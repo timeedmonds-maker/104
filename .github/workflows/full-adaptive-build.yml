@@ -1,13 +1,13 @@
 name: Team TREB impact database
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/full-adaptive-build.yml'
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'team_trb_trigger/observable-impact-build.txt'
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   impact_core:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     timeout-minutes: 330
 
     steps:
@@ -72,7 +72,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Two-worker ARM build is running. Updated: ${new Date().toISOString()}.`;
+            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Two-worker standard hosted build is running. Updated: ${new Date().toISOString()}.`;
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
