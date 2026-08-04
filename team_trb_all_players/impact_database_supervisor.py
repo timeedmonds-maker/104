@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import os
+import queue
 import subprocess
 import sys
+import threading
 import time
 from collections import deque
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -13,6 +15,8 @@ import impact_database_build_fixed as fixed
 base = fixed.base
 HEARTBEAT_SECONDS = max(30, int(os.getenv("IMPACT_DB_HEARTBEAT_SECONDS", "120")))
 WATCHDOG_SECONDS = max(300, int(os.getenv("IMPACT_DB_WATCHDOG_SECONDS", "1200")))
+_STATUS_QUEUE: queue.Queue[str] = queue.Queue(maxsize=1)
+_STATUS_SEND_LOCK = threading.Lock()
 
 
 def resilient_git_commit_progress(label: str) -> bool:
@@ -65,23 +69,57 @@ def resilient_git_commit_progress(label: str) -> bool:
         return False
 
 
-def resilient_update_status(body: str) -> None:
-    """Update the GitHub status comment without letting gh hang the collector."""
+def _send_status_sync(body: str) -> None:
+    """Send one GitHub status update with a hard timeout."""
     command = [
         "gh", "api", "--method", "PATCH",
         f"repos/timeedmonds-maker/104/issues/comments/{base.STATUS_COMMENT_ID}",
         "-f", f"body={body}",
     ]
     try:
-        subprocess.run(
-            command,
-            cwd=base.REPO,
-            check=True,
-            stdout=subprocess.DEVNULL,
-            timeout=30,
-        )
+        with _STATUS_SEND_LOCK:
+            subprocess.run(
+                command,
+                cwd=base.REPO,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                timeout=30,
+            )
     except (OSError, subprocess.SubprocessError) as exc:
         print(f"[{base.now()}] Status update failed or timed out: {exc}", flush=True)
+
+
+def _status_worker() -> None:
+    """Publish queued status updates without blocking task scheduling."""
+    while True:
+        body = _STATUS_QUEUE.get()
+        try:
+            _send_status_sync(body)
+        finally:
+            _STATUS_QUEUE.task_done()
+
+
+def resilient_update_status(body: str) -> None:
+    """Queue the newest status without blocking the collector."""
+    try:
+        _STATUS_QUEUE.put_nowait(body)
+        return
+    except queue.Full:
+        pass
+
+    # Keep only the newest waiting status. A status already being sent is left
+    # alone, while any older queued update is replaced.
+    try:
+        _STATUS_QUEUE.get_nowait()
+        _STATUS_QUEUE.task_done()
+    except queue.Empty:
+        pass
+
+    try:
+        _STATUS_QUEUE.put_nowait(body)
+    except queue.Full:
+        # The worker raced us and another newer update is already queued.
+        pass
 
 
 def status_body(stage: str, current_complete: int, worker_count: int, active: list[str], note: str = "") -> str:
@@ -170,7 +208,7 @@ def resilient_run_stage(stage: str) -> None:
                         flush=True,
                     )
                     base.git_commit_progress(f"{stage} watchdog checkpoint")
-                    base.update_status(status_body(
+                    _send_status_sync(status_body(
                         stage,
                         prior_complete,
                         worker_count,
@@ -213,6 +251,10 @@ def resilient_run_stage(stage: str) -> None:
                 if not result.get("complete"):
                     pending.append((season, team_id, attempts + 1))
 
+                # Refill the free worker immediately. Git synchronization and
+                # public status reporting must never sit in the scheduling path.
+                fill_workers()
+
                 if completed_since_commit >= commit_every or current_complete == base.EXPECTED_TEAM_SEASONS:
                     base.git_commit_progress(f"{stage} {current_complete} of {base.EXPECTED_TEAM_SEASONS}")
                     completed_since_commit = 0
@@ -230,12 +272,16 @@ def resilient_run_stage(stage: str) -> None:
                     time.sleep(base.STALL_PAUSE)
                     no_gain_results = 0
 
-                fill_workers()
-
         base.git_commit_progress(f"{stage} complete")
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
 
+
+threading.Thread(
+    target=_status_worker,
+    name="impact-status-updater",
+    daemon=True,
+).start()
 
 # Install all resilient orchestration hooks into the original module. The
 # corrected collector remains unchanged; only scheduling, status and Git sync
