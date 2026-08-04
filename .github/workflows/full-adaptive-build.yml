@@ -1,12 +1,6 @@
-name: Team TREB impact database
+name: Team TREB impact database — manual fallback only
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'team_trb_trigger/observable-impact-build.txt'
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -18,122 +12,13 @@ env:
   STATUS_COMMENT_ID: '5161464311'
 
 jobs:
-  impact_core:
+  impact_core_manual_fallback:
     runs-on: ubuntu-slim
     timeout-minutes: 14
-
     steps:
-      - name: Check out main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          persist-credentials: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependency
-        run: python -m pip install --disable-pip-version-check requests
-
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Determine current completion
-        id: before
-        run: |
-          count=$(python - <<'PY'
-          import sys
-          sys.path.insert(0, 'team_trb_all_players')
-          import impact_database_build as base
-          print(base.completed_count('core'))
-          PY
-          )
-          echo "count=$count" >> "$GITHUB_OUTPUT"
-          if [ "$count" -ge 780 ]; then
-            echo "complete=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "complete=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Announce GitHub Actions ownership
-        if: steps.before.outputs.complete != 'true'
+      - name: Explain fallback status
         uses: actions/github-script@v7
-        env:
-          CORE_COUNT: ${{ steps.before.outputs.count }}
         with:
           github-token: ${{ github.token }}
           script: |
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Root ubuntu-slim build is running. Updated: ${new Date().toISOString()}.`;
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: Number(process.env.STATUS_COMMENT_ID),
-              body
-            });
-
-      - name: Validate builder
-        if: steps.before.outputs.complete != 'true'
-        run: |
-          python -m py_compile \
-            team_trb_all_players/impact_database_build.py \
-            team_trb_all_players/impact_database_build_fixed.py \
-            team_trb_all_players/impact_database_actions_chunk.py
-
-      - name: Run bounded two-worker chunk
-        id: chunk
-        if: steps.before.outputs.complete != 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          IMPACT_DB_CORE_WORKERS: '2'
-          IMPACT_DB_CORE_COMMIT_EVERY: '2'
-          IMPACT_DB_HEARTBEAT_SECONDS: '120'
-          IMPACT_DB_WATCHDOG_SECONDS: '600'
-          IMPACT_DB_RUN_SECONDS: '600'
-          TEAM_TRB_STATUS_COMMENT_ID: '5161464311'
-        run: |
-          set +e
-          python team_trb_all_players/impact_database_actions_chunk.py
-          rc=$?
-          echo "runner_exit_code=$rc" >> "$GITHUB_OUTPUT"
-          exit 0
-
-      - name: Commit final checkpoints
-        if: always() && steps.before.outputs.complete != 'true'
-        run: |
-          set -euo pipefail
-          git add -A -- team_trb_all_players/impact_database
-          if ! git diff --cached --quiet; then
-            git commit -m "Impact database progress: slim Actions checkpoint"
-          fi
-          for attempt in 1 2 3 4; do
-            if git pull --rebase origin main && git push origin HEAD:main; then
-              exit 0
-            fi
-            git rebase --abort 2>/dev/null || true
-            sleep $((attempt * 10))
-          done
-          exit 1
-
-      - name: Publish final status
-        if: always()
-        uses: actions/github-script@v7
-        env:
-          RUNNER_EXIT_CODE: ${{ steps.chunk.outputs.runner_exit_code }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const { execSync } = require('child_process');
-            const count = execSync("python -c \"import sys; sys.path.insert(0, 'team_trb_all_players'); import impact_database_build as b; print(b.completed_count('core'))\"").toString().trim();
-            const complete = Number(count) >= 780;
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. ${complete ? 'Core build complete.' : `Slim chunk ended with runner code ${process.env.RUNNER_EXIT_CODE || 'unknown'}; the next scheduled chunk will resume remaining checkpoints.`} Updated: ${new Date().toISOString()}.`;
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: Number(process.env.STATUS_COMMENT_ID),
-              body
-            });
+            core.notice('Automatic Actions execution is disabled. The production Team TREB impact build runs through the proven two-worker Codespace supervisor.');
