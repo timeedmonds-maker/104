@@ -1,19 +1,8 @@
-name: Standard-runner resumable team rebound dataset
+name: Team TREB impact database
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/full-adaptive-build.yml'
-      - 'team_trb_all_players/full_adaptive_batch.py'
-      - 'team_trb_all_players/slim_cached_batch.py'
-      - 'team_trb_all_players/slim_checkpoint_plan.py'
-      - 'team_trb_all_players/slim_run_one.py'
-      - 'team_trb_all_players/slim_collect.py'
-      - 'team_trb_all_players/slim_record_attempt.py'
-      - 'team_trb_all_players/slim_checkpoint_aggregate.py'
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
   issue_comment:
     types: [created]
@@ -23,180 +12,83 @@ on:
 
 permissions:
   contents: write
-  actions: write
   issues: write
+  actions: write
 
 env:
   PYTHONUNBUFFERED: '1'
   STATUS_ISSUE: '9'
-  PBPSTATS_CHECKPOINT_ROOT: team_trb_all_players/checkpoints
-  PBPSTATS_RETRY_ROOT: team_trb_all_players/retry_state
-  PBPSTATS_FINAL_MARKER: team_trb_all_players/full_career_output/aggregate_complete.json
+  STATUS_COMMENT_ID: '5161464311'
 
 jobs:
-  cycle:
-    if: ${{ github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.number == 9 && github.event.comment.body == '/run-standard-team-trb') }}
+  bootstrap:
+    if: ${{ github.event_name == 'schedule' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 5
     concurrency:
-      group: resumable-team-rebound-checkpoints
+      group: team-treb-impact-bootstrap
       cancel-in-progress: true
 
     steps:
-      - name: Report cycle start
+      - name: Start Actions chain when Codespace is stale
         uses: actions/github-script@v7
         with:
           github-token: ${{ github.token }}
           script: |
-            await github.rest.issues.createComment({
+            const commentId = Number(process.env.STATUS_COMMENT_ID);
+            const { data: comment } = await github.rest.issues.getComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: Number(process.env.STATUS_ISSUE),
-              body: `Standard-runner cycle ${context.runId} started on ${process.env.ImageOS || 'ubuntu-latest'}.`
+              comment_id: commentId
             });
+            const body = comment.body || '';
 
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
+            if (body.includes('Core player/team on-off layer: **780/780**')) {
+              core.info('The core build is already complete.');
+              return;
+            }
+            if (body.includes('Execution: **GitHub Actions**')) {
+              core.info('GitHub Actions already owns execution.');
+              return;
+            }
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+            const stampMatch = body.match(/Updated:\s*([0-9T:+.-]+)/);
+            const updatedMs = stampMatch
+              ? Date.parse(stampMatch[1].replace(/\.$/, ''))
+              : Number.NaN;
+            const ageSeconds = Number.isFinite(updatedMs)
+              ? Math.floor((Date.now() - updatedMs) / 1000)
+              : 999999;
 
-      - name: Install API dependency
-        run: python -m pip install --disable-pip-version-check requests
+            if (ageSeconds < 300) {
+              core.info(`Codespace status is only ${ageSeconds}s old; leaving it in control.`);
+              return;
+            }
 
-      - name: Compile checkpoint pipeline
-        run: |
-          python -m py_compile \
-            team_trb_all_players/full_adaptive_batch.py \
-            team_trb_all_players/slim_cached_batch.py \
-            team_trb_all_players/slim_checkpoint_plan.py \
-            team_trb_all_players/slim_run_one.py \
-            team_trb_all_players/slim_collect.py \
-            team_trb_all_players/slim_record_attempt.py \
-            team_trb_all_players/slim_checkpoint_aggregate.py
+            const countMatch = body.match(/Core player\/team on-off layer:\s*\*\*(\d+)\/780\*\*/);
+            const count = countMatch ? countMatch[1] : '279';
+            const takeoverBody = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. The Codespace handoff is complete and the first bounded two-worker chunk is being queued. Updated: ${new Date().toISOString()}.`;
 
-      - name: Select one fair incomplete team-season
-        id: plan
-        run: python team_trb_all_players/slim_checkpoint_plan.py
-
-      - name: Restore partial windows
-        if: ${{ steps.plan.outputs.has_work == 'true' }}
-        uses: actions/cache/restore@v4
-        with:
-          path: checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}
-          key: team-trb-work-${{ steps.plan.outputs.task_key }}-${{ github.run_id }}
-          restore-keys: |
-            team-trb-work-${{ steps.plan.outputs.task_key }}-
-
-      - name: Extract and validate selected team-season
-        if: ${{ steps.plan.outputs.has_work == 'true' }}
-        id: extract_one
-        env:
-          PBPSTATS_SEASON: ${{ steps.plan.outputs.season }}
-          PBPSTATS_FROM_DATE: ${{ steps.plan.outputs.from_date }}
-          PBPSTATS_TO_DATE: ${{ steps.plan.outputs.to_date }}
-          PBPSTATS_GROUP: ${{ steps.plan.outputs.group }}
-          PBPSTATS_TEAM_IDS: ${{ steps.plan.outputs.team_ids }}
-          PBPSTATS_TOP_WINDOW_DAYS: '14'
-          PBPSTATS_CONNECT_TIMEOUT: '10'
-          PBPSTATS_READ_TIMEOUT: '35'
-          PBPSTATS_REQUEST_PAUSE: '0.55'
-          PBPSTATS_RUNTIME_LIMIT_SECONDS: '2400'
-          PBPSTATS_OUTPUT_DIR: checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}
-        run: python team_trb_all_players/slim_run_one.py
-
-      - name: Preserve incomplete partial windows
-        if: ${{ always() && steps.plan.outputs.has_work == 'true' && steps.extract_one.outputs.completed != 'true' }}
-        uses: actions/cache/save@v4
-        with:
-          path: checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}
-          key: team-trb-work-${{ steps.plan.outputs.task_key }}-${{ github.run_id }}
-
-      - name: Accept only a fully validated checkpoint
-        if: ${{ always() && steps.plan.outputs.has_work == 'true' }}
-        id: collect
-        run: python team_trb_all_players/slim_collect.py checkpoint_work team_trb_all_players/checkpoints
-
-      - name: Record retry state
-        if: ${{ always() && steps.plan.outputs.has_work == 'true' }}
-        run: |
-          python team_trb_all_players/slim_record_attempt.py \
-            --season '${{ steps.plan.outputs.season }}' \
-            --team-id '${{ steps.plan.outputs.team_id }}' \
-            --completed '${{ steps.extract_one.outputs.completed }}' \
-            --timed-out '${{ steps.extract_one.outputs.timed_out }}' \
-            --runner-result 'checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/runner_result.json'
-
-      - name: Recount checkpoints
-        id: after_plan
-        run: python team_trb_all_players/slim_checkpoint_plan.py
-
-      - name: Build final career leaderboard
-        if: ${{ steps.after_plan.outputs.needs_aggregate == 'true' }}
-        run: python team_trb_all_players/slim_checkpoint_aggregate.py team_trb_all_players/checkpoints team_trb_all_players/full_career_output
-
-      - name: Commit validated progress
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A -- \
-            team_trb_all_players/checkpoints \
-            team_trb_all_players/retry_state \
-            team_trb_all_players/full_career_output
-          if git diff --cached --quiet; then
-            echo "No repository progress to commit."
-          else
-            git commit -m "Team rebound checkpoint cycle $GITHUB_RUN_ID"
-            git pull --rebase origin main
-            git push origin HEAD:main
-          fi
-
-      - name: Upload cycle diagnostics
-        if: ${{ always() && steps.plan.outputs.has_work == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: checkpoint-cycle-${{ steps.plan.outputs.task_key }}-${{ github.run_id }}
-          path: checkpoint_work/${{ steps.plan.outputs.season }}/${{ steps.plan.outputs.team_id }}/
-          if-no-files-found: warn
-          retention-days: 14
-
-      - name: Upload completed career dataset
-        if: ${{ steps.after_plan.outputs.needs_aggregate == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: career-team-trb-complete-dataset
-          path: team_trb_all_players/full_career_output/
-          if-no-files-found: error
-          retention-days: 90
-
-      - name: Report verified cycle outcome
-        if: ${{ always() && steps.plan.outputs.has_work == 'true' }}
-        uses: actions/github-script@v7
-        env:
-          TASK_KEY: ${{ steps.plan.outputs.task_key }}
-          COMPLETED: ${{ steps.extract_one.outputs.completed }}
-          TIMED_OUT: ${{ steps.extract_one.outputs.timed_out }}
-          AFTER_COUNT: ${{ steps.after_plan.outputs.complete_count }}
-          PENDING_TOTAL: ${{ steps.after_plan.outputs.pending_total }}
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const completed = process.env.COMPLETED === 'true';
-            const result = completed
-              ? 'validated and checkpointed'
-              : 'incomplete; partial windows preserved for retry';
-            await github.rest.issues.createComment({
+            await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: Number(process.env.STATUS_ISSUE),
-              body: `Standard-runner cycle ${context.runId}: ${process.env.TASK_KEY} ${result}. Progress ${process.env.AFTER_COUNT}/780; ${process.env.PENDING_TOTAL} pending; timed out ${process.env.TIMED_OUT || 'false'}.`
+              comment_id: commentId,
+              body: takeoverBody
             });
+
+            await github.rest.repos.createDispatchEvent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              event_type: 'continue-team-treb-impact-database',
+              client_payload: {
+                bootstrap_run_id: String(context.runId),
+                core_complete: count
+              }
+            });
+            core.info('Queued the first Team TREB impact chunk.');
 
   impact_core:
-    if: ${{ (github.event_name == 'issue_comment' && github.event.issue.number == 9 && github.event.comment.body == '/start-team-treb-actions') || (github.event_name == 'repository_dispatch' && github.event.action == 'continue-team-treb-impact-database') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[start-impact-actions]')) }}
+    if: ${{ github.event_name == 'repository_dispatch' || github.event_name == 'workflow_dispatch' || (github.event_name == 'issue_comment' && github.event.issue.number == 9 && github.event.comment.body == '/start-team-treb-actions') }}
     runs-on: ubuntu-latest
     timeout-minutes: 330
     concurrency:
@@ -204,83 +96,46 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      - name: Confirm safe handoff
-        id: handoff
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const { data: comment } = await github.rest.issues.getComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: 5161464311
-            });
-            const body = comment.body || '';
-            if (body.includes('Execution: **GitHub Actions**')) {
-              core.setOutput('ready', 'true');
-              core.info('The Actions chain already owns execution.');
-              return;
-            }
-            const match = body.match(/Updated:\s*([0-9T:+.-]+)/);
-            if (!match) {
-              core.setOutput('ready', 'true');
-              core.info('No usable Codespace timestamp was found; Actions will take ownership.');
-              return;
-            }
-            const stamp = match[1].replace(/\.$/, '');
-            const updated = Date.parse(stamp);
-            const ageSeconds = Number.isFinite(updated) ? Math.floor((Date.now() - updated) / 1000) : 999999;
-            const ready = ageSeconds >= 300;
-            core.setOutput('ready', ready ? 'true' : 'false');
-            core.info(`Codespace status age: ${ageSeconds}s; handoff ready=${ready}.`);
-
-      - name: Announce GitHub Actions ownership
-        if: steps.handoff.outputs.ready == 'true'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ github.token }}
-          script: |
-            const { data: comment } = await github.rest.issues.getComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: 5161464311
-            });
-            const match = (comment.body || '').match(/Core player\/team on-off layer:\s*\*\*(\d+)\/780\*\*/);
-            const count = match ? match[1] : '279';
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. A bounded two-worker chunk has started and will continue automatically until the core build reaches 780/780. Updated: ${new Date().toISOString()}.`;
-            await github.rest.issues.updateComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: 5161464311,
-              body
-            });
-
       - name: Check out main
-        if: steps.handoff.outputs.ready == 'true'
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Disable five-minute bootstrap schedule
+        if: ${{ github.event_name == 'repository_dispatch' }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/full-adaptive-build.yml')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace("- cron: '*/5 * * * *'", "- cron: '0 0 1 1 *'")
+          path.write_text(text, encoding='utf-8')
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/full-adaptive-build.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Disable Team TREB bootstrap schedule after handoff"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
       - name: Set up Python
-        if: steps.handoff.outputs.ready == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install runtime dependency
-        if: steps.handoff.outputs.ready == 'true'
         run: python -m pip install --disable-pip-version-check requests
 
       - name: Configure checkpoint commits
-        if: steps.handoff.outputs.ready == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Validate impact builder
-        if: steps.handoff.outputs.ready == 'true'
         run: |
           python -m py_compile \
             team_trb_all_players/impact_database_build.py \
@@ -289,7 +144,6 @@ jobs:
 
       - name: Run bounded two-worker impact chunk
         id: chunk
-        if: steps.handoff.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMPACT_DB_CORE_WORKERS: '2'
@@ -306,8 +160,8 @@ jobs:
           echo "Chunk runner exited with code $rc; cleanup and continuation logic will now run."
           exit 0
 
-      - name: Commit and push final local impact checkpoints
-        if: always() && steps.handoff.outputs.ready == 'true'
+      - name: Commit and push final local checkpoints
+        if: always()
         run: |
           set -euo pipefail
           git add -A -- team_trb_all_players/impact_database
@@ -325,15 +179,15 @@ jobs:
           echo "Unable to push the final local checkpoint after six attempts."
           exit 1
 
-      - name: Determine impact completion state
-        id: impact_state
-        if: always() && steps.handoff.outputs.ready == 'true'
+      - name: Determine completion state
+        id: state
+        if: always()
         run: |
           count=$(python - <<'PY'
           import sys
-          sys.path.insert(0, "team_trb_all_players")
+          sys.path.insert(0, 'team_trb_all_players')
           import impact_database_build as base
-          print(base.completed_count("core"))
+          print(base.completed_count('core'))
           PY
           )
           echo "count=$count" >> "$GITHUB_OUTPUT"
@@ -344,11 +198,11 @@ jobs:
           fi
           echo "Verified impact core checkpoint count: $count/780"
 
-      - name: Publish impact continuation status
-        if: always() && steps.handoff.outputs.ready == 'true' && steps.impact_state.outputs.complete != 'true'
+      - name: Publish continuation status
+        if: always() && steps.state.outputs.complete != 'true'
         uses: actions/github-script@v7
         env:
-          CORE_COUNT: ${{ steps.impact_state.outputs.count }}
+          CORE_COUNT: ${{ steps.state.outputs.count }}
           RUNNER_EXIT_CODE: ${{ steps.chunk.outputs.runner_exit_code }}
         with:
           github-token: ${{ github.token }}
@@ -357,16 +211,15 @@ jobs:
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              comment_id: 5161464311,
+              comment_id: Number(process.env.STATUS_COMMENT_ID),
               body
             });
 
-      - name: Queue next impact handoff or build chunk
-        if: always() && (steps.handoff.outputs.ready != 'true' || steps.impact_state.outputs.complete != 'true')
+      - name: Queue next chunk
+        if: always() && steps.state.outputs.complete != 'true'
         uses: actions/github-script@v7
         env:
-          CORE_COUNT: ${{ steps.impact_state.outputs.count }}
-          HANDOFF_READY: ${{ steps.handoff.outputs.ready }}
+          CORE_COUNT: ${{ steps.state.outputs.count }}
         with:
           github-token: ${{ github.token }}
           script: |
@@ -377,12 +230,11 @@ jobs:
               event_type: 'continue-team-treb-impact-database',
               client_payload: {
                 previous_run_id: String(context.runId),
-                core_complete: process.env.CORE_COUNT || 'unknown',
-                handoff_ready: process.env.HANDOFF_READY || 'unknown'
+                core_complete: process.env.CORE_COUNT || 'unknown'
               }
             });
-            core.info('Queued the next Team TREB impact run.');
+            core.info('Queued the next Team TREB impact chunk.');
 
-      - name: Confirm impact completion
-        if: always() && steps.impact_state.outputs.complete == 'true'
+      - name: Confirm completion
+        if: always() && steps.state.outputs.complete == 'true'
         run: echo "Core historical player-impact database is complete at 780/780. No continuation was queued."
