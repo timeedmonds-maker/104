@@ -22,7 +22,7 @@ permissions:
 
 concurrency:
   group: team-treb-impact-database
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-core:
@@ -41,7 +41,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: pip
 
       - name: Install runtime dependency
         run: python -m pip install --disable-pip-version-check requests
@@ -58,8 +57,55 @@ jobs:
             team_trb_all_players/impact_database_build_fixed.py \
             team_trb_all_players/impact_database_actions_chunk.py
 
+      - name: Wait for a safe Codespace handoff
+        id: handoff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for check in 1 2 3 4 5 6; do
+            body=$(gh api "repos/${GITHUB_REPOSITORY}/issues/comments/5161464311" --jq .body 2>/dev/null || true)
+            ready=$(STATUS_BODY="$body" python - <<'PY'
+          import os
+          import re
+          from datetime import datetime, timezone
+
+          body = os.environ.get("STATUS_BODY", "")
+          if "Execution: **GitHub Actions**" in body:
+              print("true")
+              raise SystemExit
+
+          match = re.search(
+              r"Updated:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[+-][0-9:]+))",
+              body,
+          )
+          if not match:
+              print("false")
+              raise SystemExit
+
+          stamp = match.group(1).replace("Z", "+00:00")
+          updated = datetime.fromisoformat(stamp)
+          age = (datetime.now(timezone.utc) - updated).total_seconds()
+          print("true" if age >= 300 else "false")
+          PY
+            )
+
+            if [ "$ready" = "true" ]; then
+              echo "ready=true" >> "$GITHUB_OUTPUT"
+              echo "Codespace status is inactive or the Actions chain already owns execution."
+              exit 0
+            fi
+
+            echo "Codespace is still reporting recent activity; handoff check $check/6."
+            sleep 60
+          done
+
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+          echo "Codespace remained active during this handoff window. No duplicate collector will be started."
+
       - name: Run bounded two-worker chunk
         id: chunk
+        if: steps.handoff.outputs.ready == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           IMPACT_DB_CORE_WORKERS: "2"
@@ -77,7 +123,7 @@ jobs:
           exit 0
 
       - name: Commit and push any final local checkpoints
-        if: always()
+        if: always() && steps.handoff.outputs.ready == 'true'
         run: |
           set -euo pipefail
           git add -A -- team_trb_all_players/impact_database
@@ -117,7 +163,7 @@ jobs:
           echo "Verified core checkpoint count: $count/780"
 
       - name: Publish automatic-continuation status
-        if: always() && steps.state.outputs.complete != 'true'
+        if: always() && steps.handoff.outputs.ready == 'true' && steps.state.outputs.complete != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CORE_COUNT: ${{ steps.state.outputs.count }}
