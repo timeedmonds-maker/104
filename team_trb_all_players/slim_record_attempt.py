@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # This file is watched by the production workflow so a normal main-branch
 # update can force a registered single-job checkpoint cycle.
+# Team TREB impact-chain trigger: 2026-08-05T04:18:00+12:00.
 
 import argparse
 import json
