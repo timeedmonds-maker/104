@@ -1,4 +1,4 @@
-name: Team TREB public ARM runner
+name: Team TREB public hosted runner
 
 on:
   push:
@@ -16,12 +16,12 @@ permissions:
   issues: write
 
 concurrency:
-  group: team-treb-public-arm
-  cancel-in-progress: false
+  group: team-treb-public-hosted-v2
+  cancel-in-progress: true
 
 jobs:
   impact_core:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-slim
     timeout-minutes: 330
 
     steps:
@@ -37,7 +37,7 @@ jobs:
             });
             const match = (comment.body || '').match(/Core player\/team on-off layer:\s*\*\*(\d+)\/780\*\*/);
             const count = match ? match[1] : '279';
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Public ARM hosted runner chunk started. Updated: ${new Date().toISOString()}.`;
+            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${count}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Public hosted runner chunk started. Updated: ${new Date().toISOString()}.`;
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -93,7 +93,7 @@ jobs:
           set -euo pipefail
           git add -A -- team_trb_all_players/impact_database
           if ! git diff --cached --quiet; then
-            git commit -m "Impact database progress: public ARM Actions checkpoint"
+            git commit -m "Impact database progress: public hosted Actions checkpoint"
           fi
           for attempt in 1 2 3 4 5 6; do
             if git pull --rebase origin main && git push origin HEAD:main; then
@@ -131,7 +131,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           script: |
-            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Public ARM chunk ended with runner code ${process.env.RUNNER_EXIT_CODE || 'unknown'}; continuation queued. Updated: ${new Date().toISOString()}.`;
+            const body = `**NBA historical player-impact database build**\n\nCore player/team on-off layer: **${process.env.CORE_COUNT}/780** team-seasons.\n\nTeammate interaction layer: **disabled — not part of this build**.\n\nExecution: **GitHub Actions**. Public hosted chunk ended with runner code ${process.env.RUNNER_EXIT_CODE || 'unknown'}; continuation queued. Updated: ${new Date().toISOString()}.`;
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
