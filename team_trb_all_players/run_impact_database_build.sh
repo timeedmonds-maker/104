@@ -13,25 +13,67 @@ if ! flock -n 9; then
   exit 73
 fi
 
-# Codespace is the authoritative execution path. Cancel any overlapping
-# impact/rebound/TRB/database GitHub Actions runs that may otherwise process
-# stale checkpoints and overwrite Issue #9 status.
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-  for state in in_progress queued; do
-    while IFS= read -r run_id; do
-      [[ -z "$run_id" ]] && continue
-      echo "Cancelling overlapping GitHub Actions run $run_id ($state)."
-      gh run cancel "$run_id" --repo timeedmonds-maker/104 || true
-    done < <(
-      gh run list \
-        --repo timeedmonds-maker/104 \
-        --status "$state" \
-        --limit 100 \
-        --json databaseId,name,displayTitle \
-        --jq '.[] | select(((.name // "") + " " + (.displayTitle // "")) | test("impact|rebound|team[ _-]?trb|database"; "i")) | .databaseId' \
-        2>/dev/null || true
-    )
+# Codespace is the authoritative execution path. It must never start while an
+# impact/rebound/TRB/database GitHub Actions run is still active. A previous
+# version ignored cancellation failures and allowed overlapping executors.
+if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
+  echo "Cannot verify or cancel overlapping GitHub Actions runs; GitHub CLI authentication is unavailable."
+  exit 74
+fi
+
+active_run_ids=()
+for state in in_progress queued; do
+  if ! runs_json="$(
+    gh run list \
+      --repo timeedmonds-maker/104 \
+      --status "$state" \
+      --limit 100 \
+      --json databaseId,name,displayTitle
+  )"; then
+    echo "Could not list $state GitHub Actions runs. Refusing to start a competing Codespace build."
+    exit 74
+  fi
+
+  while IFS= read -r run_id; do
+    [[ -n "$run_id" ]] && active_run_ids+=("$run_id")
+  done < <(
+    printf '%s' "$runs_json" | jq -r \
+      '.[] | select(((.name // "") + " " + (.displayTitle // "")) | test("impact|rebound|team[ _-]?trb|database"; "i")) | .databaseId'
+  )
+done
+
+if (( ${#active_run_ids[@]} > 0 )); then
+  cancellation_failed=0
+  for run_id in "${active_run_ids[@]}"; do
+    echo "Cancelling overlapping GitHub Actions run $run_id."
+    if ! gh run cancel "$run_id" --repo timeedmonds-maker/104; then
+      cancellation_failed=1
+    fi
   done
+
+  if (( cancellation_failed != 0 )); then
+    echo "At least one overlapping GitHub Actions run could not be cancelled. Codespace build not started."
+    exit 74
+  fi
+
+  # Wait briefly for GitHub to apply the cancellation requests. Never start
+  # locally merely because the cancel endpoint accepted a request.
+  for _ in {1..24}; do
+    remaining=0
+    for run_id in "${active_run_ids[@]}"; do
+      status="$(gh run view "$run_id" --repo timeedmonds-maker/104 --json status --jq '.status' 2>/dev/null || echo unknown)"
+      if [[ "$status" == "in_progress" || "$status" == "queued" || "$status" == "unknown" ]]; then
+        remaining=$((remaining + 1))
+      fi
+    done
+    (( remaining == 0 )) && break
+    sleep 5
+  done
+
+  if (( remaining != 0 )); then
+    echo "$remaining overlapping GitHub Actions run(s) remain active. Codespace build not started."
+    exit 74
+  fi
 fi
 
 # Prevent superseded local executors from writing while the corrected
