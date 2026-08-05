@@ -12,6 +12,7 @@ pkill -f 'team_trb_all_players/direct_rebound_fast_build.py' 2>/dev/null || true
 pkill -f 'team_trb_all_players/impact_database_build.py' 2>/dev/null || true
 pkill -f 'team_trb_all_players/impact_database_build_fixed.py' 2>/dev/null || true
 pkill -f 'team_trb_all_players/impact_database_supervisor.py' 2>/dev/null || true
+pkill -f 'team_trb_all_players/impact_database_supervisor_fast.py' 2>/dev/null || true
 
 git config user.name "github-codespaces[bot]"
 git config user.email "codespaces@users.noreply.github.com"
@@ -30,7 +31,9 @@ python -m pip install --disable-pip-version-check requests
 python -m py_compile \
   team_trb_all_players/impact_database_build.py \
   team_trb_all_players/impact_database_build_fixed.py \
+  team_trb_all_players/impact_database_runtime_tuning.py \
   team_trb_all_players/impact_database_supervisor.py \
+  team_trb_all_players/impact_database_supervisor_fast.py \
   team_trb_all_players/impact_database_preflight_fixed.py
 
 python team_trb_all_players/impact_database_preflight_fixed.py
@@ -40,7 +43,7 @@ trap 'stop_requested=1' INT TERM
 
 while (( stop_requested == 0 )); do
   set +e
-  IMPACT_DB_STAGE=core python team_trb_all_players/impact_database_supervisor.py 2>&1 | tee -a "$LOG_FILE"
+  IMPACT_DB_STAGE=core python team_trb_all_players/impact_database_supervisor_fast.py 2>&1 | tee -a "$LOG_FILE"
   rc=${PIPESTATUS[0]}
   set -e
 
