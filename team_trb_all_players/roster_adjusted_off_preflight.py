@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import gzip
 import json
 import math
-import re
 import sys
 import time
 from datetime import date, datetime
@@ -23,8 +23,6 @@ MOVEMENT_URLS = [
     "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json",
     "https://www.nba.com/stats/js/data/playermovement/NBA_Player_Movement.json",
 ]
-REALGM_TX = "https://basketball.realgm.com/nba/transactions/league/2024"
-REALGM_ROSTER = "https://basketball.realgm.com/nba/teams/Memphis-Grizzlies/14/Rosters/Regular/2024"
 GAMES_URL = "https://api.pbpstats.com/get-games/nba"
 TOTALS_URL = "https://api.pbpstats.com/get-totals/nba"
 WOWY_URL = "https://api.pbpstats.com/get-wowy-stats/nba"
@@ -38,13 +36,13 @@ HEADERS = {
 }
 
 
-def get(url: str, params: dict[str, str] | None = None, *, text: bool = False) -> Any:
+def get(url: str, params: dict[str, str] | None = None) -> Any:
     errors: list[str] = []
     for attempt in range(5):
         try:
             response = requests.get(url, params=params, headers=HEADERS, timeout=(15, 120))
             response.raise_for_status()
-            return response.text if text else response.json()
+            return response.json()
         except Exception as exc:
             errors.append(repr(exc))
             if attempt < 4:
@@ -112,15 +110,15 @@ def official_trade_date() -> tuple[date | None, dict[str, Any]]:
             candidates = []
             for row in adams:
                 transaction_date = as_date(ci(row, "TRANSACTION_DATE", "Date"))
-                description = str(
-                    ci(row, "TRANSACTION_DESCRIPTION", "Description") or ""
-                ).casefold()
-                if (
-                    transaction_date
-                    and transaction_date.year == 2024
-                    and "houston" in description
-                    and "memphis" in description
-                ):
+                description = str(ci(row, "TRANSACTION_DESCRIPTION", "Description") or "").casefold()
+                transaction_type = str(ci(row, "TRANSACTION_TYPE", "Transaction_Type") or "").casefold()
+                team_id = str(ci(row, "TEAM_ID", "TeamId") or "")
+                if not transaction_date or transaction_date.year != 2024:
+                    continue
+                mentions_both = "houston" in description and "memphis" in description
+                looks_like_trade = "trade" in transaction_type or "trade" in description
+                relevant_team = team_id in {str(MEM), str(HOU)}
+                if mentions_both or (looks_like_trade and relevant_team):
                     candidates.append(transaction_date)
             report.update(
                 {
@@ -135,20 +133,53 @@ def official_trade_date() -> tuple[date | None, dict[str, Any]]:
                 return min(candidates), report
         except Exception as exc:
             report["errors"].append(f"{url}: {exc!r}")
+    return None, report
 
-    html = get(REALGM_TX, text=True)
-    plain = re.sub(r"<[^>]+>", "\n", html)
-    index = plain.casefold().find("steven adams")
-    dates = list(
-        re.finditer(
-            r"\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+2024\b",
-            plain[:index],
-            re.I,
-        )
-    )
-    transaction_date = as_date(dates[-1].group(0)) if index >= 0 and dates else None
-    report["fallback"] = REALGM_TX
-    return transaction_date, report
+
+def previous_memphis_affiliation() -> dict[str, Any]:
+    checkpoint = BASE / "impact_database" / "core_checkpoints" / "2022-23" / f"{MEM}.json.gz"
+    if not checkpoint.exists():
+        return {"confirmed": False, "source": str(checkpoint), "error": "checkpoint missing"}
+    try:
+        with gzip.open(checkpoint, "rt", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        for row in payload.get("player_totals", []):
+            player_id = str(row.get("EntityId") or row.get("RowId") or row.get("PlayerId") or "")
+            name = str(row.get("Name") or row.get("ShortName") or "")
+            if player_id == PLAYER_ID or name.casefold() == PLAYER_NAME.casefold():
+                return {
+                    "confirmed": True,
+                    "source": str(checkpoint),
+                    "season": "2022-23",
+                    "team_id": MEM,
+                    "row": row,
+                }
+        return {"confirmed": False, "source": str(checkpoint), "error": "player not found"}
+    except Exception as exc:
+        return {"confirmed": False, "source": str(checkpoint), "error": repr(exc)}
+
+
+def continuity_evidence(movement: dict[str, Any], trade: date) -> dict[str, Any]:
+    prior = previous_memphis_affiliation()
+    minimum_date = as_date(movement.get("minimum_date"))
+    relevant_rows = []
+    for row in movement.get("adams_rows", []):
+        row_date = as_date(ci(row, "TRANSACTION_DATE", "Date"))
+        if row_date and date(2023, 7, 1) <= row_date < trade:
+            relevant_rows.append(row)
+    coverage_sufficient = minimum_date is not None and minimum_date <= date(2023, 7, 1)
+    confirmed = bool(prior.get("confirmed")) and coverage_sufficient and not relevant_rows
+    return {
+        "confirmed": confirmed,
+        "method": (
+            "Adams is confirmed on Memphis in the prior-season core checkpoint; the official "
+            "NBA movement feed covers the 2023 offseason onward and contains no intervening "
+            "Adams transaction before the Memphis-to-Houston trade."
+        ),
+        "prior_affiliation": prior,
+        "movement_coverage_sufficient": coverage_sufficient,
+        "intervening_rows": relevant_rows,
+    }
 
 
 def result_rows(payload: Any, name: str) -> list[dict[str, Any]]:
@@ -158,8 +189,7 @@ def result_rows(payload: Any, name: str) -> list[dict[str, Any]]:
     for result_set in result_sets:
         if isinstance(result_set, dict) and result_set.get("name") == name:
             headers = result_set.get("headers", [])
-            rows = result_set.get("rowSet", [])
-            return [dict(zip(headers, row)) for row in rows]
+            return [dict(zip(headers, row)) for row in result_set.get("rowSet", [])]
     return []
 
 
@@ -239,7 +269,6 @@ def build_windows(games: list[dict[str, Any]], trade: date) -> dict[str, Any]:
     memphis_rows = [game for game in memphis_all if game["_date"] < trade]
     houston_rows = [game for game in houston_all if game["_date"] > trade]
     resolution = []
-
     for game in games:
         if game["_date"] != trade:
             continue
@@ -250,18 +279,14 @@ def build_windows(games: list[dict[str, Any]], trade: date) -> dict[str, Any]:
                 resolution.append(check)
                 if check["rostered"]:
                     destination.append(game)
-
     same_day = [
         game
         for game in games
         if game["_date"] == trade
-        and {MEM, HOU}
-        & {int(game.get("HomeTeamId", 0)), int(game.get("AwayTeamId", 0))}
+        and {MEM, HOU} & {int(game.get("HomeTeamId", 0)), int(game.get("AwayTeamId", 0))}
     ]
     if same_day and not any(item["rostered"] for item in resolution):
-        raise RuntimeError(
-            "same-day transaction game could not be resolved from official box-score rosters"
-        )
+        raise RuntimeError("same-day transaction game could not be resolved from official box-score rosters")
     return {
         "trade_date": trade.isoformat(),
         "same_day_resolution": resolution,
@@ -324,92 +349,54 @@ def num(row: dict[str, Any], *keys: str) -> float | None:
 
 def metrics(team: dict[str, Any], opponent: dict[str, Any]) -> dict[str, Any]:
     team_points, opponent_points = num(team, "Points", "Pts"), num(opponent, "Points", "Pts")
-    team_possessions, opponent_possessions = num(team, "Possessions"), num(
-        opponent, "Possessions"
-    )
-    team_oreb, team_dreb = num(team, "OffRebounds", "OREB"), num(
-        team, "DefRebounds", "DREB"
-    )
-    opponent_oreb, opponent_dreb = num(opponent, "OffRebounds", "OREB"), num(
-        opponent, "DefRebounds", "DREB"
-    )
+    team_possessions, opponent_possessions = num(team, "Possessions"), num(opponent, "Possessions")
+    team_oreb, team_dreb = num(team, "OffRebounds", "OREB"), num(team, "DefRebounds", "DREB")
+    opponent_oreb, opponent_dreb = num(opponent, "OffRebounds", "OREB"), num(opponent, "DefRebounds", "DREB")
 
     def pct(numerator: float | None, denominator: float | None) -> float | None:
         return None if numerator is None or not denominator else 100 * numerator / denominator
 
-    team_rebounds = (
-        None if team_oreb is None or team_dreb is None else team_oreb + team_dreb
-    )
-    opponent_rebounds = (
-        None
-        if opponent_oreb is None or opponent_dreb is None
-        else opponent_oreb + opponent_dreb
-    )
+    team_rebounds = None if team_oreb is None or team_dreb is None else team_oreb + team_dreb
+    opponent_rebounds = None if opponent_oreb is None or opponent_dreb is None else opponent_oreb + opponent_dreb
     seconds = num(team, "SecondsPlayed") or num(opponent, "SecondsPlayed")
     return {
-        "minutes": num(team, "Minutes")
-        or num(opponent, "Minutes")
-        or (seconds / 60 if seconds is not None else None),
+        "minutes": num(team, "Minutes") or num(opponent, "Minutes") or (seconds / 60 if seconds is not None else None),
         "offensive_rating": pct(team_points, team_possessions),
         "defensive_rating": pct(opponent_points, opponent_possessions),
         "net_rating": None
         if None in (team_points, opponent_points, team_possessions, opponent_possessions)
         or not team_possessions
         or not opponent_possessions
-        else 100 * team_points / team_possessions
-        - 100 * opponent_points / opponent_possessions,
-        "off_rebound_pct": pct(
-            team_oreb,
-            None if team_oreb is None or opponent_dreb is None else team_oreb + opponent_dreb,
-        ),
-        "def_rebound_pct": pct(
-            team_dreb,
-            None if team_dreb is None or opponent_oreb is None else team_dreb + opponent_oreb,
-        ),
+        else 100 * team_points / team_possessions - 100 * opponent_points / opponent_possessions,
+        "off_rebound_pct": pct(team_oreb, None if team_oreb is None or opponent_dreb is None else team_oreb + opponent_dreb),
+        "def_rebound_pct": pct(team_dreb, None if team_dreb is None or opponent_oreb is None else team_dreb + opponent_oreb),
         "total_rebound_pct": pct(
             team_rebounds,
-            None
-            if team_rebounds is None or opponent_rebounds is None
-            else team_rebounds + opponent_rebounds,
+            None if team_rebounds is None or opponent_rebounds is None else team_rebounds + opponent_rebounds,
         ),
     }
 
 
 def count_fields(row: dict[str, Any]) -> dict[str, float]:
-    keys = [
-        "Minutes",
-        "Points",
-        "Possessions",
-        "OffRebounds",
-        "DefRebounds",
-        "FG2M",
-        "FG2A",
-        "FG3M",
-        "FG3A",
-        "Turnovers",
-    ]
+    keys = ["Minutes", "Points", "Possessions", "OffRebounds", "DefRebounds", "FG2M", "FG2A", "FG3M", "FG3A", "Turnovers"]
     return {key: value for key in keys if (value := num(row, key)) is not None}
 
 
 def identity(left_row: dict[str, Any], right_row: dict[str, Any]) -> dict[str, Any]:
     left, right = count_fields(left_row), count_fields(right_row)
     common = sorted(set(left) & set(right))
-    differences = {
-        key: right[key] - left[key]
-        for key in common
-        if abs(right[key] - left[key]) > 1e-7
-    }
+    differences = {key: right[key] - left[key] for key in common if abs(right[key] - left[key]) > 1e-7}
     return {"match": not differences, "common_fields": common, "differences": differences}
 
 
 def main() -> int:
     trade, movement = official_trade_date()
     if trade is None:
-        raise RuntimeError("could not find Adams' Memphis-to-Houston trade date")
+        raise RuntimeError("could not find Adams' Memphis-to-Houston trade date in the official NBA movement feed")
 
-    roster_html = get(REALGM_ROSTER, text=True)
-    if PLAYER_NAME.casefold() not in roster_html.casefold():
-        raise RuntimeError("Adams was not found on the 2023-24 Memphis roster page")
+    continuity = continuity_evidence(movement, trade)
+    if not continuity["confirmed"]:
+        raise RuntimeError(f"could not prove continuous Memphis roster tenure: {continuity}")
 
     windows = build_windows(fetch_games(), trade)
     segments = []
@@ -434,27 +421,23 @@ def main() -> int:
         except Exception as exc:
             segment["wowy_zero_minute_identity"] = {
                 "error": repr(exc),
-                "fallback": (
-                    "For a zero-minute roster tenure, all team possessions are OFF by definition."
-                ),
+                "fallback": "For a zero-minute roster tenure, all team possessions are OFF by definition.",
             }
         segments.append(segment)
 
     report = {
         "definition": (
-            "Roster-window OFF includes every team possession while the player officially "
-            "belonged to that team, including injury and DNP games."
+            "Roster-window OFF includes every team possession while the player officially belonged "
+            "to that team, including injury and DNP games."
         ),
         "season": SEASON,
         "player_id": PLAYER_ID,
         "player": PLAYER_NAME,
         "movement_feed": movement,
-        "roster_validation": {"source": REALGM_ROSTER, "contains_player": True},
+        "roster_validation": continuity,
         "roster_windows": windows,
         "segments": segments,
-        "preflight_passed": all(
-            segment["off_metrics"]["minutes"] is not None for segment in segments
-        ),
+        "preflight_passed": all(segment["off_metrics"]["minutes"] is not None for segment in segments),
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
@@ -464,6 +447,7 @@ def main() -> int:
                 "preflight_passed": report["preflight_passed"],
                 "movement_minimum_date": movement.get("minimum_date"),
                 "trade_date": windows["trade_date"],
+                "roster_continuity_confirmed": continuity["confirmed"],
                 "same_day_resolution": windows["same_day_resolution"],
                 "memphis_window": windows["memphis"],
                 "houston_window": windows["houston"],
@@ -471,9 +455,7 @@ def main() -> int:
                     {
                         "team": segment["team"],
                         **segment["off_metrics"],
-                        "wowy_match": segment.get("wowy_zero_minute_identity", {})
-                        .get("team", {})
-                        .get("match"),
+                        "wowy_match": segment.get("wowy_zero_minute_identity", {}).get("team", {}).get("match"),
                     }
                     for segment in segments
                 ],
