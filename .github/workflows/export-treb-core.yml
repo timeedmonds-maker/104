@@ -24,6 +24,13 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
+      - name: Report export start
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api repos/${{ github.repository }}/issues/9/comments \
+            -f body="TREB_CORE_EXPORT_STARTED run_id=${GITHUB_RUN_ID} source_sha=${GITHUB_SHA}"
+
       - name: Check out completed database
         uses: actions/checkout@v4
 
