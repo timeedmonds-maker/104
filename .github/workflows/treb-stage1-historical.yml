@@ -39,6 +39,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build-and-qa-roster-tenure:
@@ -232,4 +233,33 @@ jobs:
           else
             git commit -m "Generate Stage 1 roster tenure audit outputs"
             git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+      - name: Start corrected OFF immediately when Stage 1 is exact-ready
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/roster_tenure/tenure_review_queue_summary.json')
+          d=json.loads(p.read_text())
+          ready=d.get('stage1_exact_ready') is True and int(d.get('review_queue_windows') or 0)==0
+          print('STAGE1_EXACT_READY='+str(ready).lower())
+          if not ready:
+              raise SystemExit(0)
+          PY
+          READY=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('team_trb_all_players/impact_database/roster_tenure/tenure_review_queue_summary.json').read_text())
+          print('true' if d.get('stage1_exact_ready') is True and int(d.get('review_queue_windows') or 0)==0 else 'false')
+          PY
+          )
+          if [ "$READY" = "true" ]; then
+            echo "Stage 1 is exact-ready; dispatching corrected OFF without waiting for the hourly supervisor."
+            gh workflow run treb-corrected-off.yml --ref "${GITHUB_REF_NAME}"
+          else
+            echo "Stage 1 still has review work; corrected OFF remains gated."
           fi
