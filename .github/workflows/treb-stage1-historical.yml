@@ -9,6 +9,7 @@ on:
       - team_trb_all_players/import_archived_bref_transactions.py
       - team_trb_all_players/normalize_roster_transactions.py
       - team_trb_all_players/build_roster_tenure_windows.py
+      - team_trb_all_players/augment_zero_minute_official_tenures.py
       - team_trb_all_players/fetch_regular_season_games.py
       - team_trb_all_players/finalize_roster_tenure_windows.py
       - .github/workflows/treb-stage1-historical.yml
@@ -20,6 +21,7 @@ on:
       - team_trb_all_players/import_archived_bref_transactions.py
       - team_trb_all_players/normalize_roster_transactions.py
       - team_trb_all_players/build_roster_tenure_windows.py
+      - team_trb_all_players/augment_zero_minute_official_tenures.py
       - team_trb_all_players/fetch_regular_season_games.py
       - team_trb_all_players/finalize_roster_tenure_windows.py
       - .github/workflows/treb-stage1-historical.yml
@@ -97,6 +99,21 @@ jobs:
           assert by_team[1610612763]["tenure_end"] == "2024-02-01", by_team[1610612763]
           assert by_team[1610612745]["tenure_start"] == "2024-02-01", by_team[1610612745]
           print("STAGE 1 STRUCTURAL QA PASSED", summary)
+          PY
+
+      - name: Add official in-season roster tenures absent from core minutes
+        run: python team_trb_all_players/augment_zero_minute_official_tenures.py
+
+      - name: Validate zero-minute tenure augmentation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("team_trb_all_players/impact_database/roster_tenure")
+          summary = json.loads((root / "zero_minute_official_summary.json").read_text())
+          assert summary["added_windows"] >= 0
+          assert summary["total_windows_after_augmentation"] > 10000
+          print("ZERO-MINUTE OFFICIAL TENURE QA PASSED", summary)
           PY
 
       - name: Fetch exact regular-season game schedule
