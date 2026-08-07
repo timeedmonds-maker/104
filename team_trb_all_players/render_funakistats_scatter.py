@@ -28,22 +28,40 @@ def overlap(a,b,pad=3):
     return not (a.x1+pad<b.x0 or b.x1+pad<a.x0 or a.y1+pad<b.y0 or b.y1+pad<a.y0)
 
 
-OFFSETS=((18,16),(18,-16),(-18,16),(-18,-16),(28,0),(-28,0),(0,24),(0,-24),(34,24),(-34,24),(34,-24),(-34,-24))
+# Prefer lateral labels with a clean horizontal terminal arm. Small vertical offsets
+# are available only when needed for collision avoidance; the leader then uses a
+# 90-degree elbow rather than a diagonal/angled arm.
+OFFSETS=((42,0),(-42,0),(42,12),(-42,12),(42,-12),(-42,-12),(54,20),(-54,20),(54,-20),(-54,-20),(66,30),(-66,30),(66,-30),(-66,-30))
 
 
 def _alignment(dx,dy):
-    ha='left' if dx>0 else ('right' if dx<0 else 'center')
-    va='bottom' if dy>0 else ('top' if dy<0 else 'center')
-    return ha,va
+    ha='left' if dx>0 else 'right'
+    return ha,'center'
 
 
 def _annotation(ax,row,x,y,player,dx,dy):
     ha,va=_alignment(dx,dy)
-    return ax.annotate(str(row[player]),xy=(float(row[x]),float(row[y])),xytext=(dx,dy),textcoords='offset points',ha=ha,va=va,fontsize=9.2,fontweight='semibold',annotation_clip=True,arrowprops=dict(arrowstyle='-',linewidth=.72,shrinkA=3,shrinkB=5,connectionstyle='arc3,rad=0'),zorder=8)
+    return ax.annotate(
+        str(row[player]),
+        xy=(float(row[x]),float(row[y])),
+        xytext=(dx,dy),
+        textcoords='offset points',
+        ha=ha,va=va,
+        fontsize=9.2,fontweight='semibold',
+        annotation_clip=True,
+        arrowprops=dict(
+            arrowstyle='-',
+            linewidth=.72,
+            shrinkA=3,
+            shrinkB=5,
+            connectionstyle='angle,angleA=0,angleB=90,rad=0',
+        ),
+        zorder=8,
+    )
 
 
 def place_labels(ax,labels,x,y,player):
-    """Greedy deterministic collision-aware label placement in display coordinates."""
+    """Greedy deterministic collision-aware label placement with orthogonal leaders."""
     fig=ax.figure; fig.canvas.draw(); renderer=fig.canvas.get_renderer(); axes_box=ax.get_window_extent(renderer=renderer)
     occupied=[]; placements=[]
     ordered=labels.sort_values('_score',ascending=False,kind='mergesort')
@@ -53,12 +71,23 @@ def place_labels(ax,labels,x,y,player):
             ann=_annotation(ax,row,x,y,player,dx,dy); fig.canvas.draw(); box=ann.get_window_extent(renderer=renderer)
             outside=(box.x0<axes_box.x0 or box.x1>axes_box.x1 or box.y0<axes_box.y0 or box.y1>axes_box.y1)
             collisions=sum(overlap(box,b) for b in occupied)
-            penalty=1000*collisions+(500 if outside else 0)+math.hypot(dx,dy)
+            # Prefer the shortest clean lateral placement and penalise vertical travel,
+            # keeping leader arms visually consistent across the chart.
+            penalty=1000*collisions+(500 if outside else 0)+abs(dx)+1.35*abs(dy)
             ann.remove()
             if penalty<best_penalty: best=(dx,dy); best_penalty=penalty
             if collisions==0 and not outside: break
         dx,dy=best; ann=_annotation(ax,row,x,y,player,dx,dy); fig.canvas.draw(); box=ann.get_window_extent(renderer=renderer); occupied.append(box)
-        placements.append({'player':str(row[player]),'x':float(row[x]),'y':float(row[y]),'score':float(row['_score']),'dx':dx,'dy':dy,'placement_penalty':float(best_penalty)})
+        placements.append({
+            'player':str(row[player]),
+            'x':float(row[x]),
+            'y':float(row[y]),
+            'score':float(row['_score']),
+            'dx':dx,
+            'dy':dy,
+            'placement_penalty':float(best_penalty),
+            'leader_style':'orthogonal_elbow_horizontal_terminal',
+        })
     return placements
 
 
@@ -121,7 +150,19 @@ def render(df,x,y,player,minutes,out,title,subtitle,xlabel,ylabel,threshold=1000
     out=Path(out); out.parent.mkdir(parents=True,exist_ok=True)
     for ext in ('png','svg','pdf'): fig.savefig(out.with_suffix('.'+ext),dpi=320 if ext=='png' else None,bbox_inches='tight',pad_inches=.18)
     plt.close(fig)
-    audit={'rows':int(len(d)),'threshold_rows':int(strong.sum()),'label_rows':int(len(labels)),'method':'2D robust MAD distance + optional named editorial rows','coordinate_integrity':'x/y copied directly from input rows','collision_policy':'fixed candidate search in display coordinates; extreme labels placed first; lowest-overlap fallback audited','headshot_policy':'real retrieved/supplied images only; never generated likenesses','headshots':headshot_audit,'labels':placements,'outputs':{e:str(out.with_suffix('.'+e)) for e in ('png','svg','pdf')}}
+    audit={
+        'rows':int(len(d)),
+        'threshold_rows':int(strong.sum()),
+        'label_rows':int(len(labels)),
+        'method':'2D robust MAD distance + optional named editorial rows',
+        'coordinate_integrity':'x/y copied directly from input rows',
+        'collision_policy':'fixed lateral candidate search in display coordinates; extreme labels placed first; lowest-overlap fallback audited',
+        'leader_line_policy':'straight orthogonal elbow connectors with horizontal terminal arms; no diagonal label arms',
+        'headshot_policy':'real retrieved/supplied images only; never generated likenesses',
+        'headshots':headshot_audit,
+        'labels':placements,
+        'outputs':{e:str(out.with_suffix('.'+e)) for e in ('png','svg','pdf')},
+    }
     out.with_name(out.name+'_audit.json').write_text(json.dumps(audit,indent=2),encoding='utf-8')
     return audit
 
@@ -138,6 +179,8 @@ def selftest():
     audit=render(d,'x','y','player','minutes','/tmp/treb_scatter_selftest','TREB Scatter Renderer — QA','Synthetic data only','Synthetic x','Synthetic y',10000,12,player_id='player_id')
     assert audit['rows']==n and audit['label_rows']==12 and len(audit['labels'])==12
     assert all(np.isfinite(p['placement_penalty']) for p in audit['labels'])
+    assert audit['leader_line_policy'].startswith('straight orthogonal elbow')
+    assert all(p['leader_style']=='orthogonal_elbow_horizontal_terminal' for p in audit['labels'])
 
 
 def main():
