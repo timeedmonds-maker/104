@@ -14,6 +14,11 @@ on:
 
 permissions:
   contents: write
+  actions: write
+
+concurrency:
+  group: treb-corrected-off-${{ github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   corrected-off:
@@ -51,15 +56,18 @@ jobs:
               d=json.loads(p.read_text())
               ready=d.get('stage1_exact_ready') is True and int(d.get('review_queue_windows') or 0)==0
           print('ready='+('true' if ready else 'false'))
-          with open(__import__('os').environ['GITHUB_OUTPUT'],'a') as f: f.write('ready='+('true' if ready else 'false')+'\n')
+          with open(__import__('os').environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('ready='+('true' if ready else 'false')+'\n')
           PY
 
       - name: Collect resumable tenure-scoped corrected OFF batch
+        id: batch
         if: steps.gate.outputs.ready == 'true'
+        continue-on-error: true
         run: python team_trb_all_players/run_corrected_off_batch.py --batch-size 175
 
       - name: Inspect collection status
-        if: steps.gate.outputs.ready == 'true'
+        if: steps.gate.outputs.ready == 'true' && always()
         id: status
         run: |
           python - <<'PY'
@@ -68,15 +76,18 @@ jobs:
           p=Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json')
           d=json.loads(p.read_text())
           print(json.dumps(d,indent=2))
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('complete='+('true' if d.get('all_complete') else 'false')+'\n')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('complete='+('true' if d.get('all_complete') else 'false')+'\n')
+              f.write('remaining='+str(int(d.get('remaining_windows') or 0))+'\n')
+              f.write('batch_errors='+str(int(d.get('batch_errors') or 0))+'\n')
           PY
 
       - name: Build and verify final corrected OFF package
-        if: steps.gate.outputs.ready == 'true' && steps.status.outputs.complete == 'true'
+        if: steps.gate.outputs.ready == 'true' && steps.batch.outcome == 'success' && steps.status.outputs.complete == 'true'
         run: python team_trb_all_players/finalize_corrected_off_package.py
 
       - name: Commit durable Stage 2 cache and outputs
-        if: steps.gate.outputs.ready == 'true'
+        if: steps.gate.outputs.ready == 'true' && always()
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -89,7 +100,7 @@ jobs:
           fi
 
       - name: Upload final verified package
-        if: steps.gate.outputs.ready == 'true' && steps.status.outputs.complete == 'true'
+        if: steps.gate.outputs.ready == 'true' && steps.batch.outcome == 'success' && steps.status.outputs.complete == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: TREB-corrected-OFF-${{ github.run_id }}
@@ -99,3 +110,17 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
+
+      - name: Dispatch next corrected OFF batch immediately
+        if: steps.gate.outputs.ready == 'true' && steps.batch.outcome == 'success' && steps.status.outputs.complete != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "${{ steps.status.outputs.remaining }} tenure windows remain; dispatching the next batch now."
+          gh workflow run treb-corrected-off.yml --ref "${GITHUB_REF_NAME}"
+
+      - name: Surface batch failure after preserving completed cache
+        if: steps.gate.outputs.ready == 'true' && steps.batch.outcome == 'failure'
+        run: |
+          echo "Corrected OFF batch failed after durable cache was committed; autonomous supervisor should diagnose before continuation."
+          exit 1
