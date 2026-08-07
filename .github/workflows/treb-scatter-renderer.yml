@@ -1,0 +1,48 @@
+name: TREB scatter renderer QA
+
+on:
+  push:
+    branches:
+      - treb-stage1-automation
+    paths:
+      - team_trb_all_players/render_funakistats_scatter.py
+      - .github/workflows/treb-scatter-renderer.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - team_trb_all_players/render_funakistats_scatter.py
+      - .github/workflows/treb-scatter-renderer.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  renderer-self-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install renderer dependencies
+        run: python -m pip install --upgrade numpy pandas matplotlib
+      - name: Run deterministic renderer QA
+        run: python team_trb_all_players/render_funakistats_scatter.py --self-test
+      - name: Validate generated masters and audit sidecar
+        run: |
+          test -s /tmp/treb_scatter_selftest.png
+          test -s /tmp/treb_scatter_selftest.svg
+          test -s /tmp/treb_scatter_selftest.pdf
+          test -s /tmp/treb_scatter_selftest_audit.json
+          python - <<'PY'
+          import json
+          p='/tmp/treb_scatter_selftest_audit.json'
+          a=json.load(open(p))
+          assert a['rows']==240
+          assert len(a['labels'])==12
+          assert a['coordinate_integrity']=='x/y copied directly from input rows'
+          print('SCATTER MASTER/AUDIT QA PASSED')
+          PY
