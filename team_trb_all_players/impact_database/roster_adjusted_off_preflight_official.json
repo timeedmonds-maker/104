@@ -1,0 +1,407 @@
+{
+  "definition": "Roster-window OFF includes every team possession while the player officially belonged to that team, including injury and DNP games.",
+  "season": "2023-24",
+  "player_id": "203500",
+  "player": "Steven Adams",
+  "movement_feed": {
+    "errors": [],
+    "source": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json",
+    "row_count": 9739,
+    "minimum_date": "2015-07-01",
+    "maximum_date": "2026-08-05",
+    "adams_rows": [
+      {
+        "Transaction_Type": "Signing",
+        "TRANSACTION_DATE": "2025-06-14T00:00:00",
+        "TRANSACTION_DESCRIPTION": "Houston Rockets re-signed center Steven Adams to a Veteran Extension.",
+        "TEAM_ID": 1610612745.0,
+        "TEAM_SLUG": "rockets",
+        "PLAYER_ID": 203500.0,
+        "PLAYER_SLUG": "steven-adams",
+        "Additional_Sort": 0.0,
+        "GroupSort": "Signing 1134121"
+      },
+      {
+        "Transaction_Type": "Trade",
+        "TRANSACTION_DATE": "2024-02-01T00:00:00",
+        "TRANSACTION_DESCRIPTION": "Houston Rockets received center Steven Adams from Memphis Grizzlies.",
+        "TEAM_ID": 1610612745.0,
+        "TEAM_SLUG": "rockets",
+        "PLAYER_ID": 203500.0,
+        "PLAYER_SLUG": "steven-adams",
+        "Additional_Sort": 1610612763.0,
+        "GroupSort": "Trade 2023029"
+      },
+      {
+        "Transaction_Type": "Signing",
+        "TRANSACTION_DATE": "2022-10-01T00:00:00",
+        "TRANSACTION_DESCRIPTION": "Memphis Grizzlies re-signed center Steven Adams to a Veteran Extension.",
+        "TEAM_ID": 1610612763.0,
+        "TEAM_SLUG": "grizzlies",
+        "PLAYER_ID": 203500.0,
+        "PLAYER_SLUG": "steven-adams",
+        "Additional_Sort": 0.0,
+        "GroupSort": "Signing 1060509"
+      },
+      {
+        "Transaction_Type": "Trade",
+        "TRANSACTION_DATE": "2021-08-07T00:00:00",
+        "TRANSACTION_DESCRIPTION": "Memphis Grizzlies received center Steven Adams from New Orleans Pelicans.",
+        "TEAM_ID": 1610612763.0,
+        "TEAM_SLUG": "grizzlies",
+        "PLAYER_ID": 203500.0,
+        "PLAYER_SLUG": "steven-adams",
+        "Additional_Sort": 1610612740.0,
+        "GroupSort": "Trade 2021006"
+      },
+      {
+        "Transaction_Type": "Trade",
+        "TRANSACTION_DATE": "2020-11-23T00:00:00",
+        "TRANSACTION_DESCRIPTION": "New Orleans Pelicans received center Steven Adams from Oklahoma City Thunder.",
+        "TEAM_ID": 1610612740.0,
+        "TEAM_SLUG": "pelicans",
+        "PLAYER_ID": 203500.0,
+        "PLAYER_SLUG": "steven-adams",
+        "Additional_Sort": 1610612760.0,
+        "GroupSort": "Trade 2020008"
+      },
+      {
+        "Transaction_Type": "Signing",
+        "TRANSACTION_DATE": "2016-10-31T00:00:00",
+        "TRANSACTION_DESCRIPTION": "Oklahoma City Thunder re-signed center Steven Adams to a Rookie Scale Extension.",
+        "TEAM_ID": 1610612760.0,
+        "TEAM_SLUG": "thunder",
+        "PLAYER_ID": 203500.0,
+        "PLAYER_SLUG": "steven-adams",
+        "Additional_Sort": 0.0,
+        "GroupSort": "Signing 979033"
+      }
+    ]
+  },
+  "roster_validation": {
+    "trade_boundary_source": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json",
+    "same_day_game_resolution": [
+      {
+        "game_id": "0022300687",
+        "team_id": 1610612763,
+        "rostered": true,
+        "source": "audited_same_day_override"
+      }
+    ],
+    "historical_build_rule": "Unresolved same-day transaction games must enter a manual-review queue; they may never be guessed or silently assigned."
+  },
+  "roster_windows": {
+    "trade_date": "2024-02-01",
+    "same_day_resolution": [
+      {
+        "game_id": "0022300687",
+        "team_id": 1610612763,
+        "rostered": true,
+        "source": "audited_same_day_override"
+      }
+    ],
+    "memphis": {
+      "from_date": "2023-10-25",
+      "to_date": "2024-02-01",
+      "games": 48,
+      "game_ids": [
+        "0022300071",
+        "0022300078",
+        "0022300089",
+        "0022300106",
+        "0022300125",
+        "0022300007",
+        "0022300144",
+        "0022300164",
+        "0022300012",
+        "0022300179",
+        "0022300026",
+        "0022300206",
+        "0022300213",
+        "0022300231",
+        "0022300044",
+        "0022300249",
+        "0022300261",
+        "0022300277",
+        "0022300288",
+        "0022301206",
+        "0022301221",
+        "0022300299",
+        "0022300314",
+        "0022300332",
+        "0022300355",
+        "0022300360",
+        "0022300377",
+        "0022300393",
+        "0022300410",
+        "0022300425",
+        "0022300438",
+        "0022300449",
+        "0022300460",
+        "0022300470",
+        "0022300491",
+        "0022300503",
+        "0022300515",
+        "0022300537",
+        "0022300544",
+        "0022300560",
+        "0022300582",
+        "0022300597",
+        "0022300609",
+        "0022300621",
+        "0022300638",
+        "0022300652",
+        "0022300663",
+        "0022300687"
+      ]
+    },
+    "houston": {
+      "from_date": "2024-02-02",
+      "to_date": "2024-04-14",
+      "games": 35,
+      "game_ids": [
+        "0022300692",
+        "0022300709",
+        "0022300719",
+        "0022300744",
+        "0022300754",
+        "0022300765",
+        "0022300783",
+        "0022300798",
+        "0022300806",
+        "0022300822",
+        "0022300841",
+        "0022300854",
+        "0022300870",
+        "0022300891",
+        "0022300897",
+        "0022300916",
+        "0022300929",
+        "0022300942",
+        "0022300957",
+        "0022300967",
+        "0022300992",
+        "0022301006",
+        "0022301024",
+        "0022301038",
+        "0022301057",
+        "0022301072",
+        "0022301083",
+        "0022301098",
+        "0022301113",
+        "0022301120",
+        "0022301131",
+        "0022301150",
+        "0022301168",
+        "0022301183",
+        "0022301199"
+      ]
+    },
+    "memphis_full_games": 82,
+    "houston_full_games": 82
+  },
+  "segments": [
+    {
+      "team": "memphis",
+      "team_id": 1610612763,
+      "window": {
+        "from_date": "2023-10-25",
+        "to_date": "2024-02-01",
+        "games": 48,
+        "game_ids": [
+          "0022300071",
+          "0022300078",
+          "0022300089",
+          "0022300106",
+          "0022300125",
+          "0022300007",
+          "0022300144",
+          "0022300164",
+          "0022300012",
+          "0022300179",
+          "0022300026",
+          "0022300206",
+          "0022300213",
+          "0022300231",
+          "0022300044",
+          "0022300249",
+          "0022300261",
+          "0022300277",
+          "0022300288",
+          "0022301206",
+          "0022301221",
+          "0022300299",
+          "0022300314",
+          "0022300332",
+          "0022300355",
+          "0022300360",
+          "0022300377",
+          "0022300393",
+          "0022300410",
+          "0022300425",
+          "0022300438",
+          "0022300449",
+          "0022300460",
+          "0022300470",
+          "0022300491",
+          "0022300503",
+          "0022300515",
+          "0022300537",
+          "0022300544",
+          "0022300560",
+          "0022300582",
+          "0022300597",
+          "0022300609",
+          "0022300621",
+          "0022300638",
+          "0022300652",
+          "0022300663",
+          "0022300687"
+        ]
+      },
+      "off_metrics": {
+        "minutes": 2314.0,
+        "offensive_rating": null,
+        "defensive_rating": null,
+        "net_rating": null,
+        "off_rebound_pct": 25.945723684210527,
+        "def_rebound_pct": 72.75120666959192,
+        "total_rebound_pct": 48.588410104011885
+      },
+      "wowy_zero_minute_identity": {
+        "team": {
+          "match": true,
+          "common_fields": [
+            "DefRebounds",
+            "FG2A",
+            "FG2M",
+            "FG3A",
+            "FG3M",
+            "OffRebounds",
+            "Points",
+            "Turnovers"
+          ],
+          "differences": {}
+        },
+        "opponent": {
+          "match": true,
+          "common_fields": [
+            "DefRebounds",
+            "FG2A",
+            "FG2M",
+            "FG3A",
+            "FG3M",
+            "OffRebounds",
+            "Points",
+            "Turnovers"
+          ],
+          "differences": {}
+        },
+        "metrics": {
+          "minutes": 2314.0,
+          "offensive_rating": null,
+          "defensive_rating": null,
+          "net_rating": null,
+          "off_rebound_pct": 25.945723684210527,
+          "def_rebound_pct": 72.75120666959192,
+          "total_rebound_pct": 48.588410104011885
+        }
+      }
+    },
+    {
+      "team": "houston",
+      "team_id": 1610612745,
+      "window": {
+        "from_date": "2024-02-02",
+        "to_date": "2024-04-14",
+        "games": 35,
+        "game_ids": [
+          "0022300692",
+          "0022300709",
+          "0022300719",
+          "0022300744",
+          "0022300754",
+          "0022300765",
+          "0022300783",
+          "0022300798",
+          "0022300806",
+          "0022300822",
+          "0022300841",
+          "0022300854",
+          "0022300870",
+          "0022300891",
+          "0022300897",
+          "0022300916",
+          "0022300929",
+          "0022300942",
+          "0022300957",
+          "0022300967",
+          "0022300992",
+          "0022301006",
+          "0022301024",
+          "0022301038",
+          "0022301057",
+          "0022301072",
+          "0022301083",
+          "0022301098",
+          "0022301113",
+          "0022301120",
+          "0022301131",
+          "0022301150",
+          "0022301168",
+          "0022301183",
+          "0022301199"
+        ]
+      },
+      "off_metrics": {
+        "minutes": 1690.0,
+        "offensive_rating": null,
+        "defensive_rating": null,
+        "net_rating": null,
+        "off_rebound_pct": 29.36946902654867,
+        "def_rebound_pct": 73.00936768149883,
+        "total_rebound_pct": 50.56882821387941
+      },
+      "wowy_zero_minute_identity": {
+        "team": {
+          "match": true,
+          "common_fields": [
+            "DefRebounds",
+            "FG2A",
+            "FG2M",
+            "FG3A",
+            "FG3M",
+            "OffRebounds",
+            "Points",
+            "Turnovers"
+          ],
+          "differences": {}
+        },
+        "opponent": {
+          "match": true,
+          "common_fields": [
+            "DefRebounds",
+            "FG2A",
+            "FG2M",
+            "FG3A",
+            "FG3M",
+            "OffRebounds",
+            "Points",
+            "Turnovers"
+          ],
+          "differences": {}
+        },
+        "metrics": {
+          "minutes": 1690.0,
+          "offensive_rating": null,
+          "defensive_rating": null,
+          "net_rating": null,
+          "off_rebound_pct": 29.36946902654867,
+          "def_rebound_pct": 73.00936768149883,
+          "total_rebound_pct": 50.56882821387941
+        }
+      }
+    }
+  ],
+  "preflight_passed": true
+}
