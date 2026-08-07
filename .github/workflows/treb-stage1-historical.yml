@@ -14,6 +14,7 @@ on:
       - team_trb_all_players/fetch_regular_season_games.py
       - team_trb_all_players/finalize_roster_tenure_windows.py
       - team_trb_all_players/resolve_same_day_boundaries.py
+      - team_trb_all_players/resolve_same_day_roster_evidence.py
       - team_trb_all_players/audit_roster_tenure_consistency.py
       - team_trb_all_players/build_roster_tenure_review_queue.py
       - .github/workflows/treb-stage1-historical.yml
@@ -30,6 +31,7 @@ on:
       - team_trb_all_players/fetch_regular_season_games.py
       - team_trb_all_players/finalize_roster_tenure_windows.py
       - team_trb_all_players/resolve_same_day_boundaries.py
+      - team_trb_all_players/resolve_same_day_roster_evidence.py
       - team_trb_all_players/audit_roster_tenure_consistency.py
       - team_trb_all_players/build_roster_tenure_review_queue.py
       - .github/workflows/treb-stage1-historical.yml
@@ -64,6 +66,7 @@ jobs:
           python team_trb_all_players/fetch_regular_season_games.py --self-test
           python team_trb_all_players/finalize_roster_tenure_windows.py --self-test
           python team_trb_all_players/resolve_same_day_boundaries.py --self-test
+          python team_trb_all_players/resolve_same_day_roster_evidence.py --self-test
           python team_trb_all_players/audit_roster_tenure_consistency.py --self-test
           python team_trb_all_players/build_roster_tenure_review_queue.py --self-test
 
@@ -151,6 +154,9 @@ jobs:
       - name: Add positive player-game evidence for same-day boundaries
         run: python team_trb_all_players/resolve_same_day_boundaries.py
 
+      - name: Add positive roster-listing evidence for remaining same-day boundaries
+        run: python team_trb_all_players/resolve_same_day_roster_evidence.py
+
       - name: Validate schedule-aware Stage 1 output
         run: |
           python - <<'PY'
@@ -161,15 +167,19 @@ jobs:
           games = json.loads((root / "regular_season_games_summary.json").read_text())
           summary = json.loads((root / "schedule_boundary_summary.json").read_text())
           evidence = json.loads((root / "same_day_evidence_summary.json").read_text())
+          roster_evidence = json.loads((root / "same_day_roster_evidence_summary.json").read_text())
           assert len(games["seasons"]) == 26, games
           assert games["game_count"] > 25000, games["game_count"]
           assert summary["window_count"] > 10000, summary
           assert summary["missing_team_schedules"] == 0, summary
           assert summary["exact_team_game_count_windows"] > 9000, summary
           assert evidence["remaining_unresolved_windows"] <= evidence["input_unresolved_windows"], evidence
+          assert roster_evidence["remaining_unresolved_windows"] <= roster_evidence["input_unresolved_windows"], roster_evidence
           assert "non-participation" in evidence["method"], evidence
+          assert "absence" in roster_evidence["method"], roster_evidence
           print("SCHEDULE-AWARE STAGE 1 QA PASSED", summary)
-          print("SAME-DAY POSITIVE-EVIDENCE AUDIT PASSED", evidence)
+          print("SAME-DAY POSITIVE-PARTICIPATION AUDIT PASSED", evidence)
+          print("SAME-DAY POSITIVE-ROSTER AUDIT PASSED", roster_evidence)
           PY
 
       - name: Audit final roster-tenure consistency
