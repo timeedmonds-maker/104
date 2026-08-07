@@ -14,6 +14,7 @@ on:
       - team_trb_all_players/fetch_regular_season_games.py
       - team_trb_all_players/finalize_roster_tenure_windows.py
       - team_trb_all_players/resolve_same_day_boundaries.py
+      - team_trb_all_players/audit_roster_tenure_consistency.py
       - .github/workflows/treb-stage1-historical.yml
   pull_request:
     branches:
@@ -28,6 +29,7 @@ on:
       - team_trb_all_players/fetch_regular_season_games.py
       - team_trb_all_players/finalize_roster_tenure_windows.py
       - team_trb_all_players/resolve_same_day_boundaries.py
+      - team_trb_all_players/audit_roster_tenure_consistency.py
       - .github/workflows/treb-stage1-historical.yml
   workflow_dispatch:
 
@@ -60,6 +62,7 @@ jobs:
           python team_trb_all_players/fetch_regular_season_games.py --self-test
           python team_trb_all_players/finalize_roster_tenure_windows.py --self-test
           python team_trb_all_players/resolve_same_day_boundaries.py --self-test
+          python team_trb_all_players/audit_roster_tenure_consistency.py --self-test
 
       - name: Build uniform archived Basketball-Reference transaction source
         run: python team_trb_all_players/fetch_bref_historical_transactions.py
@@ -164,6 +167,26 @@ jobs:
           assert "non-participation" in evidence["method"], evidence
           print("SCHEDULE-AWARE STAGE 1 QA PASSED", summary)
           print("SAME-DAY POSITIVE-EVIDENCE AUDIT PASSED", evidence)
+          PY
+
+      - name: Audit final roster-tenure consistency
+        run: python team_trb_all_players/audit_roster_tenure_consistency.py
+
+      - name: Validate final roster-tenure consistency
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("team_trb_all_players/impact_database/roster_tenure")
+          summary = json.loads((root / "tenure_consistency_summary.json").read_text())
+          assert summary["window_count"] > 10000, summary
+          assert summary["invalid_interval_count"] == 0, summary
+          assert summary["duplicate_window_count"] == 0, summary
+          assert summary["resolved_game_count_inconsistency_count"] == 0, summary
+          assert summary["strict_cross_team_overlap_count"] == 0, summary
+          assert summary["strict_same_team_overlap_count"] == 0, summary
+          print("FINAL ROSTER-TENURE CONSISTENCY QA PASSED", summary)
           PY
 
       - name: Commit generated Stage 1 source and audit outputs
