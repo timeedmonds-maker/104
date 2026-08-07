@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   import-and-qa-2003-04:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     timeout-minutes: 15
 
     steps:
