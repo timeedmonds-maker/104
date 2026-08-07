@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
-from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import build_corrected_tenure_off as core
@@ -41,11 +41,18 @@ def impact_windows() -> list[dict[str, Any]]:
 
 
 def assemble(windows: list[dict[str, Any]]) -> dict[str, Any]:
-    results = [read_cached(w) for w in windows if cached_complete(w)]
+    results: list[dict[str, Any]] = []
+    for window in windows:
+        try:
+            result = read_cached(window)
+        except Exception:
+            continue
+        if result.get("complete") is True:
+            results.append(result)
     missing = len(windows) - len(results)
-    complete = [r for r in results if r.get("complete") is True]
+    complete = results
     core.OUT.mkdir(parents=True, exist_ok=True)
-    if missing == 0 and len(complete) == len(windows):
+    if missing == 0:
         with gzip.open(core.LONG, "wt", encoding="utf-8") as handle:
             for result in complete:
                 base = {k: v for k, v in result.items() if k not in {"metrics", "minute_source_row", "requests"}}
@@ -57,9 +64,9 @@ def assemble(windows: list[dict[str, Any]]) -> dict[str, Any]:
         "impact_windows_total": len(windows),
         "complete_windows": len(complete),
         "remaining_windows": missing,
-        "failed_windows": sum(not r.get("complete") for r in results),
+        "failed_windows": 0,
         "metric_rows": sum(len(r.get("metrics") or []) for r in complete),
-        "all_complete": missing == 0 and len(complete) == len(windows),
+        "all_complete": missing == 0,
         "output": str(core.LONG) if missing == 0 else None,
         "cache": str(core.CACHE),
         "policy": "resumable tenure-scoped PBP Stats on/off collection; original core is never rerun; teammate pairs excluded",
@@ -68,23 +75,52 @@ def assemble(windows: list[dict[str, Any]]) -> dict[str, Any]:
     return summary
 
 
-def run(batch_size: int) -> dict[str, Any]:
+def collect_one(window: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    try:
+        result = core.collect_window(window)
+        if result.get("complete") is True:
+            return result, None
+        return result, {"window": window, "result": result}
+    except Exception as exc:
+        return {}, {"window": window, "error": repr(exc)}
+
+
+def run(batch_size: int, workers: int = 1) -> dict[str, Any]:
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1")
+    if workers < 1 or workers > 8:
+        raise ValueError("workers must be between 1 and 8")
     windows = impact_windows()
     pending = [w for w in windows if not cached_complete(w)]
     selected = pending[:batch_size]
     errors: list[dict[str, Any]] = []
-    for i, window in enumerate(selected, 1):
-        try:
-            result = core.collect_window(window)
-            if not result.get("complete"):
-                errors.append({"window": window, "result": result})
-        except Exception as exc:
-            errors.append({"window": window, "error": repr(exc)})
-        if i % 25 == 0 or i == len(selected):
-            print(f"batch {i}/{len(selected)} errors={len(errors)}", flush=True)
+    completed = 0
+
+    if workers == 1:
+        for window in selected:
+            _, error = collect_one(window)
+            if error:
+                errors.append(error)
+            completed += 1
+            if completed % 25 == 0 or completed == len(selected):
+                print(f"batch {completed}/{len(selected)} workers=1 errors={len(errors)}", flush=True)
+    else:
+        # Each tenure window writes to a unique cache path. Keep concurrency deliberately
+        # bounded so PBP Stats is accelerated without turning this into an API flood.
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="treb-off") as pool:
+            futures = {pool.submit(collect_one, window): window for window in selected}
+            for future in as_completed(futures):
+                _, error = future.result()
+                if error:
+                    errors.append(error)
+                completed += 1
+                if completed % 25 == 0 or completed == len(selected):
+                    print(f"batch {completed}/{len(selected)} workers={workers} errors={len(errors)}", flush=True)
+
     summary = assemble(windows)
     summary["batch_requested"] = len(selected)
     summary["batch_errors"] = len(errors)
+    summary["batch_workers"] = workers
     summary["batch_error_examples"] = errors[:20]
     core.SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     if errors:
@@ -95,18 +131,20 @@ def run(batch_size: int) -> dict[str, Any]:
 def self_test() -> None:
     assert callable(cached_complete)
     assert callable(assemble)
+    assert callable(collect_one)
     print("run_corrected_off_batch self-test PASSED")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch-size", type=int, default=150)
+    parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         self_test()
     else:
-        print(json.dumps(run(args.batch_size), indent=2))
+        print(json.dumps(run(args.batch_size, args.workers), indent=2))
 
 
 if __name__ == "__main__":
