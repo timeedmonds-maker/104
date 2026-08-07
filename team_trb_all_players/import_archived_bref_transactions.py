@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 import re
+import sys
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -22,9 +23,10 @@ SUMMARIES = OUT / "season_summaries"
 SNAPSHOTS = {
     2001: "https://web.archive.org/web/20221209183617id_/https://www.basketball-reference.com/leagues/NBA_2002_transactions.html",
     2002: "https://web.archive.org/web/20210810125923id_/https://www.basketball-reference.com/leagues/NBA_2003_transactions.html",
+    2003: "https://web.archive.org/web/20221209192231id_/https://www.basketball-reference.com/leagues/NBA_2004_transactions.html",
 }
 
-EXPECTED_COUNTS = {2001: 253, 2002: 238}
+EXPECTED_COUNTS = {2001: 253, 2002: 238, 2003: 368}
 
 DATE_RE = re.compile(
     r"^(January|February|March|April|May|June|July|August|September|October|November|December) "
@@ -60,7 +62,15 @@ def main() -> int:
     ROWS.mkdir(parents=True, exist_ok=True)
     SUMMARIES.mkdir(parents=True, exist_ok=True)
 
+    requested = {int(value) for value in sys.argv[1:]} if len(sys.argv) > 1 else set(SNAPSHOTS)
+    unknown = requested - set(SNAPSHOTS)
+    if unknown:
+        raise RuntimeError(f"unsupported season start years: {sorted(unknown)}")
+
     for year, url in SNAPSHOTS.items():
+        if year not in requested:
+            continue
+
         season = season_label(year)
         print(f"IMPORT {season}", flush=True)
 
