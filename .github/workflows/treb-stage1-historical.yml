@@ -15,6 +15,7 @@ on:
       - team_trb_all_players/finalize_roster_tenure_windows.py
       - team_trb_all_players/resolve_same_day_boundaries.py
       - team_trb_all_players/audit_roster_tenure_consistency.py
+      - team_trb_all_players/build_roster_tenure_review_queue.py
       - .github/workflows/treb-stage1-historical.yml
   pull_request:
     branches:
@@ -30,6 +31,7 @@ on:
       - team_trb_all_players/finalize_roster_tenure_windows.py
       - team_trb_all_players/resolve_same_day_boundaries.py
       - team_trb_all_players/audit_roster_tenure_consistency.py
+      - team_trb_all_players/build_roster_tenure_review_queue.py
       - .github/workflows/treb-stage1-historical.yml
   workflow_dispatch:
 
@@ -38,7 +40,7 @@ permissions:
 
 jobs:
   build-and-qa-roster-tenure:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 90
 
     steps:
@@ -63,6 +65,7 @@ jobs:
           python team_trb_all_players/finalize_roster_tenure_windows.py --self-test
           python team_trb_all_players/resolve_same_day_boundaries.py --self-test
           python team_trb_all_players/audit_roster_tenure_consistency.py --self-test
+          python team_trb_all_players/build_roster_tenure_review_queue.py --self-test
 
       - name: Build uniform archived Basketball-Reference transaction source
         run: python team_trb_all_players/fetch_bref_historical_transactions.py
@@ -187,6 +190,24 @@ jobs:
           assert summary["strict_cross_team_overlap_count"] == 0, summary
           assert summary["strict_same_team_overlap_count"] == 0, summary
           print("FINAL ROSTER-TENURE CONSISTENCY QA PASSED", summary)
+          PY
+
+      - name: Build consolidated Stage 1 review queue
+        run: python team_trb_all_players/build_roster_tenure_review_queue.py
+
+      - name: Validate Stage 1 review queue
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("team_trb_all_players/impact_database/roster_tenure")
+          summary = json.loads((root / "tenure_review_queue_summary.json").read_text())
+          assert summary["input_windows"] > 10000, summary
+          assert summary["review_queue_windows"] >= 0, summary
+          assert isinstance(summary["stage1_exact_ready"], bool), summary
+          assert "non-participation" in summary["policy"], summary
+          print("STAGE 1 REVIEW QUEUE BUILT", summary)
           PY
 
       - name: Commit generated Stage 1 source and audit outputs
