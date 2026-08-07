@@ -1,17 +1,23 @@
-name: TREB Stage 1 historical transactions
+name: TREB Stage 1 roster tenure
 
 on:
   push:
     branches:
       - treb-stage1-automation
     paths:
+      - team_trb_all_players/fetch_bref_historical_transactions.py
       - team_trb_all_players/import_archived_bref_transactions.py
+      - team_trb_all_players/normalize_roster_transactions.py
+      - team_trb_all_players/build_roster_tenure_windows.py
       - .github/workflows/treb-stage1-historical.yml
   pull_request:
     branches:
       - main
     paths:
+      - team_trb_all_players/fetch_bref_historical_transactions.py
       - team_trb_all_players/import_archived_bref_transactions.py
+      - team_trb_all_players/normalize_roster_transactions.py
+      - team_trb_all_players/build_roster_tenure_windows.py
       - .github/workflows/treb-stage1-historical.yml
   workflow_dispatch:
 
@@ -19,9 +25,9 @@ permissions:
   contents: write
 
 jobs:
-  import-and-qa-2003-04:
+  build-and-qa-roster-tenure:
     runs-on: ubuntu-slim
-    timeout-minutes: 15
+    timeout-minutes: 90
 
     steps:
       - name: Check out branch
@@ -37,57 +43,66 @@ jobs:
       - name: Install parser dependencies
         run: python -m pip install --upgrade requests beautifulsoup4
 
-      - name: Import archived Basketball-Reference 2003-04 transactions
-        run: python team_trb_all_players/import_archived_bref_transactions.py 2003
+      - name: Run parser and tenure self-tests
+        run: |
+          python team_trb_all_players/normalize_roster_transactions.py --self-test
+          python team_trb_all_players/build_roster_tenure_windows.py --self-test
 
-      - name: Validate 2003-04 transaction archive
+      - name: Build uniform archived Basketball-Reference transaction source
+        run: python team_trb_all_players/fetch_bref_historical_transactions.py
+
+      - name: Validate historical archive coverage
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          p = Path("team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/manifest.json")
+          manifest = json.loads(p.read_text())
+          assert manifest["all_validated"] is True
+          assert manifest["completed_seasons"] == [f"{y}-{str(y+1)[-2:]}" for y in range(2000, 2016)]
+          assert manifest["total_rows"] > 3000, manifest["total_rows"]
+          print("HISTORICAL ARCHIVE QA PASSED", manifest["total_rows"], "transactions")
+          PY
+
+      - name: Normalize historical and official NBA movement transactions
+        run: python team_trb_all_players/normalize_roster_transactions.py
+
+      - name: Build player-team-season tenure windows
+        run: python team_trb_all_players/build_roster_tenure_windows.py
+
+      - name: Validate Stage 1 structural output
         run: |
           python - <<'PY'
           import gzip
           import json
-          from collections import Counter
           from pathlib import Path
 
-          path = Path("team_trb_all_players/impact_database/historical_transactions/season_rows/2003-04.jsonl.gz")
-          rows = [json.loads(line) for line in gzip.open(path, "rt", encoding="utf-8")]
+          root = Path("team_trb_all_players/impact_database/roster_tenure")
+          summary = json.loads((root / "tenure_window_summary.json").read_text())
+          assert summary["window_count"] > 10000, summary
+          assert len(summary["seasons"]) == 26, summary["seasons"]
+          assert summary["invalid_boundary_order"] == 0, summary
 
-          expected_counts = {
-              "Claimed": 2,
-              "Other": 28,
-              "Released": 6,
-              "Signings": 191,
-              "Trades": 44,
-              "Waived": 97,
-          }
-
-          assert len(rows) == 368, len(rows)
-          assert dict(sorted(Counter(row["section"] for row in rows).items())) == expected_counts
-          assert all(row.get("date_hint") for row in rows)
-          assert all(row.get("source") == "Basketball-Reference via Internet Archive" for row in rows)
-
-          def has_transaction(date, *needles):
-              for row in rows:
-                  text = " ".join(str(value) for value in row.get("cells", []))
-                  if row.get("subsection") == date and all(needle in text for needle in needles):
-                      return True
-              return False
-
-          assert has_transaction("December 1, 2003", "Jalen Rose", "Toronto Raptors")
-          assert has_transaction("February 19, 2004", "Rasheed Wallace", "Detroit Pistons")
-          assert has_transaction("June 29, 2004", "Tracy McGrady", "Houston Rockets")
-
-          print("2003-04 QA PASSED: 368 transactions, 44 trades, exact dates present")
+          rows = [json.loads(line) for line in gzip.open(root / "player_team_season_windows.jsonl.gz", "rt", encoding="utf-8")]
+          adams = [r for r in rows if r["season"] == "2023-24" and r["player_id"] == "203500"]
+          by_team = {r["team_id"]: r for r in adams}
+          assert 1610612763 in by_team and 1610612745 in by_team, adams
+          assert by_team[1610612763]["tenure_end"] == "2024-02-01", by_team[1610612763]
+          assert by_team[1610612745]["tenure_start"] == "2024-02-01", by_team[1610612745]
+          print("STAGE 1 STRUCTURAL QA PASSED", summary)
           PY
 
-      - name: Commit generated historical archive outputs
+      - name: Commit generated Stage 1 source and audit outputs
         if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add team_trb_all_players/impact_database/historical_transactions
+          git add team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform
+          git add team_trb_all_players/impact_database/roster_tenure
           if git diff --cached --quiet; then
             echo "No generated changes to commit"
           else
-            git commit -m "Add validated 2003-04 historical transaction archive"
+            git commit -m "Generate Stage 1 roster tenure audit outputs"
             git push origin HEAD:${GITHUB_REF_NAME}
           fi
