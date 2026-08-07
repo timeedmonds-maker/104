@@ -64,7 +64,7 @@ jobs:
         id: batch
         if: steps.gate.outputs.ready == 'true'
         continue-on-error: true
-        run: python team_trb_all_players/run_corrected_off_batch.py --batch-size 175
+        run: python team_trb_all_players/run_corrected_off_batch.py --batch-size 500 --workers 4
 
       - name: Inspect collection status
         if: steps.gate.outputs.ready == 'true' && always()
