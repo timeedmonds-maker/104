@@ -7,6 +7,12 @@ on:
     paths:
       - team_trb_all_players/import_archived_bref_transactions.py
       - .github/workflows/treb-stage1-historical.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - team_trb_all_players/import_archived_bref_transactions.py
+      - .github/workflows/treb-stage1-historical.yml
   workflow_dispatch:
 
 permissions:
@@ -74,6 +80,7 @@ jobs:
           PY
 
       - name: Commit generated historical archive outputs
+        if: github.event_name == 'push'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
