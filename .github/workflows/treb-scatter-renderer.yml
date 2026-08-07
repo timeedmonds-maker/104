@@ -45,17 +45,27 @@ jobs:
             /tmp/career_impact_selftest.png \
             /tmp/career_impact_selftest.svg \
             /tmp/career_impact_selftest.pdf \
-            /tmp/career_impact_selftest_audit.json; do
+            /tmp/career_impact_selftest_audit.json \
+            /tmp/career_impact_full_selftest.png \
+            /tmp/career_impact_full_selftest.svg \
+            /tmp/career_impact_full_selftest.pdf \
+            /tmp/career_impact_full_selftest_audit.json; do
             test -s "$f"
           done
           python - <<'PY'
           import json
           scatter=json.load(open('/tmp/treb_scatter_selftest_audit.json'))
-          career=json.load(open('/tmp/career_impact_selftest_audit.json'))
+          highlights=json.load(open('/tmp/career_impact_selftest_audit.json'))
+          full=json.load(open('/tmp/career_impact_full_selftest_audit.json'))
           assert scatter['rows']==240
           assert len(scatter['labels'])==12
           assert scatter['coordinate_integrity']=='x/y copied directly from input rows'
-          assert len(career['tiles'])==20
-          assert career['rank_definition'].startswith('high-to-low historical rank')
+          assert highlights['mode']=='highlights'
+          assert highlights['threshold_mode']=='auto'
+          assert highlights['threshold']==2500
+          assert 1 <= len(highlights['tiles']) <= 16
+          assert full['mode']=='full'
+          assert len(full['tiles'])==20
+          assert highlights['rank_definition'].startswith('high-to-low historical rank')
           print('FUNAKISTATS GRAPHICS QA PASSED')
           PY
