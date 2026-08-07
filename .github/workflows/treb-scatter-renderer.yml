@@ -7,16 +7,14 @@ on:
     paths:
       - team_trb_all_players/render_funakistats_scatter.py
       - .github/workflows/treb-scatter-renderer.yml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - team_trb_all_players/render_funakistats_scatter.py
-      - .github/workflows/treb-scatter-renderer.yml
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: treb-scatter-renderer-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   renderer-self-test:
