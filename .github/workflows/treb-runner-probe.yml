@@ -1,0 +1,30 @@
+name: TREB runner allocation probe
+
+on:
+  push:
+    branches:
+      - treb-stage1-automation
+    paths:
+      - .github/workflows/treb-runner-probe.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/treb-runner-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  slim-allocation-probe:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Report allocation
+        run: |
+          echo "RUNNER_PROBE_STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "runner=$RUNNER_NAME"
+          echo "arch=$RUNNER_ARCH"
+          echo "os=$RUNNER_OS"
+          python3 --version || true
