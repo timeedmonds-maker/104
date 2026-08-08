@@ -9,6 +9,14 @@ on:
       - 'team_trb_all_players/run_treb_laptop_v13_fast.sh'
       - 'team_trb_all_players/reconcile_target_tenures_v12.py'
       - '.github/workflows/treb-v13-stage1-validation.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'team_trb_all_players/recover_overlap_events_from_bref_v13.py'
+      - 'team_trb_all_players/apply_verified_overlap_supplement_v13.py'
+      - 'team_trb_all_players/run_treb_laptop_v13_fast.sh'
+      - 'team_trb_all_players/reconcile_target_tenures_v12.py'
+      - '.github/workflows/treb-v13-stage1-validation.yml'
 
 permissions:
   contents: write
