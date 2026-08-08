@@ -1,15 +1,6 @@
 name: TREB tenure-corrected OFF
 
 on:
-  push:
-    branches:
-      - treb-stage1-automation
-    paths:
-      - team_trb_all_players/build_corrected_tenure_off.py
-      - team_trb_all_players/run_corrected_off_batch.py
-      - team_trb_all_players/finalize_corrected_off_package.py
-      - team_trb_all_players/impact_database/roster_tenure/**
-      - .github/workflows/treb-corrected-off.yml
   workflow_dispatch:
 
 permissions:
@@ -82,6 +73,19 @@ jobs:
               f.write('batch_errors='+str(int(d.get('batch_errors') or 0))+'\n')
           PY
 
+      - name: Add finalizer compatibility key
+        if: steps.gate.outputs.ready == 'true' && steps.status.outputs.complete == 'true'
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json')
+          d=json.loads(p.read_text())
+          if 'impact_windows_requested' not in d and 'impact_windows_total' in d:
+              d['impact_windows_requested']=d['impact_windows_total']
+          p.write_text(json.dumps(d,indent=2))
+          PY
+
       - name: Build and verify final corrected OFF package
         if: steps.gate.outputs.ready == 'true' && steps.batch.outcome == 'success' && steps.status.outputs.complete == 'true'
         run: python team_trb_all_players/finalize_corrected_off_package.py
@@ -95,7 +99,7 @@ jobs:
           if git diff --cached --quiet; then
             echo 'No corrected OFF changes to commit'
           else
-            git commit -m 'Advance tenure-corrected OFF build'
+            git commit -m 'Advance tenure-corrected OFF build [skip ci]'
             git push origin HEAD:${GITHUB_REF_NAME}
           fi
 
@@ -122,5 +126,5 @@ jobs:
       - name: Surface batch failure after preserving completed cache
         if: steps.gate.outputs.ready == 'true' && steps.batch.outcome == 'failure'
         run: |
-          echo "Corrected OFF batch failed after durable cache was committed; autonomous supervisor should diagnose before continuation."
+          echo "Corrected OFF batch failed after durable cache was committed; diagnose before continuation."
           exit 1
