@@ -1,0 +1,71 @@
+name: TREB v12 static self-test
+
+on:
+  push:
+    branches: [treb-laptop-run]
+    paths:
+      - 'team_trb_all_players/*v12*.py'
+      - 'team_trb_all_players/*v12*.sh'
+      - '.github/workflows/treb-v12-selftest.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  selftest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install lightweight dependencies
+        run: python -m pip install --disable-pip-version-check requests beautifulsoup4
+      - name: Compile and run deterministic v12 self-tests
+        id: tests
+        continue-on-error: true
+        run: |
+          python -m py_compile \
+            team_trb_all_players/recover_overlap_events_from_bref_v12.py \
+            team_trb_all_players/repair_overlap_boundaries_v12.py \
+            team_trb_all_players/repair_overlap_boundaries_v12_runtime.py \
+            team_trb_all_players/reconcile_target_tenures_v12.py \
+            team_trb_all_players/diagnose_remaining_overlap_event_chains_v12.py
+          python team_trb_all_players/recover_overlap_events_from_bref_v12.py --self-test
+          python team_trb_all_players/repair_overlap_boundaries_v12_runtime.py --self-test
+          python team_trb_all_players/reconcile_target_tenures_v12.py --self-test
+          bash -n team_trb_all_players/run_treb_laptop_v12_fast.sh
+          bash -n team_trb_all_players/run_treb_laptop_v12_ready.sh
+          bash -n team_trb_all_players/run_treb_laptop_supervised_v12.sh
+      - name: Persist self-test status
+        if: always()
+        env:
+          OUTCOME: ${{ steps.tests.outcome }}
+          SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/v12_selftest_status.json')
+          p.parent.mkdir(parents=True,exist_ok=True)
+          p.write_text(json.dumps({
+              'generated_utc': datetime.now(timezone.utc).isoformat(),
+              'state': 'passed' if os.environ['OUTCOME']=='success' else 'failed',
+              'tested_commit': os.environ['SHA'],
+              'tests': 'py_compile + deterministic v12 self-tests + bash -n',
+          },indent=2))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/v12_selftest_status.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record TREB v12 self-test status [skip ci]'
+            git push origin HEAD:treb-laptop-run
+          fi
+      - name: Fail if tests failed
+        if: steps.tests.outcome != 'success'
+        run: exit 1
