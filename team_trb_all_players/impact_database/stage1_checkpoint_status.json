@@ -1,8 +1,8 @@
 {
-  "generated_utc": "2026-08-08T22:41:51.907545+00:00",
-  "last_completed_phase": "transaction_enrichment_historical_v10",
-  "last_phase_elapsed_seconds": 63,
-  "total_elapsed_seconds": 111,
+  "generated_utc": "2026-08-08T22:41:56.724896+00:00",
+  "last_completed_phase": "official_movement_boundary_repair_v8",
+  "last_phase_elapsed_seconds": 68,
+  "total_elapsed_seconds": 116,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
@@ -14,7 +14,8 @@
     "transaction_enrichment_cached_sources",
     "official_movement_boundary_repair",
     "transaction_boundary_repair_v2",
-    "transaction_enrichment_historical_v10"
+    "transaction_enrichment_historical_v10",
+    "official_movement_boundary_repair_v8"
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
 }
