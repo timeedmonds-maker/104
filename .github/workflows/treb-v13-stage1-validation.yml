@@ -1,0 +1,98 @@
+name: TREB v13 Stage1 validation
+
+on:
+  push:
+    branches: [treb-laptop-run]
+    paths:
+      - 'team_trb_all_players/recover_overlap_events_from_bref_v13.py'
+      - 'team_trb_all_players/apply_verified_overlap_supplement_v13.py'
+      - 'team_trb_all_players/run_treb_laptop_v13_fast.sh'
+      - 'team_trb_all_players/reconcile_target_tenures_v12.py'
+      - '.github/workflows/treb-v13-stage1-validation.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-v13-stage1-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: treb-laptop-run
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install lightweight Stage1 dependencies
+        run: python -m pip install --disable-pip-version-check requests beautifulsoup4
+      - name: Run exact-ready Stage1 validation
+        id: stage1
+        continue-on-error: true
+        env:
+          TREB_STAGE1_ONLY: '1'
+        run: bash team_trb_all_players/run_treb_laptop_v13_fast.sh
+      - name: Persist validation status and diagnostics
+        if: always()
+        env:
+          OUTCOME: ${{ steps.stage1.outcome }}
+          TESTED_SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          root=Path('team_trb_all_players/impact_database')
+          rt=root/'roster_tenure'
+          def load(path):
+              try: return json.loads(path.read_text())
+              except Exception: return {}
+          consistency=load(rt/'tenure_consistency_summary.json')
+          queue=load(rt/'tenure_review_queue_summary.json')
+          checkpoint=load(root/'stage1_checkpoint_status.json')
+          overlaps=consistency.get('strict_cross_team_overlap_count')
+          review=(consistency.get('confidence_counts') or {}).get('review')
+          exact=bool(queue.get('stage1_exact_ready')) and int(queue.get('review_queue_windows') or 0)==0 and overlaps==0
+          state='passed' if os.environ['OUTCOME']=='success' and exact else 'failed'
+          payload={
+              'generated_utc':datetime.now(timezone.utc).isoformat(),
+              'state':state,
+              'workflow_outcome':os.environ['OUTCOME'],
+              'tested_commit':os.environ['TESTED_SHA'],
+              'strict_cross_team_overlap_count':overlaps,
+              'strict_same_team_overlap_count':consistency.get('strict_same_team_overlap_count'),
+              'review_windows':review,
+              'invalid_interval_count':consistency.get('invalid_interval_count'),
+              'duplicate_window_count':consistency.get('duplicate_window_count'),
+              'resolved_game_count_inconsistency_count':consistency.get('resolved_game_count_inconsistency_count'),
+              'remaining_same_day_unresolved_count':consistency.get('remaining_same_day_unresolved_count'),
+              'review_queue_windows':queue.get('review_queue_windows'),
+              'stage1_exact_ready':exact,
+              'last_completed_phase':checkpoint.get('last_completed_phase'),
+          }
+          (root/'v13_stage1_validation_status.json').write_text(json.dumps(payload,indent=2))
+          print(json.dumps(payload,indent=2))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/v13_stage1_validation_status.json \
+                  team_trb_all_players/impact_database/roster_tenure/remaining_overlap_event_chains_v12.json \
+                  team_trb_all_players/impact_database/roster_tenure/tenure_consistency_summary.json \
+                  team_trb_all_players/impact_database/roster_tenure/tenure_consistency_audit.json \
+                  team_trb_all_players/impact_database/roster_tenure/bref_targeted_overlap_recovery_v13_summary.json \
+                  team_trb_all_players/impact_database/roster_tenure/verified_overlap_supplement_v13_summary.json 2>/dev/null || true
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record TREB v13 autonomous Stage1 validation [skip ci]'
+            for i in 1 2 3; do
+              git pull --rebase origin treb-laptop-run && git push origin HEAD:treb-laptop-run && break
+              sleep 2
+            done
+          fi
+      - name: Fail unless Stage1 is exact-ready
+        if: steps.stage1.outcome != 'success'
+        run: exit 1
