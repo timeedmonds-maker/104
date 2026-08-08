@@ -13,7 +13,7 @@ import sys
 p=Path(sys.argv[1])
 s=p.read_text()
 old='bash "$BASE/run_treb_laptop.sh" 2>&1 | tee "$LOG"'
-new='bash "$BASE/run_treb_laptop_v12_fast.sh" 2>&1 | tee "$LOG"'
+new='bash "$BASE/run_treb_laptop_v12_ready.sh" 2>&1 | tee "$LOG"'
 if old not in s:
     raise SystemExit('Could not locate supervised runner command')
 p.write_text(s.replace(old,new,1))
