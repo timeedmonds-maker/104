@@ -32,6 +32,10 @@ s=s.replace('TREB V12 FAST RECOVERY','TREB V13 FAST RECOVERY')
 s=s.replace('V12 STRICT OVERLAPS=','V13 STRICT OVERLAPS=')
 s=s.replace('V12 STAGE 1 EXACT-READY QA PASSED','V13 STAGE 1 EXACT-READY QA PASSED')
 s=s.replace('V12_STAGE1_EXACT_READY=1','V13_STAGE1_EXACT_READY=1')
+stage2='bash "$BASE/run_treb_stage2_resume.sh"'
+if stage2 not in s:
+    raise SystemExit('Could not locate Stage 2 handoff')
+s=s.replace(stage2, 'if [[ "${TREB_STAGE1_ONLY:-0}" == "1" ]]; then\n  echo "V13_STAGE1_VALIDATION_COMPLETE=1"\n  exit 0\nfi\n'+stage2, 1)
 p.write_text(s)
 PY
 chmod +x "$TMP"
