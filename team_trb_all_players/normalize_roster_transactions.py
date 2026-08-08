@@ -79,7 +79,7 @@ TEAM_ALIASES: dict[str, tuple[int, ...]] = {
 TEAM_PATTERN = "|".join(re.escape(name) for name in sorted(TEAM_ALIASES, key=len, reverse=True))
 
 TRADE_CLAUSE_RE = re.compile(
-    rf"(?:^|;|\band\s+)\s*(?:The|the)\s+(?P<src>{TEAM_PATTERN})\s+traded\s+"
+    rf"(?:^(?:In\s+(?:a\s+)?\d+-team\s+trade,\s*)?|;|\band\s+)\s*(?:The|the)\s+(?P<src>{TEAM_PATTERN})\s+traded\s+"
     rf"(?P<assets>.+?)\s+to\s+the\s+(?P<dst>{TEAM_PATTERN})"
     rf"(?:\s+for\s+(?P<returns>.+?))?(?=\s*;|\s*\.|$)",
     re.IGNORECASE,
