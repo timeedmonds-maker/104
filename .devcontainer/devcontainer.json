@@ -4,8 +4,8 @@
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  "postCreateCommand": "mkdir -p team_trb_all_players/impact_database && (nohup bash team_trb_all_players/run_treb_end_to_end_codespace.sh >> team_trb_all_players/impact_database/treb_codespace_autostart.log 2>&1 </dev/null &)",
-  "postStartCommand": "mkdir -p team_trb_all_players/impact_database && (nohup bash team_trb_all_players/run_treb_end_to_end_codespace.sh >> team_trb_all_players/impact_database/treb_codespace_autostart.log 2>&1 </dev/null &)",
+  "postCreateCommand": "mkdir -p team_trb_all_players/impact_database && python -m pip install --disable-pip-version-check requests beautifulsoup4 pandas numpy pyarrow duckdb",
+  "postStartCommand": "mkdir -p team_trb_all_players/impact_database",
   "customizations": {
     "codespaces": {
       "openFiles": [
@@ -14,7 +14,7 @@
     },
     "vscode": {
       "settings": {
-        "task.allowAutomaticTasks": "off",
+        "task.allowAutomaticTasks": "on",
         "terminal.integrated.defaultProfile.linux": "bash"
       }
     }
