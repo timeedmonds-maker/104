@@ -1,9 +1,10 @@
 {
   "input_windows": 14903,
-  "output_windows": 15155,
-  "player_team_seasons_split": 231,
-  "extra_segments_created": 252,
-  "same_day_in_out_collisions": 29,
+  "output_windows": 15256,
+  "player_team_seasons_rebuilt": 722,
+  "extra_segments_created": 353,
+  "same_day_pass_through_zero_effective_windows": 33,
+  "same_day_same_team_continuities_preserved": 254,
   "historical_event_dates_normalized": 6757,
-  "unparseable_event_dates": 0
+  "policy": "Same-day in+out while previously inactive is a zero-effective-service pass-through; same-day in+out while already active preserves continuous same-team roster service. Derived 10-day expiries participate as exact departure boundaries."
 }
