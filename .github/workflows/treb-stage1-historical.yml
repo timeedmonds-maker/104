@@ -1,53 +1,22 @@
 name: TREB Stage 1 roster tenure
 
 on:
-  push:
-    branches:
-      - treb-stage1-automation
-    paths:
-      - team_trb_all_players/fetch_bref_historical_transactions.py
-      - team_trb_all_players/import_archived_bref_transactions.py
-      - team_trb_all_players/normalize_roster_transactions.py
-      - team_trb_all_players/build_roster_tenure_windows.py
-      - team_trb_all_players/augment_zero_minute_official_tenures.py
-      - team_trb_all_players/split_multi_stint_tenures.py
-      - team_trb_all_players/fetch_regular_season_games.py
-      - team_trb_all_players/finalize_roster_tenure_windows.py
-      - team_trb_all_players/resolve_same_day_boundaries.py
-      - team_trb_all_players/resolve_same_day_roster_evidence.py
-      - team_trb_all_players/audit_roster_tenure_consistency.py
-      - team_trb_all_players/build_roster_tenure_review_queue.py
-      - .github/workflows/treb-stage1-historical.yml
-  pull_request:
-    branches:
-      - main
-    paths:
-      - team_trb_all_players/fetch_bref_historical_transactions.py
-      - team_trb_all_players/import_archived_bref_transactions.py
-      - team_trb_all_players/normalize_roster_transactions.py
-      - team_trb_all_players/build_roster_tenure_windows.py
-      - team_trb_all_players/augment_zero_minute_official_tenures.py
-      - team_trb_all_players/split_multi_stint_tenures.py
-      - team_trb_all_players/fetch_regular_season_games.py
-      - team_trb_all_players/finalize_roster_tenure_windows.py
-      - team_trb_all_players/resolve_same_day_boundaries.py
-      - team_trb_all_players/resolve_same_day_roster_evidence.py
-      - team_trb_all_players/audit_roster_tenure_consistency.py
-      - team_trb_all_players/build_roster_tenure_review_queue.py
-      - .github/workflows/treb-stage1-historical.yml
   workflow_dispatch:
 
 permissions:
   contents: write
   actions: write
 
+concurrency:
+  group: treb-stage1-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   build-and-qa-roster-tenure:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-
     steps:
-      - name: Check out branch
+      - name: Check out requested branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -57,209 +26,5 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install parser dependencies
-        run: python -m pip install --upgrade requests beautifulsoup4
-
-      - name: Run parser and tenure self-tests
-        run: |
-          python team_trb_all_players/normalize_roster_transactions.py --self-test
-          python team_trb_all_players/build_roster_tenure_windows.py --self-test
-          python team_trb_all_players/fetch_regular_season_games.py --self-test
-          python team_trb_all_players/finalize_roster_tenure_windows.py --self-test
-          python team_trb_all_players/resolve_same_day_boundaries.py --self-test
-          python team_trb_all_players/resolve_same_day_roster_evidence.py --self-test
-          python team_trb_all_players/audit_roster_tenure_consistency.py --self-test
-          python team_trb_all_players/build_roster_tenure_review_queue.py --self-test
-
-      - name: Build uniform archived Basketball-Reference transaction source
-        run: python team_trb_all_players/fetch_bref_historical_transactions.py
-
-      - name: Validate historical archive coverage
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          p = Path("team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/manifest.json")
-          manifest = json.loads(p.read_text())
-          assert manifest["all_validated"] is True
-          assert manifest["completed_seasons"] == [f"{y}-{str(y+1)[-2:]}" for y in range(2000, 2016)]
-          assert manifest["total_rows"] > 3000, manifest["total_rows"]
-          print("HISTORICAL ARCHIVE QA PASSED", manifest["total_rows"], "transactions")
-          PY
-
-      - name: Normalize historical and official NBA movement transactions
-        run: python team_trb_all_players/normalize_roster_transactions.py
-
-      - name: Build player-team-season tenure windows
-        run: python team_trb_all_players/build_roster_tenure_windows.py
-
-      - name: Validate Stage 1 structural output
-        run: |
-          python - <<'PY'
-          import gzip
-          import json
-          from pathlib import Path
-
-          root = Path("team_trb_all_players/impact_database/roster_tenure")
-          summary = json.loads((root / "tenure_window_summary.json").read_text())
-          assert summary["window_count"] > 10000, summary
-          assert len(summary["seasons"]) == 26, summary["seasons"]
-          assert summary["invalid_boundary_order"] == 0, summary
-
-          rows = [json.loads(line) for line in gzip.open(root / "player_team_season_windows.jsonl.gz", "rt", encoding="utf-8")]
-          adams = [r for r in rows if r["season"] == "2023-24" and r["player_id"] == "203500"]
-          by_team = {r["team_id"]: r for r in adams}
-          assert 1610612763 in by_team and 1610612745 in by_team, adams
-          assert by_team[1610612763]["tenure_end"] == "2024-02-01", by_team[1610612763]
-          assert by_team[1610612745]["tenure_start"] == "2024-02-01", by_team[1610612745]
-          print("STAGE 1 STRUCTURAL QA PASSED", summary)
-          PY
-
-      - name: Add official in-season roster tenures absent from core minutes
-        run: python team_trb_all_players/augment_zero_minute_official_tenures.py
-
-      - name: Validate zero-minute tenure augmentation
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root = Path("team_trb_all_players/impact_database/roster_tenure")
-          summary = json.loads((root / "zero_minute_official_summary.json").read_text())
-          assert summary["added_windows"] >= 0
-          assert summary["total_windows_after_augmentation"] > 10000
-          print("ZERO-MINUTE OFFICIAL TENURE QA PASSED", summary)
-          PY
-
-      - name: Split repeat same-team roster stints into distinct intervals
-        run: python team_trb_all_players/split_multi_stint_tenures.py
-
-      - name: Validate multi-stint audit
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root = Path("team_trb_all_players/impact_database/roster_tenure")
-          summary = json.loads((root / "multi_stint_summary.json").read_text())
-          assert summary["output_windows"] >= summary["input_windows"]
-          assert summary["extra_segments_created"] >= 0
-          print("MULTI-STINT TENURE QA PASSED", summary)
-          PY
-
-      - name: Fetch exact regular-season game schedule
-        run: python team_trb_all_players/fetch_regular_season_games.py
-
-      - name: Audit tenure boundaries against team game dates
-        run: python team_trb_all_players/finalize_roster_tenure_windows.py
-
-      - name: Add positive player-game evidence for same-day boundaries
-        run: python team_trb_all_players/resolve_same_day_boundaries.py
-
-      - name: Add positive roster-listing evidence for remaining same-day boundaries
-        run: python team_trb_all_players/resolve_same_day_roster_evidence.py
-
-      - name: Validate schedule-aware Stage 1 output
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          root = Path("team_trb_all_players/impact_database/roster_tenure")
-          games = json.loads((root / "regular_season_games_summary.json").read_text())
-          summary = json.loads((root / "schedule_boundary_summary.json").read_text())
-          evidence = json.loads((root / "same_day_evidence_summary.json").read_text())
-          roster_evidence = json.loads((root / "same_day_roster_evidence_summary.json").read_text())
-          assert len(games["seasons"]) == 26, games
-          assert games["game_count"] > 25000, games["game_count"]
-          assert summary["window_count"] > 10000, summary
-          assert summary["missing_team_schedules"] == 0, summary
-          assert summary["exact_team_game_count_windows"] > 9000, summary
-          assert evidence["remaining_unresolved_windows"] <= evidence["input_unresolved_windows"], evidence
-          assert roster_evidence["remaining_unresolved_windows"] <= roster_evidence["input_unresolved_windows"], roster_evidence
-          assert "non-participation" in evidence["method"], evidence
-          assert "absence" in roster_evidence["method"], roster_evidence
-          print("SCHEDULE-AWARE STAGE 1 QA PASSED", summary)
-          print("SAME-DAY POSITIVE-PARTICIPATION AUDIT PASSED", evidence)
-          print("SAME-DAY POSITIVE-ROSTER AUDIT PASSED", roster_evidence)
-          PY
-
-      - name: Audit final roster-tenure consistency
-        run: python team_trb_all_players/audit_roster_tenure_consistency.py
-
-      - name: Validate final roster-tenure consistency
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          root = Path("team_trb_all_players/impact_database/roster_tenure")
-          summary = json.loads((root / "tenure_consistency_summary.json").read_text())
-          assert summary["window_count"] > 10000, summary
-          assert summary["invalid_interval_count"] == 0, summary
-          assert summary["duplicate_window_count"] == 0, summary
-          assert summary["resolved_game_count_inconsistency_count"] == 0, summary
-          assert summary["strict_cross_team_overlap_count"] == 0, summary
-          assert summary["strict_same_team_overlap_count"] == 0, summary
-          print("FINAL ROSTER-TENURE CONSISTENCY QA PASSED", summary)
-          PY
-
-      - name: Build consolidated Stage 1 review queue
-        run: python team_trb_all_players/build_roster_tenure_review_queue.py
-
-      - name: Validate Stage 1 review queue
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          root = Path("team_trb_all_players/impact_database/roster_tenure")
-          summary = json.loads((root / "tenure_review_queue_summary.json").read_text())
-          assert summary["input_windows"] > 10000, summary
-          assert summary["review_queue_windows"] >= 0, summary
-          assert isinstance(summary["stage1_exact_ready"], bool), summary
-          assert "non-participation" in summary["policy"], summary
-          print("STAGE 1 REVIEW QUEUE BUILT", summary)
-          PY
-
-      - name: Commit generated Stage 1 source and audit outputs
-        if: github.event_name == 'push'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform
-          git add team_trb_all_players/impact_database/roster_tenure
-          if git diff --cached --quiet; then
-            echo "No generated changes to commit"
-          else
-            git commit -m "Generate Stage 1 roster tenure audit outputs"
-            git push origin HEAD:${GITHUB_REF_NAME}
-          fi
-
-      - name: Start corrected OFF immediately when Stage 1 is exact-ready
-        if: github.event_name == 'push'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          p=Path('team_trb_all_players/impact_database/roster_tenure/tenure_review_queue_summary.json')
-          d=json.loads(p.read_text())
-          ready=d.get('stage1_exact_ready') is True and int(d.get('review_queue_windows') or 0)==0
-          print('STAGE1_EXACT_READY='+str(ready).lower())
-          if not ready:
-              raise SystemExit(0)
-          PY
-          READY=$(python - <<'PY'
-          import json
-          from pathlib import Path
-          d=json.loads(Path('team_trb_all_players/impact_database/roster_tenure/tenure_review_queue_summary.json').read_text())
-          print('true' if d.get('stage1_exact_ready') is True and int(d.get('review_queue_windows') or 0)==0 else 'false')
-          PY
-          )
-          if [ "$READY" = "true" ]; then
-            echo "Stage 1 is exact-ready; dispatching corrected OFF without waiting for the hourly supervisor."
-            gh workflow run treb-corrected-off.yml --ref "${GITHUB_REF_NAME}"
-          else
-            echo "Stage 1 still has review work; corrected OFF remains gated."
-          fi
+      - name: Run the same audited Stage 1 path used by Codespaces
+        run: bash team_trb_all_players/run_stage1_manual_fallback.sh
