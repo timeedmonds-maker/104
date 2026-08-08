@@ -1,0 +1,1243 @@
+{
+  "generated_utc": "2026-08-08T23:21:48.296036+00:00",
+  "target_player_seasons": 35,
+  "input_windows": 15530,
+  "output_windows": 15529,
+  "target_windows_rebuilt": 87,
+  "unsupported_core_phantom_windows_dropped": 1,
+  "unsupported_core_teams_still_requiring_review": 19,
+  "phantom_drop_audit": [
+    {
+      "season": "2000-01",
+      "player_id": "145",
+      "player_name": "Tracy Murray",
+      "team_id": 1610612747,
+      "reason": "other exact transaction-derived affiliations cover entire regular season"
+    }
+  ],
+  "unresolved_fallback_audit": [
+    {
+      "season": "2010-11",
+      "player_id": "201591",
+      "player_name": "DJ White",
+      "team_id": 1610612760
+    },
+    {
+      "season": "2010-11",
+      "player_id": "201591",
+      "player_name": "DJ White",
+      "team_id": 1610612766
+    },
+    {
+      "season": "2011-12",
+      "player_id": "2210",
+      "player_name": "Richard Jefferson",
+      "team_id": 1610612744
+    },
+    {
+      "season": "2011-12",
+      "player_id": "2210",
+      "player_name": "Richard Jefferson",
+      "team_id": 1610612759
+    },
+    {
+      "season": "2012-13",
+      "player_id": "200755",
+      "player_name": "JJ Redick",
+      "team_id": 1610612749
+    },
+    {
+      "season": "2012-13",
+      "player_id": "200755",
+      "player_name": "JJ Redick",
+      "team_id": 1610612753
+    },
+    {
+      "season": "2012-13",
+      "player_id": "202397",
+      "player_name": "Ish Smith",
+      "team_id": 1610612749
+    },
+    {
+      "season": "2012-13",
+      "player_id": "202397",
+      "player_name": "Ish Smith",
+      "team_id": 1610612753
+    },
+    {
+      "season": "2013-14",
+      "player_id": "201571",
+      "player_name": "D.J. Augustin",
+      "team_id": 1610612741
+    },
+    {
+      "season": "2013-14",
+      "player_id": "201571",
+      "player_name": "D.J. Augustin",
+      "team_id": 1610612761
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202721",
+      "player_name": "Darius Morris",
+      "team_id": 1610612746
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202721",
+      "player_name": "Darius Morris",
+      "team_id": 1610612755
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202952",
+      "player_name": "Malcolm Thomas",
+      "team_id": 1610612759
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202952",
+      "player_name": "Malcolm Thomas",
+      "team_id": 1610612762
+    },
+    {
+      "season": "2014-15",
+      "player_id": "201985",
+      "player_name": "AJ Price",
+      "team_id": 1610612739
+    },
+    {
+      "season": "2014-15",
+      "player_id": "201985",
+      "player_name": "AJ Price",
+      "team_id": 1610612754
+    },
+    {
+      "season": "2014-15",
+      "player_id": "201985",
+      "player_name": "AJ Price",
+      "team_id": 1610612756
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203909",
+      "player_name": "KJ McDaniels",
+      "team_id": 1610612745
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203909",
+      "player_name": "KJ McDaniels",
+      "team_id": 1610612755
+    }
+  ],
+  "case_audit": [
+    {
+      "season": "2000-01",
+      "player_id": "145",
+      "player_name": "Tracy Murray",
+      "teams": [
+        {
+          "team_id": 1610612743,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612747,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612761,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612764,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 0,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 2,
+      "event_count": 2,
+      "unsupported_core_teams": [
+        1610612747
+      ],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2003-04",
+      "player_id": "1917",
+      "player_name": "Wang Zhi-zhi",
+      "teams": [
+        {
+          "team_id": 1610612746,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 0,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612748,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 1,
+      "event_count": 2,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2008-09",
+      "player_id": "2226",
+      "player_name": "Will Solomon",
+      "teams": [
+        {
+          "team_id": 1610612758,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612761,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 3,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2010-11",
+      "player_id": "201591",
+      "player_name": "DJ White",
+      "teams": [
+        {
+          "team_id": 1610612760,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612766,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 0,
+      "unsupported_core_teams": [
+        1610612760,
+        1610612766
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2010-11",
+      "player_id": "202066",
+      "player_name": "Garrett Temple",
+      "teams": [
+        {
+          "team_id": 1610612749,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 2,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612759,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612766,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 4,
+      "output_windows": 4,
+      "event_count": 6,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2010-11",
+      "player_id": "2260",
+      "player_name": "Jarron Collins",
+      "teams": [
+        {
+          "team_id": 1610612746,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 2,
+          "same_day_continuity": 1,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612757,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 1,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 3,
+      "event_count": 10,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2011-12",
+      "player_id": "2210",
+      "player_name": "Richard Jefferson",
+      "teams": [
+        {
+          "team_id": 1610612744,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612759,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 0,
+      "unsupported_core_teams": [
+        1610612744,
+        1610612759
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2012-13",
+      "player_id": "200755",
+      "player_name": "JJ Redick",
+      "teams": [
+        {
+          "team_id": 1610612749,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612753,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 0,
+      "unsupported_core_teams": [
+        1610612749,
+        1610612753
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2012-13",
+      "player_id": "202397",
+      "player_name": "Ish Smith",
+      "teams": [
+        {
+          "team_id": 1610612749,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612753,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 0,
+      "unsupported_core_teams": [
+        1610612749,
+        1610612753
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2012-13",
+      "player_id": "202714",
+      "player_name": "Shelvin Mack",
+      "teams": [
+        {
+          "team_id": 1610612737,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612755,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 2,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612764,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 4,
+      "output_windows": 4,
+      "event_count": 8,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2012-13",
+      "player_id": "2457",
+      "player_name": "Jannero Pargo",
+      "teams": [
+        {
+          "team_id": 1610612737,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 2,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612764,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612766,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 4,
+      "output_windows": 4,
+      "event_count": 7,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2013-14",
+      "player_id": "201571",
+      "player_name": "D.J. Augustin",
+      "teams": [
+        {
+          "team_id": 1610612741,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612761,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 0,
+      "unsupported_core_teams": [
+        1610612741,
+        1610612761
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202620",
+      "player_name": "Arinze Onuaku",
+      "teams": [
+        {
+          "team_id": 1610612739,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612740,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 4,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202721",
+      "player_name": "Darius Morris",
+      "teams": [
+        {
+          "team_id": 1610612746,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612755,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612763,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 3,
+      "event_count": 2,
+      "unsupported_core_teams": [
+        1610612746,
+        1610612755
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202952",
+      "player_name": "Malcolm Thomas",
+      "teams": [
+        {
+          "team_id": 1610612741,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 0,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612759,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612762,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 1,
+      "unsupported_core_teams": [
+        1610612759,
+        1610612762
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2013-14",
+      "player_id": "203473",
+      "player_name": "Dewayne Dedmon",
+      "teams": [
+        {
+          "team_id": 1610612744,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612753,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 2,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612755,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 4,
+      "output_windows": 4,
+      "event_count": 9,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2014-15",
+      "player_id": "201985",
+      "player_name": "AJ Price",
+      "teams": [
+        {
+          "team_id": 1610612739,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612754,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612756,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 3,
+      "event_count": 0,
+      "unsupported_core_teams": [
+        1610612739,
+        1610612754,
+        1610612756
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2014-15",
+      "player_id": "202343",
+      "player_name": "Elliot Williams",
+      "teams": [
+        {
+          "team_id": 1610612740,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612755,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 0,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612762,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612766,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 3,
+      "event_count": 11,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203113",
+      "player_name": "Quincy Miller",
+      "teams": [
+        {
+          "team_id": 1610612743,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 0,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612758,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 2,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612765,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 3,
+      "event_count": 7,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203187",
+      "player_name": "Chris Johnson",
+      "teams": [
+        {
+          "team_id": 1610612738,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 0,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612748,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 0,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612749,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612755,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612762,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 2,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 4,
+      "output_windows": 4,
+      "event_count": 12,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203909",
+      "player_name": "KJ McDaniels",
+      "teams": [
+        {
+          "team_id": 1610612745,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        },
+        {
+          "team_id": 1610612755,
+          "supported": false,
+          "reason": "no_transaction_state_evidence",
+          "segments": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 0,
+      "unsupported_core_teams": [
+        1610612745,
+        1610612755
+      ],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2015-16",
+      "player_id": "201977",
+      "player_name": "Marcus Thornton",
+      "teams": [
+        {
+          "team_id": 1610612745,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612764,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 4,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2019-20",
+      "player_id": "1627784",
+      "player_name": "Jarrod Uthoff",
+      "teams": [
+        {
+          "team_id": 1610612763,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612764,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 4,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2019-20",
+      "player_id": "1629743",
+      "player_name": "Donta Hall",
+      "teams": [
+        {
+          "team_id": 1610612751,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612765,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_departure",
+          "segments": 2,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 3,
+      "event_count": 6,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2019-20",
+      "player_id": "203504",
+      "player_name": "Trey Burke",
+      "teams": [
+        {
+          "team_id": 1610612742,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612755,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 3,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2020-21",
+      "player_id": "1627752",
+      "player_name": "Taurean Prince",
+      "teams": [
+        {
+          "team_id": 1610612739,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612751,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "1628386",
+      "player_name": "Jarrett Allen",
+      "teams": [
+        {
+          "team_id": 1610612739,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612751,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "1629066",
+      "player_name": "Rodions Kurucs",
+      "teams": [
+        {
+          "team_id": 1610612745,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612749,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612751,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 3,
+      "event_count": 3,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2020-21",
+      "player_id": "201935",
+      "player_name": "James Harden",
+      "teams": [
+        {
+          "team_id": 1610612745,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612751,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2020-21",
+      "player_id": "203957",
+      "player_name": "Dante Exum",
+      "teams": [
+        {
+          "team_id": 1610612739,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612745,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2021-22",
+      "player_id": "203516",
+      "player_name": "James Ennis III",
+      "teams": [
+        {
+          "team_id": 1610612743,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612746,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612751,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 3,
+      "event_count": 6,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2024-25",
+      "player_id": "1629629",
+      "player_name": "Cam Reddish",
+      "teams": [
+        {
+          "team_id": 1610612747,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 1,
+      "output_windows": 1,
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    },
+    {
+      "season": "2024-25",
+      "player_id": "1630215",
+      "player_name": "Jared Butler",
+      "teams": [
+        {
+          "team_id": 1610612755,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612764,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 6,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2024-25",
+      "player_id": "1641736",
+      "player_name": "Reece Beekman",
+      "teams": [
+        {
+          "team_id": 1610612744,
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612751,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 2,
+      "output_windows": 2,
+      "event_count": 2,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
+    },
+    {
+      "season": "2025-26",
+      "player_id": "1641801",
+      "player_name": "Emanuel Miller",
+      "teams": [
+        {
+          "team_id": 1610612739,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612741,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        },
+        {
+          "team_id": 1610612759,
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
+        }
+      ],
+      "input_windows": 3,
+      "output_windows": 3,
+      "event_count": 3,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": false
+    }
+  ],
+  "policy": "Only v11 overlap player-seasons are rewritten. Exact transaction chronology determines season-open state, in-season acquisitions/departures and same-team renewals. A preseason departure removes season-open service unless a later acquisition restores it. A core-only team with zero transaction support is dropped as a phantom only when other transaction-supported affiliations cover the entire regular season; otherwise it remains review-gated."
+}
