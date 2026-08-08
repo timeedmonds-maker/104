@@ -1,0 +1,250 @@
+      "source_rows": 1189,
+      "normalized_games": 1189,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2004-05",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2005-06",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2006-07",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2007-08",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2008-09",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2009-10",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2010-11",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2011-12",
+      "source_rows": 990,
+      "normalized_games": 990,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2012-13",
+      "source_rows": 1229,
+      "normalized_games": 1229,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2013-14",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2014-15",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2015-16",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2016-17",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2017-18",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2018-19",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2019-20",
+      "source_rows": 1059,
+      "normalized_games": 1059,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2020-21",
+      "source_rows": 1080,
+      "normalized_games": 1080,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2021-22",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2022-23",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2023-24",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2024-25",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    },
+    {
+      "season": "2025-26",
+      "source_rows": 1230,
+      "normalized_games": 1230,
+      "dropped_rows": 0,
+      "cache": "hit"
+    }
+  ],
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/regular_season_games.jsonl.gz"
+}
+SCHEDULE QA PASSED 31254 games; cache_hits= 26 network_fetches= 0
+{
+  "generated_utc": "2026-08-08T20:33:49.198134+00:00",
+  "last_completed_phase": "regular_season_schedules",
+  "last_phase_elapsed_seconds": 1,
+  "total_elapsed_seconds": 85,
+  "completed_phases": [
+    "historical_archive",
+    "tenure_chronology",
+    "regular_season_schedules",
+    "deterministic_effective_windows"
+  ],
+  "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
+}
+[treb-laptop-run 0779feb] Stage 1 checkpoint: regular_season_schedules [skip ci]
+ 3 files changed, 6 insertions(+), 6 deletions(-)
+To https://github.com/timeedmonds-maker/104
+   4192199..0779feb  HEAD -> treb-laptop-run
+{
+  "generated_utc": "2026-08-08T20:33:51.970741+00:00",
+  "window_count": 15045,
+  "exact_team_game_count_windows": 15045,
+  "schedule_boundary_resolved_windows": 15045,
+  "same_day_ordering_evidence_required": 0,
+  "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+  "transaction_day_policy_windows": 5121,
+  "incoming_transaction_day_shifted_windows": 3211,
+  "outgoing_transaction_day_inclusive_windows": 2379,
+  "zero_game_windows": 54,
+  "missing_team_schedules": 0,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_schedule_audited.jsonl.gz",
+  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/schedule_boundary_audit.json"
+}
+same-day network evidence eliminated; copied 15045 deterministic windows; unresolved=0
+{
+  "generated_utc": "2026-08-08T20:33:53.007101+00:00",
+  "method": "deterministic transaction-day convention: old/departing team includes the recorded transaction date; new/incoming team begins the next day; no same-day player-game or roster endpoint query required",
+  "input_windows": 15045,
+  "remaining_unresolved_windows": 0,
+  "transaction_day_policy_windows": 5121,
+  "player_seasons_queried": 0,
+  "boundary_games_queried": 0,
+  "fetch_error_count": 0,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz",
+  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/same_day_evidence_audit.json"
+}
+TRANSACTION-DAY POLICY QA PASSED
+{
+  "generated_utc": "2026-08-08T20:33:53.503863+00:00",
+  "last_completed_phase": "deterministic_effective_windows",
+  "last_phase_elapsed_seconds": 3,
+  "total_elapsed_seconds": 89,
+  "completed_phases": [
+    "historical_archive",
+    "tenure_chronology",
+    "regular_season_schedules",
+    "deterministic_effective_windows"
+  ],
+  "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
+}
+[treb-laptop-run 5a60dc3] Stage 1 checkpoint: deterministic_effective_windows [skip ci]
+ 7 files changed, 8 insertions(+), 8 deletions(-)
+To https://github.com/timeedmonds-maker/104
+   0779feb..5a60dc3  HEAD -> treb-laptop-run
+{
+  "generated_utc": "2026-08-08T20:33:55.532285+00:00",
+  "window_count": 15045,
+  "player_seasons": 12953,
+  "confidence_counts": {
+    "high": 9548,
+    "provisional_high": 2361,
+    "review": 3136
+  },
+  "boundary_status_counts": {
+    "resolved": 15045
+  },
+  "invalid_interval_count": 0,
+  "duplicate_window_count": 0,
+  "resolved_game_count_inconsistency_count": 0,
+  "strict_cross_team_overlap_count": 337,
+  "strict_same_team_overlap_count": 0,
+  "same_day_cross_team_touch_count": 1225,
+  "remaining_same_day_unresolved_count": 0,
+  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_consistency_audit.json"
+}
+Traceback (most recent call last):
+  File "<stdin>", line 9, in <module>
+AssertionError
