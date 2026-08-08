@@ -3,6 +3,10 @@ set -euo pipefail
 
 # One-touch, resumable Codespaces execution path for TREB Stage 1 -> corrected OFF -> final export.
 # No completed core/on-court rebuild. No teammate-pair analysis.
+#
+# IMPORTANT: the authoritative launcher is the VS Code folder-open task, which runs this script
+# in an integrated terminal. A heartbeat is emitted every four minutes so GitHub Codespaces
+# continues to see terminal activity even after the browser tab is closed.
 
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
@@ -18,6 +22,8 @@ LOCK="$DB/.treb_codespace_end_to_end.lock"
 BATCH_SIZE="${TREB_BATCH_SIZE:-500}"
 WORKERS="${TREB_WORKERS:-4}"
 CHECKPOINT_EVERY="${TREB_CHECKPOINT_EVERY:-1}"
+HEARTBEAT_SECONDS="${TREB_HEARTBEAT_SECONDS:-240}"
+HEARTBEAT_PID=""
 
 mkdir -p "$DB" "$CORRECTED"
 exec 9>"$LOCK"
@@ -67,6 +73,29 @@ checkpoint() {
   git commit -m "$message [skip ci]"
   push_with_retry || echo "WARNING: checkpoint is committed locally but not yet pushed; a later checkpoint will retry"
 }
+heartbeat() {
+  while true; do
+    sleep "$HEARTBEAT_SECONDS"
+    local phase="unknown"
+    if [[ -s "$STATUS" ]]; then
+      phase="$(python - "$STATUS" <<'PY'
+import json,sys
+try:
+    print(json.load(open(sys.argv[1])).get('phase','unknown'))
+except Exception:
+    print('unknown')
+PY
+)"
+    fi
+    echo "[$(ts)] TREB_HEARTBEAT=1 phase=$phase"
+  done
+}
+cleanup() {
+  if [[ -n "${HEARTBEAT_PID:-}" ]]; then
+    kill "$HEARTBEAT_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
 
 if [[ "$BRANCH" != "$EXPECTED_BRANCH" ]]; then
   echo "ERROR: run from $EXPECTED_BRANCH (current: ${BRANCH:-DETACHED})" >&2
@@ -84,6 +113,12 @@ else
   echo "Local TREB state exists; preserving it and skipping initial pull"
 fi
 
+# Start terminal heartbeat before any network-heavy work. GitHub documents terminal output as
+# activity that resets the Codespaces idle timer, so this keeps a long unattended build alive.
+heartbeat &
+HEARTBEAT_PID=$!
+
+echo "[$(ts)] TREB_HEARTBEAT_STARTED interval_seconds=$HEARTBEAT_SECONDS"
 status "starting" "Codespace claimed TREB end-to-end execution"
 publish_status
 echo "[$(ts)] TREB one-touch Codespaces build starting on $BRANCH"
