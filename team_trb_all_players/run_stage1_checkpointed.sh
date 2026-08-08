@@ -63,6 +63,23 @@ PY
   fi
 }
 
+# Small durable checkpoint for expensive source work. This intentionally pushes
+# each validated historical season so a hosted-run timeout can lose at most one
+# season rather than the whole archive.
+checkpoint_historical_season () {
+  local year="$1"
+  local season
+  season="${year}-$(printf '%02d' $(((year + 1) % 100)))"
+  git add "$DB/historical_transactions/basketball_reference_uniform/raw_pages/${season}.html.gz" \
+          "$DB/historical_transactions/basketball_reference_uniform/season_rows/${season}.jsonl.gz" \
+          "$DB/historical_transactions/basketball_reference_uniform/season_summaries/${season}.json" \
+          "$DB/historical_transactions/basketball_reference_uniform/manifest.json" 2>/dev/null || true
+  if ! git diff --cached --quiet; then
+    git commit -m "Stage 1 historical checkpoint: ${season} [skip ci]"
+    git push origin "HEAD:$BRANCH"
+  fi
+}
+
 # Cheap deterministic self-tests before network/data work.
 python "$BASE/normalize_roster_transactions.py" --self-test
 python "$BASE/canonicalize_official_transaction_dates.py" --self-test
@@ -73,8 +90,15 @@ python "$BASE/resolve_same_day_boundaries.py" --self-test
 python "$BASE/audit_roster_tenure_consistency.py" --self-test
 python "$BASE/build_roster_tenure_review_queue.py" --self-test
 
-# Phase 1: historical transaction archive. The collector itself reuses validated season caches.
+# Phase 1: historical transaction archive. Run one season at a time so every
+# validated season becomes durable immediately. Existing validated season files
+# are cache hits, so retries only fetch genuinely missing seasons.
 P="$(date +%s)"
+for year in $(seq 2000 2015); do
+  python "$BASE/fetch_bref_historical_transactions.py" "$year"
+  checkpoint_historical_season "$year"
+done
+# Rebuild a complete 16-season manifest from the now-durable per-season cache.
 python "$BASE/fetch_bref_historical_transactions.py"
 python - <<'PY'
 import json
@@ -145,7 +169,7 @@ print('ZERO-MINUTE TRADE RAW-DATE QA PASSED')
 PY
 checkpoint "tenure_chronology" "$P"
 
-# Phase 3: regular-season schedules. fetch_regular_season_games.py now reuses valid per-season raw caches.
+# Phase 3: regular-season schedules. The collector reuses valid per-season raw caches.
 P="$(date +%s)"
 python "$BASE/fetch_regular_season_games.py"
 python - <<'PY'
