@@ -1,0 +1,106 @@
+name: TREB Stage 1 autonomous recovery
+
+on:
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: read
+
+concurrency:
+  group: treb-stage1-autonomous-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover-stage1:
+    if: github.event_name == 'workflow_dispatch' || (github.event.issue.pull_request && github.event.comment.body == '/treb-stage1-recover')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out repaired Stage 1 branch
+        uses: actions/checkout@v4
+        with:
+          ref: treb-stage1-automation
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run deterministic resilient Stage 1
+        id: stage1
+        continue-on-error: true
+        run: bash team_trb_all_players/run_stage1_local_resilient.sh
+
+      - name: Publish machine-readable recovery status
+        if: always()
+        env:
+          STAGE1_OUTCOME: ${{ steps.stage1.outcome }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          root=Path('team_trb_all_players/impact_database')
+          roster=root/'roster_tenure'
+          summary_path=roster/'tenure_review_queue_summary.json'
+          summary={}
+          if summary_path.exists():
+              try:
+                  summary=json.loads(summary_path.read_text())
+              except Exception:
+                  summary={}
+          status={
+              'generated_utc': datetime.now(timezone.utc).isoformat(),
+              'github_run_id': os.environ.get('RUN_ID'),
+              'stage1_step_outcome': os.environ.get('STAGE1_OUTCOME'),
+              'stage1_exact_ready': summary.get('stage1_exact_ready') is True,
+              'review_queue_windows': summary.get('review_queue_windows'),
+              'reason_counts': summary.get('reason_counts'),
+              'source_branch': 'treb-stage1-automation',
+              'methodology': 'transaction date belongs to departing team; incoming team effective next calendar day',
+          }
+          p=root/'treb_stage1_recovery_status.json'
+          p.parent.mkdir(parents=True, exist_ok=True)
+          p.write_text(json.dumps(status, indent=2))
+          print(json.dumps(status, indent=2))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/treb_stage1_recovery_status.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record TREB Stage 1 recovery status [skip ci]'
+            git push origin HEAD:treb-stage1-automation
+          fi
+
+      - name: Dispatch corrected OFF when Stage 1 is exact-ready
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          READY=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/roster_tenure/tenure_review_queue_summary.json')
+          if not p.exists():
+              print('false')
+          else:
+              d=json.loads(p.read_text())
+              print('true' if d.get('stage1_exact_ready') is True and int(d.get('review_queue_windows') or 0)==0 else 'false')
+          PY
+          )
+          if [ "$READY" = "true" ]; then
+            gh workflow run treb-corrected-off.yml --ref treb-stage1-automation
+            echo 'Dispatched corrected OFF workflow.'
+          else
+            echo 'Stage 1 is not exact-ready yet; autonomous supervisor will inspect the committed status and repair before another launch.'
+          fi
+
+      - name: Fail visibly if Stage 1 did not complete
+        if: steps.stage1.outcome != 'success'
+        run: exit 1
