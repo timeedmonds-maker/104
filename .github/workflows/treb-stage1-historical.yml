@@ -50,3 +50,5 @@ jobs:
           print('Stage 1 exact-ready; corrected OFF may start')
           PY
           gh workflow run treb-corrected-off.yml --ref "${GITHUB_REF_NAME}"
+
+# autonomous recovery trigger 2026-08-09T04:40+12
