@@ -18,12 +18,7 @@ def window_cache_path(window: dict[str, Any]) -> Path:
 
 
 def prepare_cache_index(windows: list[dict[str, Any]]) -> None:
-    """One-time migration: after this marker exists, cache-file existence means complete.
-
-    Older collector versions wrote incomplete request results to the same cache directory,
-    forcing every batch to gunzip and parse every completed file repeatedly. Clean those
-    once, then use cheap path existence checks for all subsequent resumable batches.
-    """
+    """One-time migration: after this marker exists, cache-file existence means complete."""
     core.CACHE.mkdir(parents=True, exist_ok=True)
     if CACHE_INDEX_MARKER.exists():
         return
@@ -71,7 +66,12 @@ def impact_windows() -> list[dict[str, Any]]:
     unresolved = [w for w in windows if w.get("schedule_boundary_status") != "resolved"]
     if unresolved:
         raise RuntimeError(f"exact-ready gate conflicts with {len(unresolved)} unresolved windows")
-    return [w for w in windows if core.clean_id(w.get("player_id")) and not bool(w.get("zero_minute_only"))]
+    return [
+        w for w in windows
+        if core.clean_id(w.get("player_id"))
+        and not bool(w.get("zero_minute_only"))
+        and not bool(w.get("zero_game_window"))
+    ]
 
 
 def assemble(windows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -80,8 +80,6 @@ def assemble(windows: list[dict[str, Any]]) -> dict[str, Any]:
     metric_rows: int | None = None
     core.OUT.mkdir(parents=True, exist_ok=True)
 
-    # Avoid repeatedly gunzipping every completed tenure after each partial batch.
-    # Materialize and count metric rows once, only when the cache is fully complete.
     if missing == 0:
         metric_rows = 0
         with gzip.open(core.LONG, "wt", encoding="utf-8") as handle:
@@ -105,7 +103,7 @@ def assemble(windows: list[dict[str, Any]]) -> dict[str, Any]:
         "all_complete": missing == 0,
         "output": str(core.LONG) if missing == 0 else None,
         "cache": str(core.CACHE),
-        "policy": "resumable tenure-scoped PBP Stats on/off collection; original core is never rerun; teammate pairs excluded",
+        "policy": "resumable tenure-scoped PBP Stats collection using deterministic transaction-day windows; core never rerun; teammate pairs excluded",
     }
     core.SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     return summary
@@ -151,8 +149,6 @@ def run(batch_size: int, workers: int = 1) -> dict[str, Any]:
             if completed % 25 == 0 or completed == len(selected):
                 print(f"batch {completed}/{len(selected)} workers=1 errors={len(errors)}", flush=True)
     else:
-        # Each tenure window writes to a unique cache path. Keep concurrency deliberately
-        # bounded so PBP Stats is accelerated without turning this into an API flood.
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="treb-off") as pool:
             futures = {pool.submit(collect_one, window): window for window in selected}
             for future in as_completed(futures):
