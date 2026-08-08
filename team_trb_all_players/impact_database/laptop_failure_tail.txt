@@ -1,32 +1,27 @@
-  ],
-  "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
-}
-[treb-laptop-run 431cead] Stage 1 checkpoint: regular_season_schedules [skip ci]
- 3 files changed, 6 insertions(+), 6 deletions(-)
 To https://github.com/timeedmonds-maker/104
-   dd0ffd2..431cead  HEAD -> treb-laptop-run
+   a9f72eb..275cf13  HEAD -> treb-laptop-run
 {
-  "generated_utc": "2026-08-08T21:48:40.209220+00:00",
-  "window_count": 15256,
-  "exact_team_game_count_windows": 15256,
-  "schedule_boundary_resolved_windows": 15256,
+  "generated_utc": "2026-08-08T22:13:57.305058+00:00",
+  "window_count": 15509,
+  "exact_team_game_count_windows": 15509,
+  "schedule_boundary_resolved_windows": 15509,
   "same_day_ordering_evidence_required": 0,
   "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-  "transaction_day_policy_windows": 5732,
-  "incoming_transaction_day_shifted_windows": 3688,
-  "outgoing_transaction_day_inclusive_windows": 3312,
-  "zero_game_windows": 98,
+  "transaction_day_policy_windows": 5968,
+  "incoming_transaction_day_shifted_windows": 3941,
+  "outgoing_transaction_day_inclusive_windows": 3556,
+  "zero_game_windows": 102,
   "missing_team_schedules": 0,
   "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_schedule_audited.jsonl.gz",
   "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/schedule_boundary_audit.json"
 }
-same-day network evidence eliminated; copied 15256 deterministic windows; unresolved=0
+same-day network evidence eliminated; copied 15509 deterministic windows; unresolved=0
 {
-  "generated_utc": "2026-08-08T21:48:41.425820+00:00",
+  "generated_utc": "2026-08-08T22:13:58.325285+00:00",
   "method": "deterministic transaction-day convention: old/departing team includes the recorded transaction date; new/incoming team begins the next day; no same-day player-game or roster endpoint query required",
-  "input_windows": 15256,
+  "input_windows": 15509,
   "remaining_unresolved_windows": 0,
-  "transaction_day_policy_windows": 5732,
+  "transaction_day_policy_windows": 5968,
   "player_seasons_queried": 0,
   "boundary_games_queried": 0,
   "fetch_error_count": 0,
@@ -35,10 +30,10 @@ same-day network evidence eliminated; copied 15256 deterministic windows; unreso
 }
 TRANSACTION-DAY POLICY QA PASSED
 {
-  "generated_utc": "2026-08-08T21:48:41.959935+00:00",
+  "generated_utc": "2026-08-08T22:13:58.850838+00:00",
   "last_completed_phase": "deterministic_effective_windows",
   "last_phase_elapsed_seconds": 3,
-  "total_elapsed_seconds": 131,
+  "total_elapsed_seconds": 134,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
@@ -48,37 +43,38 @@ TRANSACTION-DAY POLICY QA PASSED
     "tenure_overlap_diagnostic",
     "transaction_enrichment_realgm_all_seasons",
     "transaction_enrichment_cached_sources",
-    "official_movement_boundary_repair"
+    "official_movement_boundary_repair",
+    "transaction_boundary_repair_v2"
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
 }
-[treb-laptop-run 32a5fe7] Stage 1 checkpoint: deterministic_effective_windows [skip ci]
+[treb-laptop-run 1662829] Stage 1 checkpoint: deterministic_effective_windows [skip ci]
  7 files changed, 23 insertions(+), 23 deletions(-)
 To https://github.com/timeedmonds-maker/104
-   431cead..32a5fe7  HEAD -> treb-laptop-run
+   275cf13..1662829  HEAD -> treb-laptop-run
 {
-  "generated_utc": "2026-08-08T21:48:44.263982+00:00",
-  "window_count": 15256,
+  "generated_utc": "2026-08-08T22:14:01.059954+00:00",
+  "window_count": 15509,
   "player_seasons": 12953,
   "confidence_counts": {
-    "high": 9480,
-    "provisional_high": 5636,
-    "review": 140
+    "high": 9482,
+    "provisional_high": 5869,
+    "review": 158
   },
   "boundary_status_counts": {
-    "resolved": 15256
+    "resolved": 15509
   },
   "invalid_interval_count": 0,
   "duplicate_window_count": 0,
   "resolved_game_count_inconsistency_count": 0,
-  "strict_cross_team_overlap_count": 78,
+  "strict_cross_team_overlap_count": 87,
   "strict_same_team_overlap_count": 0,
-  "same_day_cross_team_touch_count": 1272,
+  "same_day_cross_team_touch_count": 1247,
   "remaining_same_day_unresolved_count": 0,
   "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_consistency_audit.json"
 }
 {
-  "strict_cross_team_overlap_count": 78,
+  "strict_cross_team_overlap_count": 87,
   "by_season": {
     "2000-01": 4,
     "2001-02": 4,
@@ -92,12 +88,15 @@ To https://github.com/timeedmonds-maker/104
     "2012-13": 7,
     "2013-14": 14,
     "2014-15": 9,
-    "2015-16": 2,
+    "2015-16": 1,
+    "2016-17": 3,
+    "2017-18": 1,
     "2019-20": 4,
-    "2020-21": 7,
-    "2021-22": 5,
-    "2024-25": 3,
-    "2025-26": 2
+    "2021-22": 2,
+    "2022-23": 2,
+    "2023-24": 3,
+    "2024-25": 6,
+    "2025-26": 10
   },
   "top_20_player_seasons": [
     {
@@ -125,9 +124,9 @@ To https://github.com/timeedmonds-maker/104
       "overlaps": 3
     },
     {
-      "season": "2021-22",
-      "player_id": "1629626",
-      "player_name": "Bol Bol",
+      "season": "2025-26",
+      "player_id": "203486",
+      "player_name": "Mason Plumlee",
       "overlaps": 3
     },
     {
@@ -149,15 +148,27 @@ To https://github.com/timeedmonds-maker/104
       "overlaps": 2
     },
     {
-      "season": "2015-16",
-      "player_id": "201977",
-      "player_name": "Marcus Thornton",
+      "season": "2016-17",
+      "player_id": "201579",
+      "player_name": "Roy Hibbert",
       "overlaps": 2
     },
     {
-      "season": "2020-21",
-      "player_id": "1627747",
-      "player_name": "Caris LeVert",
+      "season": "2019-20",
+      "player_id": "1629743",
+      "player_name": "Donta Hall",
+      "overlaps": 2
+    },
+    {
+      "season": "2025-26",
+      "player_id": "1626145",
+      "player_name": "Tyus Jones",
+      "overlaps": 2
+    },
+    {
+      "season": "2025-26",
+      "player_id": "1631172",
+      "player_name": "Ousmane Dieng",
       "overlaps": 2
     },
     {
@@ -207,27 +218,15 @@ To https://github.com/timeedmonds-maker/104
       "player_id": "2436",
       "player_name": "Flip Murray",
       "overlaps": 1
-    },
-    {
-      "season": "2010-11",
-      "player_id": "2260",
-      "player_name": "Jarron Collins",
-      "overlaps": 1
-    },
-    {
-      "season": "2010-11",
-      "player_id": "2853",
-      "player_name": "Earl Barron",
-      "overlaps": 1
     }
   ],
   "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_overlap_summary.json"
 }
 {
-  "generated_utc": "2026-08-08T21:48:44.447105+00:00",
+  "generated_utc": "2026-08-08T22:14:01.210629+00:00",
   "last_completed_phase": "tenure_overlap_diagnostic",
   "last_phase_elapsed_seconds": 1,
-  "total_elapsed_seconds": 134,
+  "total_elapsed_seconds": 137,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
@@ -237,14 +236,15 @@ To https://github.com/timeedmonds-maker/104
     "tenure_overlap_diagnostic",
     "transaction_enrichment_realgm_all_seasons",
     "transaction_enrichment_cached_sources",
-    "official_movement_boundary_repair"
+    "official_movement_boundary_repair",
+    "transaction_boundary_repair_v2"
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
 }
-[treb-laptop-run 7cec7ef] Stage 1 checkpoint: tenure_overlap_diagnostic [skip ci]
- 4 files changed, 943 insertions(+), 3477 deletions(-)
+[treb-laptop-run c2e3dc6] Stage 1 checkpoint: tenure_overlap_diagnostic [skip ci]
+ 4 files changed, 792 insertions(+), 838 deletions(-)
 To https://github.com/timeedmonds-maker/104
-   32a5fe7..7cec7ef  HEAD -> treb-laptop-run
+   1662829..c2e3dc6  HEAD -> treb-laptop-run
 Traceback (most recent call last):
   File "<stdin>", line 9, in <module>
 AssertionError
