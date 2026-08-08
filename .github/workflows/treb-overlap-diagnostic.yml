@@ -1,0 +1,33 @@
+name: TREB overlap diagnostic
+
+on:
+  push:
+    branches: [treb-laptop-run]
+    paths:
+      - 'team_trb_all_players/trigger_overlap_diagnostic.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: treb-laptop-run
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Generate root-cause diagnostic
+        run: python team_trb_all_players/diagnose_remaining_overlaps.py
+      - name: Persist diagnostic
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/roster_tenure/remaining_overlap_root_cause.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist remaining overlap root cause [skip ci]'
+            git push origin HEAD:treb-laptop-run
+          fi
