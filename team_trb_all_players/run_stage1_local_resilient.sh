@@ -17,6 +17,7 @@ fi
 python -m pip install --upgrade requests beautifulsoup4
 
 python "$BASE/normalize_roster_transactions.py" --self-test
+python "$BASE/canonicalize_official_transaction_dates.py" --self-test
 python "$BASE/build_roster_tenure_windows.py" --self-test
 python "$BASE/fetch_regular_season_games.py" --self-test
 python "$BASE/finalize_roster_tenure_windows.py" --self-test
@@ -39,6 +40,9 @@ print('HISTORICAL ARCHIVE QA PASSED', d['total_rows'], 'transactions')
 PY
 
 python "$BASE/normalize_roster_transactions.py"
+# The NBA movement feed currently emits ISO datetimes. Canonicalize them before
+# season assignment/tenure construction so Jan-Jun transactions are not mislabeled.
+python "$BASE/canonicalize_official_transaction_dates.py"
 
 # The first-pass builder intentionally emits a single interval per player/team/season.
 # Repeat same-team stints can therefore appear as start>end until the dedicated splitter
