@@ -9,7 +9,8 @@ set -euo pipefail
 # Safe defaults:
 #   * all generated-data QA is fail-closed;
 #   * corrected OFF is dispatched only when stage1_exact_ready=true AND queue=0;
-#   * dispatch is skipped if a corrected-OFF run is already queued/in progress;
+#   * when TREB_LOCAL_STAGE2=1, hosted dispatch is deliberately suppressed because
+#     the owning Codespace continues directly into the local resumable Stage 2;
 #   * generated Stage 1 outputs are committed only when this is a real git checkout.
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -168,12 +169,14 @@ git add team_trb_all_players/impact_database/roster_tenure
 if git diff --cached --quiet; then
   echo "No generated Stage 1 changes to commit"
 else
-  git commit -m "Generate Stage 1 roster tenure audit outputs via fallback"
+  git commit -m "Generate Stage 1 roster tenure audit outputs via fallback [skip ci]"
   git push origin "HEAD:$BRANCH"
 fi
 
-# If exact-ready, hand off immediately but never create a duplicate heavy chain.
-if [[ "$READY" == "true" ]]; then
+# If the caller owns local Stage 2, never create a redundant hosted chain.
+if [[ "${TREB_LOCAL_STAGE2:-0}" == "1" ]]; then
+  echo "TREB_LOCAL_STAGE2=1; hosted corrected-OFF dispatch intentionally skipped"
+elif [[ "$READY" == "true" ]]; then
   if ! command -v gh >/dev/null 2>&1; then
     echo "STAGE1_READY_DISPATCH_PENDING=1 (gh CLI unavailable)"
   else
