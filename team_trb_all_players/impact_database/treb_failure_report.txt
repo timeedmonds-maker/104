@@ -1,0 +1,442 @@
+TREB SELF-HEALING FAILURE REPORT
+generated_utc=2026-08-08T09:29:14Z
+runner_rc=1
+branch=treb-stage1-automation
+local_head=037ddd1931adbeb61a2b7f8ae7854a36c0bd698b
+
+===== GIT STATUS =====
+?? team_trb_all_players/impact_database/.treb_codespace_end_to_end.lock
+?? team_trb_all_players/impact_database/.treb_local_unattended.lock
+?? team_trb_all_players/impact_database/.treb_self_healing_supervisor.lock
+?? team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/
+?? team_trb_all_players/impact_database/roster_tenure/
+?? team_trb_all_players/impact_database/treb_codespace_end_to_end.log
+?? team_trb_all_players/impact_database/treb_failure_report.txt
+?? team_trb_all_players/impact_database/treb_local_unattended.log
+?? team_trb_all_players/impact_database/treb_local_unattended_status.json
+?? team_trb_all_players/impact_database/treb_self_healing_supervisor.log
+?? team_trb_all_players/impact_database/treb_supervisor_status.json
+
+===== LAST 300 LINES OF UNATTENDED LOG =====
+        "Waived": 80
+      },
+      "exact_dates": 378,
+      "trade_rows": 50,
+      "validated": true,
+      "snapshot": {
+        "method": "wayback_cdx_latest_before_2023",
+        "timestamp": "20221209193233",
+        "cdx_record": {
+          "timestamp": "20221209193233",
+          "original": "https://www.basketball-reference.com/leagues/NBA_2010_transactions.html",
+          "statuscode": "200",
+          "digest": "AJ2A73VQMCGFSP5ZZ73GYZ7CQK5FP3SM",
+          "length": "39993"
+        },
+        "candidate_count": 31
+      },
+      "source_url": "https://web.archive.org/web/20221209193233id_/https://www.basketball-reference.com/leagues/NBA_2010_transactions.html",
+      "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2009-10.html.gz",
+      "rows_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/season_rows/2009-10.jsonl.gz",
+      "completed_utc": "2026-08-08T08:59:18.772545+00:00"
+    },
+    {
+      "season": "2010-11",
+      "rows": 434,
+      "section_counts": {
+        "Claimed": 1,
+        "Other": 119,
+        "Signings": 175,
+        "Trades": 55,
+        "Waived": 84
+      },
+      "exact_dates": 434,
+      "trade_rows": 55,
+      "validated": true,
+      "snapshot": {
+        "method": "wayback_cdx_latest_before_2023",
+        "timestamp": "20220529055708",
+        "cdx_record": {
+          "timestamp": "20220529055708",
+          "original": "https://www.basketball-reference.com/leagues/NBA_2011_transactions.html",
+          "statuscode": "200",
+          "digest": "R5SOP6XM7DPOF5PGVYQG4FNOVJ6Q5OED",
+          "length": "41541"
+        },
+        "candidate_count": 34
+      },
+      "source_url": "https://web.archive.org/web/20220529055708id_/https://www.basketball-reference.com/leagues/NBA_2011_transactions.html",
+      "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2010-11.html.gz",
+      "rows_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/season_rows/2010-11.jsonl.gz",
+      "completed_utc": "2026-08-08T08:59:25.976034+00:00"
+    },
+    {
+      "season": "2011-12",
+      "rows": 453,
+      "section_counts": {
+        "Claimed": 1,
+        "Other": 141,
+        "Signings": 174,
+        "Trades": 33,
+        "Waived": 104
+      },
+      "exact_dates": 453,
+      "trade_rows": 33,
+      "validated": true,
+      "snapshot": {
+        "method": "wayback_cdx_latest_before_2023",
+        "timestamp": "20221209193444",
+        "cdx_record": {
+          "timestamp": "20221209193444",
+          "original": "https://www.basketball-reference.com/leagues/NBA_2012_transactions.html",
+          "statuscode": "200",
+          "digest": "O6E35S6N7UVLS3APXOOQFWUTF2AW3FLB",
+          "length": "40627"
+        },
+        "candidate_count": 34
+      },
+      "source_url": "https://web.archive.org/web/20221209193444id_/https://www.basketball-reference.com/leagues/NBA_2012_transactions.html",
+      "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2011-12.html.gz",
+      "rows_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/season_rows/2011-12.jsonl.gz",
+      "completed_utc": "2026-08-08T08:59:44.720363+00:00"
+    },
+    {
+      "season": "2012-13",
+      "rows": 817,
+      "section_counts": {
+        "Other": 384,
+        "Signings": 225,
+        "Trades": 52,
+        "Waived": 156
+      },
+      "exact_dates": 817,
+      "trade_rows": 52,
+      "validated": true,
+      "snapshot": {
+        "method": "wayback_cdx_latest_before_2023",
+        "timestamp": "20220516152307",
+        "cdx_record": {
+          "timestamp": "20220516152307",
+          "original": "https://www.basketball-reference.com/leagues/NBA_2013_transactions.html",
+          "statuscode": "200",
+          "digest": "XHO3CIYNEQZ235FTL24P6CUK2PESJMEB",
+          "length": "45454"
+        },
+        "candidate_count": 28
+      },
+      "source_url": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html",
+      "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2012-13.html.gz",
+      "rows_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/season_rows/2012-13.jsonl.gz",
+      "completed_utc": "2026-08-08T09:00:02.194092+00:00"
+    },
+    {
+      "season": "2013-14",
+      "rows": 864,
+      "section_counts": {
+        "Claimed": 1,
+        "Other": 395,
+        "Released": 1,
+        "Signings": 280,
+        "Trades": 52,
+        "Waived": 135
+      },
+      "exact_dates": 864,
+      "trade_rows": 52,
+      "validated": true,
+      "snapshot": {
+        "method": "wayback_cdx_latest_before_2023",
+        "timestamp": "20221209194421",
+        "cdx_record": {
+          "timestamp": "20221209194421",
+          "original": "https://www.basketball-reference.com/leagues/NBA_2014_transactions.html",
+          "statuscode": "200",
+          "digest": "ISO44DZPY2OCQEWWHBI7HOEMVRGHVAV5",
+          "length": "47441"
+        },
+        "candidate_count": 32
+      },
+      "source_url": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html",
+      "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2013-14.html.gz",
+      "rows_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/season_rows/2013-14.jsonl.gz",
+      "completed_utc": "2026-08-08T09:00:08.218366+00:00"
+    },
+    {
+      "season": "2014-15",
+      "rows": 1137,
+      "section_counts": {
+        "Claimed": 16,
+        "Other": 392,
+        "Released": 5,
+        "Signings": 426,
+        "Trades": 61,
+        "Waived": 237
+      },
+      "exact_dates": 1137,
+      "trade_rows": 61,
+      "validated": true,
+      "snapshot": {
+        "method": "wayback_cdx_latest_before_2023",
+        "timestamp": "20221207203038",
+        "cdx_record": {
+          "timestamp": "20221207203038",
+          "original": "https://www.basketball-reference.com/leagues/NBA_2015_transactions.html",
+          "statuscode": "200",
+          "digest": "RSGPHOT3IRLX2ZXFOEDQ4D77QL3BMOPG",
+          "length": "52731"
+        },
+        "candidate_count": 46
+      },
+      "source_url": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html",
+      "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2014-15.html.gz",
+      "rows_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/season_rows/2014-15.jsonl.gz",
+      "completed_utc": "2026-08-08T09:00:16.463577+00:00"
+    },
+    {
+      "season": "2015-16",
+      "rows": 1395,
+      "section_counts": {
+        "Claimed": 7,
+        "Other": 667,
+        "Signings": 450,
+        "Trades": 44,
+        "Waived": 227
+      },
+      "exact_dates": 1395,
+      "trade_rows": 44,
+      "validated": true,
+      "snapshot": {
+        "method": "wayback_cdx_latest_before_2023",
+        "timestamp": "20220629030608",
+        "cdx_record": {
+          "timestamp": "20220629030608",
+          "original": "https://www.basketball-reference.com/leagues/NBA_2016_transactions.html",
+          "statuscode": "200",
+          "digest": "B5TSXAHQEFU7B4ZO64VSPDGMZ27SC7T3",
+          "length": "52196"
+        },
+        "candidate_count": 46
+      },
+      "source_url": "https://web.archive.org/web/20220629030608id_/https://www.basketball-reference.com/leagues/NBA_2016_transactions.html",
+      "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2015-16.html.gz",
+      "rows_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/season_rows/2015-16.jsonl.gz",
+      "completed_utc": "2026-08-08T09:00:25.932400+00:00"
+    }
+  ]
+}
+HISTORICAL ARCHIVE QA PASSED 8247 transactions
+{
+  "generated_utc": "2026-08-08T09:28:46.924106+00:00",
+  "historical_source_rows": 8247,
+  "normalized_events": 16380,
+  "official_normalized_events": 9097,
+  "official_source": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json",
+  "high_confidence_events": 15789,
+  "review_events": 591,
+  "unparsed_roster_transaction_rows": 117,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/normalized_transactions.jsonl.gz",
+  "unresolved_report": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/normalization_unresolved.json"
+}
+{
+  "generated_utc": "2026-08-08T09:29:11.467798+00:00",
+  "window_count": 14526,
+  "seasons": [
+    "2000-01",
+    "2001-02",
+    "2002-03",
+    "2003-04",
+    "2004-05",
+    "2005-06",
+    "2006-07",
+    "2007-08",
+    "2008-09",
+    "2009-10",
+    "2010-11",
+    "2011-12",
+    "2012-13",
+    "2013-14",
+    "2014-15",
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2024-25",
+    "2025-26"
+  ],
+  "players": 2584,
+  "high_confidence": 10504,
+  "provisional_high": 805,
+  "review": 3217,
+  "same_day_game_checks": 2414,
+  "multi_team_boundary_gaps": 3185,
+  "invalid_boundary_order": 32,
+  "team_game_counts_populated": 0,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows.jsonl.gz",
+  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_window_audit.json"
+}
+Traceback (most recent call last):
+  File "/workspaces/104/team_trb_all_players/build_roster_tenure_windows.py", line 358, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspaces/104/team_trb_all_players/build_roster_tenure_windows.py", line 353, in main
+    raise RuntimeError("Invalid tenure boundary order detected; see audit report")
+RuntimeError: Invalid tenure boundary order detected; see audit report
+FIRST-PASS TENURE QA PASSED; repeat-stint intermediates= 32
+{
+  "added_windows": 76,
+  "total_windows_after_augmentation": 14602,
+  "seasons": [
+    "2015-16",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2024-25",
+    "2025-26"
+  ],
+  "note": "Adds only in-regular-season official NBA movement affiliations absent from the core; offseason-only transactions are excluded."
+}
+{
+  "input_windows": 14602,
+  "output_windows": 14676,
+  "player_team_seasons_split": 73,
+  "extra_segments_created": 74,
+  "same_day_in_out_collisions": 1,
+  "historical_event_dates_normalized": 15334,
+  "unparseable_event_dates": 0
+}
+POST-SPLIT CHRONOLOGY QA PASSED; stale invalid-order flags cleared= 64
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+AssertionError: {'missing': 'MEM', 'adams_rows': []}
+STAGE1_STOPPED_RC=1
+Log: team_trb_all_players/impact_database/treb_local_unattended.log
+
+===== LAST 120 LINES OF SUPERVISOR LOG =====
+        "Waived": 227
+      },
+      "exact_dates": 1395,
+      "trade_rows": 44,
+      "validated": true,
+      "snapshot": {
+        "method": "wayback_cdx_latest_before_2023",
+        "timestamp": "20220629030608",
+        "cdx_record": {
+          "timestamp": "20220629030608",
+          "original": "https://www.basketball-reference.com/leagues/NBA_2016_transactions.html",
+          "statuscode": "200",
+          "digest": "B5TSXAHQEFU7B4ZO64VSPDGMZ27SC7T3",
+          "length": "52196"
+        },
+        "candidate_count": 46
+      },
+      "source_url": "https://web.archive.org/web/20220629030608id_/https://www.basketball-reference.com/leagues/NBA_2016_transactions.html",
+      "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2015-16.html.gz",
+      "rows_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/season_rows/2015-16.jsonl.gz",
+      "completed_utc": "2026-08-08T09:00:25.932400+00:00"
+    }
+  ]
+}
+HISTORICAL ARCHIVE QA PASSED 8247 transactions
+{
+  "generated_utc": "2026-08-08T09:28:46.924106+00:00",
+  "historical_source_rows": 8247,
+  "normalized_events": 16380,
+  "official_normalized_events": 9097,
+  "official_source": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json",
+  "high_confidence_events": 15789,
+  "review_events": 591,
+  "unparsed_roster_transaction_rows": 117,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/normalized_transactions.jsonl.gz",
+  "unresolved_report": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/normalization_unresolved.json"
+}
+{
+  "generated_utc": "2026-08-08T09:29:11.467798+00:00",
+  "window_count": 14526,
+  "seasons": [
+    "2000-01",
+    "2001-02",
+    "2002-03",
+    "2003-04",
+    "2004-05",
+    "2005-06",
+    "2006-07",
+    "2007-08",
+    "2008-09",
+    "2009-10",
+    "2010-11",
+    "2011-12",
+    "2012-13",
+    "2013-14",
+    "2014-15",
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2024-25",
+    "2025-26"
+  ],
+  "players": 2584,
+  "high_confidence": 10504,
+  "provisional_high": 805,
+  "review": 3217,
+  "same_day_game_checks": 2414,
+  "multi_team_boundary_gaps": 3185,
+  "invalid_boundary_order": 32,
+  "team_game_counts_populated": 0,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows.jsonl.gz",
+  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_window_audit.json"
+}
+Traceback (most recent call last):
+  File "/workspaces/104/team_trb_all_players/build_roster_tenure_windows.py", line 358, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspaces/104/team_trb_all_players/build_roster_tenure_windows.py", line 353, in main
+    raise RuntimeError("Invalid tenure boundary order detected; see audit report")
+RuntimeError: Invalid tenure boundary order detected; see audit report
+FIRST-PASS TENURE QA PASSED; repeat-stint intermediates= 32
+{
+  "added_windows": 76,
+  "total_windows_after_augmentation": 14602,
+  "seasons": [
+    "2015-16",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2024-25",
+    "2025-26"
+  ],
+  "note": "Adds only in-regular-season official NBA movement affiliations absent from the core; offseason-only transactions are excluded."
+}
+{
+  "input_windows": 14602,
+  "output_windows": 14676,
+  "player_team_seasons_split": 73,
+  "extra_segments_created": 74,
+  "same_day_in_out_collisions": 1,
+  "historical_event_dates_normalized": 15334,
+  "unparseable_event_dates": 0
+}
+POST-SPLIT CHRONOLOGY QA PASSED; stale invalid-order flags cleared= 64
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+AssertionError: {'missing': 'MEM', 'adams_rows': []}
+STAGE1_STOPPED_RC=1
+Log: team_trb_all_players/impact_database/treb_local_unattended.log
+[2026-08-08T09:29:14Z] Unattended runner stopped rc=1; publishing diagnostics and waiting for remote fix
