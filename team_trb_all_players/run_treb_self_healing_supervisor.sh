@@ -96,21 +96,15 @@ pull_remote_fix() {
   [[ "$remote_head" != "$local_head" ]] || return 2
 
   echo "[$(ts)] Remote branch advanced: $local_head -> $remote_head"
+  # Generated TREB data may be modified locally, but our remote fixes are source-code changes.
+  # A normal fast-forward succeeds as long as the remote change does not overlap those local files.
+  # If it does overlap, fail safely and keep polling rather than stashing/resetting generated data.
   if git pull --ff-only origin "$BRANCH"; then
     return 0
   fi
 
-  echo "[$(ts)] Fast-forward pull blocked by local generated state; attempting code-only refresh"
-  # Preserve all generated data. Refresh only tracked source/runner files that changed remotely.
-  while IFS= read -r path; do
-    case "$path" in
-      team_trb_all_players/*.py|team_trb_all_players/*.sh)
-        git checkout "origin/$BRANCH" -- "$path" || return 1
-        ;;
-    esac
-  done < <(git diff --name-only "$local_head" "$remote_head")
-  git reset --soft "$remote_head" >/dev/null 2>&1 || return 1
-  return 0
+  echo "[$(ts)] Fast-forward pull is currently blocked by local state; preserving all local data and retrying later"
+  return 1
 }
 
 write_status "running" "Self-healing supervisor owns TREB local execution"
@@ -136,7 +130,6 @@ while true; do
 
   echo "[$(ts)] Unattended runner stopped rc=$RC; publishing diagnostics and waiting for remote fix"
   publish_failure "$RC"
-  BASELINE="$(git rev-parse HEAD)"
 
   while true; do
     sleep "$POLL_SECONDS"
