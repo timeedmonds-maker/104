@@ -47,12 +47,18 @@ def season_year(season: str) -> int:
 
 
 def historical_charlotte_id(season: str) -> int | None:
-    """Disambiguate the two unrelated Charlotte NBA franchises by season."""
+    """Disambiguate Charlotte history using the NBA/core historical id convention.
+
+    The NBA/core data used by TREB assigns the pre-relocation Charlotte Hornets
+    history (through 2001-02) to team id 1610612766. New Orleans uses 1610612740
+    from 2002-03 onward, while the expansion Bobcats/current Hornets also use
+    1610612766 from 2004-05 onward.
+    """
     year = season_year(season)
     if year <= 2001:
-        return 1610612740  # original Hornets franchise, now New Orleans
+        return 1610612766
     if year >= 2004:
-        return 1610612766  # expansion Bobcats/current Hornets
+        return 1610612766
     return None
 
 
@@ -73,6 +79,15 @@ def maybe_repair_existing(event: dict[str, Any], context: norm.CoreContext) -> t
     season = str(e.get("season") or "")
     raw = str(e.get("raw_text") or "")
 
+    # Correct earlier normalized Charlotte rows as well as unresolved ones.
+    if season in {"2000-01", "2001-02"}:
+        if str(e.get("source_team_name") or "").strip().casefold() == "charlotte hornets" and int(e.get("source_team_id") or 0) != 1610612766:
+            e["source_team_id"] = 1610612766
+            changes.append("historical_charlotte_source_team")
+        if str(e.get("destination_team_name") or "").strip().casefold() == "charlotte hornets" and int(e.get("destination_team_id") or 0) != 1610612766:
+            e["destination_team_id"] = 1610612766
+            changes.append("historical_charlotte_destination_team")
+
     if e.get("source_team_id") is None and e.get("source_team_name"):
         team = resolve_team_name(str(e.get("source_team_name")), season, context)
         if team is not None:
@@ -84,8 +99,6 @@ def maybe_repair_existing(event: dict[str, Any], context: norm.CoreContext) -> t
             e["destination_team_id"] = team
             changes.append("destination_team_alias")
 
-    # Claims identify both the destination and, when present in the prose, the
-    # departing team.  The original parser retained only the destination.
     if e.get("event_type") == "claim" and e.get("source_team_id") is None:
         match = FROM_TEAM_RE.search(raw)
         if match:
@@ -94,8 +107,6 @@ def maybe_repair_existing(event: dict[str, Any], context: norm.CoreContext) -> t
                 e["source_team_id"] = team
                 changes.append("claim_source_team")
 
-    # Once team ambiguity is repaired, retry identity resolution for historical
-    # events that previously could not be tied to a core player id.
     if not e.get("player_id") and e.get("player_name"):
         player_id, method = norm.resolve_player(
             str(e.get("player_name")), season, context,
