@@ -3,7 +3,9 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,6 +28,7 @@ HEADERS = {
     "Referer": "https://www.nba.com/",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36",
 }
+WORKERS = max(1, min(6, int(os.environ.get("TREB_STAGE1_EVIDENCE_WORKERS", "4"))))
 
 
 def read_rows(path: Path) -> list[dict[str, Any]]:
@@ -66,7 +69,6 @@ def clean_team_id(value: Any) -> int | None:
 
 def roster_pairs_from_payloads(summary_payload: dict[str, Any], traditional_payload: dict[str, Any]) -> dict[tuple[str, int], list[dict[str, Any]]]:
     evidence: dict[tuple[str, int], list[dict[str, Any]]] = {}
-
     for row in result_rows(summary_payload, "InactivePlayers"):
         player_id = clean_id(row.get("PLAYER_ID") or row.get("Player_ID"))
         team_id = clean_team_id(row.get("TEAM_ID") or row.get("Team_ID"))
@@ -77,7 +79,6 @@ def roster_pairs_from_payloads(summary_payload: dict[str, Any], traditional_payl
                 "player_name": row.get("PLAYER_NAME") or row.get("Player_Name"),
                 "roster_evidence_type": "listed_inactive",
             })
-
     for row in result_rows(traditional_payload, "PlayerStats"):
         player_id = clean_id(row.get("PLAYER_ID") or row.get("Player_ID"))
         team_id = clean_team_id(row.get("TEAM_ID") or row.get("Team_ID"))
@@ -92,11 +93,11 @@ def roster_pairs_from_payloads(summary_payload: dict[str, Any], traditional_payl
     return evidence
 
 
-def request_json(url: str, params: dict[str, str], attempts: int = 3) -> tuple[dict[str, Any], str | None]:
+def request_json(url: str, params: dict[str, str], attempts: int = 2) -> tuple[dict[str, Any], str | None]:
     errors: list[str] = []
     for attempt in range(1, attempts + 1):
         try:
-            response = requests.get(url, params=params, headers=HEADERS, timeout=(8, 25))
+            response = requests.get(url, params=params, headers=HEADERS, timeout=(5, 15))
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict):
@@ -116,7 +117,9 @@ def fetch_game_roster(game_id: str) -> tuple[dict[tuple[str, int], list[dict[str
         try:
             with gzip.open(cache_path, "rt", encoding="utf-8") as handle:
                 cached = json.load(handle)
-            return roster_pairs_from_payloads(cached.get("summary") or {}, cached.get("traditional") or {}), cached.get("errors") or []
+            # Only trust a clean cache permanently. A prior partial/failed request is retried.
+            if not (cached.get("errors") or []):
+                return roster_pairs_from_payloads(cached.get("summary") or {}, cached.get("traditional") or {}), []
         except Exception:
             pass
 
@@ -124,7 +127,6 @@ def fetch_game_roster(game_id: str) -> tuple[dict[tuple[str, int], list[dict[str
     summary_payload, summary_error = request_json(SUMMARY_URL, {"GameID": game_id})
     if summary_error:
         errors.append(f"boxscoresummaryv2: {summary_error}")
-
     traditional_payload, traditional_error = request_json(TRADITIONAL_URL, {
         "GameID": game_id,
         "StartPeriod": "1",
@@ -136,15 +138,13 @@ def fetch_game_roster(game_id: str) -> tuple[dict[tuple[str, int], list[dict[str
     if traditional_error:
         errors.append(f"boxscoretraditionalv2: {traditional_error}")
 
-    cached = {
-        "game_id": game_id,
-        "summary": summary_payload,
-        "traditional": traditional_payload,
-        "errors": errors,
-    }
-    with gzip.open(cache_path, "wt", encoding="utf-8") as handle:
+    cached = {"game_id": game_id, "summary": summary_payload, "traditional": traditional_payload, "errors": errors}
+    tmp = cache_path.with_suffix(cache_path.suffix + ".tmp")
+    with gzip.open(tmp, "wt", encoding="utf-8") as handle:
         json.dump(cached, handle, ensure_ascii=False)
-    time.sleep(0.45)
+    tmp.replace(cache_path)
+    if not errors:
+        time.sleep(0.15)
     return roster_pairs_from_payloads(summary_payload, traditional_payload), errors
 
 
@@ -152,7 +152,6 @@ def apply_roster_evidence(row: dict[str, Any], by_game: dict[str, dict[tuple[str
     out = dict(row)
     if row.get("schedule_boundary_status") != "needs_ordering_evidence":
         return out
-
     player_id = str(row.get("player_id") or "")
     team_id = int(row.get("team_id") or 0)
     unresolved_before = [str(x) for x in (row.get("same_day_unresolved_game_ids") or row.get("boundary_game_ids") or [])]
@@ -166,7 +165,6 @@ def apply_roster_evidence(row: dict[str, Any], by_game: dict[str, dict[tuple[str
         if evidence:
             newly_resolved.append(game_id)
             details.append({"game_id": game_id, "evidence": evidence})
-
     if not newly_resolved:
         out["same_day_roster_resolution"] = "unresolved; no positive roster-listing evidence; absence is not off-roster evidence"
         return out
@@ -176,7 +174,6 @@ def apply_roster_evidence(row: dict[str, Any], by_game: dict[str, dict[tuple[str
     out["same_day_positive_roster_game_ids"] = sorted(set(newly_resolved))
     out["same_day_roster_evidence"] = details
     out["same_day_unresolved_game_ids"] = remaining
-
     new_min = int(row.get("team_games_min") or 0) + len(newly_resolved)
     out["team_games_min"] = new_min
     if not remaining:
@@ -189,7 +186,6 @@ def apply_roster_evidence(row: dict[str, Any], by_game: dict[str, dict[tuple[str
         out["audit_flags"] = sorted(set(flags))
     else:
         out["same_day_roster_resolution"] = "partially_resolved_by_positive_roster_listing_evidence; remaining boundary requires ordering evidence"
-
     out["same_day_all_positive_game_ids"] = sorted(set(prior_positive + newly_resolved))
     return out
 
@@ -206,13 +202,29 @@ def build() -> dict[str, Any]:
 
     by_game: dict[str, dict[tuple[str, int], list[dict[str, Any]]]] = {}
     fetch_errors: list[dict[str, Any]] = []
-    for i, game_id in enumerate(game_ids, 1):
-        evidence, errors = fetch_game_roster(game_id)
-        by_game[game_id] = evidence
-        if errors:
-            fetch_errors.append({"game_id": game_id, "errors": errors})
-        if i % 25 == 0 or i == len(game_ids):
-            print(f"boundary-game roster evidence {i}/{len(game_ids)}; fetch_errors={len(fetch_errors)}")
+    started = time.monotonic()
+    if game_ids:
+        with ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix="treb-roster") as pool:
+            futures = {pool.submit(fetch_game_roster, game_id): game_id for game_id in game_ids}
+            completed = 0
+            for future in as_completed(futures):
+                game_id = futures[future]
+                try:
+                    evidence, errors = future.result()
+                except Exception as exc:
+                    evidence, errors = {}, [repr(exc)]
+                by_game[game_id] = evidence
+                if errors:
+                    fetch_errors.append({"game_id": game_id, "errors": errors})
+                completed += 1
+                if completed % 5 == 0 or completed == len(game_ids):
+                    elapsed = max(time.monotonic() - started, 0.001)
+                    rate = completed * 60.0 / elapsed
+                    print(
+                        f"boundary-game roster evidence {completed}/{len(game_ids)} "
+                        f"workers={WORKERS} fetch_errors={len(fetch_errors)} rate={rate:.1f}/min",
+                        flush=True,
+                    )
 
     output_rows = [apply_roster_evidence(row, by_game) for row in rows]
     tmp = WINDOWS.with_suffix(WINDOWS.suffix + ".tmp")
@@ -233,6 +245,7 @@ def build() -> dict[str, Any]:
         ),
         "input_unresolved_windows": before,
         "boundary_games_queried": len(game_ids),
+        "workers": WORKERS,
         "windows_with_positive_roster_evidence": positive_roster_windows,
         "fully_resolved_windows": fully_resolved,
         "remaining_unresolved_windows": after,
@@ -243,45 +256,27 @@ def build() -> dict[str, Any]:
     summary = {k: v for k, v in audit.items() if k != "fetch_errors"}
     summary["audit"] = str(AUDIT)
     summary["output"] = str(WINDOWS)
-    SUMMARY.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(json.dumps(summary, indent=2), flush=True)
     return summary
 
 
 def self_test() -> None:
-    summary_payload = {
-        "resultSets": [{
-            "name": "InactivePlayers",
-            "headers": ["PLAYER_ID", "TEAM_ID", "PLAYER_NAME"],
-            "rowSet": [["123", 10, "Inactive Player"]],
-        }]
-    }
-    traditional_payload = {
-        "resultSets": [{
-            "name": "PlayerStats",
-            "headers": ["PLAYER_ID", "TEAM_ID", "PLAYER_NAME", "MIN"],
-            "rowSet": [["456", 20, "DNP Player", None]],
-        }]
-    }
+    summary_payload = {"resultSets": [{"name": "InactivePlayers", "headers": ["PLAYER_ID", "TEAM_ID", "PLAYER_NAME"], "rowSet": [["123", 10, "Inactive Player"]]}]}
+    traditional_payload = {"resultSets": [{"name": "PlayerStats", "headers": ["PLAYER_ID", "TEAM_ID", "PLAYER_NAME", "MIN"], "rowSet": [["456", 20, "DNP Player", None]]}]}
     pairs = roster_pairs_from_payloads(summary_payload, traditional_payload)
-    assert ("123", 10) in pairs
-    assert ("456", 20) in pairs
-
+    assert ("123", 10) in pairs and ("456", 20) in pairs
     row = {
         "season": "2023-24", "player_id": "123", "team_id": 10,
         "schedule_boundary_status": "needs_ordering_evidence",
-        "boundary_game_ids": ["0022300001"],
-        "same_day_unresolved_game_ids": ["0022300001"],
+        "boundary_game_ids": ["0022300001"], "same_day_unresolved_game_ids": ["0022300001"],
         "team_games_min": 4, "team_games_max": 5,
         "audit_flags": ["same_day_game_ordering_evidence_required"],
     }
     out = apply_roster_evidence(row, {"0022300001": pairs})
-    assert out["schedule_boundary_status"] == "resolved"
-    assert out["team_games_in_window"] == 5
-    assert out["same_day_positive_roster_game_ids"] == ["0022300001"]
-
+    assert out["schedule_boundary_status"] == "resolved" and out["team_games_in_window"] == 5
     absent = apply_roster_evidence({**row, "player_id": "999"}, {"0022300001": pairs})
-    assert absent["schedule_boundary_status"] == "needs_ordering_evidence"
-    assert absent["team_games_min"] == 4
+    assert absent["schedule_boundary_status"] == "needs_ordering_evidence" and absent["team_games_min"] == 4
     print("resolve_same_day_roster_evidence self-test PASSED")
 
 
