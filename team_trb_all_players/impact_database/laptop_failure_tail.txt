@@ -1,23 +1,3 @@
-============================================================
-TREB V11 FAST STAGE-1 REPAIR
-Reuses durable historical archive + schedules; no archive refetch.
-============================================================
-REMAINING OVERLAP SOURCE REPAIR V11 SELF-TEST PASSED
-MULTI-STINT V2 SELF-TEST PASSED
-{
-  "generated_utc": "2026-08-08T22:52:56.600416+00:00",
-  "input_events": 24730,
-  "output_events": 24920,
-  "existing_official_10day_endpoints_corrected": 668,
-  "conflicting_preliminary_official_trades_removed": 2,
-  "historical_single_10day_departures_added": 192,
-  "policy": "No QA gate is weakened. Existing official 10-day rows keep their established one-to-one signing linkage but use the tenth calendar day inclusive. Earlier official trades are suppressed only when a later official trade within 14 days still names the same source team but a different destination. Historical natural expiries are derived only for unambiguous single 10-day signings; merged two-contract/rest-of-season descriptions are excluded."
-}
-{
-  "generated_utc": "2026-08-08T22:52:56.679577+00:00",
-  "last_completed_phase": "v11_source_repairs",
-  "last_phase_elapsed_seconds": 1,
-  "total_elapsed_seconds": 2,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
@@ -31,18 +11,22 @@ MULTI-STINT V2 SELF-TEST PASSED
     "transaction_boundary_repair_v2",
     "transaction_enrichment_historical_v10",
     "official_movement_boundary_repair_v8",
-    "v11_source_repairs"
+    "v11_source_repairs",
+    "v11_tenure_chronology",
+    "v11_overlap_diagnostic",
+    "v12_targeted_source_recovery"
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day",
-  "runner": "v11 fast repair from durable v10 inputs"
+  "runner": "v12 targeted source recovery + event-state tenure reconciliation"
 }
-[treb-laptop-run 9986ca2] Stage 1 fast checkpoint: v11_source_repairs [skip ci]
- 3 files changed, 1644 insertions(+), 5 deletions(-)
- create mode 100644 team_trb_all_players/impact_database/roster_tenure/remaining_overlap_source_repair_v11_summary.json
+[treb-laptop-run 163fa5f] Stage 1 v12 checkpoint: v12_targeted_source_recovery [skip ci]
+ 4 files changed, 1928 insertions(+), 5 deletions(-)
+ create mode 100644 team_trb_all_players/impact_database/roster_tenure/bref_targeted_overlap_recovery_v12_summary.json
+ create mode 100644 team_trb_all_players/impact_database/roster_tenure/overlap_boundary_repair_v12_summary.json
 To https://github.com/timeedmonds-maker/104
-   631c995..9986ca2  HEAD -> treb-laptop-run
+   0c95910..163fa5f  HEAD -> treb-laptop-run
 {
-  "generated_utc": "2026-08-08T22:53:34.772438+00:00",
+  "generated_utc": "2026-08-08T23:21:45.461513+00:00",
   "window_count": 14526,
   "seasons": [
     "2000-01",
@@ -73,11 +57,11 @@ To https://github.com/timeedmonds-maker/104
     "2025-26"
   ],
   "players": 2584,
-  "high_confidence": 9471,
-  "provisional_high": 2251,
-  "review": 2804,
-  "same_day_game_checks": 5026,
-  "multi_team_boundary_gaps": 2764,
+  "high_confidence": 9464,
+  "provisional_high": 2256,
+  "review": 2806,
+  "same_day_game_checks": 5039,
+  "multi_team_boundary_gaps": 2766,
   "invalid_boundary_order": 40,
   "team_game_counts_populated": 0,
   "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows.jsonl.gz",
@@ -110,114 +94,42 @@ RuntimeError: Invalid tenure boundary order detected; see audit report
 }
 {
   "input_windows": 14901,
-  "output_windows": 15567,
-  "player_team_seasons_rebuilt": 781,
-  "extra_segments_created": 666,
+  "output_windows": 15530,
+  "player_team_seasons_rebuilt": 744,
+  "extra_segments_created": 629,
   "same_day_pass_through_zero_effective_windows": 33,
   "same_day_same_team_continuities_preserved": 6,
-  "historical_event_dates_normalized": 6847,
+  "historical_event_dates_normalized": 5920,
   "policy": "Same-day in+out while previously inactive is a zero-effective-service pass-through; same-day in+out while already active preserves continuous same-team roster service. Derived 10-day expiries participate as exact departure boundaries."
 }
 {
-  "generated_utc": "2026-08-08T22:53:37.631834+00:00",
-  "window_count": 15567,
-  "multi_team_player_season_groups": 1749,
-  "exact_nonoverlapping_groups": 1673,
-  "unresolved_multi_team_groups": 76,
-  "windows_with_structural_flags_cleared": 2680,
-  "structural_flags_cleared": 2680,
-  "remaining_review_windows": 84,
-  "remaining_structural_flag_windows": 84,
+  "generated_utc": "2026-08-08T23:21:48.296036+00:00",
+  "target_player_seasons": 35,
+  "input_windows": 15530,
+  "output_windows": 15529,
+  "target_windows_rebuilt": 87,
+  "unsupported_core_phantom_windows_dropped": 1,
+  "unsupported_core_teams_still_requiring_review": 19,
+  "policy": "Only v11 overlap player-seasons are rewritten. Exact transaction chronology determines season-open state, in-season acquisitions/departures and same-team renewals. A preseason departure removes season-open service unless a later acquisition restores it. A core-only team with zero transaction support is dropped as a phantom only when other transaction-supported affiliations cover the entire regular season; otherwise it remains review-gated."
+}
+{
+  "generated_utc": "2026-08-08T23:21:48.972527+00:00",
+  "window_count": 15529,
+  "multi_team_player_season_groups": 1747,
+  "exact_nonoverlapping_groups": 1675,
+  "unresolved_multi_team_groups": 72,
+  "windows_with_structural_flags_cleared": 2685,
+  "structural_flags_cleared": 2685,
+  "remaining_review_windows": 48,
+  "remaining_structural_flag_windows": 48,
   "policy": "Only clears structural-review flags when effective roster intervals are already exact and non-overlapping; no dates are invented or shifted by this step."
 }
-V11 RAW CHRONOLOGY BUILT 15567 windows; stale flags cleared= 0 builder_rc= 1
+V12 RAW CHRONOLOGY BUILT 15529 windows; stale flags cleared= 0 builder_rc= 1
 {
-  "generated_utc": "2026-08-08T22:53:38.269744+00:00",
-  "last_completed_phase": "v11_tenure_chronology",
+  "generated_utc": "2026-08-08T23:21:49.659382+00:00",
+  "last_completed_phase": "v12_tenure_chronology",
   "last_phase_elapsed_seconds": 1,
-  "total_elapsed_seconds": 44,
-  "completed_phases": [
-    "historical_archive",
-    "tenure_chronology",
-    "regular_season_schedules",
-    "deterministic_effective_windows",
-    "transaction_enrichment_realgm_partial",
-    "tenure_overlap_diagnostic",
-    "transaction_enrichment_realgm_all_seasons",
-    "transaction_enrichment_cached_sources",
-    "official_movement_boundary_repair",
-    "transaction_boundary_repair_v2",
-    "transaction_enrichment_historical_v10",
-    "official_movement_boundary_repair_v8",
-    "v11_source_repairs",
-    "v11_tenure_chronology"
-  ],
-  "methodology": "transaction date belongs to departing team; incoming team effective next calendar day",
-  "runner": "v11 fast repair from durable v10 inputs"
-}
-[treb-laptop-run 4fff89a] Stage 1 fast checkpoint: v11_tenure_chronology [skip ci]
- 7 files changed, 846 insertions(+), 2510 deletions(-)
-To https://github.com/timeedmonds-maker/104
-   9986ca2..4fff89a  HEAD -> treb-laptop-run
-{
-  "generated_utc": "2026-08-08T22:53:42.120631+00:00",
-  "window_count": 15567,
-  "exact_team_game_count_windows": 15567,
-  "schedule_boundary_resolved_windows": 15567,
-  "same_day_ordering_evidence_required": 0,
-  "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-  "transaction_day_policy_windows": 6067,
-  "incoming_transaction_day_shifted_windows": 4008,
-  "outgoing_transaction_day_inclusive_windows": 3705,
-  "zero_game_windows": 104,
-  "missing_team_schedules": 0,
-  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_schedule_audited.jsonl.gz",
-  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/schedule_boundary_audit.json"
-}
-same-day network evidence eliminated; copied 15567 deterministic windows; unresolved=0
-{
-  "generated_utc": "2026-08-08T22:53:43.179507+00:00",
-  "method": "deterministic transaction-day convention: old/departing team includes the recorded transaction date; new/incoming team begins the next day; no same-day player-game or roster endpoint query required",
-  "input_windows": 15567,
-  "remaining_unresolved_windows": 0,
-  "transaction_day_policy_windows": 6067,
-  "player_seasons_queried": 0,
-  "boundary_games_queried": 0,
-  "fetch_error_count": 0,
-  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz",
-  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/same_day_evidence_audit.json"
-}
-{
-  "generated_utc": "2026-08-08T22:53:43.679223+00:00",
-  "window_count": 15567,
-  "player_seasons": 12953,
-  "confidence_counts": {
-    "high": 9471,
-    "provisional_high": 6012,
-    "review": 84
-  },
-  "boundary_status_counts": {
-    "resolved": 15567
-  },
-  "invalid_interval_count": 0,
-  "duplicate_window_count": 0,
-  "resolved_game_count_inconsistency_count": 0,
-  "strict_cross_team_overlap_count": 49,
-  "strict_same_team_overlap_count": 0,
-  "same_day_cross_team_touch_count": 1268,
-  "remaining_same_day_unresolved_count": 0,
-  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_consistency_audit.json"
-}
-{
-  "strict_cross_team_overlap_count": 49,
-  "player_season_case_count": 35,
-  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/remaining_overlap_event_chains_v11.json"
-}
-{
-  "generated_utc": "2026-08-08T22:53:44.478791+00:00",
-  "last_completed_phase": "v11_overlap_diagnostic",
-  "last_phase_elapsed_seconds": 1,
-  "total_elapsed_seconds": 50,
+  "total_elapsed_seconds": 48,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
@@ -233,17 +145,106 @@ same-day network evidence eliminated; copied 15567 deterministic windows; unreso
     "official_movement_boundary_repair_v8",
     "v11_source_repairs",
     "v11_tenure_chronology",
-    "v11_overlap_diagnostic"
+    "v11_overlap_diagnostic",
+    "v12_targeted_source_recovery",
+    "v12_tenure_chronology"
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day",
-  "runner": "v11 fast repair from durable v10 inputs"
+  "runner": "v12 targeted source recovery + event-state tenure reconciliation"
 }
-[treb-laptop-run 27d6ed7] Stage 1 fast checkpoint: v11_overlap_diagnostic [skip ci]
- 10 files changed, 4747 insertions(+), 459 deletions(-)
- create mode 100644 team_trb_all_players/impact_database/roster_tenure/remaining_overlap_event_chains_v11.json
+[treb-laptop-run bf86de3] Stage 1 v12 checkpoint: v12_tenure_chronology [skip ci]
+ 7 files changed, 4232 insertions(+), 2619 deletions(-)
+ create mode 100644 team_trb_all_players/impact_database/roster_tenure/target_tenure_reconciliation_v12_summary.json
 To https://github.com/timeedmonds-maker/104
-   4fff89a..27d6ed7  HEAD -> treb-laptop-run
-V11 STRICT OVERLAPS= 49 REVIEW= 84
+   163fa5f..bf86de3  HEAD -> treb-laptop-run
+{
+  "generated_utc": "2026-08-08T23:21:53.440815+00:00",
+  "window_count": 15529,
+  "exact_team_game_count_windows": 15529,
+  "schedule_boundary_resolved_windows": 15529,
+  "same_day_ordering_evidence_required": 0,
+  "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+  "transaction_day_policy_windows": 6044,
+  "incoming_transaction_day_shifted_windows": 3983,
+  "outgoing_transaction_day_inclusive_windows": 3684,
+  "zero_game_windows": 103,
+  "missing_team_schedules": 0,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_schedule_audited.jsonl.gz",
+  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/schedule_boundary_audit.json"
+}
+same-day network evidence eliminated; copied 15529 deterministic windows; unresolved=0
+{
+  "generated_utc": "2026-08-08T23:21:54.496772+00:00",
+  "method": "deterministic transaction-day convention: old/departing team includes the recorded transaction date; new/incoming team begins the next day; no same-day player-game or roster endpoint query required",
+  "input_windows": 15529,
+  "remaining_unresolved_windows": 0,
+  "transaction_day_policy_windows": 6044,
+  "player_seasons_queried": 0,
+  "boundary_games_queried": 0,
+  "fetch_error_count": 0,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz",
+  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/same_day_evidence_audit.json"
+}
+{
+  "generated_utc": "2026-08-08T23:21:54.977106+00:00",
+  "window_count": 15529,
+  "player_seasons": 12955,
+  "confidence_counts": {
+    "high": 9464,
+    "provisional_high": 6017,
+    "review": 48
+  },
+  "boundary_status_counts": {
+    "resolved": 15529
+  },
+  "invalid_interval_count": 0,
+  "duplicate_window_count": 0,
+  "resolved_game_count_inconsistency_count": 0,
+  "strict_cross_team_overlap_count": 19,
+  "strict_same_team_overlap_count": 0,
+  "same_day_cross_team_touch_count": 1276,
+  "remaining_same_day_unresolved_count": 0,
+  "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_consistency_audit.json"
+}
+{
+  "strict_cross_team_overlap_count": 19,
+  "player_season_case_count": 13,
+  "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/remaining_overlap_event_chains_v12.json"
+}
+{
+  "generated_utc": "2026-08-08T23:21:55.791831+00:00",
+  "last_completed_phase": "v12_overlap_diagnostic",
+  "last_phase_elapsed_seconds": 1,
+  "total_elapsed_seconds": 54,
+  "completed_phases": [
+    "historical_archive",
+    "tenure_chronology",
+    "regular_season_schedules",
+    "deterministic_effective_windows",
+    "transaction_enrichment_realgm_partial",
+    "tenure_overlap_diagnostic",
+    "transaction_enrichment_realgm_all_seasons",
+    "transaction_enrichment_cached_sources",
+    "official_movement_boundary_repair",
+    "transaction_boundary_repair_v2",
+    "transaction_enrichment_historical_v10",
+    "official_movement_boundary_repair_v8",
+    "v11_source_repairs",
+    "v11_tenure_chronology",
+    "v11_overlap_diagnostic",
+    "v12_targeted_source_recovery",
+    "v12_tenure_chronology",
+    "v12_overlap_diagnostic"
+  ],
+  "methodology": "transaction date belongs to departing team; incoming team effective next calendar day",
+  "runner": "v12 targeted source recovery + event-state tenure reconciliation"
+}
+[treb-laptop-run f7676a4] Stage 1 v12 checkpoint: v12_overlap_diagnostic [skip ci]
+ 10 files changed, 1574 insertions(+), 440 deletions(-)
+ create mode 100644 team_trb_all_players/impact_database/roster_tenure/remaining_overlap_event_chains_v12.json
+To https://github.com/timeedmonds-maker/104
+   bf86de3..f7676a4  HEAD -> treb-laptop-run
+V12 STRICT OVERLAPS= 19 REVIEW= 48
 Traceback (most recent call last):
-  File "<stdin>", line 11, in <module>
-AssertionError: {'generated_utc': '2026-08-08T22:53:43.679223+00:00', 'window_count': 15567, 'player_seasons': 12953, 'confidence_counts': {'high': 9471, 'provisional_high': 6012, 'review': 84}, 'boundary_status_counts': {'resolved': 15567}, 'invalid_interval_count': 0, 'duplicate_window_count': 0, 'resolved_game_count_inconsistency_count': 0, 'strict_cross_team_overlap_count': 49, 'strict_same_team_overlap_count': 0, 'same_day_cross_team_touch_count': 1268, 'remaining_same_day_unresolved_count': 0, 'audit': '/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_consistency_audit.json'}
+  File "<stdin>", line 12, in <module>
+AssertionError: {'generated_utc': '2026-08-08T23:21:54.977106+00:00', 'window_count': 15529, 'player_seasons': 12955, 'confidence_counts': {'high': 9464, 'provisional_high': 6017, 'review': 48}, 'boundary_status_counts': {'resolved': 15529}, 'invalid_interval_count': 0, 'duplicate_window_count': 0, 'resolved_game_count_inconsistency_count': 0, 'strict_cross_team_overlap_count': 19, 'strict_same_team_overlap_count': 0, 'same_day_cross_team_touch_count': 1276, 'remaining_same_day_unresolved_count': 0, 'audit': '/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_consistency_audit.json'}
