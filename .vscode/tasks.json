@@ -2,11 +2,16 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "TREB end-to-end build (manual fallback)",
+      "label": "Run TREB end-to-end corrected OFF build",
       "type": "shell",
       "command": "bash team_trb_all_players/run_treb_end_to_end_codespace.sh",
       "isBackground": true,
       "problemMatcher": [],
+      "runOptions": {
+        "runOn": "folderOpen",
+        "instanceLimit": 1,
+        "instancePolicy": "silent"
+      },
       "presentation": {
         "reveal": "always",
         "focus": false,
