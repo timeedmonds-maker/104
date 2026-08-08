@@ -26,8 +26,11 @@ jobs:
         id: tests
         continue-on-error: true
         run: |
-          python -m py_compile team_trb_all_players/recover_overlap_events_from_bref_v13.py
+          python -m py_compile \
+            team_trb_all_players/recover_overlap_events_from_bref_v13.py \
+            team_trb_all_players/apply_verified_overlap_supplement_v13.py
           python team_trb_all_players/recover_overlap_events_from_bref_v13.py --self-test
+          python team_trb_all_players/apply_verified_overlap_supplement_v13.py --self-test
           bash -n team_trb_all_players/run_treb_laptop_v13_fast.sh
           bash -n team_trb_all_players/run_treb_laptop_supervised_v13.sh
       - name: Persist self-test status
@@ -46,7 +49,7 @@ jobs:
               'generated_utc': datetime.now(timezone.utc).isoformat(),
               'state': 'passed' if os.environ['OUTCOME']=='success' else 'failed',
               'tested_commit': os.environ['SHA'],
-              'tests': 'py_compile + v13 deterministic parser self-test + bash -n',
+              'tests': 'py_compile + v13 deterministic parser/supplement self-tests + bash -n',
           },indent=2))
           PY
           git config user.name 'github-actions[bot]'
