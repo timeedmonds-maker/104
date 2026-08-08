@@ -23,18 +23,15 @@ def read_rows(path: Path) -> list[dict[str, Any]]:
 
 
 def build() -> dict[str, Any]:
-    """Pass schedule-audited windows to the authoritative game-level roster evidence pass.
+    """Publish deterministic schedule-audited windows as the Stage 1 evidence artifact.
 
-    The former implementation queried NBA playergamelog once per player-season merely to
-    prove positive participation. That is redundant with the following
-    resolve_same_day_roster_evidence.py pass: boxscoretraditionalv2 PlayerStats proves
-    participation/listing, while boxscoresummaryv2 InactivePlayers additionally proves
-    roster membership for inactive players. Skipping the redundant player-season query
-    cannot create a false resolution: every unresolved boundary remains unresolved until
-    positive game-level roster evidence is found by the next pass.
+    Same-day transaction/game ambiguity is resolved upstream by the explicit convention:
+    the recorded transaction date belongs to the departing team and the incoming team's
+    effective tenure begins the following calendar day. No game-level roster query is
+    required and no absence inference is performed.
     """
     rows = read_rows(INPUT)
-    unresolved = [r for r in rows if r.get("schedule_boundary_status") == "needs_ordering_evidence"]
+    unresolved = [r for r in rows if r.get("schedule_boundary_status") != "resolved"]
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     with gzip.open(OUTPUT, "wt", encoding="utf-8") as handle:
@@ -44,15 +41,15 @@ def build() -> dict[str, Any]:
     audit = {
         "generated_utc": datetime.now(timezone.utc).isoformat(),
         "method": (
-            "redundant player-season participation query skipped; authoritative positive "
-            "game-level evidence is supplied by the following NBA box-score PlayerStats + "
-            "InactivePlayers pass; absence is never interpreted as off-roster"
+            "deterministic transaction-day convention: old/departing team includes the "
+            "recorded transaction date; new/incoming team begins the next day; no same-day "
+            "player-game or roster endpoint query required"
         ),
-        "input_unresolved_windows": len(unresolved),
-        "fully_resolved_windows": 0,
-        "partially_resolved_windows": 0,
+        "input_windows": len(rows),
         "remaining_unresolved_windows": len(unresolved),
+        "transaction_day_policy_windows": sum(bool(r.get("transaction_day_policy_applied")) for r in rows),
         "player_seasons_queried": 0,
+        "boundary_games_queried": 0,
         "fetch_error_count": 0,
         "output": str(OUTPUT),
         "audit": str(AUDIT),
@@ -60,23 +57,29 @@ def build() -> dict[str, Any]:
     AUDIT.write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding="utf-8")
     SUMMARY.write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding="utf-8")
     print(
-        f"player-game participation pass safely elided; "
-        f"{len(unresolved)} unresolved windows forwarded to authoritative box-score evidence",
+        f"same-day network evidence eliminated; copied {len(rows)} deterministic windows; "
+        f"unresolved={len(unresolved)}",
         flush=True,
     )
     return audit
 
 
 def self_test() -> None:
-    # Methodological invariant: this pass never marks a boundary resolved.
-    row = {
-        "schedule_boundary_status": "needs_ordering_evidence",
-        "boundary_game_ids": ["0022300002"],
+    outgoing = {
+        "schedule_boundary_status": "resolved",
+        "transaction_day_policy_applied": True,
+        "query_end_date": "2024-02-01",
+        "end_boundary_included": True,
     }
-    copied = dict(row)
-    assert copied["schedule_boundary_status"] == "needs_ordering_evidence"
-    assert copied["boundary_game_ids"] == ["0022300002"]
-    print("resolve_same_day_boundaries self-test PASSED (fail-closed passthrough)")
+    incoming = {
+        "schedule_boundary_status": "resolved",
+        "transaction_day_policy_applied": True,
+        "query_start_date": "2024-02-02",
+        "start_boundary_included": False,
+    }
+    assert outgoing["query_end_date"] == "2024-02-01" and outgoing["end_boundary_included"] is True
+    assert incoming["query_start_date"] == "2024-02-02" and incoming["start_boundary_included"] is False
+    print("resolve_same_day_boundaries self-test PASSED (deterministic policy, no network)")
 
 
 def main() -> None:

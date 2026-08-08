@@ -17,6 +17,7 @@ ROOT = BASE / "impact_database" / "roster_tenure"
 WINDOWS = ROOT / "player_team_season_windows_evidence_audited.jsonl.gz"
 AUDIT = ROOT / "same_day_roster_evidence_audit.json"
 SUMMARY = ROOT / "same_day_roster_evidence_summary.json"
+FETCH_FAILURE = ROOT / "same_day_roster_evidence_fetch_failure.json"
 CACHE = ROOT / "boundary_game_roster_cache"
 
 SUMMARY_URL = "https://stats.nba.com/stats/boxscoresummaryv2"
@@ -29,6 +30,7 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/131 Safari/537.36",
 }
 WORKERS = max(1, min(6, int(os.environ.get("TREB_STAGE1_EVIDENCE_WORKERS", "4"))))
+PREFLIGHT_GAMES = max(4, min(12, int(os.environ.get("TREB_STAGE1_EVIDENCE_PREFLIGHT_GAMES", "8"))))
 
 
 def read_rows(path: Path) -> list[dict[str, Any]]:
@@ -190,6 +192,34 @@ def apply_roster_evidence(row: dict[str, Any], by_game: dict[str, dict[tuple[str
     return out
 
 
+def fetch_batch(game_ids: list[str], by_game: dict[str, dict[tuple[str, int], list[dict[str, Any]]]], fetch_errors: list[dict[str, Any]], started: float, completed_start: int = 0, total: int | None = None) -> int:
+    if not game_ids:
+        return completed_start
+    total = total if total is not None else len(game_ids)
+    completed = completed_start
+    with ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix="treb-roster") as pool:
+        futures = {pool.submit(fetch_game_roster, game_id): game_id for game_id in game_ids}
+        for future in as_completed(futures):
+            game_id = futures[future]
+            try:
+                evidence, errors = future.result()
+            except Exception as exc:
+                evidence, errors = {}, [repr(exc)]
+            by_game[game_id] = evidence
+            if errors:
+                fetch_errors.append({"game_id": game_id, "errors": errors})
+            completed += 1
+            if completed % 5 == 0 or completed == total:
+                elapsed = max(time.monotonic() - started, 0.001)
+                rate = completed * 60.0 / elapsed
+                print(
+                    f"boundary-game roster evidence {completed}/{total} "
+                    f"workers={WORKERS} fetch_errors={len(fetch_errors)} rate={rate:.1f}/min",
+                    flush=True,
+                )
+    return completed
+
+
 def build() -> dict[str, Any]:
     rows = read_rows(WINDOWS)
     unresolved_rows = [row for row in rows if row.get("schedule_boundary_status") == "needs_ordering_evidence"]
@@ -203,28 +233,31 @@ def build() -> dict[str, Any]:
     by_game: dict[str, dict[tuple[str, int], list[dict[str, Any]]]] = {}
     fetch_errors: list[dict[str, Any]] = []
     started = time.monotonic()
+    completed = 0
     if game_ids:
-        with ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix="treb-roster") as pool:
-            futures = {pool.submit(fetch_game_roster, game_id): game_id for game_id in game_ids}
-            completed = 0
-            for future in as_completed(futures):
-                game_id = futures[future]
-                try:
-                    evidence, errors = future.result()
-                except Exception as exc:
-                    evidence, errors = {}, [repr(exc)]
-                by_game[game_id] = evidence
-                if errors:
-                    fetch_errors.append({"game_id": game_id, "errors": errors})
-                completed += 1
-                if completed % 5 == 0 or completed == len(game_ids):
-                    elapsed = max(time.monotonic() - started, 0.001)
-                    rate = completed * 60.0 / elapsed
-                    print(
-                        f"boundary-game roster evidence {completed}/{len(game_ids)} "
-                        f"workers={WORKERS} fetch_errors={len(fetch_errors)} rate={rate:.1f}/min",
-                        flush=True,
-                    )
+        # Fail fast if the execution environment cannot reach the required official endpoints.
+        # This prevents hours of silent 100% failures and publishes concrete error strings for repair.
+        preflight_ids = game_ids[: min(PREFLIGHT_GAMES, len(game_ids))]
+        completed = fetch_batch(preflight_ids, by_game, fetch_errors, started, completed_start=0, total=len(game_ids))
+        if len(preflight_ids) >= 4 and len(fetch_errors) == len(preflight_ids):
+            failure = {
+                "generated_utc": datetime.now(timezone.utc).isoformat(),
+                "status": "blocked_endpoint_unavailable",
+                "methodology_preserved": True,
+                "note": "All preflight boundary-game roster requests failed; aborting rather than treating missing endpoint data as roster absence.",
+                "preflight_games": len(preflight_ids),
+                "workers": WORKERS,
+                "summary_url": SUMMARY_URL,
+                "traditional_url": TRADITIONAL_URL,
+                "sample_errors": fetch_errors[: min(8, len(fetch_errors))],
+            }
+            FETCH_FAILURE.write_text(json.dumps(failure, indent=2, ensure_ascii=False), encoding="utf-8")
+            print(json.dumps(failure, indent=2, ensure_ascii=False), flush=True)
+            raise RuntimeError(
+                f"Boundary-game roster endpoint unavailable: {len(fetch_errors)}/{len(preflight_ids)} preflight games failed; "
+                f"see {FETCH_FAILURE}"
+            )
+        completed = fetch_batch(game_ids[len(preflight_ids):], by_game, fetch_errors, started, completed_start=completed, total=len(game_ids))
 
     output_rows = [apply_roster_evidence(row, by_game) for row in rows]
     tmp = WINDOWS.with_suffix(WINDOWS.suffix + ".tmp")

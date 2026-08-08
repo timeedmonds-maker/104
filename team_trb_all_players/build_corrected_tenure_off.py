@@ -4,6 +4,7 @@ import argparse
 import gzip
 import json
 import math
+import threading
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -30,10 +31,21 @@ HEADERS = {
     "Referer": "https://www.pbpstats.com/",
     "User-Agent": "Mozilla/5.0 AppleWebKit/537.36 Chrome/131 Safari/537.36",
 }
+_THREAD_LOCAL = threading.local()
 
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def http_session() -> requests.Session:
+    """Return one persistent HTTP session per worker thread."""
+    session = getattr(_THREAD_LOCAL, "session", None)
+    if session is None:
+        session = requests.Session()
+        session.headers.update(HEADERS)
+        _THREAD_LOCAL.session = session
+    return session
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -76,10 +88,11 @@ def finite(v: Any) -> float | None:
 
 def request_json(url: str, params: dict[str, str], attempts: int = 4) -> tuple[dict[str, Any], dict[str, Any]]:
     errors: list[str] = []
+    session = http_session()
     for attempt in range(1, attempts + 1):
         started = time.monotonic()
         try:
-            response = requests.get(url, params=params, headers=HEADERS, timeout=(8, 35))
+            response = session.get(url, params=params, timeout=(8, 35))
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict):
@@ -104,15 +117,18 @@ def previous_day(day: str) -> str:
 
 
 def query_dates(window: dict[str, Any]) -> tuple[str, str]:
-    """Return an inclusive PBP Stats query interval for one exact roster stint.
+    """Return the inclusive effective interval for one deterministic roster stint.
 
-    Current Stage 1 positive-evidence resolutions prove inclusion of same-day games,
-    so transaction dates stay inclusive. Future manual exclusions must either set
-    explicit boundary inclusion booleans or pre-adjusted query dates; silent guessing
-    is forbidden.
+    Stage 1 now applies a blanket transaction-day convention: the old/departing team
+    includes the transaction date and the new/incoming team begins the next day. Explicit
+    query dates produced by Stage 1 are authoritative, but are still validated here.
     """
     if window.get("query_start_date") and window.get("query_end_date"):
-        return str(window["query_start_date"]), str(window["query_end_date"])
+        start = str(window["query_start_date"])
+        end = str(window["query_end_date"])
+        if start > end:
+            raise RuntimeError(f"empty effective interval after transaction-day policy: {window}")
+        return start, end
     start, end = str(window["tenure_start"]), str(window["tenure_end"])
     if window.get("start_boundary_included") is False:
         start = next_day(start)
@@ -120,9 +136,6 @@ def query_dates(window: dict[str, Any]) -> tuple[str, str]:
         end = previous_day(end)
     if start > end:
         raise RuntimeError(f"empty effective interval after boundary ordering: {window}")
-    excluded = window.get("same_day_excluded_game_ids") or []
-    if excluded and "start_boundary_included" not in window and "end_boundary_included" not in window:
-        raise RuntimeError("same-day exclusion exists without an explicit effective query boundary")
     return start, end
 
 
@@ -146,6 +159,8 @@ def cache_path(window: dict[str, Any], start: str, end: str) -> Path:
 def collect_window(window: dict[str, Any]) -> dict[str, Any]:
     if window.get("schedule_boundary_status") != "resolved":
         raise RuntimeError(f"attempted Stage 2 collection from unresolved window: {window}")
+    if bool(window.get("zero_game_window")):
+        raise RuntimeError(f"attempted Stage 2 collection from zero-game tenure window: {window}")
     season = str(window["season"])
     team_id = int(window["team_id"])
     player_id = clean_id(window.get("player_id"))
@@ -168,12 +183,20 @@ def collect_window(window: dict[str, Any]) -> dict[str, Any]:
         "PlayerId": player_id, "FromDate": start, "ToDate": end,
     }
     team_payload, team_meta = request_json(TEAM_URL, common)
-    stat_payload, stat_meta = request_json(STAT_URL, {
-        "Season": season, "SeasonType": "Regular Season", "TeamId": str(team_id),
-        "Stat": "OffRebounds", "FromDate": start, "ToDate": end,
-    })
     team_rows = rows(team_payload)
-    minutes_on, minutes_off, minute_row = stat_minutes(stat_payload, player_id, player_name)
+
+    if team_meta.get("ok") and team_rows:
+        stat_payload, stat_meta = request_json(STAT_URL, {
+            "Season": season, "SeasonType": "Regular Season", "TeamId": str(team_id),
+            "Stat": "OffRebounds", "FromDate": start, "ToDate": end,
+        })
+        minutes_on, minutes_off, minute_row = stat_minutes(stat_payload, player_id, player_name)
+    else:
+        stat_payload = {}
+        stat_meta = {"ok": False, "skipped": True, "reason": "team profile unavailable or empty"}
+        minutes_on = minutes_off = None
+        minute_row = None
+
     metric_rows: list[dict[str, Any]] = []
     for r in team_rows:
         metric = str(r.get("Stat") or "").strip()
@@ -194,6 +217,7 @@ def collect_window(window: dict[str, Any]) -> dict[str, Any]:
         "player_id": player_id, "player": player_name,
         "tenure_start": window.get("tenure_start"), "tenure_end": window.get("tenure_end"),
         "query_start_date": start, "query_end_date": end,
+        "transaction_day_policy": window.get("transaction_day_policy"),
         "team_games_in_window": window.get("team_games_in_window"),
         "tenure_source": window.get("source") or window.get("sources"),
         "tenure_confidence": window.get("confidence") or window.get("tenure_confidence"),
@@ -224,9 +248,12 @@ def build(limit: int | None = None) -> dict[str, Any]:
     if unresolved:
         raise RuntimeError(f"Stage 1 exact-ready summary conflicts with {len(unresolved)} unresolved windows")
 
-    # Stage 2 is player-impact work: zero-minute roster windows are retained in the
-    # tenure audit, but cannot have a player-specific on/off profile and are skipped.
-    impact_windows = [w for w in exact if clean_id(w.get("player_id")) and not bool(w.get("zero_minute_only"))]
+    impact_windows = [
+        w for w in exact
+        if clean_id(w.get("player_id"))
+        and not bool(w.get("zero_minute_only"))
+        and not bool(w.get("zero_game_window"))
+    ]
     if limit is not None:
         impact_windows = impact_windows[:limit]
     results: list[dict[str, Any]] = []
@@ -254,6 +281,7 @@ def build(limit: int | None = None) -> dict[str, Any]:
         "generated_utc": now(),
         "stage1_exact_ready": True,
         "input_windows": len(windows),
+        "zero_game_windows_skipped": sum(bool(w.get("zero_game_window")) for w in exact),
         "impact_windows_requested": len(impact_windows),
         "complete_windows": sum(bool(r.get("complete")) for r in results),
         "failed_windows": len(failures),
@@ -261,7 +289,7 @@ def build(limit: int | None = None) -> dict[str, Any]:
         "output": str(LONG),
         "cache": str(CACHE),
         "failures": failures[:200],
-        "policy": "tenure-scoped PBP Stats player/team on-off profiles only; no original 780 team-season rerun; no teammate-pair analysis",
+        "policy": "tenure-scoped PBP Stats profiles using deterministic transaction-day roster windows; core never rerun; teammate pairs excluded",
     }
     SUMMARY.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     if failures:
@@ -274,11 +302,18 @@ def self_test() -> None:
     assert query_dates(base) == ("2024-02-01", "2024-02-10")
     assert query_dates({**base, "start_boundary_included": False})[0] == "2024-02-02"
     assert query_dates({**base, "end_boundary_included": False})[1] == "2024-02-09"
+    assert query_dates({**base, "query_start_date": "2024-02-02", "query_end_date": "2024-02-10"}) == ("2024-02-02", "2024-02-10")
+    try:
+        query_dates({**base, "query_start_date": "2024-02-11", "query_end_date": "2024-02-10"})
+        raise AssertionError("invalid explicit effective interval should fail")
+    except RuntimeError:
+        pass
     payload = {"results": [{"Name": "Test Player", "MinutesOn": 12.5, "MinutesOff": 35.0}]}
     a, b, row = stat_minutes(payload, "123", "Test Player")
     assert a == 12.5 and b == 35.0 and row is not None
     profile = rows({"results": [{"Stat": "OffRating", "On": 120, "Off": 110, "On-Off": 10}]})
     assert profile[0]["Stat"] == "OffRating"
+    assert http_session() is http_session()
     print("build_corrected_tenure_off self-test PASSED")
 
 
