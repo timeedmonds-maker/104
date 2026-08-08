@@ -37,7 +37,9 @@ METRIC_SEMANTICS: dict[str, MetricSemantics] = {
     "EffectiveFgPct": MetricSemantics(+1, "eFG%", "Higher effective field-goal percentage is favorable."),
     "TsPct": MetricSemantics(+1, "TS%", "Higher true-shooting percentage is favorable."),
     "TurnoverPct": MetricSemantics(-1, "TOV%", "A lower offensive turnover rate is generally favorable."),
-    "AssistPct": MetricSemantics(+1, "AST%", "Higher team assist rate is treated as favorable for this presentation."),
+    # Assist rate is not intrinsically better at the team level; role, shot quality and
+    # offensive structure matter. Keep it neutral unless an editorial use-case is reviewed.
+    "AssistPct": MetricSemantics(0, "AST%", "Assist rate is contextual and is not safe to label universally favorable."),
     # Pace is deliberately neutral: faster or slower is not intrinsically better.
     "Pace": MetricSemantics(0, "PACE", "Pace is stylistic/contextual rather than intrinsically favorable in either direction."),
 }
@@ -84,13 +86,16 @@ def swing_wording(metric: str, on_minus_off: float) -> str:
 def self_test() -> None:
     assert favorable_direction("OffRating") == 1
     assert favorable_direction("DefRating") == -1
+    assert favorable_direction("AssistPct") == 0
     assert favorable_direction("Pace") == 0
     assert favorable_direction("UnknownMetric") == 0
     assert favorable_swing("OffRating", 4.2) == 4.2
     assert favorable_swing("DefRating", -4.2) == 4.2
     assert favorable_swing("DefRating", 4.2) == -4.2
+    assert favorable_swing("AssistPct", 2.0) is None
     assert favorable_swing("Pace", 2.0) is None
     assert swing_wording("DefRating", -2.5) == "favorable"
+    assert swing_wording("AssistPct", 2.5) == "direction-neutral"
     assert swing_wording("Pace", -2.5) == "direction-neutral"
 
 
