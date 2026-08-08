@@ -30,11 +30,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
 
-      - name: Run deterministic resilient Stage 1
+      - name: Run checkpointed deterministic Stage 1
         id: stage1
         continue-on-error: true
-        run: bash team_trb_all_players/run_stage1_local_resilient.sh
+        run: bash team_trb_all_players/run_stage1_checkpointed.sh
 
       - name: Publish machine-readable recovery status
         if: always()
@@ -42,6 +43,7 @@ jobs:
           STAGE1_OUTCOME: ${{ steps.stage1.outcome }}
           RUN_ID: ${{ github.run_id }}
         run: |
+          git pull --rebase origin treb-stage1-automation || true
           python - <<'PY'
           import json, os
           from datetime import datetime, timezone
@@ -49,12 +51,15 @@ jobs:
           root=Path('team_trb_all_players/impact_database')
           roster=root/'roster_tenure'
           summary_path=roster/'tenure_review_queue_summary.json'
+          checkpoint_path=root/'stage1_checkpoint_status.json'
           summary={}
+          checkpoint={}
           if summary_path.exists():
-              try:
-                  summary=json.loads(summary_path.read_text())
-              except Exception:
-                  summary={}
+              try: summary=json.loads(summary_path.read_text())
+              except Exception: summary={}
+          if checkpoint_path.exists():
+              try: checkpoint=json.loads(checkpoint_path.read_text())
+              except Exception: checkpoint={}
           status={
               'generated_utc': datetime.now(timezone.utc).isoformat(),
               'github_run_id': os.environ.get('RUN_ID'),
@@ -62,6 +67,8 @@ jobs:
               'stage1_exact_ready': summary.get('stage1_exact_ready') is True,
               'review_queue_windows': summary.get('review_queue_windows'),
               'reason_counts': summary.get('reason_counts'),
+              'last_completed_phase': checkpoint.get('last_completed_phase'),
+              'completed_phases': checkpoint.get('completed_phases'),
               'source_branch': 'treb-stage1-automation',
               'methodology': 'transaction date belongs to departing team; incoming team effective next calendar day',
           }
@@ -83,6 +90,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          git pull --rebase origin treb-stage1-automation || true
           READY=$(python - <<'PY'
           import json
           from pathlib import Path
@@ -98,7 +106,7 @@ jobs:
             gh workflow run treb-corrected-off.yml --ref treb-stage1-automation
             echo 'Dispatched corrected OFF workflow.'
           else
-            echo 'Stage 1 is not exact-ready yet; autonomous supervisor will inspect the committed status and repair before another launch.'
+            echo 'Stage 1 is not exact-ready yet; checkpointed retry can resume from durable phases.'
           fi
 
       - name: Fail visibly if Stage 1 did not complete
