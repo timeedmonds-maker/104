@@ -36,6 +36,7 @@ jobs:
         continue-on-error: true
         env:
           TREB_STAGE1_ONLY: '1'
+          TREB_NO_PUSH: '1'
         run: bash team_trb_all_players/run_treb_laptop_v13_fast.sh
       - name: Persist validation status and diagnostics
         if: always()
