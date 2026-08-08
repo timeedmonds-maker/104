@@ -162,10 +162,10 @@
 }
 SCHEDULE QA PASSED 31254 games; cache_hits= 26 network_fetches= 0
 {
-  "generated_utc": "2026-08-08T20:33:49.198134+00:00",
+  "generated_utc": "2026-08-08T20:43:59.474267+00:00",
   "last_completed_phase": "regular_season_schedules",
   "last_phase_elapsed_seconds": 1,
-  "total_elapsed_seconds": 85,
+  "total_elapsed_seconds": 93,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
@@ -174,20 +174,20 @@ SCHEDULE QA PASSED 31254 games; cache_hits= 26 network_fetches= 0
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
 }
-[treb-laptop-run 0779feb] Stage 1 checkpoint: regular_season_schedules [skip ci]
+[treb-laptop-run 710ca09] Stage 1 checkpoint: regular_season_schedules [skip ci]
  3 files changed, 6 insertions(+), 6 deletions(-)
 To https://github.com/timeedmonds-maker/104
-   4192199..0779feb  HEAD -> treb-laptop-run
+   9e06f7f..710ca09  HEAD -> treb-laptop-run
 {
-  "generated_utc": "2026-08-08T20:33:51.970741+00:00",
+  "generated_utc": "2026-08-08T20:44:02.571277+00:00",
   "window_count": 15045,
   "exact_team_game_count_windows": 15045,
   "schedule_boundary_resolved_windows": 15045,
   "same_day_ordering_evidence_required": 0,
   "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-  "transaction_day_policy_windows": 5121,
-  "incoming_transaction_day_shifted_windows": 3211,
-  "outgoing_transaction_day_inclusive_windows": 2379,
+  "transaction_day_policy_windows": 5126,
+  "incoming_transaction_day_shifted_windows": 3213,
+  "outgoing_transaction_day_inclusive_windows": 2382,
   "zero_game_windows": 54,
   "missing_team_schedules": 0,
   "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_schedule_audited.jsonl.gz",
@@ -195,11 +195,11 @@ To https://github.com/timeedmonds-maker/104
 }
 same-day network evidence eliminated; copied 15045 deterministic windows; unresolved=0
 {
-  "generated_utc": "2026-08-08T20:33:53.007101+00:00",
+  "generated_utc": "2026-08-08T20:44:03.513387+00:00",
   "method": "deterministic transaction-day convention: old/departing team includes the recorded transaction date; new/incoming team begins the next day; no same-day player-game or roster endpoint query required",
   "input_windows": 15045,
   "remaining_unresolved_windows": 0,
-  "transaction_day_policy_windows": 5121,
+  "transaction_day_policy_windows": 5126,
   "player_seasons_queried": 0,
   "boundary_games_queried": 0,
   "fetch_error_count": 0,
@@ -208,10 +208,10 @@ same-day network evidence eliminated; copied 15045 deterministic windows; unreso
 }
 TRANSACTION-DAY POLICY QA PASSED
 {
-  "generated_utc": "2026-08-08T20:33:53.503863+00:00",
+  "generated_utc": "2026-08-08T20:44:03.973005+00:00",
   "last_completed_phase": "deterministic_effective_windows",
-  "last_phase_elapsed_seconds": 3,
-  "total_elapsed_seconds": 89,
+  "last_phase_elapsed_seconds": 2,
+  "total_elapsed_seconds": 97,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
@@ -220,18 +220,18 @@ TRANSACTION-DAY POLICY QA PASSED
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
 }
-[treb-laptop-run 5a60dc3] Stage 1 checkpoint: deterministic_effective_windows [skip ci]
- 7 files changed, 8 insertions(+), 8 deletions(-)
+[treb-laptop-run 42fc8ab] Stage 1 checkpoint: deterministic_effective_windows [skip ci]
+ 7 files changed, 16 insertions(+), 16 deletions(-)
 To https://github.com/timeedmonds-maker/104
-   0779feb..5a60dc3  HEAD -> treb-laptop-run
+   710ca09..42fc8ab  HEAD -> treb-laptop-run
 {
-  "generated_utc": "2026-08-08T20:33:55.532285+00:00",
+  "generated_utc": "2026-08-08T20:44:06.079466+00:00",
   "window_count": 15045,
   "player_seasons": 12953,
   "confidence_counts": {
-    "high": 9548,
-    "provisional_high": 2361,
-    "review": 3136
+    "high": 9547,
+    "provisional_high": 4991,
+    "review": 507
   },
   "boundary_status_counts": {
     "resolved": 15045
@@ -239,9 +239,9 @@ To https://github.com/timeedmonds-maker/104
   "invalid_interval_count": 0,
   "duplicate_window_count": 0,
   "resolved_game_count_inconsistency_count": 0,
-  "strict_cross_team_overlap_count": 337,
+  "strict_cross_team_overlap_count": 331,
   "strict_same_team_overlap_count": 0,
-  "same_day_cross_team_touch_count": 1225,
+  "same_day_cross_team_touch_count": 1229,
   "remaining_same_day_unresolved_count": 0,
   "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/tenure_consistency_audit.json"
 }
