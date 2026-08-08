@@ -48,7 +48,7 @@ python "$BASE/build_roster_tenure_windows.py"
 BUILDER_RC=$?
 set -e
 python - "$BUILDER_RC" <<'PY'
-import gzip,json,sys
+import json,sys
 from pathlib import Path
 root=Path('team_trb_all_players/impact_database/roster_tenure')
 s=json.loads((root/'tenure_window_summary.json').read_text())
@@ -58,14 +58,14 @@ assert len(s['seasons']) == 26, s['seasons']
 invalid=int(s.get('invalid_boundary_order') or 0)
 if rc != 0 and invalid == 0:
     raise SystemExit(f'Unexpected builder failure rc={rc} with no invalid-boundary intermediate rows')
-rows=[json.loads(line) for line in gzip.open(root/'player_team_season_windows.jsonl.gz','rt',encoding='utf-8')]
-adams=[r for r in rows if r['season']=='2023-24' and str(r['player_id'])=='203500']
-by_team={int(r['team_id']):r for r in adams}
-assert by_team[1610612763]['tenure_end']=='2024-02-01', by_team.get(1610612763)
-assert by_team[1610612745]['tenure_start']=='2024-02-01', by_team.get(1610612745)
+if rc == 0 and invalid != 0:
+    raise SystemExit(f'Builder reported success but summary still contains {invalid} invalid-boundary rows')
 print('FIRST-PASS TENURE QA PASSED; repeat-stint intermediates=', invalid)
 PY
 
+# Zero-minute official tenures must be added BEFORE validating players who had no core minutes.
+# Steven Adams played zero minutes in 2023-24, so his MEM/HOU trade boundary cannot exist in the
+# core-derived first-pass windows; it is intentionally reconstructed here from official movement.
 python "$BASE/augment_zero_minute_official_tenures.py"
 python "$BASE/split_multi_stint_tenures.py"
 
@@ -99,6 +99,22 @@ with gzip.open(p,'wt',encoding='utf-8') as f:
     for r in rows:
         f.write(json.dumps(r,ensure_ascii=False)+'\n')
 print('POST-SPLIT CHRONOLOGY QA PASSED; stale invalid-order flags cleared=', stale)
+PY
+
+# Real-data regression QA for the zero-minute Steven Adams 2023-24 trade.
+# This is deliberately after official zero-minute augmentation, not before it.
+python - <<'PY'
+import gzip,json
+from pathlib import Path
+p=Path('team_trb_all_players/impact_database/roster_tenure/player_team_season_windows.jsonl.gz')
+rows=[json.loads(line) for line in gzip.open(p,'rt',encoding='utf-8') if line.strip()]
+adams=[r for r in rows if r.get('season')=='2023-24' and str(r.get('player_id'))=='203500']
+by_team={int(r['team_id']):r for r in adams}
+assert 1610612763 in by_team, {'missing':'MEM','adams_rows':adams}
+assert 1610612745 in by_team, {'missing':'HOU','adams_rows':adams}
+assert by_team[1610612763]['tenure_end']=='2024-02-01', by_team[1610612763]
+assert by_team[1610612745]['tenure_start']=='2024-02-01', by_team[1610612745]
+print('ZERO-MINUTE TRADE QA PASSED: Steven Adams MEM->HOU 2024-02-01')
 PY
 
 python "$BASE/fetch_regular_season_games.py"
