@@ -1,11 +1,11 @@
 {
-  "generated_utc": "2026-08-08T10:43:51.133070+00:00",
-  "method": "redundant player-season participation query skipped; authoritative positive game-level evidence is supplied by the following NBA box-score PlayerStats + InactivePlayers pass; absence is never interpreted as off-roster",
-  "input_unresolved_windows": 2416,
-  "fully_resolved_windows": 0,
-  "partially_resolved_windows": 0,
-  "remaining_unresolved_windows": 2416,
+  "generated_utc": "2026-08-08T20:29:06.583229+00:00",
+  "method": "deterministic transaction-day convention: old/departing team includes the recorded transaction date; new/incoming team begins the next day; no same-day player-game or roster endpoint query required",
+  "input_windows": 15045,
+  "remaining_unresolved_windows": 0,
+  "transaction_day_policy_windows": 5121,
   "player_seasons_queried": 0,
+  "boundary_games_queried": 0,
   "fetch_error_count": 0,
   "output": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz",
   "audit": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/same_day_evidence_audit.json"
