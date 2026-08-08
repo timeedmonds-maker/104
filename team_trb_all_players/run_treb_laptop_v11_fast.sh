@@ -129,3 +129,8 @@ PY
 checkpoint "final_consistency_review_gate"
 
 echo "V11_STAGE1_EXACT_READY=1"
+
+# Do not stop at the Stage 1 milestone. Continue directly into corrected-OFF
+# collection and final packaging so the supervisor only reports complete when
+# the final TREB ZIP has passed finalizer QA.
+bash "$BASE/run_treb_stage2_resume.sh"
