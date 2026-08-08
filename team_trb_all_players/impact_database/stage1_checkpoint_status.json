@@ -1,15 +1,16 @@
 {
-  "generated_utc": "2026-08-08T21:24:21.772844+00:00",
-  "last_completed_phase": "historical_archive",
-  "last_phase_elapsed_seconds": 47,
-  "total_elapsed_seconds": 48,
+  "generated_utc": "2026-08-08T21:35:16.108646+00:00",
+  "last_completed_phase": "transaction_enrichment_realgm_all_seasons",
+  "last_phase_elapsed_seconds": 653,
+  "total_elapsed_seconds": 703,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
     "regular_season_schedules",
     "deterministic_effective_windows",
     "transaction_enrichment_realgm_partial",
-    "tenure_overlap_diagnostic"
+    "tenure_overlap_diagnostic",
+    "transaction_enrichment_realgm_all_seasons"
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
 }

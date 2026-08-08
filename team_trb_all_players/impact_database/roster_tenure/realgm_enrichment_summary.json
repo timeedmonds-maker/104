@@ -1,23 +1,41 @@
 {
-  "generated_utc": "2026-08-08T21:18:25.272590+00:00",
-  "requested_seasons": 16,
-  "validated_seasons": 11,
+  "generated_utc": "2026-08-08T21:35:15.981768+00:00",
+  "requested_seasons": 26,
+  "validated_seasons": 12,
   "unavailable_seasons": [
     "2010-11",
     "2012-13",
     "2013-14",
     "2014-15",
-    "2015-16"
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2025-26"
   ],
   "unavailable_details": {
-    "2010-11": "2010-11: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2011: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2011')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2011=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2011 parsed=0; wayback:20240228212257 parsed=0",
-    "2012-13": "2012-13: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2013: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2013')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2013=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2013 parsed=0; wayback:20150102225600 parsed=0",
-    "2013-14": "2013-14: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2014: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2014')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2014=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2014 parsed=0; wayback=HTTPError('503 Server Error: Service Unavailable for url: https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fbasketball.realgm.com%2Fnba%2Ftransactions%2Fleague%2F2014&output=json&filter=statuscode%3A200&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&collapse=digest')",
-    "2014-15": "2014-15: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2015: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2015')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2015=RuntimeError('short reader payload (166 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2015 parsed=0; wayback:20250521201223 parsed=0",
-    "2015-16": "2015-16: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2016: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2016')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2016=RuntimeError('short reader payload (642 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2016 parsed=0; wayback=HTTPError('503 Server Error: Service Unavailable for url: https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fbasketball.realgm.com%2Fnba%2Ftransactions%2Fleague%2F2016&output=json&filter=statuscode%3A200&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&collapse=digest')"
+    "2010-11": "2010-11: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2011: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2011')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2011=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2011 parsed=0; wayback=HTTPError('503 Server Error: Service Unavailable for url: https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fbasketball.realgm.com%2Fnba%2Ftransactions%2Fleague%2F2011&output=json&filter=statuscode%3A200&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&collapse=digest')",
+    "2012-13": "2012-13: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2013: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2013')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2013=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2013 parsed=0; wayback=HTTPError('503 Server Error: Service Unavailable for url: https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fbasketball.realgm.com%2Fnba%2Ftransactions%2Fleague%2F2013&output=json&filter=statuscode%3A200&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&collapse=digest')",
+    "2013-14": "2013-14: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2014: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2014')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2014=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2014 parsed=0; wayback=RuntimeError('no archived snapshots')",
+    "2014-15": "2014-15: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2015: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2015')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2015=RuntimeError('short reader payload (499 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2015 parsed=0; wayback=HTTPError('503 Server Error: Service Unavailable for url: https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fbasketball.realgm.com%2Fnba%2Ftransactions%2Fleague%2F2015&output=json&filter=statuscode%3A200&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&collapse=digest')",
+    "2015-16": "2015-16: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2016: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2016')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2016=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2016 parsed=0; wayback:20250125094511 parsed=0",
+    "2016-17": "2016-17: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2017: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2017')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2017=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2017 parsed=0; wayback:20170706052244 parsed=0",
+    "2017-18": "2017-18: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2018: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2018')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2018=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2018 parsed=0; wayback:20231211173548 parsed=0",
+    "2018-19": "2018-19: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2019: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2019')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2019=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2019 parsed=0; wayback=HTTPError('503 Server Error: Service Unavailable for url: https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fbasketball.realgm.com%2Fnba%2Ftransactions%2Fleague%2F2019&output=json&filter=statuscode%3A200&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&collapse=digest')",
+    "2019-20": "2019-20: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2020: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2020')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2020=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2020=RuntimeError('short reader payload (177 chars)'); wayback=HTTPError('503 Server Error: Service Unavailable for url: https://web.archive.org/cdx/search/cdx?url=https%3A%2F%2Fbasketball.realgm.com%2Fnba%2Ftransactions%2Fleague%2F2020&output=json&filter=statuscode%3A200&fl=timestamp%2Coriginal%2Cstatuscode%2Cdigest%2Clength&collapse=digest')",
+    "2020-21": "2020-21: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2021: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2021')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2021=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2021 parsed=0; wayback=RuntimeError('no archived snapshots')",
+    "2021-22": "2021-22: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2022: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2022')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2022=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2022 parsed=0; wayback:20250120192549 parsed=0",
+    "2022-23": "2022-23: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2023: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2023')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2023=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2023 parsed=0; wayback:20241204234835 parsed=0",
+    "2023-24": "2023-24: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2024: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2024')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2024=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2024 parsed=0; wayback:20240107195535 parsed=0",
+    "2025-26": "2025-26: no RealGM transport produced a valid parse; direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2026: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2026')\"); https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2026=RuntimeError('short reader payload (506 chars)'); https://r.jina.ai/https://basketball.realgm.com/nba/transactions/league/2026 parsed=0; wayback=RuntimeError('no archived snapshots')"
   },
-  "parsed_realgm_events": 6659,
-  "added_events": 6659,
+  "parsed_realgm_events": 7608,
+  "added_events": 7608,
   "season_counts": {
     "2000-01": 522,
     "2001-02": 568,
@@ -29,7 +47,8 @@
     "2007-08": 596,
     "2008-09": 585,
     "2009-10": 594,
-    "2011-12": 631
+    "2011-12": 631,
+    "2024-25": 949
   },
   "transports": {
     "2000-01": "jina_reader",
@@ -42,15 +61,16 @@
     "2007-08": "jina_reader",
     "2008-09": "jina_reader",
     "2009-10": "jina_reader",
-    "2011-12": "jina_https"
+    "2011-12": "jina_https",
+    "2024-25": "jina_https"
   },
   "refresh_notes": {
     "2010-11": [
       "cached transport jina_reader parsed only 0 events"
     ],
-    "2011-12": [
-      "direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2012: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2012')\")",
-      "https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2012=RuntimeError('short reader payload (506 chars)')"
+    "2024-25": [
+      "direct=RuntimeError(\"RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2025: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2025')\")",
+      "https://r.jina.ai/http://basketball.realgm.com/nba/transactions/league/2025=RuntimeError('short reader payload (506 chars)')"
     ]
   },
   "source": "RealGM NBA league transaction history",
