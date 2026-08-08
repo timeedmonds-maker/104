@@ -9,6 +9,7 @@ BASE="team_trb_all_players"
 DB="$BASE/impact_database"
 ROSTER="$DB/roster_tenure"
 STATUS="$DB/stage1_checkpoint_status.json"
+HIST_PROGRESS="$DB/historical_transactions/basketball_reference_uniform/progress.json"
 START_EPOCH="$(date +%s)"
 
 if [[ "$BRANCH" != "$EXPECTED_BRANCH" ]]; then
@@ -63,17 +64,46 @@ PY
   fi
 }
 
-# Small durable checkpoint for expensive source work. This intentionally pushes
-# each validated historical season so a hosted-run timeout can lose at most one
-# season rather than the whole archive.
 checkpoint_historical_season () {
   local year="$1"
   local season
   season="${year}-$(printf '%02d' $(((year + 1) % 100)))"
+  YEAR="$year" START_EPOCH="$START_EPOCH" python - <<'PY'
+import json, os
+from datetime import datetime, timezone
+from pathlib import Path
+root=Path('team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform')
+summaries=root/'season_summaries'
+completed=[]
+for year in range(2000,2016):
+    season=f"{year}-{str(year+1)[-2:]}"
+    p=summaries/f'{season}.json'
+    if p.exists():
+        try:
+            d=json.loads(p.read_text())
+            if d.get('validated') is True:
+                completed.append(season)
+        except Exception:
+            pass
+all_seasons=[f"{y}-{str(y+1)[-2:]}" for y in range(2000,2016)]
+progress={
+    'generated_utc': datetime.now(timezone.utc).isoformat(),
+    'last_completed_season': f"{int(os.environ['YEAR'])}-{str(int(os.environ['YEAR'])+1)[-2:]}",
+    'completed_seasons': completed,
+    'completed_count': len(completed),
+    'remaining_seasons': [s for s in all_seasons if s not in completed],
+    'remaining_count': 16-len(completed),
+    'elapsed_seconds': int(__import__('time').time())-int(os.environ['START_EPOCH']),
+    'execution_order': 'pinned-first then remaining; each season durable immediately',
+}
+root.mkdir(parents=True,exist_ok=True)
+(root/'progress.json').write_text(json.dumps(progress,indent=2))
+print(json.dumps(progress,indent=2))
+PY
   git add "$DB/historical_transactions/basketball_reference_uniform/raw_pages/${season}.html.gz" \
           "$DB/historical_transactions/basketball_reference_uniform/season_rows/${season}.jsonl.gz" \
           "$DB/historical_transactions/basketball_reference_uniform/season_summaries/${season}.json" \
-          "$DB/historical_transactions/basketball_reference_uniform/manifest.json" 2>/dev/null || true
+          "$HIST_PROGRESS" 2>/dev/null || true
   if ! git diff --cached --quiet; then
     git commit -m "Stage 1 historical checkpoint: ${season} [skip ci]"
     git push origin "HEAD:$BRANCH"
@@ -90,15 +120,16 @@ python "$BASE/resolve_same_day_boundaries.py" --self-test
 python "$BASE/audit_roster_tenure_consistency.py" --self-test
 python "$BASE/build_roster_tenure_review_queue.py" --self-test
 
-# Phase 1: historical transaction archive. Run one season at a time so every
-# validated season becomes durable immediately. Existing validated season files
-# are cache hits, so retries only fetch genuinely missing seasons.
+# Phase 1: historical archive. Pinned seasons go first so a slow CDX lookup can
+# never block all durable progress. Every validated season is pushed immediately.
 P="$(date +%s)"
-for year in $(seq 2000 2015); do
+HIST_ORDER="2001 2002 2003 2000 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015"
+for year in $HIST_ORDER; do
   python "$BASE/fetch_bref_historical_transactions.py" "$year"
   checkpoint_historical_season "$year"
 done
-# Rebuild a complete 16-season manifest from the now-durable per-season cache.
+
+# Rebuild and validate the complete manifest from durable season caches.
 python "$BASE/fetch_bref_historical_transactions.py"
 python - <<'PY'
 import json
@@ -169,7 +200,7 @@ print('ZERO-MINUTE TRADE RAW-DATE QA PASSED')
 PY
 checkpoint "tenure_chronology" "$P"
 
-# Phase 3: regular-season schedules. The collector reuses valid per-season raw caches.
+# Phase 3: regular-season schedules. Collector reuses valid per-season raw caches.
 P="$(date +%s)"
 python "$BASE/fetch_regular_season_games.py"
 python - <<'PY'
