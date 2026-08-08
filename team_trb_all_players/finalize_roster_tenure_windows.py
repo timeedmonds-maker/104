@@ -4,7 +4,6 @@ import argparse
 import gzip
 import json
 from collections import defaultdict
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -16,6 +15,11 @@ GAMES = ROSTER / "regular_season_games.jsonl.gz"
 FINAL = ROSTER / "player_team_season_windows_schedule_audited.jsonl.gz"
 AUDIT = ROSTER / "schedule_boundary_audit.json"
 SUMMARY = ROSTER / "schedule_boundary_summary.json"
+
+TRANSACTION_DAY_POLICY = (
+    "recorded transaction date belongs to the departing/old team; "
+    "incoming/new-team tenure begins on the following calendar day"
+)
 
 
 def read_jsonl_gz(path: Path) -> list[dict[str, Any]]:
@@ -49,6 +53,8 @@ def team_game_index(games: list[dict[str, Any]]) -> dict[tuple[str, int], list[d
 
 
 def games_between(team_games: list[dict[str, Any]], start: str, end: str) -> list[dict[str, Any]]:
+    if start > end:
+        return []
     return [g for g in team_games if start <= g["game_date"] <= end]
 
 
@@ -57,40 +63,57 @@ def boundary_game(team_games: list[dict[str, Any]], day: str) -> list[dict[str, 
 
 
 def audit_window(row: dict[str, Any], team_games: list[dict[str, Any]]) -> dict[str, Any]:
+    """Apply the deterministic transaction-day convention and count exact team games.
+
+    We intentionally do not attempt to reconstruct intra-day transaction timestamps.
+    A departure transaction keeps the old team through the recorded date; an acquisition
+    transaction begins the new team's effective roster interval the next calendar day.
+    This makes every boundary deterministic, non-overlapping in effective query dates,
+    reproducible, and independent of game-by-game roster endpoint availability.
+    """
     output = dict(row)
     start = str(row["tenure_start"])
     end = str(row["tenure_end"])
     start_is_txn = str(row.get("start_reason", "")).endswith("_into_team")
     end_is_txn = str(row.get("end_reason", "")).endswith("_out_of_team")
+
+    effective_start = next_day(start) if start_is_txn else start
+    effective_end = end
+    included_games = games_between(team_games, effective_start, effective_end)
+
     start_games = boundary_game(team_games, start) if start_is_txn else []
     end_games = boundary_game(team_games, end) if end_is_txn else []
+    boundary_ids = sorted({g["game_id"] for g in start_games + end_games})
 
-    inclusive_games = games_between(team_games, start, end)
-    ambiguous_ids = sorted({g["game_id"] for g in start_games + end_games})
-    ambiguity_count = len(ambiguous_ids)
+    exact_games = len(included_games)
+    output["query_start_date"] = effective_start
+    output["query_end_date"] = effective_end
+    output["start_boundary_included"] = not start_is_txn
+    output["end_boundary_included"] = True
+    output["transaction_day_policy"] = TRANSACTION_DAY_POLICY
+    output["transaction_day_policy_applied"] = bool(start_is_txn or end_is_txn)
+    output["excluded_incoming_transaction_day_game_ids"] = sorted(g["game_id"] for g in start_games)
+    output["included_departing_transaction_day_game_ids"] = sorted(g["game_id"] for g in end_games)
+    output["boundary_game_ids"] = boundary_ids
+    output["same_day_unresolved_game_ids"] = []
+    output["team_games_in_window"] = exact_games
+    output["team_games_min"] = exact_games
+    output["team_games_max"] = exact_games
+    output["schedule_boundary_status"] = "resolved"
+    output["zero_game_window"] = exact_games == 0
 
-    # We deliberately do not guess ordering inside a transaction date. If a team
-    # did not play that date, the date boundary is fully resolved for game-count
-    # purposes. If it did play, later evidence (transaction timestamp or player
-    # game participation) must decide inclusion.
-    if ambiguity_count == 0:
-        output["team_games_in_window"] = len(inclusive_games)
-        output["team_games_min"] = len(inclusive_games)
-        output["team_games_max"] = len(inclusive_games)
-        output["same_day_resolution"] = "resolved_no_team_game_on_transaction_boundary"
-        output["schedule_boundary_status"] = "resolved"
+    if start_is_txn or end_is_txn:
+        output["same_day_resolution"] = "resolved_by_deterministic_transaction_day_policy"
     else:
-        output["team_games_in_window"] = None
-        output["team_games_min"] = len(inclusive_games) - ambiguity_count
-        output["team_games_max"] = len(inclusive_games)
-        output["same_day_resolution"] = "unresolved_team_game_on_transaction_date; requires ordering evidence"
-        output["schedule_boundary_status"] = "needs_ordering_evidence"
+        output["same_day_resolution"] = "not_applicable_no_transaction_boundary"
 
-    output["boundary_game_ids"] = ambiguous_ids
     flags = list(output.get("audit_flags") or [])
-    flags = [flag for flag in flags if flag != "same_day_game_check_required"]
-    if ambiguity_count:
-        flags.append("same_day_game_ordering_evidence_required")
+    flags = [
+        flag for flag in flags
+        if flag not in {"same_day_game_check_required", "same_day_game_ordering_evidence_required"}
+    ]
+    if start_is_txn or end_is_txn:
+        flags.append("transaction_day_policy_applied")
     output["audit_flags"] = sorted(set(flags))
     return output
 
@@ -121,12 +144,16 @@ def build() -> dict[str, Any]:
             continue
         final_rows.append(audit_window(row, team_games))
 
-    missing_unique = sorted(
-        {json.dumps(item, sort_keys=True) for item in missing_schedule}
-    )
+    missing_unique = sorted({json.dumps(item, sort_keys=True) for item in missing_schedule})
     missing_unique = [json.loads(item) for item in missing_unique]
     unresolved = [row for row in final_rows if row.get("schedule_boundary_status") == "needs_ordering_evidence"]
     resolved = [row for row in final_rows if row.get("schedule_boundary_status") == "resolved"]
+    policy_rows = [row for row in final_rows if row.get("transaction_day_policy_applied")]
+    incoming_shifted = [row for row in final_rows if row.get("start_boundary_included") is False]
+    outgoing_inclusive = [
+        row for row in final_rows
+        if str(row.get("end_reason", "")).endswith("_out_of_team")
+    ]
 
     with gzip.open(FINAL, "wt", encoding="utf-8") as handle:
         for row in final_rows:
@@ -134,6 +161,11 @@ def build() -> dict[str, Any]:
 
     audit = {
         "generated_utc": datetime.now(timezone.utc).isoformat(),
+        "transaction_day_policy": TRANSACTION_DAY_POLICY,
+        "transaction_day_policy_window_count": len(policy_rows),
+        "incoming_transaction_day_shifted_window_count": len(incoming_shifted),
+        "outgoing_transaction_day_inclusive_window_count": len(outgoing_inclusive),
+        "zero_game_window_count": sum(bool(row.get("zero_game_window")) for row in final_rows),
         "unresolved_boundary_window_count": len(unresolved),
         "unresolved_boundary_windows": unresolved,
         "missing_team_schedule_count": len(missing_unique),
@@ -147,6 +179,11 @@ def build() -> dict[str, Any]:
         "exact_team_game_count_windows": sum(row.get("team_games_in_window") is not None for row in final_rows),
         "schedule_boundary_resolved_windows": len(resolved),
         "same_day_ordering_evidence_required": len(unresolved),
+        "transaction_day_policy": TRANSACTION_DAY_POLICY,
+        "transaction_day_policy_windows": len(policy_rows),
+        "incoming_transaction_day_shifted_windows": len(incoming_shifted),
+        "outgoing_transaction_day_inclusive_windows": len(outgoing_inclusive),
+        "zero_game_windows": sum(bool(row.get("zero_game_window")) for row in final_rows),
         "missing_team_schedules": len(missing_unique),
         "output": str(FINAL),
         "audit": str(AUDIT),
@@ -162,20 +199,32 @@ def self_test() -> None:
         {"season": "2023-24", "game_id": "3", "game_date": "2024-02-03", "home_team_id": 10, "away_team_id": 40},
     ]
     index = team_game_index(games)
-    row = {
+
+    outgoing = {
         "season": "2023-24", "team_id": 10, "tenure_start": "2023-10-24", "tenure_end": "2024-02-01",
         "start_reason": "season_open_roster_continuity", "end_reason": "trade_out_of_team",
         "audit_flags": ["same_day_game_check_required"],
     }
-    out = audit_window(row, index[("2023-24", 10)])
-    assert out["team_games_in_window"] is None
-    assert out["team_games_min"] == 1 and out["team_games_max"] == 2
-    assert out["boundary_game_ids"] == ["2"]
+    out = audit_window(outgoing, index[("2023-24", 10)])
+    assert out["schedule_boundary_status"] == "resolved"
+    assert out["team_games_in_window"] == 2
+    assert out["query_end_date"] == "2024-02-01"
+    assert out["included_departing_transaction_day_game_ids"] == ["2"]
+    assert out["end_boundary_included"] is True
 
-    no_boundary = dict(row, tenure_end="2024-02-02")
-    out2 = audit_window(no_boundary, index[("2023-24", 10)])
-    assert out2["team_games_in_window"] == 2
-    assert out2["schedule_boundary_status"] == "resolved"
+    incoming = {
+        "season": "2023-24", "team_id": 10, "tenure_start": "2024-02-01", "tenure_end": "2024-04-14",
+        "start_reason": "trade_into_team", "end_reason": "season_close_roster_continuity",
+        "audit_flags": ["same_day_game_check_required"],
+    }
+    inc = audit_window(incoming, index[("2023-24", 10)])
+    assert inc["schedule_boundary_status"] == "resolved"
+    assert inc["query_start_date"] == "2024-02-02"
+    assert inc["team_games_in_window"] == 1
+    assert inc["excluded_incoming_transaction_day_game_ids"] == ["2"]
+    assert inc["start_boundary_included"] is False
+    assert not inc["same_day_unresolved_game_ids"]
+
     print("finalize_roster_tenure_windows self-test PASSED")
 
 
