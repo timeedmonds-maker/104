@@ -1,6 +1,11 @@
 name: TREB Stage 1 roster tenure
 
 on:
+  push:
+    branches:
+      - treb-stage1-automation
+    paths:
+      - .github/workflows/treb-stage1-historical.yml
   workflow_dispatch:
 
 permissions:
@@ -26,5 +31,21 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run the same audited Stage 1 path used by Codespaces
-        run: bash team_trb_all_players/run_stage1_manual_fallback.sh
+      - name: Run deterministic resilient Stage 1 path
+        run: bash team_trb_all_players/run_stage1_local_resilient.sh
+
+      - name: Dispatch corrected OFF after exact-ready Stage 1
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/roster_tenure/tenure_review_queue_summary.json')
+          d=json.loads(p.read_text())
+          assert d.get('stage1_exact_ready') is True, d
+          assert int(d.get('review_queue_windows') or 0) == 0, d
+          print('Stage 1 exact-ready; corrected OFF may start')
+          PY
+          gh workflow run treb-corrected-off.yml --ref "${GITHUB_REF_NAME}"
