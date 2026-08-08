@@ -1,10 +1,3 @@
-          "timestamp": "20221209193233",
-          "original": "https://www.basketball-reference.com/leagues/NBA_2010_transactions.html",
-          "statuscode": "200",
-          "digest": "AJ2A73VQMCGFSP5ZZ73GYZ7CQK5FP3SM",
-          "length": "39993"
-        },
-        "candidate_count": 31
       },
       "source_url": "https://web.archive.org/web/20221209193233id_/https://www.basketball-reference.com/leagues/NBA_2010_transactions.html",
       "raw_path": "/workspaces/104/team_trb_all_players/impact_database/historical_transactions/basketball_reference_uniform/raw_pages/2009-10.html.gz",
@@ -196,10 +189,10 @@
 }
 HISTORICAL ARCHIVE QA PASSED 8247 transactions
 {
-  "generated_utc": "2026-08-08T20:49:18.790978+00:00",
+  "generated_utc": "2026-08-08T20:56:42.659400+00:00",
   "last_completed_phase": "historical_archive",
-  "last_phase_elapsed_seconds": 46,
-  "total_elapsed_seconds": 47,
+  "last_phase_elapsed_seconds": 45,
+  "total_elapsed_seconds": 46,
   "completed_phases": [
     "historical_archive",
     "tenure_chronology",
@@ -208,12 +201,12 @@ HISTORICAL ARCHIVE QA PASSED 8247 transactions
   ],
   "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
 }
-[treb-laptop-run 2a06f6e] Stage 1 checkpoint: historical_archive [skip ci]
- 4 files changed, 2054 insertions(+), 2080 deletions(-)
+[treb-laptop-run 98937fd] Stage 1 checkpoint: historical_archive [skip ci]
+ 7 files changed, 7 insertions(+), 7 deletions(-)
 To https://github.com/timeedmonds-maker/104
-   f2263bd..2a06f6e  HEAD -> treb-laptop-run
+   39ad106..98937fd  HEAD -> treb-laptop-run
 {
-  "generated_utc": "2026-08-08T20:49:28.934542+00:00",
+  "generated_utc": "2026-08-08T20:56:53.345145+00:00",
   "historical_source_rows": 8247,
   "normalized_events": 16380,
   "official_normalized_events": 9097,
@@ -225,7 +218,7 @@ To https://github.com/timeedmonds-maker/104
   "unresolved_report": "/workspaces/104/team_trb_all_players/impact_database/roster_tenure/normalization_unresolved.json"
 }
 {
-  "generated_utc": "2026-08-08T20:49:35.390433+00:00",
+  "generated_utc": "2026-08-08T20:56:59.974553+00:00",
   "input_events": 16380,
   "output_events": 16380,
   "added_events_from_unparsed_rows": 0,
@@ -238,13 +231,20 @@ To https://github.com/timeedmonds-maker/104
   "remaining_events_with_named_unresolved_team": 0,
   "policy": "repairs deterministic historical franchise aliases and transaction wording only; no inferred transaction dates"
 }
+REALGM 2000-01: 522 roster events (network; jina_reader)
+REALGM 2001-02: 568 roster events (network; jina_reader)
+REALGM 2002-03: 547 roster events (network; jina_reader)
+REALGM 2003-04: 703 roster events (network; jina_reader)
+REALGM 2004-05: 686 roster events (network; jina_reader)
+REALGM 2005-06: 694 roster events (network; jina_reader)
+REALGM 2006-07: 533 roster events (network; jina_reader)
+REALGM 2007-08: 596 roster events (network; jina_reader)
+REALGM 2008-09: 585 roster events (network; jina_reader)
+REALGM 2009-10: 594 roster events (network; jina_reader)
 Traceback (most recent call last):
-  File "/workspaces/104/team_trb_all_players/enrich_transactions_realgm.py", line 287, in <module>
+  File "/workspaces/104/team_trb_all_players/enrich_transactions_realgm_resilient.py", line 226, in <module>
     raise SystemExit(main())
                      ^^^^^^
-  File "/workspaces/104/team_trb_all_players/enrich_transactions_realgm.py", line 255, in main
-    html = get(session, page_url(year)); cache = "network"
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/104/team_trb_all_players/enrich_transactions_realgm.py", line 67, in get
-    raise RuntimeError(f"RealGM fetch failed for {url}: {last!r}")
-RuntimeError: RealGM fetch failed for https://basketball.realgm.com/nba/transactions/league/2001: HTTPError('403 Client Error: Forbidden for url: https://basketball.realgm.com/nba/transactions/league/2001')
+  File "/workspaces/104/team_trb_all_players/enrich_transactions_realgm_resilient.py", line 176, in main
+    raise RuntimeError(
+RuntimeError: 2010-11: resilient RealGM parser produced only 0 roster events (network, transport=jina_reader)
