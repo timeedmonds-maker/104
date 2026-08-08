@@ -56,23 +56,53 @@ fi
 git config user.name "treb-local-unattended"
 git config user.email "treb-local-unattended@users.noreply.github.com"
 heartbeat & HEARTBEAT_PID=$!
-status "stage1" "Resuming exact roster-tenure build locally; hosted Actions queue bypassed"
 echo "[$(ts)] TREB unattended local continuation started"
 
-# Stage 1 is fully cached/resumable and deliberately does not touch completed core/on-court data.
-set +e
-bash "$BASE/run_stage1_local_resilient.sh"
-STAGE1_RC=$?
-set -e
-if [[ $STAGE1_RC -ne 0 ]]; then
-  if [[ $STAGE1_RC -eq 3 ]]; then
-    status "stage1_review_required" "Stage 1 completed processing but exact-ready review gate is not clean"
-  else
-    status "stage1_blocked" "Stage 1 stopped with rc=$STAGE1_RC; log preserves exact failure"
+stage1_already_ready() {
+  python - "$ROSTER/tenure_review_queue_summary.json" "$ROSTER/tenure_consistency_summary.json" "$ROSTER/player_team_season_windows_evidence_audited.jsonl.gz" <<'PY'
+import json,sys,pathlib
+review,consistency,windows=map(pathlib.Path,sys.argv[1:4])
+if not (review.is_file() and consistency.is_file() and windows.is_file() and windows.stat().st_size>0):
+    raise SystemExit(1)
+try:
+    q=json.loads(review.read_text())
+    c=json.loads(consistency.read_text())
+except Exception:
+    raise SystemExit(1)
+ready=(
+    q.get('stage1_exact_ready') is True and int(q.get('review_queue_windows') or 0)==0
+    and int(c.get('invalid_interval_count') or 0)==0
+    and int(c.get('duplicate_window_count') or 0)==0
+    and int(c.get('resolved_game_count_inconsistency_count') or 0)==0
+    and int(c.get('strict_cross_team_overlap_count') or 0)==0
+    and int(c.get('strict_same_team_overlap_count') or 0)==0
+)
+raise SystemExit(0 if ready else 1)
+PY
+}
+
+# Once Stage 1 has passed its exact-ready and structural gates, do not rebuild it after
+# transient Stage 2 failures/restarts. This preserves the validated roster-tenure artifact
+# and removes a large amount of redundant source fetching and transformation work.
+if stage1_already_ready; then
+  status "stage1_cached" "Validated exact-ready Stage 1 already present; skipping redundant rebuild"
+  echo "[$(ts)] STAGE1_VALIDATED_CACHE_REUSED=1"
+else
+  status "stage1" "Resuming exact roster-tenure build locally; hosted Actions queue bypassed"
+  set +e
+  bash "$BASE/run_stage1_local_resilient.sh"
+  STAGE1_RC=$?
+  set -e
+  if [[ $STAGE1_RC -ne 0 ]]; then
+    if [[ $STAGE1_RC -eq 3 ]]; then
+      status "stage1_review_required" "Stage 1 completed processing but exact-ready review gate is not clean"
+    else
+      status "stage1_blocked" "Stage 1 stopped with rc=$STAGE1_RC; log preserves exact failure"
+    fi
+    echo "STAGE1_STOPPED_RC=$STAGE1_RC"
+    echo "Log: $LOG"
+    exit "$STAGE1_RC"
   fi
-  echo "STAGE1_STOPPED_RC=$STAGE1_RC"
-  echo "Log: $LOG"
-  exit "$STAGE1_RC"
 fi
 
 READY="$(python - "$ROSTER/tenure_review_queue_summary.json" <<'PY'
