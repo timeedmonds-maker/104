@@ -25,13 +25,15 @@ HEADERS = {
     "Referer": "https://www.pbpstats.com/",
     "User-Agent": "Mozilla/5.0 AppleWebKit/537.36 Chrome/131 Safari/537.36",
 }
+_SESSION = requests.Session()
+_SESSION.headers.update(HEADERS)
 
 
 def request_json(params: dict[str, str], attempts: int = 6) -> dict[str, Any]:
     errors: list[str] = []
     for attempt in range(1, attempts + 1):
         try:
-            response = requests.get(URL, params=params, headers=HEADERS, timeout=(10, 90))
+            response = _SESSION.get(URL, params=params, timeout=(10, 90))
             if response.status_code in (429, 500, 502, 503, 504):
                 raise RuntimeError(f"HTTP {response.status_code}")
             response.raise_for_status()
@@ -51,7 +53,6 @@ def rows_from_payload(payload: dict[str, Any]) -> list[dict[str, Any]]:
         rows = payload.get(key)
         if isinstance(rows, list) and (not rows or isinstance(rows[0], dict)):
             return rows
-    # Defensive support for a one-level nested response envelope.
     for value in payload.values():
         if isinstance(value, dict):
             rows = rows_from_payload(value)
@@ -80,7 +81,6 @@ def clean_date(value: Any) -> str | None:
     text = str(value or "").strip()
     if not text:
         return None
-    # PBP Stats has historically exposed either YYYY-MM-DD or ISO timestamps.
     candidate = text[:10]
     try:
         return datetime.fromisoformat(candidate).date().isoformat()
@@ -112,35 +112,66 @@ def normalize_game(row: dict[str, Any], season: str) -> dict[str, Any] | None:
     }
 
 
-def fetch_season(season: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    payload = request_json({"Season": season, "SeasonType": "Regular Season"})
-    RAW.mkdir(parents=True, exist_ok=True)
-    with gzip.open(RAW / f"{season}.json.gz", "wt", encoding="utf-8") as handle:
-        json.dump(payload, handle, ensure_ascii=False)
+def normalize_payload(payload: dict[str, Any], season: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     source_rows = rows_from_payload(payload)
     games = [game for row in source_rows if (game := normalize_game(row, season))]
     unique = {(g["game_id"], g["game_date"]): g for g in games}
     games = sorted(unique.values(), key=lambda g: (g["game_date"], g["game_id"]))
-    return games, {
+    detail = {
         "season": season,
         "source_rows": len(source_rows),
         "normalized_games": len(games),
         "dropped_rows": len(source_rows) - len(games),
     }
+    return games, detail
 
 
-def build() -> dict[str, Any]:
+def load_cached_season(season: str) -> tuple[list[dict[str, Any]], dict[str, Any]] | None:
+    path = RAW / f"{season}.json.gz"
+    if not path.exists():
+        return None
+    try:
+        with gzip.open(path, "rt", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if not isinstance(payload, dict):
+            return None
+        games, detail = normalize_payload(payload, season)
+        if not (59 <= len(games) <= 1230):
+            return None
+        detail["cache"] = "hit"
+        return games, detail
+    except Exception:
+        return None
+
+
+def fetch_season(season: str, *, force: bool = False) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    if not force:
+        cached = load_cached_season(season)
+        if cached is not None:
+            return cached
+    payload = request_json({"Season": season, "SeasonType": "Regular Season"})
+    RAW.mkdir(parents=True, exist_ok=True)
+    with gzip.open(RAW / f"{season}.json.gz", "wt", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=False)
+    games, detail = normalize_payload(payload, season)
+    detail["cache"] = "miss"
+    return games, detail
+
+
+def build(*, force: bool = False) -> dict[str, Any]:
     ROSTER.mkdir(parents=True, exist_ok=True)
     all_games: list[dict[str, Any]] = []
     per_season: list[dict[str, Any]] = []
+    cache_hits = 0
+    started = time.monotonic()
     for season in SEASONS:
-        games, detail = fetch_season(season)
-        # Lock this to regular-season-scale output; catches silent schema/API failures.
+        games, detail = fetch_season(season, force=force)
         if not (59 <= len(games) <= 1230):
             raise RuntimeError(f"{season}: implausible regular-season game count {len(games)}")
         all_games.extend(games)
         per_season.append(detail)
-        print(season, len(games), "games")
+        cache_hits += int(detail.get("cache") == "hit")
+        print(season, len(games), "games", detail.get("cache"), flush=True)
 
     with gzip.open(OUT, "wt", encoding="utf-8") as handle:
         for game in all_games:
@@ -152,6 +183,9 @@ def build() -> dict[str, Any]:
         "season_type": "Regular Season",
         "seasons": SEASONS,
         "game_count": len(all_games),
+        "cache_hits": cache_hits,
+        "network_fetches": len(SEASONS) - cache_hits,
+        "elapsed_seconds": round(time.monotonic() - started, 3),
         "per_season": per_season,
         "output": str(OUT),
     }
@@ -172,17 +206,20 @@ def self_test() -> None:
     assert game["away_team_id"] == 1610612747
     nested = {"results": [sample]}
     assert len(rows_from_payload(nested)) == 1
+    games, detail = normalize_payload(nested, "2023-24")
+    assert len(games) == 1 and detail["normalized_games"] == 1
     print("fetch_regular_season_games self-test PASSED")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--force", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         self_test()
         return
-    summary = build()
+    summary = build(force=args.force)
     print(json.dumps(summary, indent=2))
 
 
