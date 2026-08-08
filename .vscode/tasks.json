@@ -2,9 +2,9 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Build NBA historical player-impact core database",
+      "label": "Run TREB end-to-end corrected OFF build",
       "type": "shell",
-      "command": "bash team_trb_all_players/run_impact_database_build.sh",
+      "command": "bash team_trb_all_players/run_treb_end_to_end_codespace.sh",
       "isBackground": true,
       "problemMatcher": [],
       "runOptions": {
@@ -14,7 +14,7 @@
       },
       "presentation": {
         "reveal": "always",
-        "focus": true,
+        "focus": false,
         "panel": "dedicated",
         "clear": false,
         "showReuseMessage": true
