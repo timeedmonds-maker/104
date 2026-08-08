@@ -4,6 +4,7 @@ import argparse
 import gzip
 import json
 import math
+import threading
 import time
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -30,10 +31,26 @@ HEADERS = {
     "Referer": "https://www.pbpstats.com/",
     "User-Agent": "Mozilla/5.0 AppleWebKit/537.36 Chrome/131 Safari/537.36",
 }
+_THREAD_LOCAL = threading.local()
 
 
 def now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def http_session() -> requests.Session:
+    """Return one persistent HTTP session per worker thread.
+
+    Reusing TCP/TLS connections is materially cheaper than creating a new requests
+    connection for both endpoints of every tenure window, while keeping Session state
+    isolated between worker threads.
+    """
+    session = getattr(_THREAD_LOCAL, "session", None)
+    if session is None:
+        session = requests.Session()
+        session.headers.update(HEADERS)
+        _THREAD_LOCAL.session = session
+    return session
 
 
 def load_json(path: Path) -> dict[str, Any]:
@@ -76,10 +93,11 @@ def finite(v: Any) -> float | None:
 
 def request_json(url: str, params: dict[str, str], attempts: int = 4) -> tuple[dict[str, Any], dict[str, Any]]:
     errors: list[str] = []
+    session = http_session()
     for attempt in range(1, attempts + 1):
         started = time.monotonic()
         try:
-            response = requests.get(url, params=params, headers=HEADERS, timeout=(8, 35))
+            response = session.get(url, params=params, timeout=(8, 35))
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict):
@@ -168,12 +186,22 @@ def collect_window(window: dict[str, Any]) -> dict[str, Any]:
         "PlayerId": player_id, "FromDate": start, "ToDate": end,
     }
     team_payload, team_meta = request_json(TEAM_URL, common)
-    stat_payload, stat_meta = request_json(STAT_URL, {
-        "Season": season, "SeasonType": "Regular Season", "TeamId": str(team_id),
-        "Stat": "OffRebounds", "FromDate": start, "ToDate": end,
-    })
     team_rows = rows(team_payload)
-    minutes_on, minutes_off, minute_row = stat_minutes(stat_payload, player_id, player_name)
+
+    # The minute lookup cannot rescue a failed/empty team profile, so do not spend a
+    # second API request on a window that is already known to be incomplete.
+    if team_meta.get("ok") and team_rows:
+        stat_payload, stat_meta = request_json(STAT_URL, {
+            "Season": season, "SeasonType": "Regular Season", "TeamId": str(team_id),
+            "Stat": "OffRebounds", "FromDate": start, "ToDate": end,
+        })
+        minutes_on, minutes_off, minute_row = stat_minutes(stat_payload, player_id, player_name)
+    else:
+        stat_payload = {}
+        stat_meta = {"ok": False, "skipped": True, "reason": "team profile unavailable or empty"}
+        minutes_on = minutes_off = None
+        minute_row = None
+
     metric_rows: list[dict[str, Any]] = []
     for r in team_rows:
         metric = str(r.get("Stat") or "").strip()
@@ -224,8 +252,6 @@ def build(limit: int | None = None) -> dict[str, Any]:
     if unresolved:
         raise RuntimeError(f"Stage 1 exact-ready summary conflicts with {len(unresolved)} unresolved windows")
 
-    # Stage 2 is player-impact work: zero-minute roster windows are retained in the
-    # tenure audit, but cannot have a player-specific on/off profile and are skipped.
     impact_windows = [w for w in exact if clean_id(w.get("player_id")) and not bool(w.get("zero_minute_only"))]
     if limit is not None:
         impact_windows = impact_windows[:limit]
@@ -279,6 +305,7 @@ def self_test() -> None:
     assert a == 12.5 and b == 35.0 and row is not None
     profile = rows({"results": [{"Stat": "OffRating", "On": 120, "Off": 110, "On-Off": 10}]})
     assert profile[0]["Stat"] == "OffRating"
+    assert http_session() is http_session()
     print("build_corrected_tenure_off self-test PASSED")
 
 
