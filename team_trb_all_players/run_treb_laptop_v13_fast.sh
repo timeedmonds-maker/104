@@ -32,6 +32,13 @@ s=s.replace('TREB V12 FAST RECOVERY','TREB V13 FAST RECOVERY')
 s=s.replace('V12 STRICT OVERLAPS=','V13 STRICT OVERLAPS=')
 s=s.replace('V12 STAGE 1 EXACT-READY QA PASSED','V13 STAGE 1 EXACT-READY QA PASSED')
 s=s.replace('V12_STAGE1_EXACT_READY=1','V13_STAGE1_EXACT_READY=1')
+# Autonomous GitHub validation must not lose a run because another workflow
+# advances the branch while checkpointing. Laptop mode keeps the original
+# durable checkpoint pushes; TREB_NO_PUSH=1 suppresses only the push itself.
+push='git push origin "HEAD:$BRANCH"'
+if push not in s:
+    raise SystemExit('Could not locate checkpoint push')
+s=s.replace(push, 'if [[ "${TREB_NO_PUSH:-0}" != "1" ]]; then '+push+'; fi')
 stage2='bash "$BASE/run_treb_stage2_resume.sh"'
 if stage2 not in s:
     raise SystemExit('Could not locate Stage 2 handoff')
