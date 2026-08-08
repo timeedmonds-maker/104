@@ -40,10 +40,14 @@ def iso_date(value: object) -> str | None:
     text = str(value or "").strip()
     if not text:
         return None
+
+    # Official NBA movement rows can be date-only ISO strings or ISO datetimes
+    # such as 2015-07-01T00:00:00. Normalize both without weakening validation.
     try:
-        return datetime.strptime(text, "%Y-%m-%d").date().isoformat()
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).date().isoformat()
     except ValueError:
         pass
+
     for fmt in ("%B %d, %Y", "%b %d, %Y"):
         try:
             return datetime.strptime(text, fmt).date().isoformat()
