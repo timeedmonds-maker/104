@@ -1,0 +1,1419 @@
+{
+  "generated_utc": "2026-08-08T23:21:55.674984+00:00",
+  "strict_cross_team_overlap_count": 19,
+  "player_season_case_count": 13,
+  "cases": [
+    {
+      "season": "2008-09",
+      "player_id": "2226",
+      "player_name": "Will Solomon",
+      "overlaps": [
+        {
+          "season": "2008-09",
+          "player_id": "2226",
+          "player_name": "Will Solomon",
+          "left_team_id": 1610612758,
+          "left_start": "2008-10-28",
+          "left_end": "2009-04-08",
+          "right_team_id": 1610612761,
+          "right_start": "2008-10-28",
+          "right_end": "2009-04-15",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612758,
+          "team_abbr": "SAC",
+          "tenure_start": "2008-10-28",
+          "tenure_end": "2009-04-08",
+          "query_start_date": "2008-10-28",
+          "query_end_date": "2009-04-08",
+          "start_reason": "season_open_roster_continuity_v12",
+          "end_reason": "depart_out_of_team",
+          "start_source": "v12 exact transaction chronology",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        },
+        {
+          "team_id": 1610612761,
+          "team_abbr": "TOR",
+          "tenure_start": "2008-10-28",
+          "tenure_end": "2009-04-15",
+          "query_start_date": "2008-10-28",
+          "query_end_date": "2009-04-15",
+          "start_reason": "season_open_roster_continuity_v12",
+          "end_reason": "season_close_roster_continuity_v12",
+          "start_source": "v12 exact transaction chronology",
+          "end_source": "v12 exact transaction chronology",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "v12_event_state_reconstructed"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2008-07-28",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612761,
+          "source_team_name": null,
+          "destination_team_name": "Toronto Raptors",
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2009",
+          "raw_text": "Will Solomon signed a contract with the Toronto Raptors.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "April 8, 2009",
+          "event_type": "depart",
+          "source_team_id": 1610612758,
+          "destination_team_id": null,
+          "source_team_name": "Sacramento Kings",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220519122233id_/https://www.basketball-reference.com/leagues/NBA_2009_transactions.html#row-306",
+          "raw_text": "The Sacramento Kings waived Will Solomon .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "August 28, 2008",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612761,
+          "source_team_name": null,
+          "destination_team_name": "Toronto Raptors",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220519122233id_/https://www.basketball-reference.com/leagues/NBA_2009_transactions.html#row-74",
+          "raw_text": "The Toronto Raptors signed Will Solomon as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        }
+      ]
+    },
+    {
+      "season": "2010-11",
+      "player_id": "201591",
+      "player_name": "DJ White",
+      "overlaps": [
+        {
+          "season": "2010-11",
+          "player_id": "201591",
+          "player_name": "DJ White",
+          "left_team_id": 1610612760,
+          "left_start": "2010-10-26",
+          "left_end": "2011-04-13",
+          "right_team_id": 1610612766,
+          "right_start": "2010-10-26",
+          "right_end": "2011-04-13",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612760,
+          "team_abbr": "OKC",
+          "tenure_start": "2010-10-26",
+          "tenure_end": "2011-04-13",
+          "query_start_date": "2010-10-26",
+          "query_end_date": "2011-04-13",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612766,
+          "team_abbr": "CHA",
+          "tenure_start": "2010-10-26",
+          "tenure_end": "2011-04-13",
+          "query_start_date": "2010-10-26",
+          "query_end_date": "2011-04-13",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2011-12",
+      "player_id": "2210",
+      "player_name": "Richard Jefferson",
+      "overlaps": [
+        {
+          "season": "2011-12",
+          "player_id": "2210",
+          "player_name": "Richard Jefferson",
+          "left_team_id": 1610612744,
+          "left_start": "2011-12-25",
+          "left_end": "2012-04-26",
+          "right_team_id": 1610612759,
+          "right_start": "2011-12-25",
+          "right_end": "2012-04-26",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612744,
+          "team_abbr": "GSW",
+          "tenure_start": "2011-12-25",
+          "tenure_end": "2012-04-26",
+          "query_start_date": "2011-12-25",
+          "query_end_date": "2012-04-26",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612759,
+          "team_abbr": "SAS",
+          "tenure_start": "2011-12-25",
+          "tenure_end": "2012-04-26",
+          "query_start_date": "2011-12-25",
+          "query_end_date": "2012-04-26",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2012-13",
+      "player_id": "200755",
+      "player_name": "JJ Redick",
+      "overlaps": [
+        {
+          "season": "2012-13",
+          "player_id": "200755",
+          "player_name": "JJ Redick",
+          "left_team_id": 1610612749,
+          "left_start": "2012-10-30",
+          "left_end": "2013-04-17",
+          "right_team_id": 1610612753,
+          "right_start": "2012-10-30",
+          "right_end": "2013-04-17",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612749,
+          "team_abbr": "MIL",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2013-04-17",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612753,
+          "team_abbr": "ORL",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2013-04-17",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2012-13",
+      "player_id": "202397",
+      "player_name": "Ish Smith",
+      "overlaps": [
+        {
+          "season": "2012-13",
+          "player_id": "202397",
+          "player_name": "Ish Smith",
+          "left_team_id": 1610612749,
+          "left_start": "2012-10-30",
+          "left_end": "2013-04-17",
+          "right_team_id": 1610612753,
+          "right_start": "2012-10-30",
+          "right_end": "2013-04-17",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612749,
+          "team_abbr": "MIL",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2013-04-17",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612753,
+          "team_abbr": "ORL",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2013-04-17",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2013-14",
+      "player_id": "201571",
+      "player_name": "D.J. Augustin",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "201571",
+          "player_name": "D.J. Augustin",
+          "left_team_id": 1610612741,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612761,
+          "right_start": "2013-10-29",
+          "right_end": "2014-04-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612741,
+          "team_abbr": "CHI",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612761,
+          "team_abbr": "TOR",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202620",
+      "player_name": "Arinze Onuaku",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "202620",
+          "player_name": "Arinze Onuaku",
+          "left_team_id": 1610612740,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612739,
+          "right_start": "2014-02-22",
+          "right_end": "2014-03-12",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612740,
+          "team_abbr": "NOP",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity_v12",
+          "end_reason": "season_close_roster_continuity_v12",
+          "start_source": "v12 exact transaction chronology",
+          "end_source": "v12 exact transaction chronology",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "v12_event_state_reconstructed"
+          ]
+        },
+        {
+          "team_id": 1610612739,
+          "team_abbr": "CLE",
+          "tenure_start": "2014-02-22",
+          "tenure_end": "2014-03-12",
+          "query_start_date": "2014-02-23",
+          "query_end_date": "2014-03-12",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "August 22, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612740,
+          "source_team_name": null,
+          "destination_team_name": "New Orleans Pelicans",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-171",
+          "raw_text": "The New Orleans Pelicans signed Arinze Onuaku .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "February 22, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612739,
+          "source_team_name": null,
+          "destination_team_name": "Cleveland Cavaliers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-607",
+          "raw_text": "The Cleveland Cavaliers signed Arinze Onuaku to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "March 12, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612739,
+          "destination_team_id": null,
+          "source_team_name": "Cleveland Cavaliers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-698",
+          "raw_text": "The Cleveland Cavaliers waived Arinze Onuaku .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "March 4, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612739,
+          "source_team_name": null,
+          "destination_team_name": "Cleveland Cavaliers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-663",
+          "raw_text": "The Cleveland Cavaliers signed Arinze Onuaku to a 2nd 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        }
+      ]
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202721",
+      "player_name": "Darius Morris",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "202721",
+          "player_name": "Darius Morris",
+          "left_team_id": 1610612746,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612755,
+          "right_start": "2013-10-29",
+          "right_end": "2014-04-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "202721",
+          "player_name": "Darius Morris",
+          "left_team_id": 1610612746,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612763,
+          "right_start": "2014-02-03",
+          "right_end": "2014-02-14",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "202721",
+          "player_name": "Darius Morris",
+          "left_team_id": 1610612755,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612763,
+          "right_start": "2014-02-03",
+          "right_end": "2014-02-14",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612746,
+          "team_abbr": "LAC",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612763,
+          "team_abbr": "MEM",
+          "tenure_start": "2014-02-03",
+          "tenure_end": "2014-02-14",
+          "query_start_date": "2014-02-04",
+          "query_end_date": "2014-02-14",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "source_stated_10_day_contract_expiry",
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "February 14, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612763,
+          "destination_team_id": null,
+          "source_team_name": "Memphis Grizzlies",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-574:exact-10day-expiry-v4",
+          "raw_text": "Darius Morris not re-signed by Memphis Grizzlies ; 10-day contract expires.",
+          "confidence": "high",
+          "identity_resolution": "historical_v4_unique_fuzzy_name+season_team_context",
+          "team_resolution": "exact_team_named_in_10day_expiry_row",
+          "derived_boundary_type": "source_stated_10_day_contract_expiry",
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "February 3, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612763,
+          "source_team_name": null,
+          "destination_team_name": "Memphis Grizzlies",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-535",
+          "raw_text": "The Memphis Grizzlies signed Darius Morris to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        }
+      ]
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202952",
+      "player_name": "Malcolm Thomas",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "202952",
+          "player_name": "Malcolm Thomas",
+          "left_team_id": 1610612759,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612762,
+          "right_start": "2013-10-29",
+          "right_end": "2014-04-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612759,
+          "team_abbr": "SAS",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612762,
+          "team_abbr": "UTA",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "July 23, 2013",
+          "event_type": "depart",
+          "source_team_id": 1610612741,
+          "destination_team_id": null,
+          "source_team_name": "Chicago Bulls",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-119",
+          "raw_text": "The Chicago Bulls waived Malcolm Thomas .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        }
+      ]
+    },
+    {
+      "season": "2013-14",
+      "player_id": "203473",
+      "player_name": "Dewayne Dedmon",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "203473",
+          "player_name": "Dewayne Dedmon",
+          "left_team_id": 1610612744,
+          "left_start": "2013-11-18",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612755,
+          "right_start": "2014-01-14",
+          "right_end": "2014-02-03",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "203473",
+          "player_name": "Dewayne Dedmon",
+          "left_team_id": 1610612744,
+          "left_start": "2013-11-18",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612753,
+          "right_start": "2014-02-25",
+          "right_end": "2014-03-06",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "203473",
+          "player_name": "Dewayne Dedmon",
+          "left_team_id": 1610612744,
+          "left_start": "2013-11-18",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612753,
+          "right_start": "2014-03-17",
+          "right_end": "2014-04-16",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612744,
+          "team_abbr": "GSW",
+          "tenure_start": "2013-11-18",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-11-19",
+          "query_end_date": "2014-04-16",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity_v12",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "v12 exact transaction chronology",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2014-01-14",
+          "tenure_end": "2014-02-03",
+          "query_start_date": "2014-01-15",
+          "query_end_date": "2014-02-03",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        },
+        {
+          "team_id": 1610612753,
+          "team_abbr": "ORL",
+          "tenure_start": "2014-02-25",
+          "tenure_end": "2014-03-06",
+          "query_start_date": "2014-02-26",
+          "query_end_date": "2014-03-06",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_10_day_contract_natural_expiry_v12",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        },
+        {
+          "team_id": 1610612753,
+          "team_abbr": "ORL",
+          "tenure_start": "2014-03-17",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2014-03-18",
+          "query_end_date": "2014-04-16",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity_v12",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "v12 exact transaction chronology",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_10_day_contract_natural_expiry_v12",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2014-03-06",
+          "event_type": "depart",
+          "source_team_id": 1610612753,
+          "destination_team_id": null,
+          "source_team_name": "Orlando Magic",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-621#derived-10day-v12",
+          "raw_text": "Derived natural endpoint from historical 10-day signing on 2014-02-25; exact source departure was not present.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_10day_expiry_v12",
+          "derived_boundary_type": "historical_10_day_contract_natural_expiry_v12",
+          "derived_from_signing_date": "2014-02-25",
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "February 25, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612753,
+          "source_team_name": null,
+          "destination_team_name": "Orlando Magic",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-621",
+          "raw_text": "The Orlando Magic signed Dewayne Dedmon to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "February 3, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612755,
+          "destination_team_id": null,
+          "source_team_name": "Philadelphia 76ers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-536",
+          "raw_text": "The Philadelphia 76ers waived Dewayne Dedmon .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "January 14, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": "Philadelphia 76ers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-458",
+          "raw_text": "The Philadelphia 76ers signed Dewayne Dedmon to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "January 24, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": "Philadelphia 76ers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-488",
+          "raw_text": "The Philadelphia 76ers signed Dewayne Dedmon to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "March 17, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612753,
+          "source_team_name": null,
+          "destination_team_name": "Orlando Magic",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-715",
+          "raw_text": "The Orlando Magic signed Dewayne Dedmon to a contract for the rest of the season.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "November 18, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612744,
+          "source_team_name": null,
+          "destination_team_name": "Golden State Warriors",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-296",
+          "raw_text": "The Golden State Warriors signed Dewayne Dedmon as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "October 25, 2013",
+          "event_type": "depart",
+          "source_team_id": 1610612744,
+          "destination_team_id": null,
+          "source_team_name": "Golden State Warriors",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-258",
+          "raw_text": "The Golden State Warriors waived Dewayne Dedmon .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "September 23, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612744,
+          "source_team_name": null,
+          "destination_team_name": "Golden State Warriors",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-199",
+          "raw_text": "The Golden State Warriors signed Dewayne Dedmon as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        }
+      ]
+    },
+    {
+      "season": "2014-15",
+      "player_id": "201985",
+      "player_name": "AJ Price",
+      "overlaps": [
+        {
+          "season": "2014-15",
+          "player_id": "201985",
+          "player_name": "AJ Price",
+          "left_team_id": 1610612739,
+          "left_start": "2014-10-28",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612754,
+          "right_start": "2014-10-28",
+          "right_end": "2015-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        },
+        {
+          "season": "2014-15",
+          "player_id": "201985",
+          "player_name": "AJ Price",
+          "left_team_id": 1610612739,
+          "left_start": "2014-10-28",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612756,
+          "right_start": "2014-10-28",
+          "right_end": "2015-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        },
+        {
+          "season": "2014-15",
+          "player_id": "201985",
+          "player_name": "AJ Price",
+          "left_team_id": 1610612754,
+          "left_start": "2014-10-28",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612756,
+          "right_start": "2014-10-28",
+          "right_end": "2015-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612739,
+          "team_abbr": "CLE",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612754,
+          "team_abbr": "IND",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612756,
+          "team_abbr": "PHX",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203113",
+      "player_name": "Quincy Miller",
+      "overlaps": [
+        {
+          "season": "2014-15",
+          "player_id": "203113",
+          "player_name": "Quincy Miller",
+          "left_team_id": 1610612758,
+          "left_start": "2015-01-30",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612765,
+          "right_start": "2015-02-21",
+          "right_end": "2015-04-15",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612758,
+          "team_abbr": "SAC",
+          "tenure_start": "2015-01-17",
+          "tenure_end": "2015-01-26",
+          "query_start_date": "2015-01-18",
+          "query_end_date": "2015-01-26",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_10_day_contract_natural_expiry_v12",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        },
+        {
+          "team_id": 1610612758,
+          "team_abbr": "SAC",
+          "tenure_start": "2015-01-30",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2015-01-31",
+          "query_end_date": "2015-04-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity_v12",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "v12 exact transaction chronology",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_10_day_contract_natural_expiry_v12",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        },
+        {
+          "team_id": 1610612765,
+          "team_abbr": "DET",
+          "tenure_start": "2015-02-21",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2015-02-22",
+          "query_end_date": "2015-04-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity_v12",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "v12 exact transaction chronology",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied",
+            "v12_event_state_reconstructed"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2015-01-26",
+          "event_type": "depart",
+          "source_team_id": 1610612758,
+          "destination_team_id": null,
+          "source_team_name": "Sacramento Kings",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-776#derived-10day-v12",
+          "raw_text": "Derived natural endpoint from historical 10-day signing on 2015-01-17; exact source departure was not present.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_10day_expiry_v12",
+          "derived_boundary_type": "historical_10_day_contract_natural_expiry_v12",
+          "derived_from_signing_date": "2015-01-17",
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "February 21, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": "Detroit Pistons",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-937",
+          "raw_text": "The Detroit Pistons signed Quincy Miller to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "January 17, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612758,
+          "source_team_name": null,
+          "destination_team_name": "Sacramento Kings",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-776",
+          "raw_text": "The Sacramento Kings signed Quincy Miller to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "January 30, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612758,
+          "source_team_name": null,
+          "destination_team_name": "Sacramento Kings",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-837",
+          "raw_text": "The Sacramento Kings signed Quincy Miller to a contract for the rest of the season.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "March 12, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": "Detroit Pistons",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-999",
+          "raw_text": "The Detroit Pistons signed Quincy Miller to a multi-year contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "March 3, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": "Detroit Pistons",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-967",
+          "raw_text": "The Detroit Pistons signed Quincy Miller to a 2nd 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        },
+        {
+          "exact_date": "October 27, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612743,
+          "destination_team_id": null,
+          "source_team_name": "Denver Nuggets",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-490",
+          "raw_text": "The Denver Nuggets waived Quincy Miller .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null,
+          "verified_boundary_v12": null,
+          "v12_bubble_season_reassigned": null
+        }
+      ]
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203909",
+      "player_name": "KJ McDaniels",
+      "overlaps": [
+        {
+          "season": "2014-15",
+          "player_id": "203909",
+          "player_name": "KJ McDaniels",
+          "left_team_id": 1610612745,
+          "left_start": "2014-10-28",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612755,
+          "right_start": "2014-10-28",
+          "right_end": "2015-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612745,
+          "team_abbr": "HOU",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary",
+            "v12_no_transaction_support_fallback"
+          ]
+        }
+      ],
+      "events": []
+    }
+  ]
+}
