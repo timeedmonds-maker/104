@@ -32,6 +32,7 @@ jobs:
       - name: Run Stage 2 self-tests
         run: |
           python team_trb_all_players/build_corrected_tenure_off.py --self-test
+          python team_trb_all_players/prepare_corrected_off_workset.py --self-test
           python team_trb_all_players/run_corrected_off_batch.py --self-test
           python team_trb_all_players/finalize_corrected_off_package.py --self-test
 
@@ -51,7 +52,11 @@ jobs:
               f.write('ready='+('true' if ready else 'false')+'\n')
           PY
 
-      - name: Collect resumable tenure-scoped corrected OFF batch
+      - name: Reuse completed core for full-season windows and publish exact workset
+        if: steps.gate.outputs.ready == 'true'
+        run: python team_trb_all_players/prepare_corrected_off_workset.py
+
+      - name: Collect resumable partial-tenure corrected OFF batch
         id: batch
         if: steps.gate.outputs.ready == 'true'
         continue-on-error: true
