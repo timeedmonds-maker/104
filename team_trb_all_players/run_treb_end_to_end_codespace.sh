@@ -62,12 +62,28 @@ status "starting" "Installing/validating dependencies"
 echo "[$(ts)] TREB one-touch Codespaces build starting on $BRANCH"
 python -m pip install --upgrade requests beautifulsoup4 pandas numpy pyarrow duckdb
 
-# Avoid a later GitHub-hosted runner waking up and duplicating the local build.
-# Cancellation is best-effort; failure here does not weaken data QA.
+# Never race an already-running hosted Stage 1/corrected-OFF chain. Queued copies can be
+# cancelled safely before local ownership, but an in-progress heavy run owns execution.
+if command -v gh >/dev/null 2>&1; then
+  ACTIVE_HOSTED="$(
+    for wf in treb-stage1-historical.yml treb-corrected-off.yml; do
+      gh run list --workflow "$wf" --branch "$BRANCH" --limit 50 --json databaseId,status \
+        --jq '.[] | select(.status=="in_progress" or .status=="waiting" or .status=="pending") | .databaseId' 2>/dev/null || true
+    done | sed '/^$/d' | wc -l | tr -d ' '
+  )"
+  if [[ "${ACTIVE_HOSTED:-0}" -gt 0 ]]; then
+    status "hosted_chain_active" "A hosted TREB job is already running; Codespace exited to avoid duplication"
+    echo "Hosted TREB execution is already active. Codespace will not start a competing chain."
+    exit 75
+  fi
+fi
+
+# Avoid a later queued GitHub-hosted runner waking up and duplicating the local build.
+# Cancellation is best-effort; only queued jobs are touched here.
 if command -v gh >/dev/null 2>&1; then
   for wf in treb-stage1-historical.yml treb-corrected-off.yml treb-runner-probe.yml; do
     gh run list --workflow "$wf" --branch "$BRANCH" --limit 50 --json databaseId,status \
-      --jq '.[] | select(.status=="queued" or .status=="waiting" or .status=="pending") | .databaseId' 2>/dev/null \
+      --jq '.[] | select(.status=="queued") | .databaseId' 2>/dev/null \
       | while read -r run_id; do
           [[ -n "$run_id" ]] || continue
           echo "Cancelling stale queued workflow $wf run $run_id before local execution"
@@ -109,7 +125,7 @@ fi
 # before local Stage 2 so the two execution paths cannot race each other.
 if command -v gh >/dev/null 2>&1; then
   gh run list --workflow treb-corrected-off.yml --branch "$BRANCH" --limit 50 --json databaseId,status \
-    --jq '.[] | select(.status=="queued" or .status=="waiting" or .status=="pending") | .databaseId' 2>/dev/null \
+    --jq '.[] | select(.status=="queued") | .databaseId' 2>/dev/null \
     | while read -r run_id; do
         [[ -n "$run_id" ]] || continue
         echo "Cancelling queued hosted corrected-OFF run $run_id; local resumable Stage 2 owns execution"
