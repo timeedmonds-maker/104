@@ -24,6 +24,23 @@ YEARS = list(range(2000, 2016))
 USER_AGENT = "TREB-historical-roster-research/3.0"
 CDX_URL = "https://web.archive.org/cdx/search/cdx"
 
+def get_with_retry(session, url, *, attempts=6, **kwargs):
+    last = None
+    for attempt in range(1, attempts + 1):
+        try:
+            r = session.get(url, **kwargs)
+            if r.status_code not in {429, 500, 502, 503, 504}:
+                r.raise_for_status()
+                return r
+            last = RuntimeError(f"HTTP {r.status_code} from {r.url}")
+        except requests.RequestException as exc:
+            last = exc
+        if attempt < attempts:
+            delay = min(60, 5 * (2 ** (attempt - 1)))
+            print(f"Transient archive error; retry {attempt}/{attempts} after {delay}s: {last}", flush=True)
+            time.sleep(delay)
+    raise last
+
 # Already inspected and validated in the TREB build. Keep these fixed so the
 # two missing Wikipedia seasons and the empty 2003-04 Wikipedia page remain
 # reproducible even if the Wayback index changes later.
@@ -73,7 +90,8 @@ def choose_snapshot(year: int, session: requests.Session) -> tuple[str, dict[str
         return timestamp, {"method": "pinned", "timestamp": timestamp}
 
     target = archive_target(year)
-    response = session.get(
+    response = get_with_retry(
+        session,
         CDX_URL,
         params={
             "url": target,
@@ -84,7 +102,6 @@ def choose_snapshot(year: int, session: requests.Session) -> tuple[str, dict[str
         },
         timeout=(15, 60),
     )
-    response.raise_for_status()
     payload = response.json()
     if not isinstance(payload, list) or len(payload) < 2:
         raise RuntimeError(f"{season_label(year)}: no Wayback snapshots returned")
@@ -229,8 +246,7 @@ def import_year(year: int, session: requests.Session, *, force: bool = False) ->
     timestamp, snapshot = choose_snapshot(year, session)
     url = snapshot_url(year, timestamp)
     print(f"FETCH {season}: {url}", flush=True)
-    response = session.get(url, timeout=(15, 90))
-    response.raise_for_status()
+    response = get_with_retry(session, url, timeout=(15, 90))
     html = response.text
     if len(html) < 5000:
         raise RuntimeError(f"{season}: suspiciously short archived page ({len(html)} chars)")
