@@ -14,7 +14,12 @@ if [[ "$BRANCH" != "$EXPECTED_BRANCH" ]]; then
   exit 2
 fi
 
-python -m pip install --upgrade requests beautifulsoup4
+# Avoid upgrading dependencies on every resilient retry. Install only if absent.
+python - <<'PY' || python -m pip install requests beautifulsoup4
+import requests
+import bs4
+print('TREB Python dependencies already available')
+PY
 
 python "$BASE/normalize_roster_transactions.py" --self-test
 python "$BASE/canonicalize_official_transaction_dates.py" --self-test
@@ -22,7 +27,6 @@ python "$BASE/build_roster_tenure_windows.py" --self-test
 python "$BASE/fetch_regular_season_games.py" --self-test
 python "$BASE/finalize_roster_tenure_windows.py" --self-test
 python "$BASE/resolve_same_day_boundaries.py" --self-test
-python "$BASE/resolve_same_day_roster_evidence.py" --self-test
 python "$BASE/audit_roster_tenure_consistency.py" --self-test
 python "$BASE/build_roster_tenure_review_queue.py" --self-test
 
@@ -105,8 +109,7 @@ with gzip.open(p,'wt',encoding='utf-8') as f:
 print('POST-SPLIT CHRONOLOGY QA PASSED; stale invalid-order flags cleared=', stale)
 PY
 
-# Real-data regression QA for the zero-minute Steven Adams 2023-24 trade.
-# This is deliberately after official zero-minute augmentation, not before it.
+# Raw transaction-date regression QA before the deterministic day convention is applied.
 python - <<'PY'
 import gzip,json
 from pathlib import Path
@@ -118,13 +121,32 @@ assert 1610612763 in by_team, {'missing':'MEM','adams_rows':adams}
 assert 1610612745 in by_team, {'missing':'HOU','adams_rows':adams}
 assert by_team[1610612763]['tenure_end']=='2024-02-01', by_team[1610612763]
 assert by_team[1610612745]['tenure_start']=='2024-02-01', by_team[1610612745]
-print('ZERO-MINUTE TRADE QA PASSED: Steven Adams MEM->HOU 2024-02-01')
+print('ZERO-MINUTE TRADE RAW-DATE QA PASSED: Steven Adams MEM->HOU 2024-02-01')
 PY
 
 python "$BASE/fetch_regular_season_games.py"
 python "$BASE/finalize_roster_tenure_windows.py"
+# This is now a zero-network publication pass. Transaction-day ambiguity is already
+# resolved deterministically: old team includes transaction day; new team starts next day.
 python "$BASE/resolve_same_day_boundaries.py"
-python "$BASE/resolve_same_day_roster_evidence.py"
+
+# Real-data regression QA for the effective transaction-day convention.
+python - <<'PY'
+import gzip,json
+from pathlib import Path
+p=Path('team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz')
+rows=[json.loads(line) for line in gzip.open(p,'rt',encoding='utf-8') if line.strip()]
+adams=[r for r in rows if r.get('season')=='2023-24' and str(r.get('player_id'))=='203500']
+by_team={int(r['team_id']):r for r in adams}
+mem=by_team[1610612763]
+hou=by_team[1610612745]
+assert mem['query_end_date']=='2024-02-01', mem
+assert mem['end_boundary_included'] is True, mem
+assert hou['query_start_date']=='2024-02-02', hou
+assert hou['start_boundary_included'] is False, hou
+assert mem['schedule_boundary_status']=='resolved' and hou['schedule_boundary_status']=='resolved'
+print('TRANSACTION-DAY POLICY QA PASSED: MEM through 2024-02-01; HOU from 2024-02-02')
+PY
 
 python "$BASE/audit_roster_tenure_consistency.py"
 python - <<'PY'
@@ -138,6 +160,7 @@ assert c['duplicate_window_count'] == 0, c
 assert c['resolved_game_count_inconsistency_count'] == 0, c
 assert c['strict_cross_team_overlap_count'] == 0, c
 assert c['strict_same_team_overlap_count'] == 0, c
+assert c.get('remaining_same_day_unresolved_count', 0) == 0, c
 print('FINAL ROSTER-TENURE CONSISTENCY QA PASSED', c)
 PY
 
