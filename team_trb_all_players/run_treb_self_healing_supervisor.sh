@@ -55,6 +55,30 @@ heartbeat &
 HB_PID=$!
 trap 'kill "$HB_PID" 2>/dev/null || true' EXIT
 
+remote_advanced() {
+  git fetch origin "$BRANCH" >/dev/null 2>&1 || return 1
+  local local_head remote_head
+  local_head="$(git rev-parse HEAD)"
+  remote_head="$(git rev-parse "origin/$BRANCH")"
+  [[ "$remote_head" != "$local_head" ]]
+}
+
+pull_remote_fix() {
+  git fetch origin "$BRANCH" || return 1
+  local local_head remote_head
+  local_head="$(git rev-parse HEAD)"
+  remote_head="$(git rev-parse "origin/$BRANCH")"
+  [[ "$remote_head" != "$local_head" ]] || return 2
+
+  echo "[$(ts)] Remote branch advanced: $local_head -> $remote_head"
+  if git pull --ff-only origin "$BRANCH"; then
+    return 0
+  fi
+
+  echo "[$(ts)] Fast-forward pull is currently blocked by local state; preserving all local data and retrying later"
+  return 1
+}
+
 publish_failure() {
   local rc="$1"
   {
@@ -75,36 +99,48 @@ publish_failure() {
   } > "$FAIL_REPORT"
 
   write_status "waiting_for_remote_fix" "runner_rc=$rc; failure report published; supervisor polling for branch update"
+
+  # If automation already pushed a fix while the runner was failing, consume it first.
+  # This avoids creating a local diagnostic commit on an obsolete parent.
+  if remote_advanced; then
+    if pull_remote_fix; then
+      echo "[$(ts)] Remote fix was already waiting at failure time; skipped diagnostic commit to avoid divergence"
+      return 10
+    fi
+  fi
+
   git add "$FAIL_REPORT" "$STATUS" 2>/dev/null || true
   if ! git diff --cached --quiet; then
+    local pre_commit_head
+    pre_commit_head="$(git rev-parse HEAD)"
     git commit -m "Publish TREB failure diagnostics [skip ci]" || true
-    for attempt in 1 2 3; do
-      if git push origin "HEAD:$BRANCH"; then
-        break
-      fi
+    if ! git push origin "HEAD:$BRANCH"; then
+      echo "[$(ts)] Diagnostic push raced with a remote update; removing only the unpushed diagnostic commit"
+      git reset --mixed "$pre_commit_head" || true
       git fetch origin "$BRANCH" || true
-      sleep $((10 * attempt))
-    done
+      if pull_remote_fix; then
+        echo "[$(ts)] Remote fix applied after diagnostic push race"
+        return 10
+      fi
+      echo "[$(ts)] Could not integrate remote update yet; preserving local diagnostic files and retrying later"
+    fi
   fi
+  return 0
 }
 
-pull_remote_fix() {
-  git fetch origin "$BRANCH" || return 1
-  local local_head remote_head
-  local_head="$(git rev-parse HEAD)"
-  remote_head="$(git rev-parse "origin/$BRANCH")"
-  [[ "$remote_head" != "$local_head" ]] || return 2
-
-  echo "[$(ts)] Remote branch advanced: $local_head -> $remote_head"
-  # Generated TREB data may be modified locally, but our remote fixes are source-code changes.
-  # A normal fast-forward succeeds as long as the remote change does not overlap those local files.
-  # If it does overlap, fail safely and keep polling rather than stashing/resetting generated data.
-  if git pull --ff-only origin "$BRANCH"; then
+stop_runner_group() {
+  local pid="$1"
+  if ! kill -0 "$pid" 2>/dev/null; then
     return 0
   fi
-
-  echo "[$(ts)] Fast-forward pull is currently blocked by local state; preserving all local data and retrying later"
-  return 1
+  echo "[$(ts)] Stopping active runner process group pid=$pid so a remote code fix can be applied"
+  kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+  for _ in $(seq 1 20); do
+    kill -0 "$pid" 2>/dev/null || return 0
+    sleep 1
+  done
+  echo "[$(ts)] Runner did not stop after TERM; escalating to KILL"
+  kill -KILL -- "-$pid" 2>/dev/null || kill -KILL "$pid" 2>/dev/null || true
 }
 
 write_status "running" "Self-healing supervisor owns TREB local execution"
@@ -113,7 +149,38 @@ echo "[$(ts)] TREB self-healing supervisor started"
 while true; do
   echo "[$(ts)] Launching unattended TREB runner"
   set +e
-  bash "$RUNNER"
+  # Own process group lets the supervisor safely stop the runner and all descendants
+  # when autonomous repair code arrives on the branch.
+  setsid bash "$RUNNER" &
+  RUNNER_PID=$!
+  REMOTE_FIX_APPLIED=0
+
+  while kill -0 "$RUNNER_PID" 2>/dev/null; do
+    sleep "$POLL_SECONDS"
+    if remote_advanced; then
+      local_head="$(git rev-parse HEAD)"
+      remote_head="$(git rev-parse "origin/$BRANCH")"
+      echo "[$(ts)] Remote fix detected while runner is active: $local_head -> $remote_head"
+      write_status "applying_remote_fix" "Remote branch advanced while runner active; safely restarting from durable cache"
+      stop_runner_group "$RUNNER_PID"
+      wait "$RUNNER_PID" 2>/dev/null || true
+      if pull_remote_fix; then
+        echo "[$(ts)] Remote fix applied during active run; automatically restarting from durable local cache"
+        REMOTE_FIX_APPLIED=1
+        break
+      fi
+      echo "[$(ts)] Remote fix detected but pull is temporarily blocked; runner remains stopped to protect state"
+      break
+    fi
+  done
+
+  if [[ $REMOTE_FIX_APPLIED -eq 1 ]]; then
+    set -e
+    write_status "retrying" "Remote code fix detected during active run; restarting unattended runner"
+    continue
+  fi
+
+  wait "$RUNNER_PID"
   RC=$?
   set -e
 
@@ -130,6 +197,12 @@ while true; do
 
   echo "[$(ts)] Unattended runner stopped rc=$RC; publishing diagnostics and waiting for remote fix"
   publish_failure "$RC"
+  PUB_RC=$?
+  if [[ $PUB_RC -eq 10 ]]; then
+    echo "[$(ts)] Remote fix detected and applied at failure boundary; retrying automatically"
+    write_status "retrying" "Remote code fix detected; restarting unattended runner"
+    continue
+  fi
 
   while true; do
     sleep "$POLL_SECONDS"
