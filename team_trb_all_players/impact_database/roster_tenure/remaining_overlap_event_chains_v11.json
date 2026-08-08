@@ -1,0 +1,4599 @@
+{
+  "generated_utc": "2026-08-08T22:53:44.369156+00:00",
+  "strict_cross_team_overlap_count": 49,
+  "player_season_case_count": 35,
+  "cases": [
+    {
+      "season": "2000-01",
+      "player_id": "145",
+      "player_name": "Tracy Murray",
+      "overlaps": [
+        {
+          "season": "2000-01",
+          "player_id": "145",
+          "player_name": "Tracy Murray",
+          "left_team_id": 1610612743,
+          "left_start": "2000-10-31",
+          "left_end": "2001-01-12",
+          "right_team_id": 1610612747,
+          "right_start": "2000-10-31",
+          "right_end": "2001-04-18",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        },
+        {
+          "season": "2000-01",
+          "player_id": "145",
+          "player_name": "Tracy Murray",
+          "left_team_id": 1610612747,
+          "left_start": "2000-10-31",
+          "left_end": "2001-04-18",
+          "right_team_id": 1610612761,
+          "right_start": "2001-01-12",
+          "right_end": "2001-04-18",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612743,
+          "team_abbr": "DEN",
+          "tenure_start": "2000-10-31",
+          "tenure_end": "2001-01-12",
+          "query_start_date": "2000-10-31",
+          "query_end_date": "2001-01-12",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "trade_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612747,
+          "team_abbr": "LAL",
+          "tenure_start": "2000-10-31",
+          "tenure_end": "2001-04-18",
+          "query_start_date": "2000-10-31",
+          "query_end_date": "2001-04-18",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612761,
+          "team_abbr": "TOR",
+          "tenure_start": "2001-01-12",
+          "tenure_end": "2001-04-18",
+          "query_start_date": "2001-01-13",
+          "query_end_date": "2001-04-18",
+          "start_reason": "trade_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2000-09-25",
+          "event_type": "trade",
+          "source_team_id": 1610612764,
+          "destination_team_id": 1610612743,
+          "source_team_name": "Washington Wizards",
+          "destination_team_name": "Denver Nuggets",
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2001",
+          "raw_text": "Tracy Murray was acquired by the Denver Nuggets from the Washington Wizards in exchange for: Popeye Jones and a 2002 2nd round pick (PHX own).",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 12, 2001",
+          "event_type": "trade",
+          "source_team_id": 1610612743,
+          "destination_team_id": 1610612761,
+          "source_team_name": "Denver Nuggets",
+          "destination_team_name": "Toronto Raptors",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-192",
+          "raw_text": "The Denver Nuggets traded Keon Clark , Tracy Murray and Mamadou N'Diaye to the Toronto Raptors for Garth Joseph , Aleksandar Radojević , Kevin Willis and a 2001 2nd round draft pick (Ousmane Cisse was later selected).",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "September 25, 2000",
+          "event_type": "trade",
+          "source_team_id": 1610612764,
+          "destination_team_id": 1610612743,
+          "source_team_name": "Washington Wizards",
+          "destination_team_name": "Denver Nuggets",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-68",
+          "raw_text": "The Denver Nuggets traded Popeye Jones and a 2002 2nd round draft pick (Rod Grizzard was later selected) to the Washington Wizards for Tracy Murray .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2003-04",
+      "player_id": "1917",
+      "player_name": "Wang Zhi-zhi",
+      "overlaps": [
+        {
+          "season": "2003-04",
+          "player_id": "1917",
+          "player_name": "Wang Zhi-zhi",
+          "left_team_id": 1610612746,
+          "left_start": "2003-10-28",
+          "left_end": "2004-04-14",
+          "right_team_id": 1610612748,
+          "right_start": "2003-12-01",
+          "right_end": "2004-04-14",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612746,
+          "team_abbr": "LAC",
+          "tenure_start": "2003-10-28",
+          "tenure_end": "2004-04-14",
+          "query_start_date": "2003-10-28",
+          "query_end_date": "2004-04-14",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612748,
+          "team_abbr": "MIA",
+          "tenure_start": "2003-12-01",
+          "tenure_end": "2004-04-14",
+          "query_start_date": "2003-12-02",
+          "query_end_date": "2004-04-14",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "December 1, 2003",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612748,
+          "source_team_name": null,
+          "destination_team_name": "Miami Heat",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209192231id_/https://www.basketball-reference.com/leagues/NBA_2004_transactions.html#row-201",
+          "raw_text": "The Miami Heat signed Wang Zhizhi as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "historical_v4_unique_fuzzy_name+season_team_context",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "October 21, 2003",
+          "event_type": "depart",
+          "source_team_id": 1610612746,
+          "destination_team_id": null,
+          "source_team_name": "Los Angeles Clippers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209192231id_/https://www.basketball-reference.com/leagues/NBA_2004_transactions.html#row-144",
+          "raw_text": "The Los Angeles Clippers waived Wang Zhizhi .",
+          "confidence": "high",
+          "identity_resolution": "historical_v4_unique_fuzzy_name+season_team_context",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2008-09",
+      "player_id": "2226",
+      "player_name": "Will Solomon",
+      "overlaps": [
+        {
+          "season": "2008-09",
+          "player_id": "2226",
+          "player_name": "Will Solomon",
+          "left_team_id": 1610612758,
+          "left_start": "2008-10-28",
+          "left_end": "2009-04-08",
+          "right_team_id": 1610612761,
+          "right_start": "2008-10-28",
+          "right_end": "2009-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612758,
+          "team_abbr": "SAC",
+          "tenure_start": "2008-10-28",
+          "tenure_end": "2009-04-08",
+          "query_start_date": "2008-10-28",
+          "query_end_date": "2009-04-08",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "depart_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612761,
+          "team_abbr": "TOR",
+          "tenure_start": "2008-10-28",
+          "tenure_end": "2009-04-15",
+          "query_start_date": "2008-10-28",
+          "query_end_date": "2009-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2008-07-28",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612761,
+          "source_team_name": null,
+          "destination_team_name": "Toronto Raptors",
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2009",
+          "raw_text": "Will Solomon signed a contract with the Toronto Raptors.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2009-04-08",
+          "event_type": "depart",
+          "source_team_id": 1610612758,
+          "destination_team_id": null,
+          "source_team_name": "Sacramento Kings",
+          "destination_team_name": null,
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2009",
+          "raw_text": "The Sacramento Kings placed the contract of Will Solomon on waivers.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "April 8, 2009",
+          "event_type": "depart",
+          "source_team_id": 1610612758,
+          "destination_team_id": null,
+          "source_team_name": "Sacramento Kings",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220519122233id_/https://www.basketball-reference.com/leagues/NBA_2009_transactions.html#row-306",
+          "raw_text": "The Sacramento Kings waived Will Solomon .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "August 28, 2008",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612761,
+          "source_team_name": null,
+          "destination_team_name": "Toronto Raptors",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220519122233id_/https://www.basketball-reference.com/leagues/NBA_2009_transactions.html#row-74",
+          "raw_text": "The Toronto Raptors signed Will Solomon as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2010-11",
+      "player_id": "201591",
+      "player_name": "DJ White",
+      "overlaps": [
+        {
+          "season": "2010-11",
+          "player_id": "201591",
+          "player_name": "DJ White",
+          "left_team_id": 1610612760,
+          "left_start": "2010-10-26",
+          "left_end": "2011-04-13",
+          "right_team_id": 1610612766,
+          "right_start": "2010-10-26",
+          "right_end": "2011-04-13",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612760,
+          "team_abbr": "OKC",
+          "tenure_start": "2010-10-26",
+          "tenure_end": "2011-04-13",
+          "query_start_date": "2010-10-26",
+          "query_end_date": "2011-04-13",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612766,
+          "team_abbr": "CHA",
+          "tenure_start": "2010-10-26",
+          "tenure_end": "2011-04-13",
+          "query_start_date": "2010-10-26",
+          "query_end_date": "2011-04-13",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2010-11",
+      "player_id": "202066",
+      "player_name": "Garrett Temple",
+      "overlaps": [
+        {
+          "season": "2010-11",
+          "player_id": "202066",
+          "player_name": "Garrett Temple",
+          "left_team_id": 1610612749,
+          "left_start": "2011-01-25",
+          "left_end": "2011-04-13",
+          "right_team_id": 1610612766,
+          "right_start": "2011-03-07",
+          "right_end": "2011-04-13",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612759,
+          "team_abbr": "SAS",
+          "tenure_start": "2010-10-26",
+          "tenure_end": "2010-11-11",
+          "query_start_date": "2010-10-26",
+          "query_end_date": "2010-11-11",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "depart_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612749,
+          "team_abbr": "MIL",
+          "tenure_start": "2011-01-25",
+          "tenure_end": "2011-04-13",
+          "query_start_date": "2011-01-26",
+          "query_end_date": "2011-04-13",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612766,
+          "team_abbr": "CHA",
+          "tenure_start": "2011-03-07",
+          "tenure_end": "2011-04-13",
+          "query_start_date": "2011-03-08",
+          "query_end_date": "2011-04-13",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "January 25, 2011",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612749,
+          "source_team_name": null,
+          "destination_team_name": "Milwaukee Bucks",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220529055708id_/https://www.basketball-reference.com/leagues/NBA_2011_transactions.html#row-279",
+          "raw_text": "The Milwaukee Bucks signed Garrett Temple to the first of two 10-day contracts.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 7, 2011",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612766,
+          "source_team_name": null,
+          "destination_team_name": "Charlotte Bobcats",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220529055708id_/https://www.basketball-reference.com/leagues/NBA_2011_transactions.html#row-363",
+          "raw_text": "The Charlotte Bobcats signed Garrett Temple to two 10-day contracts, then signed to a contract for the rest of the season.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "November 11, 2010",
+          "event_type": "depart",
+          "source_team_id": 1610612759,
+          "destination_team_id": null,
+          "source_team_name": "San Antonio Spurs",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220529055708id_/https://www.basketball-reference.com/leagues/NBA_2011_transactions.html#row-170",
+          "raw_text": "The San Antonio Spurs waived Garrett Temple .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2010-11",
+      "player_id": "2260",
+      "player_name": "Jarron Collins",
+      "overlaps": [
+        {
+          "season": "2010-11",
+          "player_id": "2260",
+          "player_name": "Jarron Collins",
+          "left_team_id": 1610612746,
+          "left_start": "2011-01-05",
+          "left_end": "2011-04-13",
+          "right_team_id": 1610612757,
+          "right_start": "2011-03-01",
+          "right_end": "2011-04-13",
+          "left_confidence": "provisional_high",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612746,
+          "team_abbr": "LAC",
+          "tenure_start": "2010-10-26",
+          "tenure_end": "2011-01-03",
+          "query_start_date": "2010-10-26",
+          "query_end_date": "2011-01-03",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612746,
+          "team_abbr": "LAC",
+          "tenure_start": "2011-01-05",
+          "tenure_end": "2011-04-13",
+          "query_start_date": "2011-01-06",
+          "query_end_date": "2011-04-13",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612757,
+          "team_abbr": "POR",
+          "tenure_start": "2011-03-01",
+          "tenure_end": "2011-04-13",
+          "query_start_date": "2011-03-02",
+          "query_end_date": "2011-04-13",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "January 3, 2011",
+          "event_type": "depart",
+          "source_team_id": 1610612746,
+          "destination_team_id": null,
+          "source_team_name": "Los Angeles Clippers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220529055708id_/https://www.basketball-reference.com/leagues/NBA_2011_transactions.html#row-243",
+          "raw_text": "The Los Angeles Clippers waived Jarron Collins .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 5, 2011",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612746,
+          "source_team_name": null,
+          "destination_team_name": "Los Angeles Clippers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220529055708id_/https://www.basketball-reference.com/leagues/NBA_2011_transactions.html#row-254",
+          "raw_text": "The Los Angeles Clippers signed Jarron Collins to the first of two 10-day contracts.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 1, 2011",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612757,
+          "source_team_name": null,
+          "destination_team_name": "Portland Trail Blazers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220529055708id_/https://www.basketball-reference.com/leagues/NBA_2011_transactions.html#row-343",
+          "raw_text": "The Portland Trail Blazers signed Jarron Collins to the first of two 10-day contracts.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "September 27, 2010",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612746,
+          "source_team_name": null,
+          "destination_team_name": "Los Angeles Clippers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220529055708id_/https://www.basketball-reference.com/leagues/NBA_2011_transactions.html#row-123",
+          "raw_text": "The Los Angeles Clippers signed Jarron Collins as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2011-12",
+      "player_id": "2210",
+      "player_name": "Richard Jefferson",
+      "overlaps": [
+        {
+          "season": "2011-12",
+          "player_id": "2210",
+          "player_name": "Richard Jefferson",
+          "left_team_id": 1610612744,
+          "left_start": "2011-12-25",
+          "left_end": "2012-04-26",
+          "right_team_id": 1610612759,
+          "right_start": "2011-12-25",
+          "right_end": "2012-04-26",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612744,
+          "team_abbr": "GSW",
+          "tenure_start": "2011-12-25",
+          "tenure_end": "2012-04-26",
+          "query_start_date": "2011-12-25",
+          "query_end_date": "2012-04-26",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612759,
+          "team_abbr": "SAS",
+          "tenure_start": "2011-12-25",
+          "tenure_end": "2012-04-26",
+          "query_start_date": "2011-12-25",
+          "query_end_date": "2012-04-26",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2012-13",
+      "player_id": "200755",
+      "player_name": "JJ Redick",
+      "overlaps": [
+        {
+          "season": "2012-13",
+          "player_id": "200755",
+          "player_name": "JJ Redick",
+          "left_team_id": 1610612749,
+          "left_start": "2012-10-30",
+          "left_end": "2013-04-17",
+          "right_team_id": 1610612753,
+          "right_start": "2012-10-30",
+          "right_end": "2013-04-17",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612749,
+          "team_abbr": "MIL",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2013-04-17",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612753,
+          "team_abbr": "ORL",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2013-04-17",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2012-13",
+      "player_id": "202397",
+      "player_name": "Ish Smith",
+      "overlaps": [
+        {
+          "season": "2012-13",
+          "player_id": "202397",
+          "player_name": "Ish Smith",
+          "left_team_id": 1610612749,
+          "left_start": "2012-10-30",
+          "left_end": "2013-04-17",
+          "right_team_id": 1610612753,
+          "right_start": "2012-10-30",
+          "right_end": "2013-04-17",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612749,
+          "team_abbr": "MIL",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2013-04-17",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612753,
+          "team_abbr": "ORL",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2013-04-17",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2012-13",
+      "player_id": "202714",
+      "player_name": "Shelvin Mack",
+      "overlaps": [
+        {
+          "season": "2012-13",
+          "player_id": "202714",
+          "player_name": "Shelvin Mack",
+          "left_team_id": 1610612755,
+          "left_start": "2013-01-17",
+          "left_end": "2013-04-17",
+          "right_team_id": 1610612737,
+          "right_start": "2013-03-06",
+          "right_end": "2013-04-17",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612764,
+          "team_abbr": "WAS",
+          "tenure_start": "2012-12-25",
+          "tenure_end": "2013-01-07",
+          "query_start_date": "2012-12-26",
+          "query_end_date": "2013-01-07",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2013-01-17",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2013-01-18",
+          "query_end_date": "2013-04-17",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612737,
+          "team_abbr": "ATL",
+          "tenure_start": "2013-03-06",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2013-03-07",
+          "query_end_date": "2013-04-17",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "December 25, 2012",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612764,
+          "source_team_name": null,
+          "destination_team_name": "Washington Wizards",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-438",
+          "raw_text": "The Washington Wizards signed Shelvin Mack as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 17, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": "Philadelphia 76ers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-533",
+          "raw_text": "The Philadelphia 76ers signed Shelvin Mack to the first of two 10-day contracts.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 7, 2013",
+          "event_type": "depart",
+          "source_team_id": 1610612764,
+          "destination_team_id": null,
+          "source_team_name": "Washington Wizards",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-501",
+          "raw_text": "The Washington Wizards waived Shelvin Mack .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 6, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612737,
+          "source_team_name": null,
+          "destination_team_name": "Atlanta Hawks",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-647",
+          "raw_text": "The Atlanta Hawks signed Shelvin Mack to two 10-day contracts, then signed to a contract for the rest of the season.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "October 28, 2012",
+          "event_type": "depart",
+          "source_team_id": 1610612764,
+          "destination_team_id": null,
+          "source_team_name": "Washington Wizards",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-261",
+          "raw_text": "The Washington Wizards waived Shelvin Mack .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2012-13",
+      "player_id": "2457",
+      "player_name": "Jannero Pargo",
+      "overlaps": [
+        {
+          "season": "2012-13",
+          "player_id": "2457",
+          "player_name": "Jannero Pargo",
+          "left_team_id": 1610612737,
+          "left_start": "2013-01-21",
+          "left_end": "2013-04-17",
+          "right_team_id": 1610612766,
+          "right_start": "2013-03-14",
+          "right_end": "2013-04-17",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612764,
+          "team_abbr": "WAS",
+          "tenure_start": "2012-10-30",
+          "tenure_end": "2012-11-15",
+          "query_start_date": "2012-10-30",
+          "query_end_date": "2012-11-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "depart_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612737,
+          "team_abbr": "ATL",
+          "tenure_start": "2013-01-21",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2013-01-22",
+          "query_end_date": "2013-04-17",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612766,
+          "team_abbr": "CHA",
+          "tenure_start": "2013-03-14",
+          "tenure_end": "2013-04-17",
+          "query_start_date": "2013-03-15",
+          "query_end_date": "2013-04-17",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "January 21, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612737,
+          "source_team_name": null,
+          "destination_team_name": "Atlanta Hawks",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-541",
+          "raw_text": "The Atlanta Hawks signed Jannero Pargo to the first of two 10-day contracts.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 14, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612766,
+          "source_team_name": null,
+          "destination_team_name": "Charlotte Bobcats",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-679",
+          "raw_text": "The Charlotte Bobcats signed Jannero Pargo to two 10-day contracts, then signed to a contract for the rest of the season.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "November 15, 2012",
+          "event_type": "depart",
+          "source_team_id": 1610612764,
+          "destination_team_id": null,
+          "source_team_name": "Washington Wizards",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-294",
+          "raw_text": "The Washington Wizards waived Jannero Pargo .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "October 1, 2012",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612764,
+          "source_team_name": null,
+          "destination_team_name": "Washington Wizards",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220516152307id_/https://www.basketball-reference.com/leagues/NBA_2013_transactions.html#row-173",
+          "raw_text": "The Washington Wizards signed Jannero Pargo as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2013-14",
+      "player_id": "201571",
+      "player_name": "D.J. Augustin",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "201571",
+          "player_name": "D.J. Augustin",
+          "left_team_id": 1610612741,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612761,
+          "right_start": "2013-10-29",
+          "right_end": "2014-04-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612741,
+          "team_abbr": "CHI",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612761,
+          "team_abbr": "TOR",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202620",
+      "player_name": "Arinze Onuaku",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "202620",
+          "player_name": "Arinze Onuaku",
+          "left_team_id": 1610612740,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612739,
+          "right_start": "2014-02-22",
+          "right_end": "2014-03-03",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "202620",
+          "player_name": "Arinze Onuaku",
+          "left_team_id": 1610612740,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612739,
+          "right_start": "2014-03-04",
+          "right_end": "2014-03-12",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612740,
+          "team_abbr": "NOP",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612739,
+          "team_abbr": "CLE",
+          "tenure_start": "2014-02-22",
+          "tenure_end": "2014-03-03",
+          "query_start_date": "2014-02-23",
+          "query_end_date": "2014-03-03",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612739,
+          "team_abbr": "CLE",
+          "tenure_start": "2014-03-04",
+          "tenure_end": "2014-03-12",
+          "query_start_date": "2014-03-05",
+          "query_end_date": "2014-03-12",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2014-03-03",
+          "event_type": "depart",
+          "source_team_id": 1610612739,
+          "destination_team_id": null,
+          "source_team_name": "Cleveland Cavaliers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-607#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2014-02-22; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2014-02-22"
+        },
+        {
+          "exact_date": "August 22, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612740,
+          "source_team_name": null,
+          "destination_team_name": "New Orleans Pelicans",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-171",
+          "raw_text": "The New Orleans Pelicans signed Arinze Onuaku .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "February 22, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612739,
+          "source_team_name": null,
+          "destination_team_name": "Cleveland Cavaliers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-607",
+          "raw_text": "The Cleveland Cavaliers signed Arinze Onuaku to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 12, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612739,
+          "destination_team_id": null,
+          "source_team_name": "Cleveland Cavaliers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-698",
+          "raw_text": "The Cleveland Cavaliers waived Arinze Onuaku .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 4, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612739,
+          "source_team_name": null,
+          "destination_team_name": "Cleveland Cavaliers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-663",
+          "raw_text": "The Cleveland Cavaliers signed Arinze Onuaku to a 2nd 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202721",
+      "player_name": "Darius Morris",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "202721",
+          "player_name": "Darius Morris",
+          "left_team_id": 1610612746,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612755,
+          "right_start": "2013-10-29",
+          "right_end": "2014-04-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "202721",
+          "player_name": "Darius Morris",
+          "left_team_id": 1610612746,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612763,
+          "right_start": "2014-02-03",
+          "right_end": "2014-02-14",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "202721",
+          "player_name": "Darius Morris",
+          "left_team_id": 1610612755,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612763,
+          "right_start": "2014-02-03",
+          "right_end": "2014-02-14",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612746,
+          "team_abbr": "LAC",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612763,
+          "team_abbr": "MEM",
+          "tenure_start": "2014-02-03",
+          "tenure_end": "2014-02-14",
+          "query_start_date": "2014-02-04",
+          "query_end_date": "2014-02-14",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2014-02-12",
+          "event_type": "depart",
+          "source_team_id": 1610612763,
+          "destination_team_id": null,
+          "source_team_name": "Memphis Grizzlies",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-535#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2014-02-03; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2014-02-03"
+        },
+        {
+          "exact_date": "February 14, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612763,
+          "destination_team_id": null,
+          "source_team_name": "Memphis Grizzlies",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-574:exact-10day-expiry-v4",
+          "raw_text": "Darius Morris not re-signed by Memphis Grizzlies ; 10-day contract expires.",
+          "confidence": "high",
+          "identity_resolution": "historical_v4_unique_fuzzy_name+season_team_context",
+          "team_resolution": "exact_team_named_in_10day_expiry_row",
+          "derived_boundary_type": "source_stated_10_day_contract_expiry",
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "February 3, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612763,
+          "source_team_name": null,
+          "destination_team_name": "Memphis Grizzlies",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-535",
+          "raw_text": "The Memphis Grizzlies signed Darius Morris to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2013-14",
+      "player_id": "202952",
+      "player_name": "Malcolm Thomas",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "202952",
+          "player_name": "Malcolm Thomas",
+          "left_team_id": 1610612759,
+          "left_start": "2013-10-29",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612762,
+          "right_start": "2013-10-29",
+          "right_end": "2014-04-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612759,
+          "team_abbr": "SAS",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612762,
+          "team_abbr": "UTA",
+          "tenure_start": "2013-10-29",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-10-29",
+          "query_end_date": "2014-04-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "July 23, 2013",
+          "event_type": "depart",
+          "source_team_id": 1610612741,
+          "destination_team_id": null,
+          "source_team_name": "Chicago Bulls",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-119",
+          "raw_text": "The Chicago Bulls waived Malcolm Thomas .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2013-14",
+      "player_id": "203473",
+      "player_name": "Dewayne Dedmon",
+      "overlaps": [
+        {
+          "season": "2013-14",
+          "player_id": "203473",
+          "player_name": "Dewayne Dedmon",
+          "left_team_id": 1610612744,
+          "left_start": "2013-11-18",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612755,
+          "right_start": "2014-01-14",
+          "right_end": "2014-01-23",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "203473",
+          "player_name": "Dewayne Dedmon",
+          "left_team_id": 1610612744,
+          "left_start": "2013-11-18",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612755,
+          "right_start": "2014-01-24",
+          "right_end": "2014-02-02",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "203473",
+          "player_name": "Dewayne Dedmon",
+          "left_team_id": 1610612744,
+          "left_start": "2013-11-18",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612753,
+          "right_start": "2014-02-25",
+          "right_end": "2014-03-06",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2013-14",
+          "player_id": "203473",
+          "player_name": "Dewayne Dedmon",
+          "left_team_id": 1610612744,
+          "left_start": "2013-11-18",
+          "left_end": "2014-04-16",
+          "right_team_id": 1610612753,
+          "right_start": "2014-03-17",
+          "right_end": "2014-04-16",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612744,
+          "team_abbr": "GSW",
+          "tenure_start": "2013-11-18",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2013-11-19",
+          "query_end_date": "2014-04-16",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2014-01-14",
+          "tenure_end": "2014-01-23",
+          "query_start_date": "2014-01-15",
+          "query_end_date": "2014-01-23",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2014-01-24",
+          "tenure_end": "2014-02-02",
+          "query_start_date": "2014-01-25",
+          "query_end_date": "2014-02-02",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612753,
+          "team_abbr": "ORL",
+          "tenure_start": "2014-02-25",
+          "tenure_end": "2014-03-06",
+          "query_start_date": "2014-02-26",
+          "query_end_date": "2014-03-06",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612753,
+          "team_abbr": "ORL",
+          "tenure_start": "2014-03-17",
+          "tenure_end": "2014-04-16",
+          "query_start_date": "2014-03-18",
+          "query_end_date": "2014-04-16",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2014-01-23",
+          "event_type": "depart",
+          "source_team_id": 1610612755,
+          "destination_team_id": null,
+          "source_team_name": "Philadelphia 76ers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-458#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2014-01-14; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2014-01-14"
+        },
+        {
+          "exact_date": "2014-02-02",
+          "event_type": "depart",
+          "source_team_id": 1610612755,
+          "destination_team_id": null,
+          "source_team_name": "Philadelphia 76ers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-488#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2014-01-24; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2014-01-24"
+        },
+        {
+          "exact_date": "2014-03-06",
+          "event_type": "depart",
+          "source_team_id": 1610612753,
+          "destination_team_id": null,
+          "source_team_name": "Orlando Magic",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-621#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2014-02-25; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2014-02-25"
+        },
+        {
+          "exact_date": "February 25, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612753,
+          "source_team_name": null,
+          "destination_team_name": "Orlando Magic",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-621",
+          "raw_text": "The Orlando Magic signed Dewayne Dedmon to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "February 3, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612755,
+          "destination_team_id": null,
+          "source_team_name": "Philadelphia 76ers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-536",
+          "raw_text": "The Philadelphia 76ers waived Dewayne Dedmon .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 14, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": "Philadelphia 76ers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-458",
+          "raw_text": "The Philadelphia 76ers signed Dewayne Dedmon to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 24, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": "Philadelphia 76ers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-488",
+          "raw_text": "The Philadelphia 76ers signed Dewayne Dedmon to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 17, 2014",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612753,
+          "source_team_name": null,
+          "destination_team_name": "Orlando Magic",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-715",
+          "raw_text": "The Orlando Magic signed Dewayne Dedmon to a contract for the rest of the season.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "November 18, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612744,
+          "source_team_name": null,
+          "destination_team_name": "Golden State Warriors",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-296",
+          "raw_text": "The Golden State Warriors signed Dewayne Dedmon as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "October 25, 2013",
+          "event_type": "depart",
+          "source_team_id": 1610612744,
+          "destination_team_id": null,
+          "source_team_name": "Golden State Warriors",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-258",
+          "raw_text": "The Golden State Warriors waived Dewayne Dedmon .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "September 23, 2013",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612744,
+          "source_team_name": null,
+          "destination_team_name": "Golden State Warriors",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221209194421id_/https://www.basketball-reference.com/leagues/NBA_2014_transactions.html#row-199",
+          "raw_text": "The Golden State Warriors signed Dewayne Dedmon as a free agent.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2014-15",
+      "player_id": "201985",
+      "player_name": "AJ Price",
+      "overlaps": [
+        {
+          "season": "2014-15",
+          "player_id": "201985",
+          "player_name": "AJ Price",
+          "left_team_id": 1610612739,
+          "left_start": "2014-10-28",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612754,
+          "right_start": "2014-10-28",
+          "right_end": "2015-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        },
+        {
+          "season": "2014-15",
+          "player_id": "201985",
+          "player_name": "AJ Price",
+          "left_team_id": 1610612739,
+          "left_start": "2014-10-28",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612756,
+          "right_start": "2014-10-28",
+          "right_end": "2015-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        },
+        {
+          "season": "2014-15",
+          "player_id": "201985",
+          "player_name": "AJ Price",
+          "left_team_id": 1610612754,
+          "left_start": "2014-10-28",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612756,
+          "right_start": "2014-10-28",
+          "right_end": "2015-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612739,
+          "team_abbr": "CLE",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612754,
+          "team_abbr": "IND",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612756,
+          "team_abbr": "PHX",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2014-15",
+      "player_id": "202343",
+      "player_name": "Elliot Williams",
+      "overlaps": [
+        {
+          "season": "2014-15",
+          "player_id": "202343",
+          "player_name": "Elliot Williams",
+          "left_team_id": 1610612762,
+          "left_start": "2015-01-17",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612740,
+          "right_start": "2015-03-04",
+          "right_end": "2015-03-13",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2014-15",
+          "player_id": "202343",
+          "player_name": "Elliot Williams",
+          "left_team_id": 1610612762,
+          "left_start": "2015-01-17",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612740,
+          "right_start": "2015-03-14",
+          "right_end": "2015-04-15",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612762,
+          "team_abbr": "UTA",
+          "tenure_start": "2015-01-07",
+          "tenure_end": "2015-01-16",
+          "query_start_date": "2015-01-08",
+          "query_end_date": "2015-01-16",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612762,
+          "team_abbr": "UTA",
+          "tenure_start": "2015-01-17",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2015-01-18",
+          "query_end_date": "2015-04-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612740,
+          "team_abbr": "NOP",
+          "tenure_start": "2015-03-04",
+          "tenure_end": "2015-03-13",
+          "query_start_date": "2015-03-05",
+          "query_end_date": "2015-03-13",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612740,
+          "team_abbr": "NOP",
+          "tenure_start": "2015-03-14",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2015-03-15",
+          "query_end_date": "2015-04-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2015-01-16",
+          "event_type": "depart",
+          "source_team_id": 1610612762,
+          "destination_team_id": null,
+          "source_team_name": "Utah Jazz",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-734#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2015-01-07; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2015-01-07"
+        },
+        {
+          "exact_date": "2015-03-13",
+          "event_type": "depart",
+          "source_team_id": 1610612740,
+          "destination_team_id": null,
+          "source_team_name": "New Orleans Pelicans",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-971#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2015-03-04; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2015-03-04"
+        },
+        {
+          "exact_date": "February 10, 2015",
+          "event_type": "depart",
+          "source_team_id": 1610612766,
+          "destination_team_id": null,
+          "source_team_name": "Charlotte Hornets",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-890",
+          "raw_text": "The Charlotte Hornets released Elliot Williams .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=ambiguous_team_alias;destination=not_applicable;repair_applied",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "February 4, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612766,
+          "source_team_name": null,
+          "destination_team_name": "Charlotte Hornets",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-864",
+          "raw_text": "The Charlotte Hornets signed Elliot Williams to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=ambiguous_team_alias;repair_applied",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 17, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612762,
+          "source_team_name": null,
+          "destination_team_name": "Utah Jazz",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-777",
+          "raw_text": "The Utah Jazz signed Elliot Williams to a 2nd 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 7, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612762,
+          "source_team_name": null,
+          "destination_team_name": "Utah Jazz",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-734",
+          "raw_text": "The Utah Jazz signed Elliot Williams to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 14, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612740,
+          "source_team_name": null,
+          "destination_team_name": "New Orleans Pelicans",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-1006",
+          "raw_text": "The New Orleans Pelicans signed Elliot Williams to a 2nd 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 4, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612740,
+          "source_team_name": null,
+          "destination_team_name": "New Orleans Pelicans",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-971",
+          "raw_text": "The New Orleans Pelicans signed Elliot Williams to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "October 27, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612755,
+          "destination_team_id": null,
+          "source_team_name": "Philadelphia 76ers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-495",
+          "raw_text": "The Philadelphia 76ers waived Elliot Williams .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203113",
+      "player_name": "Quincy Miller",
+      "overlaps": [
+        {
+          "season": "2014-15",
+          "player_id": "203113",
+          "player_name": "Quincy Miller",
+          "left_team_id": 1610612758,
+          "left_start": "2015-01-30",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612765,
+          "right_start": "2015-02-21",
+          "right_end": "2015-03-02",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2014-15",
+          "player_id": "203113",
+          "player_name": "Quincy Miller",
+          "left_team_id": 1610612758,
+          "left_start": "2015-01-30",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612765,
+          "right_start": "2015-03-03",
+          "right_end": "2015-04-15",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612758,
+          "team_abbr": "SAC",
+          "tenure_start": "2015-01-17",
+          "tenure_end": "2015-01-26",
+          "query_start_date": "2015-01-18",
+          "query_end_date": "2015-01-26",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612758,
+          "team_abbr": "SAC",
+          "tenure_start": "2015-01-30",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2015-01-31",
+          "query_end_date": "2015-04-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612765,
+          "team_abbr": "DET",
+          "tenure_start": "2015-02-21",
+          "tenure_end": "2015-03-02",
+          "query_start_date": "2015-02-22",
+          "query_end_date": "2015-03-02",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612765,
+          "team_abbr": "DET",
+          "tenure_start": "2015-03-03",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2015-03-04",
+          "query_end_date": "2015-04-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2015-01-26",
+          "event_type": "depart",
+          "source_team_id": 1610612758,
+          "destination_team_id": null,
+          "source_team_name": "Sacramento Kings",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-776#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2015-01-17; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2015-01-17"
+        },
+        {
+          "exact_date": "2015-03-02",
+          "event_type": "depart",
+          "source_team_id": 1610612765,
+          "destination_team_id": null,
+          "source_team_name": "Detroit Pistons",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-937#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2015-02-21; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2015-02-21"
+        },
+        {
+          "exact_date": "February 21, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": "Detroit Pistons",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-937",
+          "raw_text": "The Detroit Pistons signed Quincy Miller to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 17, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612758,
+          "source_team_name": null,
+          "destination_team_name": "Sacramento Kings",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-776",
+          "raw_text": "The Sacramento Kings signed Quincy Miller to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "January 30, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612758,
+          "source_team_name": null,
+          "destination_team_name": "Sacramento Kings",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-837",
+          "raw_text": "The Sacramento Kings signed Quincy Miller to a contract for the rest of the season.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 12, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": "Detroit Pistons",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-999",
+          "raw_text": "The Detroit Pistons signed Quincy Miller to a multi-year contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 3, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": "Detroit Pistons",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-967",
+          "raw_text": "The Detroit Pistons signed Quincy Miller to a 2nd 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "October 27, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612743,
+          "destination_team_id": null,
+          "source_team_name": "Denver Nuggets",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-490",
+          "raw_text": "The Denver Nuggets waived Quincy Miller .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203187",
+      "player_name": "Chris Johnson",
+      "overlaps": [
+        {
+          "season": "2014-15",
+          "player_id": "203187",
+          "player_name": "Chris Johnson",
+          "left_team_id": 1610612749,
+          "left_start": "2015-03-16",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612762,
+          "right_start": "2015-03-26",
+          "right_end": "2015-04-15",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2014-11-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2014-11-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "depart_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612762,
+          "team_abbr": "UTA",
+          "tenure_start": "2015-01-28",
+          "tenure_end": "2015-02-06",
+          "query_start_date": "2015-01-29",
+          "query_end_date": "2015-02-06",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612749,
+          "team_abbr": "MIL",
+          "tenure_start": "2015-03-06",
+          "tenure_end": "2015-03-15",
+          "query_start_date": "2015-03-07",
+          "query_end_date": "2015-03-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "historical_single_10_day_contract_natural_expiry_v11",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612749,
+          "team_abbr": "MIL",
+          "tenure_start": "2015-03-16",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2015-03-17",
+          "query_end_date": "2015-04-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612762,
+          "team_abbr": "UTA",
+          "tenure_start": "2015-03-26",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2015-03-27",
+          "query_end_date": "2015-04-15",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Basketball-Reference via Internet Archive",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2015-02-06",
+          "event_type": "depart",
+          "source_team_id": 1610612762,
+          "destination_team_id": null,
+          "source_team_name": "Utah Jazz",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-825#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2015-01-28; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "same_season_team_context",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2015-01-28"
+        },
+        {
+          "exact_date": "2015-03-15",
+          "event_type": "depart",
+          "source_team_id": 1610612749,
+          "destination_team_id": null,
+          "source_team_name": "Milwaukee Bucks",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-979#derived-single-10day-v11",
+          "raw_text": "Derived natural endpoint from single 10-day signing on 2015-03-06; tenth calendar day inclusive or third team game after signing, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "same_season_team_context",
+          "team_resolution": "deterministic_historical_single_10day_expiry_v11",
+          "derived_boundary_type": "historical_single_10_day_contract_natural_expiry_v11",
+          "derived_from_signing_date": "2015-03-06"
+        },
+        {
+          "exact_date": "January 28, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612762,
+          "source_team_name": null,
+          "destination_team_name": "Utah Jazz",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-825",
+          "raw_text": "The Utah Jazz signed Chris Johnson to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "same_season_team_context",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 16, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612749,
+          "source_team_name": null,
+          "destination_team_name": "Milwaukee Bucks",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-1013",
+          "raw_text": "The Milwaukee Bucks signed Chris Johnson to a 2nd 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "same_season_team_context",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 26, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612762,
+          "source_team_name": null,
+          "destination_team_name": "Utah Jazz",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-1048",
+          "raw_text": "The Utah Jazz signed Chris Johnson to a multi-year contract.",
+          "confidence": "high",
+          "identity_resolution": "same_season_team_context",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 6, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612749,
+          "source_team_name": null,
+          "destination_team_name": "Milwaukee Bucks",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-979",
+          "raw_text": "The Milwaukee Bucks signed Chris Johnson to a 10-day contract.",
+          "confidence": "high",
+          "identity_resolution": "same_season_team_context",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "November 15, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612755,
+          "destination_team_id": null,
+          "source_team_name": "Philadelphia 76ers",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-529",
+          "raw_text": "The Philadelphia 76ers waived Chris Johnson .",
+          "confidence": "high",
+          "identity_resolution": "same_season_team_context",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "September 25, 2014",
+          "event_type": "depart",
+          "source_team_id": 1610612738,
+          "destination_team_id": null,
+          "source_team_name": "Boston Celtics",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-276",
+          "raw_text": "The Boston Celtics waived Chris Johnson .",
+          "confidence": "high",
+          "identity_resolution": "adjacent_season_team_context",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "September 28, 2014",
+          "event_type": "claim",
+          "source_team_id": 1610612738,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": "Philadelphia 76ers",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20221207203038id_/https://www.basketball-reference.com/leagues/NBA_2015_transactions.html#row-308",
+          "raw_text": "The Philadelphia 76ers claimed Chris Johnson on waivers from the Boston Celtics .",
+          "confidence": "high",
+          "identity_resolution": "same_season_team_context",
+          "team_resolution": "source=not_applicable;destination=unique_alias;repair_applied",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2014-15",
+      "player_id": "203909",
+      "player_name": "KJ McDaniels",
+      "overlaps": [
+        {
+          "season": "2014-15",
+          "player_id": "203909",
+          "player_name": "KJ McDaniels",
+          "left_team_id": 1610612745,
+          "left_start": "2014-10-28",
+          "left_end": "2015-04-15",
+          "right_team_id": 1610612755,
+          "right_start": "2014-10-28",
+          "right_end": "2015-04-15",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612745,
+          "team_abbr": "HOU",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2014-10-28",
+          "tenure_end": "2015-04-15",
+          "query_start_date": "2014-10-28",
+          "query_end_date": "2015-04-15",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": []
+    },
+    {
+      "season": "2015-16",
+      "player_id": "201977",
+      "player_name": "Marcus Thornton",
+      "overlaps": [
+        {
+          "season": "2015-16",
+          "player_id": "201977",
+          "player_name": "Marcus Thornton",
+          "left_team_id": 1610612745,
+          "left_start": "2015-10-27",
+          "left_end": "2016-02-26",
+          "right_team_id": 1610612765,
+          "right_start": "2016-02-18",
+          "right_end": "2016-04-13",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2015-16",
+          "player_id": "201977",
+          "player_name": "Marcus Thornton",
+          "left_team_id": 1610612765,
+          "left_start": "2016-02-18",
+          "left_end": "2016-04-13",
+          "right_team_id": 1610612764,
+          "right_start": "2016-03-09",
+          "right_end": "2016-04-13",
+          "left_confidence": "provisional_high",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612745,
+          "team_abbr": "HOU",
+          "tenure_start": "2015-10-27",
+          "tenure_end": "2016-02-26",
+          "query_start_date": "2015-10-27",
+          "query_end_date": "2016-02-26",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "depart_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Basketball-Reference via Internet Archive",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612765,
+          "team_abbr": "1610612765",
+          "tenure_start": "2016-02-18",
+          "tenure_end": "2016-04-13",
+          "query_start_date": "2016-02-19",
+          "query_end_date": "2016-04-13",
+          "start_reason": "trade_into_team",
+          "end_reason": "season_close_roster_inferred_from_official_acquisition",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "official_transaction_derived_affiliation",
+            "transaction_day_policy_applied",
+            "zero_core_minutes_candidate"
+          ]
+        },
+        {
+          "team_id": 1610612764,
+          "team_abbr": "WAS",
+          "tenure_start": "2016-03-09",
+          "tenure_end": "2016-04-13",
+          "query_start_date": "2016-03-10",
+          "query_end_date": "2016-04-13",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2015-07-24",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612745,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-9540",
+          "raw_text": "Houston Rockets signed guard Marcus Thornton to a Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2016-02-18",
+          "event_type": "trade",
+          "source_team_id": 1610612745,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-9188",
+          "raw_text": "Detroit Pistons received guard Marcus Thornton from Houston Rockets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2016-02-26",
+          "event_type": "depart",
+          "source_team_id": 1610612745,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-9141",
+          "raw_text": "Houston Rockets waived guard Marcus Thornton.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2016-03-09",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612764,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-9108",
+          "raw_text": "Washington Wizards signed guard Marcus Thornton to a Rest-of-Season Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "February 26, 2016",
+          "event_type": "depart",
+          "source_team_id": 1610612745,
+          "destination_team_id": null,
+          "source_team_name": "Houston Rockets",
+          "destination_team_name": null,
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220629030608id_/https://www.basketball-reference.com/leagues/NBA_2016_transactions.html#row-1114",
+          "raw_text": "The Houston Rockets waived Marcus Thornton .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=unique_alias;destination=not_applicable",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "July 25, 2015",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612745,
+          "source_team_name": null,
+          "destination_team_name": "Houston Rockets",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220629030608id_/https://www.basketball-reference.com/leagues/NBA_2016_transactions.html#row-176",
+          "raw_text": "The Houston Rockets signed Marcus Thornton .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "March 9, 2016",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612764,
+          "source_team_name": null,
+          "destination_team_name": "Washington Wizards",
+          "source_system": "Basketball-Reference via Internet Archive",
+          "source_reference": "https://web.archive.org/web/20220629030608id_/https://www.basketball-reference.com/leagues/NBA_2016_transactions.html#row-1205",
+          "raw_text": "The Washington Wizards signed Marcus Thornton .",
+          "confidence": "high",
+          "identity_resolution": "unique_core_name",
+          "team_resolution": "source=not_applicable;destination=unique_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2019-20",
+      "player_id": "1627784",
+      "player_name": "Jarrod Uthoff",
+      "overlaps": [
+        {
+          "season": "2019-20",
+          "player_id": "1627784",
+          "player_name": "Jarrod Uthoff",
+          "left_team_id": 1610612764,
+          "left_start": "2019-10-22",
+          "left_end": "2020-08-14",
+          "right_team_id": 1610612763,
+          "right_start": "2020-02-27",
+          "right_end": "2020-03-07",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612764,
+          "team_abbr": "WAS",
+          "tenure_start": "2019-10-22",
+          "tenure_end": "2020-08-14",
+          "query_start_date": "2019-10-22",
+          "query_end_date": "2020-08-14",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612763,
+          "team_abbr": "MEM",
+          "tenure_start": "2020-02-27",
+          "tenure_end": "2020-03-07",
+          "query_start_date": "2020-02-28",
+          "query_end_date": "2020-03-07",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "10_day_contract_natural_expiry",
+            "chronology_rebuilt_from_transaction_events",
+            "segment_1_of_1",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2019-10-17",
+          "event_type": "depart",
+          "source_team_id": 1610612763,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-6256",
+          "raw_text": "Memphis Grizzlies waived forward Jarrod Uthoff.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2020-02-27",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612763,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5932",
+          "raw_text": "Memphis Grizzlies signed forward Jarrod Uthoff to a 10-Day Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2020-03-07",
+          "event_type": "depart",
+          "source_team_id": 1610612763,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5932#derived-10day-expiry",
+          "raw_text": "Derived natural expiration of 10-Day Contract signed 2020-02-27; endpoint is 10 calendar days after signing or the third scheduled regular-season game, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id+deterministic_10day_expiry;v11_inclusive_10day_endpoint",
+          "derived_boundary_type": "10_day_contract_natural_expiry",
+          "derived_from_signing_date": "2020-02-27"
+        }
+      ]
+    },
+    {
+      "season": "2019-20",
+      "player_id": "1629743",
+      "player_name": "Donta Hall",
+      "overlaps": [
+        {
+          "season": "2019-20",
+          "player_id": "1629743",
+          "player_name": "Donta Hall",
+          "left_team_id": 1610612751,
+          "left_start": "2019-10-22",
+          "left_end": "2020-08-14",
+          "right_team_id": 1610612765,
+          "right_start": "2020-02-22",
+          "right_end": "2020-03-02",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        },
+        {
+          "season": "2019-20",
+          "player_id": "1629743",
+          "player_name": "Donta Hall",
+          "left_team_id": 1610612751,
+          "left_start": "2019-10-22",
+          "left_end": "2020-08-14",
+          "right_team_id": 1610612765,
+          "right_start": "2020-03-03",
+          "right_end": "2020-03-12",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612751,
+          "team_abbr": "BKN",
+          "tenure_start": "2019-10-22",
+          "tenure_end": "2020-08-14",
+          "query_start_date": "2019-10-22",
+          "query_end_date": "2020-08-14",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612765,
+          "team_abbr": "DET",
+          "tenure_start": "2020-02-22",
+          "tenure_end": "2020-03-02",
+          "query_start_date": "2020-02-23",
+          "query_end_date": "2020-03-02",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "10_day_contract_natural_expiry",
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_1_of_2",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612765,
+          "team_abbr": "DET",
+          "tenure_start": "2020-03-03",
+          "tenure_end": "2020-03-12",
+          "query_start_date": "2020-03-04",
+          "query_end_date": "2020-03-12",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "10_day_contract_natural_expiry",
+            "chronology_rebuilt_from_transaction_events",
+            "multi_stint_segment",
+            "segment_2_of_2",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2019-10-19",
+          "event_type": "depart",
+          "source_team_id": 1610612765,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-6171",
+          "raw_text": "Detroit Pistons waived center Donta Hall.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2020-02-22",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5936",
+          "raw_text": "Detroit Pistons signed center Donta Hall to a 10-Day Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2020-03-02",
+          "event_type": "depart",
+          "source_team_id": 1610612765,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5936#derived-10day-expiry",
+          "raw_text": "Derived natural expiration of 10-Day Contract signed 2020-02-22; endpoint is 10 calendar days after signing or the third scheduled regular-season game, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id+deterministic_10day_expiry;v11_inclusive_10day_endpoint",
+          "derived_boundary_type": "10_day_contract_natural_expiry",
+          "derived_from_signing_date": "2020-02-22"
+        },
+        {
+          "exact_date": "2020-03-03",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612765,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5922",
+          "raw_text": "Detroit Pistons signed center Donta Hall to a 10-Day Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2020-03-12",
+          "event_type": "depart",
+          "source_team_id": 1610612765,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5922#derived-10day-expiry",
+          "raw_text": "Derived natural expiration of 10-Day Contract signed 2020-03-03; endpoint is 10 calendar days after signing or the third scheduled regular-season game, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id+deterministic_10day_expiry;v11_inclusive_10day_endpoint",
+          "derived_boundary_type": "10_day_contract_natural_expiry",
+          "derived_from_signing_date": "2020-03-03"
+        }
+      ]
+    },
+    {
+      "season": "2019-20",
+      "player_id": "203504",
+      "player_name": "Trey Burke",
+      "overlaps": [
+        {
+          "season": "2019-20",
+          "player_id": "203504",
+          "player_name": "Trey Burke",
+          "left_team_id": 1610612755,
+          "left_start": "2019-10-22",
+          "left_end": "2020-02-07",
+          "right_team_id": 1610612742,
+          "right_start": "2019-10-22",
+          "right_end": "2020-08-14",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612742,
+          "team_abbr": "DAL",
+          "tenure_start": "2019-10-22",
+          "tenure_end": "2020-08-14",
+          "query_start_date": "2019-10-22",
+          "query_end_date": "2020-08-14",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2019-10-22",
+          "tenure_end": "2020-02-07",
+          "query_start_date": "2019-10-22",
+          "query_end_date": "2020-02-07",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "depart_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2019-07-30",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-6370",
+          "raw_text": "Philadelphia 76ers signed guard Trey Burke to a Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2020-02-07",
+          "event_type": "depart",
+          "source_team_id": 1610612755,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5969",
+          "raw_text": "Philadelphia 76ers waived guard Trey Burke.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2020-21",
+      "player_id": "1627752",
+      "player_name": "Taurean Prince",
+      "overlaps": [
+        {
+          "season": "2020-21",
+          "player_id": "1627752",
+          "player_name": "Taurean Prince",
+          "left_team_id": 1610612751,
+          "left_start": "2020-12-22",
+          "left_end": "2021-01-16",
+          "right_team_id": 1610612739,
+          "right_start": "2021-01-14",
+          "right_end": "2021-05-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612751,
+          "team_abbr": "BKN",
+          "tenure_start": "2020-12-22",
+          "tenure_end": "2021-01-16",
+          "query_start_date": "2020-12-22",
+          "query_end_date": "2021-01-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "trade_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612739,
+          "team_abbr": "CLE",
+          "tenure_start": "2021-01-14",
+          "tenure_end": "2021-05-16",
+          "query_start_date": "2021-01-15",
+          "query_end_date": "2021-05-16",
+          "start_reason": "trade_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2021-01-14",
+          "event_type": "trade",
+          "source_team_id": 1610612751,
+          "destination_team_id": 1610612739,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5387",
+          "raw_text": "Cleveland Cavaliers received forward Taurean Prince from Brooklyn Nets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-01-16",
+          "event_type": "trade",
+          "source_team_id": 1610612751,
+          "destination_team_id": 1610612739,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5376",
+          "raw_text": "Cleveland Cavaliers received forward Taurean Prince from Brooklyn Nets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2020-21",
+      "player_id": "1628386",
+      "player_name": "Jarrett Allen",
+      "overlaps": [
+        {
+          "season": "2020-21",
+          "player_id": "1628386",
+          "player_name": "Jarrett Allen",
+          "left_team_id": 1610612751,
+          "left_start": "2020-12-22",
+          "left_end": "2021-01-16",
+          "right_team_id": 1610612739,
+          "right_start": "2021-01-14",
+          "right_end": "2021-05-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612751,
+          "team_abbr": "BKN",
+          "tenure_start": "2020-12-22",
+          "tenure_end": "2021-01-16",
+          "query_start_date": "2020-12-22",
+          "query_end_date": "2021-01-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "trade_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612739,
+          "team_abbr": "CLE",
+          "tenure_start": "2021-01-14",
+          "tenure_end": "2021-05-16",
+          "query_start_date": "2021-01-15",
+          "query_end_date": "2021-05-16",
+          "start_reason": "trade_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2021-01-14",
+          "event_type": "trade",
+          "source_team_id": 1610612751,
+          "destination_team_id": 1610612739,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5386",
+          "raw_text": "Cleveland Cavaliers received center Jarrett Allen from Brooklyn Nets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-01-16",
+          "event_type": "trade",
+          "source_team_id": 1610612751,
+          "destination_team_id": 1610612739,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5375",
+          "raw_text": "Cleveland Cavaliers received center Jarrett Allen from Brooklyn Nets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2020-21",
+      "player_id": "1629066",
+      "player_name": "Rodions Kurucs",
+      "overlaps": [
+        {
+          "season": "2020-21",
+          "player_id": "1629066",
+          "player_name": "Rodions Kurucs",
+          "left_team_id": 1610612751,
+          "left_start": "2020-12-22",
+          "left_end": "2021-01-16",
+          "right_team_id": 1610612745,
+          "right_start": "2021-01-14",
+          "right_end": "2021-03-19",
+          "left_confidence": "review",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612751,
+          "team_abbr": "BKN",
+          "tenure_start": "2020-12-22",
+          "tenure_end": "2021-01-16",
+          "query_start_date": "2020-12-22",
+          "query_end_date": "2021-01-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "trade_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612745,
+          "team_abbr": "HOU",
+          "tenure_start": "2021-01-14",
+          "tenure_end": "2021-03-19",
+          "query_start_date": "2021-01-15",
+          "query_end_date": "2021-03-19",
+          "start_reason": "trade_into_team",
+          "end_reason": "trade_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612749,
+          "team_abbr": "MIL",
+          "tenure_start": "2021-03-19",
+          "tenure_end": "2021-05-12",
+          "query_start_date": "2021-03-20",
+          "query_end_date": "2021-05-12",
+          "start_reason": "trade_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2021-01-14",
+          "event_type": "trade",
+          "source_team_id": 1610612751,
+          "destination_team_id": 1610612745,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5390",
+          "raw_text": "Houston Rockets received forward Rodions Kurucs from Brooklyn Nets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-01-16",
+          "event_type": "trade",
+          "source_team_id": 1610612751,
+          "destination_team_id": 1610612745,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5379",
+          "raw_text": "Houston Rockets received forward Rodions Kurucs from Brooklyn Nets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-03-19",
+          "event_type": "trade",
+          "source_team_id": 1610612745,
+          "destination_team_id": 1610612749,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5308",
+          "raw_text": "Milwaukee Bucks received forward Rodions Kurucs from Houston Rockets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-05-12",
+          "event_type": "depart",
+          "source_team_id": 1610612749,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5113",
+          "raw_text": "Milwaukee Bucks waived forward Rodions Kurucs.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2020-21",
+      "player_id": "201935",
+      "player_name": "James Harden",
+      "overlaps": [
+        {
+          "season": "2020-21",
+          "player_id": "201935",
+          "player_name": "James Harden",
+          "left_team_id": 1610612745,
+          "left_start": "2020-12-22",
+          "left_end": "2021-01-16",
+          "right_team_id": 1610612751,
+          "right_start": "2021-01-14",
+          "right_end": "2021-05-16",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612745,
+          "team_abbr": "HOU",
+          "tenure_start": "2020-12-22",
+          "tenure_end": "2021-01-16",
+          "query_start_date": "2020-12-22",
+          "query_end_date": "2021-01-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "trade_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612751,
+          "team_abbr": "BKN",
+          "tenure_start": "2021-01-14",
+          "tenure_end": "2021-05-16",
+          "query_start_date": "2021-01-15",
+          "query_end_date": "2021-05-16",
+          "start_reason": "trade_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2021-01-14",
+          "event_type": "trade",
+          "source_team_id": 1610612745,
+          "destination_team_id": 1610612751,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5394",
+          "raw_text": "Brooklyn Nets received guard James Harden from Houston Rockets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-01-16",
+          "event_type": "trade",
+          "source_team_id": 1610612745,
+          "destination_team_id": 1610612751,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5382",
+          "raw_text": "Brooklyn Nets received guard James Harden from Houston Rockets.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2020-21",
+      "player_id": "203957",
+      "player_name": "Dante Exum",
+      "overlaps": [
+        {
+          "season": "2020-21",
+          "player_id": "203957",
+          "player_name": "Dante Exum",
+          "left_team_id": 1610612739,
+          "left_start": "2020-12-22",
+          "left_end": "2021-01-16",
+          "right_team_id": 1610612745,
+          "right_start": "2021-01-14",
+          "right_end": "2021-05-16",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612739,
+          "team_abbr": "CLE",
+          "tenure_start": "2020-12-22",
+          "tenure_end": "2021-01-16",
+          "query_start_date": "2020-12-22",
+          "query_end_date": "2021-01-16",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "trade_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612745,
+          "team_abbr": "1610612745",
+          "tenure_start": "2021-01-14",
+          "tenure_end": "2021-05-16",
+          "query_start_date": "2021-01-15",
+          "query_end_date": "2021-05-16",
+          "start_reason": "trade_into_team",
+          "end_reason": "season_close_roster_inferred_from_official_acquisition",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "official_transaction_derived_affiliation",
+            "transaction_day_policy_applied",
+            "zero_core_minutes_candidate"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2021-01-14",
+          "event_type": "trade",
+          "source_team_id": 1610612739,
+          "destination_team_id": 1610612745,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5388",
+          "raw_text": "Houston Rockets received guard Dante Exum from Cleveland Cavaliers.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-01-16",
+          "event_type": "trade",
+          "source_team_id": 1610612739,
+          "destination_team_id": 1610612745,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-5377",
+          "raw_text": "Houston Rockets received guard Dante Exum from Cleveland Cavaliers.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2021-22",
+      "player_id": "203516",
+      "player_name": "James Ennis III",
+      "overlaps": [
+        {
+          "season": "2021-22",
+          "player_id": "203516",
+          "player_name": "James Ennis III",
+          "left_team_id": 1610612751,
+          "left_start": "2021-12-18",
+          "left_end": "2021-12-30",
+          "right_team_id": 1610612746,
+          "right_start": "2021-12-29",
+          "right_end": "2022-01-07",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612751,
+          "team_abbr": "BKN",
+          "tenure_start": "2021-12-18",
+          "tenure_end": "2021-12-30",
+          "query_start_date": "2021-12-19",
+          "query_end_date": "2021-12-30",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "10_day_contract_natural_expiry",
+            "chronology_rebuilt_from_transaction_events",
+            "segment_1_of_1",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612746,
+          "team_abbr": "LAC",
+          "tenure_start": "2021-12-29",
+          "tenure_end": "2022-01-07",
+          "query_start_date": "2021-12-30",
+          "query_end_date": "2022-01-07",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "10_day_contract_natural_expiry",
+            "chronology_rebuilt_from_transaction_events",
+            "segment_1_of_1",
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612743,
+          "team_abbr": "DEN",
+          "tenure_start": "2022-01-10",
+          "tenure_end": "2022-01-19",
+          "query_start_date": "2022-01-11",
+          "query_end_date": "2022-01-19",
+          "start_reason": "acquire_into_team",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "10_day_contract_natural_expiry",
+            "chronology_rebuilt_from_transaction_events",
+            "segment_1_of_1",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2021-12-18",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612751,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-4499",
+          "raw_text": "Brooklyn Nets signed forward James Ennis III to a 10-Day Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-12-29",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612746,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-4403",
+          "raw_text": "LA Clippers signed forward James Ennis III to a 10-Day Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2021-12-30",
+          "event_type": "depart",
+          "source_team_id": 1610612751,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-4499#derived-10day-expiry",
+          "raw_text": "Derived natural expiration of 10-Day Contract signed 2021-12-18; endpoint is 10 calendar days after signing or the third scheduled regular-season game, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id+deterministic_10day_expiry",
+          "derived_boundary_type": "10_day_contract_natural_expiry",
+          "derived_from_signing_date": "2021-12-18"
+        },
+        {
+          "exact_date": "2022-01-07",
+          "event_type": "depart",
+          "source_team_id": 1610612746,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-4403#derived-10day-expiry",
+          "raw_text": "Derived natural expiration of 10-Day Contract signed 2021-12-29; endpoint is 10 calendar days after signing or the third scheduled regular-season game, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id+deterministic_10day_expiry;v11_inclusive_10day_endpoint",
+          "derived_boundary_type": "10_day_contract_natural_expiry",
+          "derived_from_signing_date": "2021-12-29"
+        },
+        {
+          "exact_date": "2022-01-10",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612743,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-4317",
+          "raw_text": "Denver Nuggets signed forward James Ennis III to a 10-Day Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2022-01-19",
+          "event_type": "depart",
+          "source_team_id": 1610612743,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-4317#derived-10day-expiry",
+          "raw_text": "Derived natural expiration of 10-Day Contract signed 2022-01-10; endpoint is 10 calendar days after signing or the third scheduled regular-season game, whichever is later.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id+deterministic_10day_expiry;v11_inclusive_10day_endpoint",
+          "derived_boundary_type": "10_day_contract_natural_expiry",
+          "derived_from_signing_date": "2022-01-10"
+        }
+      ]
+    },
+    {
+      "season": "2024-25",
+      "player_id": "1629629",
+      "player_name": "Cam Reddish",
+      "overlaps": [
+        {
+          "season": "2024-25",
+          "player_id": "1629629",
+          "player_name": "Cam Reddish",
+          "left_team_id": 1610612747,
+          "left_start": "2024-10-22",
+          "left_end": "2025-03-27",
+          "right_team_id": 1610612766,
+          "right_start": "2025-02-06",
+          "right_end": "2025-04-13",
+          "left_confidence": "provisional_high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612747,
+          "team_abbr": "LAL",
+          "tenure_start": "2024-10-22",
+          "tenure_end": "2025-03-27",
+          "query_start_date": "2024-10-22",
+          "query_end_date": "2025-03-27",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "depart_out_of_team",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "transaction_day_policy_applied"
+          ]
+        },
+        {
+          "team_id": 1610612766,
+          "team_abbr": "1610612766",
+          "tenure_start": "2025-02-06",
+          "tenure_end": "2025-04-13",
+          "query_start_date": "2025-02-07",
+          "query_end_date": "2025-04-13",
+          "start_reason": "trade_into_team",
+          "end_reason": "season_close_roster_inferred_from_official_acquisition",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "official_transaction_derived_affiliation",
+            "transaction_day_policy_applied",
+            "zero_core_minutes_candidate"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2025-02-06",
+          "event_type": "trade",
+          "source_team_id": null,
+          "destination_team_id": 1610612766,
+          "source_team_name": "Los Angeles Lakers in a trade",
+          "destination_team_name": "Charlotte Hornets",
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2025",
+          "raw_text": "Cam Reddish was acquired by the Charlotte Hornets from the Los Angeles Lakers in a trade.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2025-02-06",
+          "event_type": "trade",
+          "source_team_id": 1610612747,
+          "destination_team_id": 1610612766,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-1463",
+          "raw_text": "Charlotte Hornets received forward Cam Reddish from Los Angeles Lakers.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2025-03-27",
+          "event_type": "depart",
+          "source_team_id": 1610612747,
+          "destination_team_id": null,
+          "source_team_name": "Los Angeles Lakers",
+          "destination_team_name": null,
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2025",
+          "raw_text": "The Los Angeles Lakers placed the contract of Cam Reddish on waivers.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2025-03-27",
+          "event_type": "depart",
+          "source_team_id": 1610612747,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-1276",
+          "raw_text": "Los Angeles Lakers waived forward Cam Reddish.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2024-25",
+      "player_id": "1630215",
+      "player_name": "Jared Butler",
+      "overlaps": [
+        {
+          "season": "2024-25",
+          "player_id": "1630215",
+          "player_name": "Jared Butler",
+          "left_team_id": 1610612764,
+          "left_start": "2024-10-22",
+          "left_end": "2025-04-13",
+          "right_team_id": 1610612755,
+          "right_start": "2025-02-13",
+          "right_end": "2025-04-13",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612764,
+          "team_abbr": "WAS",
+          "tenure_start": "2024-10-22",
+          "tenure_end": "2025-04-13",
+          "query_start_date": "2024-10-22",
+          "query_end_date": "2025-04-13",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612755,
+          "team_abbr": "PHI",
+          "tenure_start": "2025-02-13",
+          "tenure_end": "2025-04-13",
+          "query_start_date": "2025-02-14",
+          "query_end_date": "2025-04-13",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "RealGM league transaction history",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_departure_boundary",
+            "transaction_day_policy_applied"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2024-10-13",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612764,
+          "source_team_name": null,
+          "destination_team_name": "Washington Wizards",
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2025",
+          "raw_text": "John Butler signed a contract with the Washington Wizards.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2024-10-18",
+          "event_type": "depart",
+          "source_team_id": 1610612764,
+          "destination_team_id": null,
+          "source_team_name": "Washington Wizards",
+          "destination_team_name": null,
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2025",
+          "raw_text": "The Washington Wizards placed the contract of John Butler on waivers.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2024-10-19",
+          "event_type": "depart",
+          "source_team_id": 1610612764,
+          "destination_team_id": null,
+          "source_team_name": "Washington Wizards",
+          "destination_team_name": null,
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2025",
+          "raw_text": "The Washington Wizards placed the contract of Jared Butler on waivers.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2024-10-19",
+          "event_type": "depart",
+          "source_team_id": 1610612764,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-1679",
+          "raw_text": "Washington Wizards waived guard Jared Butler.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2024-10-21",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612764,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-1618",
+          "raw_text": "Washington Wizards signed guard Jared Butler to a Two-Way Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2025-02-13",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": "Philadelphia Sixers",
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2025",
+          "raw_text": "Jared Butler signed a multi-year contract with the Philadelphia Sixers.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2025-02-13",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612755,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-1370",
+          "raw_text": "Philadelphia 76ers re-signed guard Jared Butler to a Rest-of-Season Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2024-25",
+      "player_id": "1641736",
+      "player_name": "Reece Beekman",
+      "overlaps": [
+        {
+          "season": "2024-25",
+          "player_id": "1641736",
+          "player_name": "Reece Beekman",
+          "left_team_id": 1610612744,
+          "left_start": "2024-10-22",
+          "left_end": "2025-04-13",
+          "right_team_id": 1610612751,
+          "right_start": "2024-10-22",
+          "right_end": "2025-04-13",
+          "left_confidence": "review",
+          "right_confidence": "review"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612744,
+          "team_abbr": "GSW",
+          "tenure_start": "2024-10-22",
+          "tenure_end": "2025-04-13",
+          "query_start_date": "2024-10-22",
+          "query_end_date": "2025-04-13",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        },
+        {
+          "team_id": 1610612751,
+          "team_abbr": "BKN",
+          "tenure_start": "2024-10-22",
+          "tenure_end": "2025-04-13",
+          "query_start_date": "2024-10-22",
+          "query_end_date": "2025-04-13",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "review",
+          "audit_flags": [
+            "multi_team_affiliation_without_acquisition_boundary",
+            "multi_team_affiliation_without_departure_boundary"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2024-07-03",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612744,
+          "source_team_name": null,
+          "destination_team_name": "Golden State Warriors",
+          "source_system": "RealGM league transaction history",
+          "source_reference": "https://basketball.realgm.com/nba/transactions/league/2025",
+          "raw_text": "Reece Beekman signed a two-way contract with the Golden State Warriors.",
+          "confidence": "high",
+          "identity_resolution": "realgm_name+core_team_context",
+          "team_resolution": "realgm_historical_team_alias",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2024-07-03",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612744,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-2148",
+          "raw_text": "Golden State Warriors signed guard Reece Beekman to a Two-Way Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    },
+    {
+      "season": "2025-26",
+      "player_id": "1641801",
+      "player_name": "Emanuel Miller",
+      "overlaps": [
+        {
+          "season": "2025-26",
+          "player_id": "1641801",
+          "player_name": "Emanuel Miller",
+          "left_team_id": 1610612739,
+          "left_start": "2025-10-21",
+          "left_end": "2026-02-19",
+          "right_team_id": 1610612741,
+          "right_start": "2025-10-21",
+          "right_end": "2026-04-12",
+          "left_confidence": "provisional_high",
+          "right_confidence": "high"
+        },
+        {
+          "season": "2025-26",
+          "player_id": "1641801",
+          "player_name": "Emanuel Miller",
+          "left_team_id": 1610612741,
+          "left_start": "2025-10-21",
+          "left_end": "2026-04-12",
+          "right_team_id": 1610612759,
+          "right_start": "2026-02-23",
+          "right_end": "2026-04-12",
+          "left_confidence": "high",
+          "right_confidence": "provisional_high"
+        }
+      ],
+      "windows": [
+        {
+          "team_id": 1610612739,
+          "team_abbr": "1610612739",
+          "tenure_start": "2025-10-21",
+          "tenure_end": "2026-02-19",
+          "query_start_date": "2025-10-21",
+          "query_end_date": "2026-02-19",
+          "start_reason": "season_open_roster_inferred_from_official_departure",
+          "end_reason": "depart_out_of_team",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "official_transaction_derived_affiliation",
+            "transaction_day_policy_applied",
+            "zero_core_minutes_candidate"
+          ]
+        },
+        {
+          "team_id": 1610612741,
+          "team_abbr": "CHI",
+          "tenure_start": "2025-10-21",
+          "tenure_end": "2026-04-12",
+          "query_start_date": "2025-10-21",
+          "query_end_date": "2026-04-12",
+          "start_reason": "season_open_roster_continuity",
+          "end_reason": "season_close_roster_continuity",
+          "start_source": "core affiliation + no in-season acquisition event",
+          "end_source": "core affiliation + no in-season departure event",
+          "confidence": "high",
+          "audit_flags": []
+        },
+        {
+          "team_id": 1610612759,
+          "team_abbr": "1610612759",
+          "tenure_start": "2026-02-23",
+          "tenure_end": "2026-04-12",
+          "query_start_date": "2026-02-24",
+          "query_end_date": "2026-04-12",
+          "start_reason": "acquire_into_team",
+          "end_reason": "season_close_roster_inferred_from_official_acquisition",
+          "start_source": "Official NBA Player Movement feed",
+          "end_source": "Official NBA Player Movement feed",
+          "confidence": "provisional_high",
+          "audit_flags": [
+            "official_transaction_derived_affiliation",
+            "transaction_day_policy_applied",
+            "zero_core_minutes_candidate"
+          ]
+        }
+      ],
+      "events": [
+        {
+          "exact_date": "2026-02-19",
+          "event_type": "depart",
+          "source_team_id": 1610612739,
+          "destination_team_id": null,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-387",
+          "raw_text": "Cleveland Cavaliers waived forward Emanuel Miller.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        },
+        {
+          "exact_date": "2026-02-23",
+          "event_type": "acquire",
+          "source_team_id": null,
+          "destination_team_id": 1610612759,
+          "source_team_name": null,
+          "destination_team_name": null,
+          "source_system": "Official NBA Player Movement feed",
+          "source_reference": "https://stats.nba.com/js/data/playermovement/NBA_Player_Movement.json#row-368",
+          "raw_text": "San Antonio Spurs signed forward Emanuel Miller to a Two-Way Contract.",
+          "confidence": "high",
+          "identity_resolution": "official_nba_player_id",
+          "team_resolution": "official_team_id",
+          "derived_boundary_type": null,
+          "derived_from_signing_date": null
+        }
+      ]
+    }
+  ]
+}
