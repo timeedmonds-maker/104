@@ -3,6 +3,7 @@ from __future__ import annotations
 import gzip
 import json
 from collections import defaultdict
+from datetime import datetime
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
@@ -35,6 +36,22 @@ def read_rows(path: Path):
                 yield json.loads(line)
 
 
+def iso_date(value: object) -> str | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return datetime.strptime(text, "%Y-%m-%d").date().isoformat()
+    except ValueError:
+        pass
+    for fmt in ("%B %d, %Y", "%b %d, %Y"):
+        try:
+            return datetime.strptime(text, fmt).date().isoformat()
+        except ValueError:
+            pass
+    return None
+
+
 def event_role(e, team):
     into = e.get("destination_team_id") == team and e.get("event_type") in {"trade", "acquire", "claim"}
     out = e.get("source_team_id") == team and e.get("event_type") in {"trade", "depart"}
@@ -50,19 +67,45 @@ def event_role(e, team):
 def main() -> int:
     windows = list(read_rows(WINDOWS))
     events_by_key = defaultdict(list)
-    for e in read_rows(EVENTS):
-        season = e.get("season")
-        pid = str(e.get("player_id") or "")
-        day = str(e.get("exact_date") or "")
-        if season not in SEASON_BOUNDS or not pid or not day:
+    normalized_date_events = 0
+    unparseable_event_dates = []
+
+    for original in read_rows(EVENTS):
+        season = original.get("season")
+        pid = str(original.get("player_id") or "")
+        raw_day = str(original.get("exact_date") or "").strip()
+        if season not in SEASON_BOUNDS or not pid or not raw_day:
             continue
+
+        day = iso_date(raw_day)
+        if day is None:
+            unparseable_event_dates.append({
+                "season": season,
+                "player_id": pid,
+                "exact_date": raw_day,
+                "source_reference": original.get("source_reference"),
+            })
+            continue
+        if day != raw_day:
+            normalized_date_events += 1
+
         ss, se = SEASON_BOUNDS[season]
         if not (ss <= day <= se):
             continue
+
+        e = dict(original)
+        e["_iso_date"] = day
         for team in {e.get("source_team_id"), e.get("destination_team_id")} - {None}:
             role = event_role(e, int(team))
             if role:
                 events_by_key[(season, pid, int(team))].append(e)
+
+    if unparseable_event_dates:
+        print(json.dumps({
+            "unparseable_event_date_count": len(unparseable_event_dates),
+            "examples": unparseable_event_dates[:50],
+        }, indent=2))
+        raise RuntimeError("Unparseable normalized transaction dates in multi-stint splitter")
 
     output = []
     split_keys = 0
@@ -72,12 +115,16 @@ def main() -> int:
     for w in windows:
         key = (w["season"], str(w["player_id"]), int(w["team_id"]))
         events = events_by_key.get(key, [])
-        roles = [(e["exact_date"], event_role(e, key[2]), e) for e in events]
+        roles = [(e["_iso_date"], event_role(e, key[2]), e) for e in events]
         roles.sort(key=lambda x: (x[0], 0 if x[1] == "out" else 1, str(x[2].get("source_reference") or "")))
+
         # Only replace the builder's single interval when the event history
-        # demonstrates a departure followed by a later reacquisition (or the reverse).
+        # demonstrates a departure followed by a later reacquisition.
         role_sequence = [r for _, r, _ in roles if r in {"in", "out"}]
-        needs_split = any(role_sequence[i] == "out" and "in" in role_sequence[i + 1:] for i in range(len(role_sequence)))
+        needs_split = any(
+            role_sequence[i] == "out" and "in" in role_sequence[i + 1:]
+            for i in range(len(role_sequence))
+        )
         if not needs_split:
             output.append(w)
             continue
@@ -125,7 +172,10 @@ def main() -> int:
             row["start_reason"] = "multi_stint_segment_start"
             row["end_reason"] = "multi_stint_segment_end"
             row["same_day_resolution"] = "requires schedule/time audit" if day_ambiguous else "no same-day in/out collision"
-            flags = list(dict.fromkeys(list(row.get("audit_flags") or []) + ["multi_stint_segment", f"segment_{idx}_of_{len(segments)}"]))
+            flags = list(dict.fromkeys(
+                list(row.get("audit_flags") or [])
+                + ["multi_stint_segment", f"segment_{idx}_of_{len(segments)}"]
+            ))
             if day_ambiguous:
                 flags.append("same_day_reacquisition_collision")
             row["audit_flags"] = flags
@@ -134,7 +184,10 @@ def main() -> int:
             row["segment_source_references"] = sorted(set(refs))
             output.append(row)
 
-    output.sort(key=lambda w: (w["season"], int(str(w["player_id"])), int(w["team_id"]), w["tenure_start"], w["tenure_end"]))
+    output.sort(key=lambda w: (
+        w["season"], int(str(w["player_id"])), int(w["team_id"]),
+        w["tenure_start"], w["tenure_end"],
+    ))
     with gzip.open(WINDOWS, "wt", encoding="utf-8") as f:
         for row in output:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
@@ -145,6 +198,8 @@ def main() -> int:
         "player_team_seasons_split": split_keys,
         "extra_segments_created": extra_segments,
         "same_day_in_out_collisions": ambiguous_same_day,
+        "historical_event_dates_normalized": normalized_date_events,
+        "unparseable_event_dates": 0,
     }
     SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))
