@@ -1,0 +1,94 @@
+name: TREB graphics renderer QA
+
+on:
+  push:
+    branches:
+      - treb-stage1-automation
+    paths:
+      - team_trb_all_players/render_funakistats_scatter.py
+      - team_trb_all_players/funakistats_headshots.py
+      - team_trb_all_players/render_funakistats_career_impact.py
+      - team_trb_all_players/funakistats_publication_provenance.py
+      - .github/workflows/treb-scatter-renderer.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: treb-graphics-renderer-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  renderer-self-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install renderer dependencies
+        run: python -m pip install --upgrade numpy pandas matplotlib pillow requests pyarrow
+      - name: Run headshot resolver QA
+        run: python team_trb_all_players/funakistats_headshots.py --self-test
+      - name: Run publication provenance QA
+        run: python team_trb_all_players/funakistats_publication_provenance.py --self-test
+      - name: Run deterministic scatter QA
+        run: python team_trb_all_players/render_funakistats_scatter.py --self-test
+      - name: Run Career Team Impact QA
+        run: python team_trb_all_players/render_funakistats_career_impact.py --self-test
+      - name: Apply X publication provenance gate to raster outputs
+        run: |
+          python team_trb_all_players/funakistats_publication_provenance.py --png /tmp/treb_scatter_selftest.png
+          python team_trb_all_players/funakistats_publication_provenance.py --png /tmp/career_impact_selftest.png
+          python team_trb_all_players/funakistats_publication_provenance.py --png /tmp/career_impact_full_selftest.png
+      - name: Validate generated masters and audit sidecars
+        run: |
+          for f in \
+            /tmp/treb_scatter_selftest.png \
+            /tmp/treb_scatter_selftest.svg \
+            /tmp/treb_scatter_selftest.pdf \
+            /tmp/treb_scatter_selftest_audit.json \
+            /tmp/treb_scatter_selftest_publication_provenance.json \
+            /tmp/career_impact_selftest.png \
+            /tmp/career_impact_selftest.svg \
+            /tmp/career_impact_selftest.pdf \
+            /tmp/career_impact_selftest_audit.json \
+            /tmp/career_impact_selftest_publication_provenance.json \
+            /tmp/career_impact_full_selftest.png \
+            /tmp/career_impact_full_selftest.svg \
+            /tmp/career_impact_full_selftest.pdf \
+            /tmp/career_impact_full_selftest_audit.json \
+            /tmp/career_impact_full_selftest_publication_provenance.json; do
+            test -s "$f"
+          done
+          python - <<'PY'
+          import json
+          scatter=json.load(open('/tmp/treb_scatter_selftest_audit.json'))
+          highlights=json.load(open('/tmp/career_impact_selftest_audit.json'))
+          full=json.load(open('/tmp/career_impact_full_selftest_audit.json'))
+          provenance=[
+              json.load(open('/tmp/treb_scatter_selftest_publication_provenance.json')),
+              json.load(open('/tmp/career_impact_selftest_publication_provenance.json')),
+              json.load(open('/tmp/career_impact_full_selftest_publication_provenance.json')),
+          ]
+          assert scatter['rows']==240
+          assert len(scatter['labels'])==12
+          assert scatter['coordinate_integrity']=='x/y copied directly from input rows'
+          assert highlights['mode']=='highlights'
+          assert highlights['threshold_mode']=='auto'
+          assert highlights['threshold']==2500
+          assert 1 <= len(highlights['tiles']) <= 16
+          assert full['mode']=='full'
+          assert len(full['tiles'])==20
+          assert highlights['rank_definition'].startswith('high-to-low historical rank')
+          for p in provenance:
+              assert p['publication_method']=='deterministic code-rendered analytical graphic'
+              assert p['generative_image_model_used'] is False
+              assert p['ai_generated_visual_assets_permitted'] is False
+              assert p['suspicious_ai_provenance_terms']==[]
+              assert p['x_release_gate_passed'] is True
+              assert p['brand']=='@funakistats'
+          print('FUNAKISTATS GRAPHICS QA PASSED')
+          PY
