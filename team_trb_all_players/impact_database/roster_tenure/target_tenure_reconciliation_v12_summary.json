@@ -1,11 +1,11 @@
 {
-  "generated_utc": "2026-08-08T23:21:48.296036+00:00",
+  "generated_utc": "2026-08-09T01:47:54.373753+00:00",
   "target_player_seasons": 35,
   "input_windows": 15530,
   "output_windows": 15529,
   "target_windows_rebuilt": 87,
   "unsupported_core_phantom_windows_dropped": 1,
-  "unsupported_core_teams_still_requiring_review": 19,
+  "unsupported_core_teams_still_requiring_review": 14,
   "phantom_drop_audit": [
     {
       "season": "2000-01",
@@ -69,36 +69,6 @@
       "player_id": "201571",
       "player_name": "D.J. Augustin",
       "team_id": 1610612741
-    },
-    {
-      "season": "2013-14",
-      "player_id": "201571",
-      "player_name": "D.J. Augustin",
-      "team_id": 1610612761
-    },
-    {
-      "season": "2013-14",
-      "player_id": "202721",
-      "player_name": "Darius Morris",
-      "team_id": 1610612746
-    },
-    {
-      "season": "2013-14",
-      "player_id": "202721",
-      "player_name": "Darius Morris",
-      "team_id": 1610612755
-    },
-    {
-      "season": "2013-14",
-      "player_id": "202952",
-      "player_name": "Malcolm Thomas",
-      "team_id": 1610612759
-    },
-    {
-      "season": "2013-14",
-      "player_id": "202952",
-      "player_name": "Malcolm Thomas",
-      "team_id": 1610612762
     },
     {
       "season": "2014-15",
@@ -212,7 +182,7 @@
         {
           "team_id": 1610612758,
           "supported": true,
-          "initial_state_reason": "first_regular_event_is_departure",
+          "initial_state_reason": "first_regular_event_is_acquisition",
           "segments": 1,
           "same_day_continuity": 0,
           "pass_through": 0
@@ -228,9 +198,9 @@
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 3,
+      "event_count": 4,
       "unsupported_core_teams": [],
-      "full_season_covered_by_supported_intervals": true
+      "full_season_covered_by_supported_intervals": false
     },
     {
       "season": "2010-11",
@@ -489,17 +459,18 @@
         },
         {
           "team_id": 1610612761,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         }
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 0,
+      "event_count": 1,
       "unsupported_core_teams": [
-        1610612741,
-        1610612761
+        1610612741
       ],
       "full_season_covered_by_supported_intervals": false
     },
@@ -527,9 +498,9 @@
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 4,
+      "event_count": 5,
       "unsupported_core_teams": [],
-      "full_season_covered_by_supported_intervals": true
+      "full_season_covered_by_supported_intervals": false
     },
     {
       "season": "2013-14",
@@ -538,15 +509,19 @@
       "teams": [
         {
           "team_id": 1610612746,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612755,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612763,
@@ -559,11 +534,8 @@
       ],
       "input_windows": 3,
       "output_windows": 3,
-      "event_count": 2,
-      "unsupported_core_teams": [
-        1610612746,
-        1610612755
-      ],
+      "event_count": 6,
+      "unsupported_core_teams": [],
       "full_season_covered_by_supported_intervals": false
     },
     {
@@ -581,24 +553,25 @@
         },
         {
           "team_id": 1610612759,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612762,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         }
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 1,
-      "unsupported_core_teams": [
-        1610612759,
-        1610612762
-      ],
+      "event_count": 3,
+      "unsupported_core_teams": [],
       "full_season_covered_by_supported_intervals": false
     },
     {
@@ -633,7 +606,7 @@
       ],
       "input_windows": 4,
       "output_windows": 4,
-      "event_count": 9,
+      "event_count": 10,
       "unsupported_core_teams": [],
       "full_season_covered_by_supported_intervals": false
     },
@@ -747,7 +720,7 @@
       ],
       "input_windows": 3,
       "output_windows": 3,
-      "event_count": 7,
+      "event_count": 8,
       "unsupported_core_teams": [],
       "full_season_covered_by_supported_intervals": false
     },
