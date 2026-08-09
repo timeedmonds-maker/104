@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T07:03:12.652104+00:00",
+  "generated_utc": "2026-08-09T07:07:25.622293+00:00",
   "stage1_exact_ready": true,
   "impact_windows_total": 15427,
-  "complete_windows": 9603,
-  "remaining_windows": 5824,
+  "complete_windows": 9620,
+  "remaining_windows": 5807,
   "failed_windows": 0,
   "metric_rows": null,
   "all_complete": false,
@@ -11,9 +11,100 @@
   "cache": "/workspaces/104/team_trb_all_players/impact_database/corrected_off/cache",
   "policy": "resumable tenure-scoped PBP Stats collection using deterministic transaction-day windows; core never rerun; teammate pairs excluded",
   "batch_requested": 80,
-  "batch_errors": 65,
+  "batch_errors": 63,
   "batch_workers": 4,
   "batch_error_examples": [
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "693",
+        "player_name": "Joe Smith",
+        "team_id": 1610612765,
+        "team_abbr": "DET",
+        "tenure_start": "2000-10-31",
+        "tenure_end": "2000-11-01",
+        "start_reason": "season_open_roster_continuity",
+        "end_reason": "depart_out_of_team",
+        "start_source": "Basketball-Reference via Internet Archive",
+        "end_source": "RealGM league transaction history",
+        "start_source_reference": null,
+        "end_source_reference": "https://basketball.realgm.com/nba/transactions/league/2001",
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 2,
+        "audit_flags": [
+          "chronology_rebuilt_from_transaction_events",
+          "multi_stint_segment",
+          "segment_1_of_2",
+          "transaction_day_policy_applied"
+        ],
+        "segment_index": 1,
+        "segment_count": 2,
+        "segment_source_references": [
+          "https://basketball.realgm.com/nba/transactions/league/2001",
+          "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-154"
+        ],
+        "query_start_date": "2000-10-31",
+        "query_end_date": "2000-11-01",
+        "start_boundary_included": true,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [],
+        "included_departing_transaction_day_game_ids": [
+          "0020000014"
+        ],
+        "boundary_game_ids": [
+          "0020000014"
+        ],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 2,
+        "team_games_max": 2,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612765,
+        "team_abbr": "DET",
+        "player_id": "693",
+        "player": "Joe Smith",
+        "tenure_start": "2000-10-31",
+        "tenure_end": "2000-11-01",
+        "query_start_date": "2000-10-31",
+        "query_end_date": "2000-11-01",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 2,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-10-31&ToDate=2000-11-01')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-10-31&ToDate=2000-11-01')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-10-31&ToDate=2000-11-01')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-10-31&ToDate=2000-11-01')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:04.628007+00:00"
+      }
+    },
     {
       "window": {
         "season": "2000-01",
@@ -700,7 +791,7 @@
             "ok": true,
             "attempt": 1,
             "status_code": 200,
-            "elapsed_seconds": 3.779,
+            "elapsed_seconds": 6.401,
             "errors": []
           },
           "stat_minutes": {
@@ -715,962 +806,7 @@
             ]
           }
         },
-        "generated_utc": "2026-08-09T06:59:44.474393+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "389",
-        "player_name": "Toni Kukoc",
-        "team_id": 1610612755,
-        "team_abbr": "PHI",
-        "tenure_start": "2000-10-31",
-        "tenure_end": "2001-02-22",
-        "start_reason": "season_open_roster_continuity",
-        "end_reason": "trade_out_of_team",
-        "start_source": "core affiliation + no in-season acquisition event",
-        "end_source": "Basketball-Reference via Internet Archive",
-        "start_source_reference": null,
-        "end_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-211",
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 55,
-        "audit_flags": [
-          "multi_team_structure_reconciled_exactly",
-          "transaction_day_policy_applied"
-        ],
-        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
-        "query_start_date": "2000-10-31",
-        "query_end_date": "2001-02-22",
-        "start_boundary_included": true,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [],
-        "included_departing_transaction_day_game_ids": [],
-        "boundary_game_ids": [],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 55,
-        "team_games_max": 55,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612755,
-        "team_abbr": "PHI",
-        "player_id": "389",
-        "player": "Toni Kukoc",
-        "tenure_start": "2000-10-31",
-        "tenure_end": "2001-02-22",
-        "query_start_date": "2000-10-31",
-        "query_end_date": "2001-02-22",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 55,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 89,
-        "metrics": [
-          {
-            "metric": "2pt FGM Assist%",
-            "on": 0.513,
-            "off_corrected": 0.567,
-            "on_minus_off_corrected": -0.054,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non Putback 2pt FGM Assist%",
-            "on": 0.571,
-            "off_corrected": 0.625,
-            "on_minus_off_corrected": -0.054,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FGM Assist%",
-            "on": 0.893,
-            "off_corrected": 0.871,
-            "on_minus_off_corrected": 0.022,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FG%",
-            "on": 0.343,
-            "off_corrected": 0.319,
-            "on_minus_off_corrected": 0.024,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non-Heave 3pt FG%",
-            "on": 0.357,
-            "off_corrected": 0.323,
-            "on_minus_off_corrected": 0.034,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt FG%",
-            "on": 0.504,
-            "off_corrected": 0.453,
-            "on_minus_off_corrected": 0.052,
-            "source_extra": {}
-          },
-          {
-            "metric": "eFG%",
-            "on": 0.506,
-            "off_corrected": 0.456,
-            "on_minus_off_corrected": 0.05,
-            "source_extra": {}
-          },
-          {
-            "metric": "TS%",
-            "on": 0.55,
-            "off_corrected": 0.502,
-            "on_minus_off_corrected": 0.047,
-            "source_extra": {}
-          },
-          {
-            "metric": "3PAr",
-            "on": 0.158,
-            "off_corrected": 0.113,
-            "on_minus_off_corrected": 0.045,
-            "source_extra": {}
-          },
-          {
-            "metric": "% of FG3A Blocked",
-            "on": 0.02,
-            "off_corrected": 0.014,
-            "on_minus_off_corrected": 0.006,
-            "source_extra": {}
-          },
-          {
-            "metric": "% of FG2A Blocked",
-            "on": 0.084,
-            "off_corrected": 0.076,
-            "on_minus_off_corrected": 0.008,
-            "source_extra": {}
-          },
-          {
-            "metric": "Live Ball TO%",
-            "on": 0.576,
-            "off_corrected": 0.501,
-            "on_minus_off_corrected": 0.075,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed FTs",
-            "on": 0.824,
-            "off_corrected": 0.837,
-            "on_minus_off_corrected": -0.013,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed FTs",
-            "on": 0.153,
-            "off_corrected": 0.132,
-            "on_minus_off_corrected": 0.02,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed 2s",
-            "on": 0.677,
-            "off_corrected": 0.704,
-            "on_minus_off_corrected": -0.027,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed 2s",
-            "on": 0.339,
-            "off_corrected": 0.357,
-            "on_minus_off_corrected": -0.018,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed 3s",
-            "on": 0.714,
-            "off_corrected": 0.747,
-            "on_minus_off_corrected": -0.032,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed 3s",
-            "on": 0.22,
-            "off_corrected": 0.311,
-            "on_minus_off_corrected": -0.091,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed FGs",
-            "on": 0.685,
-            "off_corrected": 0.713,
-            "on_minus_off_corrected": -0.028,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed FGs",
-            "on": 0.316,
-            "off_corrected": 0.351,
-            "on_minus_off_corrected": -0.035,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim OReb%",
-            "on": 0.4,
-            "off_corrected": 0.441,
-            "on_minus_off_corrected": -0.041,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid-Range OReb%",
-            "on": 0.356,
-            "off_corrected": 0.363,
-            "on_minus_off_corrected": -0.007,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid-Range OReb%",
-            "on": 0.27,
-            "off_corrected": 0.302,
-            "on_minus_off_corrected": -0.032,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 OReb%",
-            "on": 0.198,
-            "off_corrected": 0.293,
-            "on_minus_off_corrected": -0.095,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 OReb%",
-            "on": 0.294,
-            "off_corrected": 0.369,
-            "on_minus_off_corrected": -0.075,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim DReb%",
-            "on": 0.603,
-            "off_corrected": 0.62,
-            "on_minus_off_corrected": -0.018,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid-Range DReb%",
-            "on": 0.677,
-            "off_corrected": 0.704,
-            "on_minus_off_corrected": -0.027,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid-Range DReb%",
-            "on": 0.719,
-            "off_corrected": 0.751,
-            "on_minus_off_corrected": -0.032,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 DReb%",
-            "on": 0.728,
-            "off_corrected": 0.742,
-            "on_minus_off_corrected": -0.014,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 DReb%",
-            "on": 0.645,
-            "off_corrected": 0.774,
-            "on_minus_off_corrected": -0.129,
-            "source_extra": {}
-          },
-          {
-            "metric": "Blocks Recovered %",
-            "on": 0.684,
-            "off_corrected": 0.665,
-            "on_minus_off_corrected": 0.019,
-            "source_extra": {}
-          },
-          {
-            "metric": "Seconds Per Possession - Offense",
-            "on": 15.302,
-            "off_corrected": 16.042,
-            "on_minus_off_corrected": -0.74,
-            "source_extra": {}
-          },
-          {
-            "metric": "Seconds Per Possession - Defense",
-            "on": 16.042,
-            "off_corrected": 15.621,
-            "on_minus_off_corrected": 0.42,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim Shot Frequency",
-            "on": 0.335,
-            "off_corrected": 0.292,
-            "on_minus_off_corrected": 0.042,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim FG%",
-            "on": 0.699,
-            "off_corrected": 0.661,
-            "on_minus_off_corrected": 0.038,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim % Assisted",
-            "on": 0.511,
-            "off_corrected": 0.551,
-            "on_minus_off_corrected": -0.04,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range Shot Frequency",
-            "on": 0.27,
-            "off_corrected": 0.313,
-            "on_minus_off_corrected": -0.043,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range FG%",
-            "on": 0.323,
-            "off_corrected": 0.322,
-            "on_minus_off_corrected": 0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range % Assisted",
-            "on": 0.43,
-            "off_corrected": 0.519,
-            "on_minus_off_corrected": -0.089,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range Shot Frequency",
-            "on": 0.237,
-            "off_corrected": 0.282,
-            "on_minus_off_corrected": -0.045,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range FG%",
-            "on": 0.436,
-            "off_corrected": 0.382,
-            "on_minus_off_corrected": 0.054,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid % Assisted",
-            "on": 0.588,
-            "off_corrected": 0.641,
-            "on_minus_off_corrected": -0.053,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 Shot Frequency",
-            "on": 0.038,
-            "off_corrected": 0.028,
-            "on_minus_off_corrected": 0.01,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 FG%",
-            "on": 0.424,
-            "off_corrected": 0.37,
-            "on_minus_off_corrected": 0.054,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 % Assisted",
-            "on": 0.96,
-            "off_corrected": 1.0,
-            "on_minus_off_corrected": -0.04,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 Shot Frequency",
-            "on": 0.12,
-            "off_corrected": 0.085,
-            "on_minus_off_corrected": 0.035,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 FG%",
-            "on": 0.317,
-            "off_corrected": 0.302,
-            "on_minus_off_corrected": 0.015,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 % Assisted",
-            "on": 0.864,
-            "off_corrected": 0.819,
-            "on_minus_off_corrected": 0.046,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim or 3pt Shot Frequency",
-            "on": 0.493,
-            "off_corrected": 0.405,
-            "on_minus_off_corrected": 0.088,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non-Heave Arc 3 FG%",
-            "on": 0.335,
-            "off_corrected": 0.308,
-            "on_minus_off_corrected": 0.027,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shot Quality",
-            "on": 0.472,
-            "off_corrected": 0.458,
-            "on_minus_off_corrected": 0.015,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shooting Foul Drawn Rate",
-            "on": 0.135,
-            "off_corrected": 0.117,
-            "on_minus_off_corrected": 0.017,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt Shooting Foul Drawn Rate",
-            "on": 0.156,
-            "off_corrected": 0.13,
-            "on_minus_off_corrected": 0.026,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt Shooting Foul Drawn Rate",
-            "on": 0.004,
-            "off_corrected": 0.011,
-            "on_minus_off_corrected": -0.007,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Points%",
-            "on": 0.146,
-            "off_corrected": 0.158,
-            "on_minus_off_corrected": -0.012,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Points%",
-            "on": 0.38,
-            "off_corrected": 0.333,
-            "on_minus_off_corrected": 0.047,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Possessions%",
-            "on": 0.36,
-            "off_corrected": 0.317,
-            "on_minus_off_corrected": 0.044,
-            "source_extra": {}
-          },
-          {
-            "metric": "Avg 2pt Shot Distance",
-            "on": 7.982,
-            "off_corrected": 8.897,
-            "on_minus_off_corrected": -0.915,
-            "source_extra": {}
-          },
-          {
-            "metric": "Avg 3pt Shot Distance",
-            "on": 26.352,
-            "off_corrected": 25.916,
-            "on_minus_off_corrected": 0.437,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Efficiency Excluding Last Minute Take Foul Possessions",
-            "on": 113.442,
-            "off_corrected": 106.574,
-            "on_minus_off_corrected": 6.868,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb%",
-            "on": 0.692,
-            "off_corrected": 0.719,
-            "on_minus_off_corrected": -0.027,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb%",
-            "on": 0.303,
-            "off_corrected": 0.336,
-            "on_minus_off_corrected": -0.033,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pts per 100 Possessions",
-            "on": 107.504,
-            "off_corrected": 101.323,
-            "on_minus_off_corrected": 6.181,
-            "source_extra": {}
-          },
-          {
-            "metric": "Assist Points per 100 Possessions",
-            "on": 47.845,
-            "off_corrected": 47.9,
-            "on_minus_off_corrected": -0.056,
-            "source_extra": {}
-          },
-          {
-            "metric": "FTA per 100 Possessions",
-            "on": 32.571,
-            "off_corrected": 29.375,
-            "on_minus_off_corrected": 3.195,
-            "source_extra": {}
-          },
-          {
-            "metric": "TOs per 100 Possessions",
-            "on": 17.935,
-            "off_corrected": 16.849,
-            "on_minus_off_corrected": 1.086,
-            "source_extra": {}
-          },
-          {
-            "metric": "Assists per 100 Possessions",
-            "on": 21.927,
-            "off_corrected": 22.583,
-            "on_minus_off_corrected": -0.656,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pts per 100 Possessions - Defense",
-            "on": 97.81,
-            "off_corrected": 98.482,
-            "on_minus_off_corrected": -0.673,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shot Quality - Defense",
-            "on": 0.462,
-            "off_corrected": 0.459,
-            "on_minus_off_corrected": 0.002,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FG% - Defense",
-            "on": 0.301,
-            "off_corrected": 0.355,
-            "on_minus_off_corrected": -0.053,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt FG% - Defense",
-            "on": 0.451,
-            "off_corrected": 0.447,
-            "on_minus_off_corrected": 0.004,
-            "source_extra": {}
-          },
-          {
-            "metric": "eFG% - Defense",
-            "on": 0.451,
-            "off_corrected": 0.463,
-            "on_minus_off_corrected": -0.012,
-            "source_extra": {}
-          },
-          {
-            "metric": "3PAr - Defense",
-            "on": 0.177,
-            "off_corrected": 0.189,
-            "on_minus_off_corrected": -0.013,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim Shot Frequency - Defense",
-            "on": 0.282,
-            "off_corrected": 0.246,
-            "on_minus_off_corrected": 0.036,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim FG% - Defense",
-            "on": 0.663,
-            "off_corrected": 0.627,
-            "on_minus_off_corrected": 0.036,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range Shot Frequency - Defense",
-            "on": 0.26,
-            "off_corrected": 0.285,
-            "on_minus_off_corrected": -0.025,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range FG% - Defense",
-            "on": 0.305,
-            "off_corrected": 0.335,
-            "on_minus_off_corrected": -0.03,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range Shot Frequency - Defense",
-            "on": 0.281,
-            "off_corrected": 0.279,
-            "on_minus_off_corrected": 0.002,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range FG% - Defense",
-            "on": 0.374,
-            "off_corrected": 0.404,
-            "on_minus_off_corrected": -0.03,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 Shot Frequency - Defense",
-            "on": 0.029,
-            "off_corrected": 0.032,
-            "on_minus_off_corrected": -0.002,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 FG% - Defense",
-            "on": 0.333,
-            "off_corrected": 0.472,
-            "on_minus_off_corrected": -0.138,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 Shot Frequency - Defense",
-            "on": 0.148,
-            "off_corrected": 0.158,
-            "on_minus_off_corrected": -0.01,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 FG% - Defense",
-            "on": 0.295,
-            "off_corrected": 0.331,
-            "on_minus_off_corrected": -0.036,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pace",
-            "on": 91.888,
-            "off_corrected": 90.956,
-            "on_minus_off_corrected": 0.932,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Efficiency",
-            "on": 129.386,
-            "off_corrected": 110.366,
-            "on_minus_off_corrected": 19.02,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Efficiency",
-            "on": 113.442,
-            "off_corrected": 106.574,
-            "on_minus_off_corrected": 6.868,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Possessions Per 100 Possessions",
-            "on": 12.134,
-            "off_corrected": 14.467,
-            "on_minus_off_corrected": -2.333,
-            "source_extra": {}
-          },
-          {
-            "metric": "First Chance Points Per 100 Possessions",
-            "on": 91.804,
-            "off_corrected": 85.356,
-            "on_minus_off_corrected": 6.448,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Points Per 100 Possessions",
-            "on": 15.7,
-            "off_corrected": 15.967,
-            "on_minus_off_corrected": -0.267,
-            "source_extra": {}
-          }
-        ],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": true,
-            "attempt": 1,
-            "status_code": 200,
-            "elapsed_seconds": 5.31,
-            "errors": []
-          },
-          "stat_minutes": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2001-02-22')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2001-02-22')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2001-02-22')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2001-02-22')"
-            ]
-          }
-        },
-        "generated_utc": "2026-08-09T06:59:46.014476+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "436",
-        "player_name": "Juwan Howard",
-        "team_id": 1610612742,
-        "team_abbr": "DAL",
-        "tenure_start": "2001-02-22",
-        "tenure_end": "2001-04-18",
-        "start_reason": "trade_into_team",
-        "end_reason": "season_close_roster_continuity",
-        "start_source": "Basketball-Reference via Internet Archive",
-        "end_source": "core affiliation + no in-season departure event",
-        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-214",
-        "end_source_reference": null,
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 27,
-        "audit_flags": [
-          "multi_team_structure_reconciled_exactly",
-          "transaction_day_policy_applied"
-        ],
-        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
-        "query_start_date": "2001-02-23",
-        "query_end_date": "2001-04-18",
-        "start_boundary_included": false,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [
-          "0020000782"
-        ],
-        "included_departing_transaction_day_game_ids": [],
-        "boundary_game_ids": [
-          "0020000782"
-        ],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 27,
-        "team_games_max": 27,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612742,
-        "team_abbr": "DAL",
-        "player_id": "436",
-        "player": "Juwan Howard",
-        "tenure_start": "2001-02-22",
-        "tenure_end": "2001-04-18",
-        "query_start_date": "2001-02-23",
-        "query_end_date": "2001-04-18",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 27,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 0,
-        "metrics": [],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612742&PlayerId=436&FromDate=2001-02-23&ToDate=2001-04-18')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612742&PlayerId=436&FromDate=2001-02-23&ToDate=2001-04-18')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612742&PlayerId=436&FromDate=2001-02-23&ToDate=2001-04-18')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612742&PlayerId=436&FromDate=2001-02-23&ToDate=2001-04-18')"
-            ]
-          },
-          "stat_minutes": {
-            "ok": false,
-            "skipped": true,
-            "reason": "team profile unavailable or empty"
-          }
-        },
-        "generated_utc": "2026-08-09T06:59:46.153827+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "689",
-        "player_name": "Theo Ratliff",
-        "team_id": 1610612755,
-        "team_abbr": "PHI",
-        "tenure_start": "2000-10-31",
-        "tenure_end": "2001-02-22",
-        "start_reason": "season_open_roster_continuity",
-        "end_reason": "trade_out_of_team",
-        "start_source": "core affiliation + no in-season acquisition event",
-        "end_source": "Basketball-Reference via Internet Archive",
-        "start_source_reference": null,
-        "end_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-211",
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 55,
-        "audit_flags": [
-          "transaction_day_policy_applied"
-        ],
-        "query_start_date": "2000-10-31",
-        "query_end_date": "2001-02-22",
-        "start_boundary_included": true,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [],
-        "included_departing_transaction_day_game_ids": [],
-        "boundary_game_ids": [],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 55,
-        "team_games_max": 55,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612755,
-        "team_abbr": "PHI",
-        "player_id": "689",
-        "player": "Theo Ratliff",
-        "tenure_start": "2000-10-31",
-        "tenure_end": "2001-02-22",
-        "query_start_date": "2000-10-31",
-        "query_end_date": "2001-02-22",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 55,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 0,
-        "metrics": [],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=689&FromDate=2000-10-31&ToDate=2001-02-22')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=689&FromDate=2000-10-31&ToDate=2001-02-22')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=689&FromDate=2000-10-31&ToDate=2001-02-22')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=689&FromDate=2000-10-31&ToDate=2001-02-22')"
-            ]
-          },
-          "stat_minutes": {
-            "ok": false,
-            "skipped": true,
-            "reason": "team profile unavailable or empty"
-          }
-        },
-        "generated_utc": "2026-08-09T06:59:52.330879+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "693",
-        "player_name": "Joe Smith",
-        "team_id": 1610612765,
-        "team_abbr": "DET",
-        "tenure_start": "2000-11-20",
-        "tenure_end": "2001-04-18",
-        "start_reason": "acquire_into_team",
-        "end_reason": "season_close_roster_continuity",
-        "start_source": "Basketball-Reference via Internet Archive",
-        "end_source": "RealGM league transaction history",
-        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-154",
-        "end_source_reference": null,
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 71,
-        "audit_flags": [
-          "chronology_rebuilt_from_transaction_events",
-          "multi_stint_segment",
-          "segment_2_of_2",
-          "transaction_day_policy_applied"
-        ],
-        "segment_index": 2,
-        "segment_count": 2,
-        "segment_source_references": [
-          "https://basketball.realgm.com/nba/transactions/league/2001",
-          "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-154"
-        ],
-        "query_start_date": "2000-11-21",
-        "query_end_date": "2001-04-18",
-        "start_boundary_included": false,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [],
-        "included_departing_transaction_day_game_ids": [],
-        "boundary_game_ids": [],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 71,
-        "team_games_max": 71,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612765,
-        "team_abbr": "DET",
-        "player_id": "693",
-        "player": "Joe Smith",
-        "tenure_start": "2000-11-20",
-        "tenure_end": "2001-04-18",
-        "query_start_date": "2000-11-21",
-        "query_end_date": "2001-04-18",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 71,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 0,
-        "metrics": [],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-11-21&ToDate=2001-04-18')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-11-21&ToDate=2001-04-18')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-11-21&ToDate=2001-04-18')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-11-21&ToDate=2001-04-18')"
-            ]
-          },
-          "stat_minutes": {
-            "ok": false,
-            "skipped": true,
-            "reason": "team profile unavailable or empty"
-          }
-        },
-        "generated_utc": "2026-08-09T06:59:54.010868+00:00"
+        "generated_utc": "2026-08-09T07:04:04.742755+00:00"
       }
     },
     {
@@ -2363,13 +1499,10 @@
         "requests": {
           "team": {
             "ok": true,
-            "attempt": 3,
+            "attempt": 1,
             "status_code": 200,
-            "elapsed_seconds": 1.391,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=685&FromDate=2000-10-31&ToDate=2000-11-28')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=685&FromDate=2000-10-31&ToDate=2000-11-28')"
-            ]
+            "elapsed_seconds": 6.403,
+            "errors": []
           },
           "stat_minutes": {
             "ok": false,
@@ -2383,7 +1516,91 @@
             ]
           }
         },
-        "generated_utc": "2026-08-09T06:59:54.733407+00:00"
+        "generated_utc": "2026-08-09T07:04:04.752829+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "788",
+        "player_name": "Kevin Willis",
+        "team_id": 1610612761,
+        "team_abbr": "TOR",
+        "tenure_start": "2000-10-31",
+        "tenure_end": "2001-01-12",
+        "start_reason": "season_open_roster_continuity",
+        "end_reason": "trade_out_of_team",
+        "start_source": "core affiliation + no in-season acquisition event",
+        "end_source": "Basketball-Reference via Internet Archive",
+        "start_source_reference": null,
+        "end_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-192",
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 36,
+        "audit_flags": [
+          "multi_team_structure_reconciled_exactly",
+          "transaction_day_policy_applied"
+        ],
+        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
+        "query_start_date": "2000-10-31",
+        "query_end_date": "2001-01-12",
+        "start_boundary_included": true,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [],
+        "included_departing_transaction_day_game_ids": [
+          "0020000513"
+        ],
+        "boundary_game_ids": [
+          "0020000513"
+        ],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 36,
+        "team_games_max": 36,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612761,
+        "team_abbr": "TOR",
+        "player_id": "788",
+        "player": "Kevin Willis",
+        "tenure_start": "2000-10-31",
+        "tenure_end": "2001-01-12",
+        "query_start_date": "2000-10-31",
+        "query_end_date": "2001-01-12",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 36,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=788&FromDate=2000-10-31&ToDate=2001-01-12')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=788&FromDate=2000-10-31&ToDate=2001-01-12')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=788&FromDate=2000-10-31&ToDate=2001-01-12')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=788&FromDate=2000-10-31&ToDate=2001-01-12')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:12.617643+00:00"
       }
     },
     {
@@ -2393,45 +1610,41 @@
         "player_name": "Joe Smith",
         "team_id": 1610612765,
         "team_abbr": "DET",
-        "tenure_start": "2000-10-31",
-        "tenure_end": "2000-11-01",
-        "start_reason": "season_open_roster_continuity",
-        "end_reason": "depart_out_of_team",
+        "tenure_start": "2000-11-20",
+        "tenure_end": "2001-04-18",
+        "start_reason": "acquire_into_team",
+        "end_reason": "season_close_roster_continuity",
         "start_source": "Basketball-Reference via Internet Archive",
         "end_source": "RealGM league transaction history",
-        "start_source_reference": null,
-        "end_source_reference": "https://basketball.realgm.com/nba/transactions/league/2001",
+        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-154",
+        "end_source_reference": null,
         "confidence": "provisional_high",
         "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 2,
+        "team_games_in_window": 71,
         "audit_flags": [
           "chronology_rebuilt_from_transaction_events",
           "multi_stint_segment",
-          "segment_1_of_2",
+          "segment_2_of_2",
           "transaction_day_policy_applied"
         ],
-        "segment_index": 1,
+        "segment_index": 2,
         "segment_count": 2,
         "segment_source_references": [
           "https://basketball.realgm.com/nba/transactions/league/2001",
           "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-154"
         ],
-        "query_start_date": "2000-10-31",
-        "query_end_date": "2000-11-01",
-        "start_boundary_included": true,
+        "query_start_date": "2000-11-21",
+        "query_end_date": "2001-04-18",
+        "start_boundary_included": false,
         "end_boundary_included": true,
         "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
         "transaction_day_policy_applied": true,
         "excluded_incoming_transaction_day_game_ids": [],
-        "included_departing_transaction_day_game_ids": [
-          "0020000014"
-        ],
-        "boundary_game_ids": [
-          "0020000014"
-        ],
+        "included_departing_transaction_day_game_ids": [],
+        "boundary_game_ids": [],
         "same_day_unresolved_game_ids": [],
-        "team_games_min": 2,
-        "team_games_max": 2,
+        "team_games_min": 71,
+        "team_games_max": 71,
         "schedule_boundary_status": "resolved",
         "zero_game_window": false
       },
@@ -2442,12 +1655,12 @@
         "team_abbr": "DET",
         "player_id": "693",
         "player": "Joe Smith",
-        "tenure_start": "2000-10-31",
-        "tenure_end": "2000-11-01",
-        "query_start_date": "2000-10-31",
-        "query_end_date": "2000-11-01",
+        "tenure_start": "2000-11-20",
+        "tenure_end": "2001-04-18",
+        "query_start_date": "2000-11-21",
+        "query_end_date": "2001-04-18",
         "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 2,
+        "team_games_in_window": 71,
         "tenure_source": null,
         "tenure_confidence": "provisional_high",
         "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
@@ -3085,10 +2298,10 @@
             "ok": true,
             "attempt": 3,
             "status_code": 200,
-            "elapsed_seconds": 1.447,
+            "elapsed_seconds": 1.519,
             "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-10-31&ToDate=2000-11-01')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-10-31&ToDate=2000-11-01')"
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-11-21&ToDate=2001-04-18')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&PlayerId=693&FromDate=2000-11-21&ToDate=2001-04-18')"
             ]
           },
           "stat_minutes": {
@@ -3096,98 +2309,14 @@
             "attempt": 4,
             "status_code": null,
             "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2000-11-01')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2000-11-01')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2000-11-01')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2000-11-01')"
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&Stat=OffRebounds&FromDate=2000-11-21&ToDate=2001-04-18')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&Stat=OffRebounds&FromDate=2000-11-21&ToDate=2001-04-18')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&Stat=OffRebounds&FromDate=2000-11-21&ToDate=2001-04-18')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612765&Stat=OffRebounds&FromDate=2000-11-21&ToDate=2001-04-18')"
             ]
           }
         },
-        "generated_utc": "2026-08-09T06:59:58.761988+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "788",
-        "player_name": "Kevin Willis",
-        "team_id": 1610612761,
-        "team_abbr": "TOR",
-        "tenure_start": "2000-10-31",
-        "tenure_end": "2001-01-12",
-        "start_reason": "season_open_roster_continuity",
-        "end_reason": "trade_out_of_team",
-        "start_source": "core affiliation + no in-season acquisition event",
-        "end_source": "Basketball-Reference via Internet Archive",
-        "start_source_reference": null,
-        "end_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-192",
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 36,
-        "audit_flags": [
-          "multi_team_structure_reconciled_exactly",
-          "transaction_day_policy_applied"
-        ],
-        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
-        "query_start_date": "2000-10-31",
-        "query_end_date": "2001-01-12",
-        "start_boundary_included": true,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [],
-        "included_departing_transaction_day_game_ids": [
-          "0020000513"
-        ],
-        "boundary_game_ids": [
-          "0020000513"
-        ],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 36,
-        "team_games_max": 36,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612761,
-        "team_abbr": "TOR",
-        "player_id": "788",
-        "player": "Kevin Willis",
-        "tenure_start": "2000-10-31",
-        "tenure_end": "2001-01-12",
-        "query_start_date": "2000-10-31",
-        "query_end_date": "2001-01-12",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 36,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 0,
-        "metrics": [],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=788&FromDate=2000-10-31&ToDate=2001-01-12')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=788&FromDate=2000-10-31&ToDate=2001-01-12')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=788&FromDate=2000-10-31&ToDate=2001-01-12')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=788&FromDate=2000-10-31&ToDate=2001-01-12')"
-            ]
-          },
-          "stat_minutes": {
-            "ok": false,
-            "skipped": true,
-            "reason": "team profile unavailable or empty"
-          }
-        },
-        "generated_utc": "2026-08-09T07:00:02.785299+00:00"
+        "generated_utc": "2026-08-09T07:04:13.403459+00:00"
       }
     },
     {
@@ -3883,11 +3012,12 @@
         "requests": {
           "team": {
             "ok": true,
-            "attempt": 2,
+            "attempt": 3,
             "status_code": 200,
-            "elapsed_seconds": 1.324,
+            "elapsed_seconds": 1.405,
             "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612753&PlayerId=724&FromDate=2001-01-30&ToDate=2001-02-08')"
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612753&PlayerId=724&FromDate=2001-01-30&ToDate=2001-02-08')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612753&PlayerId=724&FromDate=2001-01-30&ToDate=2001-02-08')"
             ]
           },
           "stat_minutes": {
@@ -3902,7 +3032,89 @@
             ]
           }
         },
-        "generated_utc": "2026-08-09T07:00:02.785830+00:00"
+        "generated_utc": "2026-08-09T07:04:17.315615+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "924",
+        "player_name": "Anthony Goldwire",
+        "team_id": 1610612743,
+        "team_abbr": "DEN",
+        "tenure_start": "2001-01-29",
+        "tenure_end": "2001-04-18",
+        "start_reason": "acquire_into_team",
+        "end_reason": "season_close_roster_continuity",
+        "start_source": "Basketball-Reference via Internet Archive",
+        "end_source": "core affiliation + no in-season departure event",
+        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-203",
+        "end_source_reference": null,
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 37,
+        "audit_flags": [
+          "transaction_day_policy_applied"
+        ],
+        "query_start_date": "2001-01-30",
+        "query_end_date": "2001-04-18",
+        "start_boundary_included": false,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [
+          "0020000635"
+        ],
+        "included_departing_transaction_day_game_ids": [],
+        "boundary_game_ids": [
+          "0020000635"
+        ],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 37,
+        "team_games_max": 37,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612743,
+        "team_abbr": "DEN",
+        "player_id": "924",
+        "player": "Anthony Goldwire",
+        "tenure_start": "2001-01-29",
+        "tenure_end": "2001-04-18",
+        "query_start_date": "2001-01-30",
+        "query_end_date": "2001-04-18",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 37,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=924&FromDate=2001-01-30&ToDate=2001-04-18')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=924&FromDate=2001-01-30&ToDate=2001-04-18')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=924&FromDate=2001-01-30&ToDate=2001-04-18')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=924&FromDate=2001-01-30&ToDate=2001-04-18')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:21.264929+00:00"
       }
     },
     {
@@ -4602,12 +3814,13 @@
         "requests": {
           "team": {
             "ok": true,
-            "attempt": 3,
+            "attempt": 4,
             "status_code": 200,
-            "elapsed_seconds": 1.435,
+            "elapsed_seconds": 1.318,
             "errors": [
               "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612753&PlayerId=724&FromDate=2001-02-24&ToDate=2001-04-18')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612753&PlayerId=724&FromDate=2001-02-24&ToDate=2001-04-18')"
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612753&PlayerId=724&FromDate=2001-02-24&ToDate=2001-04-18')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612753&PlayerId=724&FromDate=2001-02-24&ToDate=2001-04-18')"
             ]
           },
           "stat_minutes": {
@@ -4622,173 +3835,7 @@
             ]
           }
         },
-        "generated_utc": "2026-08-09T07:00:06.786756+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "924",
-        "player_name": "Anthony Goldwire",
-        "team_id": 1610612743,
-        "team_abbr": "DEN",
-        "tenure_start": "2001-01-29",
-        "tenure_end": "2001-04-18",
-        "start_reason": "acquire_into_team",
-        "end_reason": "season_close_roster_continuity",
-        "start_source": "Basketball-Reference via Internet Archive",
-        "end_source": "core affiliation + no in-season departure event",
-        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-203",
-        "end_source_reference": null,
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 37,
-        "audit_flags": [
-          "transaction_day_policy_applied"
-        ],
-        "query_start_date": "2001-01-30",
-        "query_end_date": "2001-04-18",
-        "start_boundary_included": false,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [
-          "0020000635"
-        ],
-        "included_departing_transaction_day_game_ids": [],
-        "boundary_game_ids": [
-          "0020000635"
-        ],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 37,
-        "team_games_max": 37,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612743,
-        "team_abbr": "DEN",
-        "player_id": "924",
-        "player": "Anthony Goldwire",
-        "tenure_start": "2001-01-29",
-        "tenure_end": "2001-04-18",
-        "query_start_date": "2001-01-30",
-        "query_end_date": "2001-04-18",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 37,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 0,
-        "metrics": [],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=924&FromDate=2001-01-30&ToDate=2001-04-18')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=924&FromDate=2001-01-30&ToDate=2001-04-18')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=924&FromDate=2001-01-30&ToDate=2001-04-18')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=924&FromDate=2001-01-30&ToDate=2001-04-18')"
-            ]
-          },
-          "stat_minutes": {
-            "ok": false,
-            "skipped": true,
-            "reason": "team profile unavailable or empty"
-          }
-        },
-        "generated_utc": "2026-08-09T07:00:10.647698+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "919",
-        "player_name": "Loy Vaught",
-        "team_id": 1610612764,
-        "team_abbr": "WAS",
-        "tenure_start": "2001-02-22",
-        "tenure_end": "2001-04-18",
-        "start_reason": "trade_into_team",
-        "end_reason": "season_close_roster_continuity",
-        "start_source": "Basketball-Reference via Internet Archive",
-        "end_source": "core affiliation + no in-season departure event",
-        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-214",
-        "end_source_reference": null,
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 27,
-        "audit_flags": [
-          "multi_team_structure_reconciled_exactly",
-          "transaction_day_policy_applied"
-        ],
-        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
-        "query_start_date": "2001-02-23",
-        "query_end_date": "2001-04-18",
-        "start_boundary_included": false,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [
-          "0020000779"
-        ],
-        "included_departing_transaction_day_game_ids": [],
-        "boundary_game_ids": [
-          "0020000779"
-        ],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 27,
-        "team_games_max": 27,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612764,
-        "team_abbr": "WAS",
-        "player_id": "919",
-        "player": "Loy Vaught",
-        "tenure_start": "2001-02-22",
-        "tenure_end": "2001-04-18",
-        "query_start_date": "2001-02-23",
-        "query_end_date": "2001-04-18",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 27,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 0,
-        "metrics": [],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=919&FromDate=2001-02-23&ToDate=2001-04-18')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=919&FromDate=2001-02-23&ToDate=2001-04-18')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=919&FromDate=2001-02-23&ToDate=2001-04-18')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=919&FromDate=2001-02-23&ToDate=2001-04-18')"
-            ]
-          },
-          "stat_minutes": {
-            "ok": false,
-            "skipped": true,
-            "reason": "team profile unavailable or empty"
-          }
-        },
-        "generated_utc": "2026-08-09T07:00:10.648230+00:00"
+        "generated_utc": "2026-08-09T07:04:21.558159+00:00"
       }
     },
     {
@@ -4868,7 +3915,7 @@
             "reason": "team profile unavailable or empty"
           }
         },
-        "generated_utc": "2026-08-09T07:00:14.644868+00:00"
+        "generated_utc": "2026-08-09T07:04:25.172236+00:00"
       }
     },
     {
@@ -4946,62 +3993,64 @@
             "reason": "team profile unavailable or empty"
           }
         },
-        "generated_utc": "2026-08-09T07:00:18.505068+00:00"
+        "generated_utc": "2026-08-09T07:04:29.119944+00:00"
       }
     },
     {
       "window": {
         "season": "2000-01",
-        "player_id": "1085",
-        "player_name": "Ira Bowman",
-        "team_id": 1610612737,
-        "team_abbr": "ATL",
-        "tenure_start": "2001-02-16",
-        "tenure_end": "2001-02-26",
+        "player_id": "1563",
+        "player_name": "Kevin Ollie",
+        "team_id": 1610612755,
+        "team_abbr": "PHI",
+        "tenure_start": "2000-12-22",
+        "tenure_end": "2001-04-18",
         "start_reason": "acquire_into_team",
-        "end_reason": "depart_out_of_team",
+        "end_reason": "season_close_roster_continuity",
         "start_source": "Basketball-Reference via Internet Archive",
-        "end_source": "RealGM league transaction history",
-        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-209",
-        "end_source_reference": "https://basketball.realgm.com/nba/transactions/league/2001",
+        "end_source": "core affiliation + no in-season departure event",
+        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-175",
+        "end_source_reference": null,
         "confidence": "provisional_high",
         "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 6,
+        "team_games_in_window": 56,
         "audit_flags": [
+          "multi_team_structure_reconciled_exactly",
           "transaction_day_policy_applied"
         ],
-        "query_start_date": "2001-02-17",
-        "query_end_date": "2001-02-26",
+        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
+        "query_start_date": "2000-12-23",
+        "query_end_date": "2001-04-18",
         "start_boundary_included": false,
         "end_boundary_included": true,
         "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
         "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [],
-        "included_departing_transaction_day_game_ids": [
-          "0020000814"
+        "excluded_incoming_transaction_day_game_ids": [
+          "0020000374"
         ],
+        "included_departing_transaction_day_game_ids": [],
         "boundary_game_ids": [
-          "0020000814"
+          "0020000374"
         ],
         "same_day_unresolved_game_ids": [],
-        "team_games_min": 6,
-        "team_games_max": 6,
+        "team_games_min": 56,
+        "team_games_max": 56,
         "schedule_boundary_status": "resolved",
         "zero_game_window": false
       },
       "result": {
         "complete": false,
         "season": "2000-01",
-        "team_id": 1610612737,
-        "team_abbr": "ATL",
-        "player_id": "1085",
-        "player": "Ira Bowman",
-        "tenure_start": "2001-02-16",
-        "tenure_end": "2001-02-26",
-        "query_start_date": "2001-02-17",
-        "query_end_date": "2001-02-26",
+        "team_id": 1610612755,
+        "team_abbr": "PHI",
+        "player_id": "1563",
+        "player": "Kevin Ollie",
+        "tenure_start": "2000-12-22",
+        "tenure_end": "2001-04-18",
+        "query_start_date": "2000-12-23",
+        "query_end_date": "2001-04-18",
         "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 6,
+        "team_games_in_window": 56,
         "tenure_source": null,
         "tenure_confidence": "provisional_high",
         "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
@@ -5016,10 +4065,10 @@
             "attempt": 4,
             "status_code": null,
             "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612737&PlayerId=1085&FromDate=2001-02-17&ToDate=2001-02-26')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612737&PlayerId=1085&FromDate=2001-02-17&ToDate=2001-02-26')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612737&PlayerId=1085&FromDate=2001-02-17&ToDate=2001-02-26')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612737&PlayerId=1085&FromDate=2001-02-17&ToDate=2001-02-26')"
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1563&FromDate=2000-12-23&ToDate=2001-04-18')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1563&FromDate=2000-12-23&ToDate=2001-04-18')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1563&FromDate=2000-12-23&ToDate=2001-04-18')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1563&FromDate=2000-12-23&ToDate=2001-04-18')"
             ]
           },
           "stat_minutes": {
@@ -5028,7 +4077,7 @@
             "reason": "team profile unavailable or empty"
           }
         },
-        "generated_utc": "2026-08-09T07:00:18.506923+00:00"
+        "generated_utc": "2026-08-09T07:04:29.414194+00:00"
       }
     },
     {
@@ -5115,7 +4164,7 @@
             "reason": "team profile unavailable or empty"
           }
         },
-        "generated_utc": "2026-08-09T07:00:22.501382+00:00"
+        "generated_utc": "2026-08-09T07:04:33.027386+00:00"
       }
     },
     {
@@ -5203,1431 +4252,7 @@
             "reason": "team profile unavailable or empty"
           }
         },
-        "generated_utc": "2026-08-09T07:00:26.362134+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "1563",
-        "player_name": "Kevin Ollie",
-        "team_id": 1610612755,
-        "team_abbr": "PHI",
-        "tenure_start": "2000-12-22",
-        "tenure_end": "2001-04-18",
-        "start_reason": "acquire_into_team",
-        "end_reason": "season_close_roster_continuity",
-        "start_source": "Basketball-Reference via Internet Archive",
-        "end_source": "core affiliation + no in-season departure event",
-        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-175",
-        "end_source_reference": null,
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 56,
-        "audit_flags": [
-          "multi_team_structure_reconciled_exactly",
-          "transaction_day_policy_applied"
-        ],
-        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
-        "query_start_date": "2000-12-23",
-        "query_end_date": "2001-04-18",
-        "start_boundary_included": false,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [
-          "0020000374"
-        ],
-        "included_departing_transaction_day_game_ids": [],
-        "boundary_game_ids": [
-          "0020000374"
-        ],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 56,
-        "team_games_max": 56,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612755,
-        "team_abbr": "PHI",
-        "player_id": "1563",
-        "player": "Kevin Ollie",
-        "tenure_start": "2000-12-22",
-        "tenure_end": "2001-04-18",
-        "query_start_date": "2000-12-23",
-        "query_end_date": "2001-04-18",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 56,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 89,
-        "metrics": [
-          {
-            "metric": "2pt FGM Assist%",
-            "on": 0.57,
-            "off_corrected": 0.55,
-            "on_minus_off_corrected": 0.02,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non Putback 2pt FGM Assist%",
-            "on": 0.633,
-            "off_corrected": 0.607,
-            "on_minus_off_corrected": 0.027,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FGM Assist%",
-            "on": 0.786,
-            "off_corrected": 0.895,
-            "on_minus_off_corrected": -0.11,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FG%",
-            "on": 0.321,
-            "off_corrected": 0.327,
-            "on_minus_off_corrected": -0.007,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non-Heave 3pt FG%",
-            "on": 0.336,
-            "off_corrected": 0.333,
-            "on_minus_off_corrected": 0.003,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt FG%",
-            "on": 0.454,
-            "off_corrected": 0.467,
-            "on_minus_off_corrected": -0.013,
-            "source_extra": {}
-          },
-          {
-            "metric": "eFG%",
-            "on": 0.457,
-            "off_corrected": 0.47,
-            "on_minus_off_corrected": -0.013,
-            "source_extra": {}
-          },
-          {
-            "metric": "TS%",
-            "on": 0.507,
-            "off_corrected": 0.515,
-            "on_minus_off_corrected": -0.008,
-            "source_extra": {}
-          },
-          {
-            "metric": "3PAr",
-            "on": 0.108,
-            "off_corrected": 0.127,
-            "on_minus_off_corrected": -0.019,
-            "source_extra": {}
-          },
-          {
-            "metric": "% of FG3A Blocked",
-            "on": 0.023,
-            "off_corrected": 0.015,
-            "on_minus_off_corrected": 0.008,
-            "source_extra": {}
-          },
-          {
-            "metric": "% of FG2A Blocked",
-            "on": 0.069,
-            "off_corrected": 0.08,
-            "on_minus_off_corrected": -0.011,
-            "source_extra": {}
-          },
-          {
-            "metric": "Live Ball TO%",
-            "on": 0.52,
-            "off_corrected": 0.52,
-            "on_minus_off_corrected": 0.0,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed FTs",
-            "on": 0.902,
-            "off_corrected": 0.815,
-            "on_minus_off_corrected": 0.088,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed FTs",
-            "on": 0.123,
-            "off_corrected": 0.142,
-            "on_minus_off_corrected": -0.019,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed 2s",
-            "on": 0.7,
-            "off_corrected": 0.697,
-            "on_minus_off_corrected": 0.003,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed 2s",
-            "on": 0.386,
-            "off_corrected": 0.346,
-            "on_minus_off_corrected": 0.04,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed 3s",
-            "on": 0.687,
-            "off_corrected": 0.752,
-            "on_minus_off_corrected": -0.065,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed 3s",
-            "on": 0.291,
-            "off_corrected": 0.283,
-            "on_minus_off_corrected": 0.008,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed FGs",
-            "on": 0.697,
-            "off_corrected": 0.708,
-            "on_minus_off_corrected": -0.011,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed FGs",
-            "on": 0.375,
-            "off_corrected": 0.336,
-            "on_minus_off_corrected": 0.038,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim OReb%",
-            "on": 0.422,
-            "off_corrected": 0.433,
-            "on_minus_off_corrected": -0.01,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid-Range OReb%",
-            "on": 0.428,
-            "off_corrected": 0.346,
-            "on_minus_off_corrected": 0.082,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid-Range OReb%",
-            "on": 0.318,
-            "off_corrected": 0.29,
-            "on_minus_off_corrected": 0.028,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 OReb%",
-            "on": 0.281,
-            "off_corrected": 0.262,
-            "on_minus_off_corrected": 0.019,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 OReb%",
-            "on": 0.333,
-            "off_corrected": 0.35,
-            "on_minus_off_corrected": -0.016,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim DReb%",
-            "on": 0.514,
-            "off_corrected": 0.637,
-            "on_minus_off_corrected": -0.122,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid-Range DReb%",
-            "on": 0.72,
-            "off_corrected": 0.692,
-            "on_minus_off_corrected": 0.029,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid-Range DReb%",
-            "on": 0.77,
-            "off_corrected": 0.736,
-            "on_minus_off_corrected": 0.034,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 DReb%",
-            "on": 0.698,
-            "off_corrected": 0.749,
-            "on_minus_off_corrected": -0.05,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 DReb%",
-            "on": 0.625,
-            "off_corrected": 0.769,
-            "on_minus_off_corrected": -0.144,
-            "source_extra": {}
-          },
-          {
-            "metric": "Blocks Recovered %",
-            "on": 0.635,
-            "off_corrected": 0.677,
-            "on_minus_off_corrected": -0.042,
-            "source_extra": {}
-          },
-          {
-            "metric": "Seconds Per Possession - Offense",
-            "on": 16.581,
-            "off_corrected": 15.692,
-            "on_minus_off_corrected": 0.889,
-            "source_extra": {}
-          },
-          {
-            "metric": "Seconds Per Possession - Defense",
-            "on": 15.675,
-            "off_corrected": 15.738,
-            "on_minus_off_corrected": -0.063,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim Shot Frequency",
-            "on": 0.294,
-            "off_corrected": 0.304,
-            "on_minus_off_corrected": -0.011,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim FG%",
-            "on": 0.671,
-            "off_corrected": 0.671,
-            "on_minus_off_corrected": 0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim % Assisted",
-            "on": 0.54,
-            "off_corrected": 0.54,
-            "on_minus_off_corrected": -0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range Shot Frequency",
-            "on": 0.297,
-            "off_corrected": 0.304,
-            "on_minus_off_corrected": -0.007,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range FG%",
-            "on": 0.297,
-            "off_corrected": 0.328,
-            "on_minus_off_corrected": -0.03,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range % Assisted",
-            "on": 0.542,
-            "off_corrected": 0.491,
-            "on_minus_off_corrected": 0.051,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range Shot Frequency",
-            "on": 0.301,
-            "off_corrected": 0.264,
-            "on_minus_off_corrected": 0.037,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range FG%",
-            "on": 0.397,
-            "off_corrected": 0.392,
-            "on_minus_off_corrected": 0.005,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid % Assisted",
-            "on": 0.641,
-            "off_corrected": 0.625,
-            "on_minus_off_corrected": 0.016,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 Shot Frequency",
-            "on": 0.024,
-            "off_corrected": 0.032,
-            "on_minus_off_corrected": -0.008,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 FG%",
-            "on": 0.414,
-            "off_corrected": 0.381,
-            "on_minus_off_corrected": 0.033,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 % Assisted",
-            "on": 1.0,
-            "off_corrected": 0.984,
-            "on_minus_off_corrected": 0.016,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 Shot Frequency",
-            "on": 0.084,
-            "off_corrected": 0.096,
-            "on_minus_off_corrected": -0.011,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 FG%",
-            "on": 0.294,
-            "off_corrected": 0.31,
-            "on_minus_off_corrected": -0.015,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 % Assisted",
-            "on": 0.7,
-            "off_corrected": 0.859,
-            "on_minus_off_corrected": -0.159,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim or 3pt Shot Frequency",
-            "on": 0.402,
-            "off_corrected": 0.432,
-            "on_minus_off_corrected": -0.03,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non-Heave Arc 3 FG%",
-            "on": 0.312,
-            "off_corrected": 0.317,
-            "on_minus_off_corrected": -0.004,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shot Quality",
-            "on": 0.451,
-            "off_corrected": 0.463,
-            "on_minus_off_corrected": -0.013,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shooting Foul Drawn Rate",
-            "on": 0.119,
-            "off_corrected": 0.122,
-            "on_minus_off_corrected": -0.004,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt Shooting Foul Drawn Rate",
-            "on": 0.131,
-            "off_corrected": 0.137,
-            "on_minus_off_corrected": -0.006,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt Shooting Foul Drawn Rate",
-            "on": 0.008,
-            "off_corrected": 0.009,
-            "on_minus_off_corrected": -0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Points%",
-            "on": 0.169,
-            "off_corrected": 0.151,
-            "on_minus_off_corrected": 0.018,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Points%",
-            "on": 0.369,
-            "off_corrected": 0.34,
-            "on_minus_off_corrected": 0.029,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Possessions%",
-            "on": 0.368,
-            "off_corrected": 0.318,
-            "on_minus_off_corrected": 0.05,
-            "source_extra": {}
-          },
-          {
-            "metric": "Avg 2pt Shot Distance",
-            "on": 9.07,
-            "off_corrected": 8.597,
-            "on_minus_off_corrected": 0.473,
-            "source_extra": {}
-          },
-          {
-            "metric": "Avg 3pt Shot Distance",
-            "on": 26.521,
-            "off_corrected": 25.957,
-            "on_minus_off_corrected": 0.564,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Efficiency Excluding Last Minute Take Foul Possessions",
-            "on": 101.538,
-            "off_corrected": 110.297,
-            "on_minus_off_corrected": -8.759,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb%",
-            "on": 0.709,
-            "off_corrected": 0.713,
-            "on_minus_off_corrected": -0.004,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb%",
-            "on": 0.355,
-            "off_corrected": 0.322,
-            "on_minus_off_corrected": 0.032,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pts per 100 Possessions",
-            "on": 101.345,
-            "off_corrected": 103.212,
-            "on_minus_off_corrected": -1.867,
-            "source_extra": {}
-          },
-          {
-            "metric": "Assist Points per 100 Possessions",
-            "on": 46.638,
-            "off_corrected": 48.174,
-            "on_minus_off_corrected": -1.536,
-            "source_extra": {}
-          },
-          {
-            "metric": "FTA per 100 Possessions",
-            "on": 30.573,
-            "off_corrected": 30.078,
-            "on_minus_off_corrected": 0.495,
-            "source_extra": {}
-          },
-          {
-            "metric": "TOs per 100 Possessions",
-            "on": 17.268,
-            "off_corrected": 17.085,
-            "on_minus_off_corrected": 0.183,
-            "source_extra": {}
-          },
-          {
-            "metric": "Assists per 100 Possessions",
-            "on": 22.151,
-            "off_corrected": 22.481,
-            "on_minus_off_corrected": -0.33,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pts per 100 Possessions - Defense",
-            "on": 100.771,
-            "off_corrected": 97.742,
-            "on_minus_off_corrected": 3.029,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shot Quality - Defense",
-            "on": 0.453,
-            "off_corrected": 0.462,
-            "on_minus_off_corrected": -0.009,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FG% - Defense",
-            "on": 0.343,
-            "off_corrected": 0.342,
-            "on_minus_off_corrected": 0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt FG% - Defense",
-            "on": 0.453,
-            "off_corrected": 0.447,
-            "on_minus_off_corrected": 0.005,
-            "source_extra": {}
-          },
-          {
-            "metric": "eFG% - Defense",
-            "on": 0.464,
-            "off_corrected": 0.459,
-            "on_minus_off_corrected": 0.005,
-            "source_extra": {}
-          },
-          {
-            "metric": "3PAr - Defense",
-            "on": 0.194,
-            "off_corrected": 0.185,
-            "on_minus_off_corrected": 0.009,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim Shot Frequency - Defense",
-            "on": 0.255,
-            "off_corrected": 0.255,
-            "on_minus_off_corrected": -0.0,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim FG% - Defense",
-            "on": 0.672,
-            "off_corrected": 0.629,
-            "on_minus_off_corrected": 0.043,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range Shot Frequency - Defense",
-            "on": 0.286,
-            "off_corrected": 0.277,
-            "on_minus_off_corrected": 0.009,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range FG% - Defense",
-            "on": 0.328,
-            "off_corrected": 0.328,
-            "on_minus_off_corrected": -0.0,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range Shot Frequency - Defense",
-            "on": 0.266,
-            "off_corrected": 0.283,
-            "on_minus_off_corrected": -0.018,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range FG% - Defense",
-            "on": 0.376,
-            "off_corrected": 0.401,
-            "on_minus_off_corrected": -0.025,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 Shot Frequency - Defense",
-            "on": 0.03,
-            "off_corrected": 0.031,
-            "on_minus_off_corrected": -0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 FG% - Defense",
-            "on": 0.368,
-            "off_corrected": 0.456,
-            "on_minus_off_corrected": -0.087,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 Shot Frequency - Defense",
-            "on": 0.164,
-            "off_corrected": 0.153,
-            "on_minus_off_corrected": 0.011,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 FG% - Defense",
-            "on": 0.338,
-            "off_corrected": 0.319,
-            "on_minus_off_corrected": 0.019,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pace",
-            "on": 89.298,
-            "off_corrected": 91.635,
-            "on_minus_off_corrected": -2.337,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Efficiency",
-            "on": 116.908,
-            "off_corrected": 113.912,
-            "on_minus_off_corrected": 2.996,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Efficiency",
-            "on": 101.538,
-            "off_corrected": 110.297,
-            "on_minus_off_corrected": -8.759,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Possessions Per 100 Possessions",
-            "on": 14.65,
-            "off_corrected": 13.71,
-            "on_minus_off_corrected": 0.939,
-            "source_extra": {}
-          },
-          {
-            "metric": "First Chance Points Per 100 Possessions",
-            "on": 84.218,
-            "off_corrected": 87.594,
-            "on_minus_off_corrected": -3.376,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Points Per 100 Possessions",
-            "on": 17.127,
-            "off_corrected": 15.618,
-            "on_minus_off_corrected": 1.509,
-            "source_extra": {}
-          }
-        ],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": true,
-            "attempt": 3,
-            "status_code": 200,
-            "elapsed_seconds": 1.455,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1563&FromDate=2000-12-23&ToDate=2001-04-18')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1563&FromDate=2000-12-23&ToDate=2001-04-18')"
-            ]
-          },
-          "stat_minutes": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&Stat=OffRebounds&FromDate=2000-12-23&ToDate=2001-04-18')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&Stat=OffRebounds&FromDate=2000-12-23&ToDate=2001-04-18')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&Stat=OffRebounds&FromDate=2000-12-23&ToDate=2001-04-18')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&Stat=OffRebounds&FromDate=2000-12-23&ToDate=2001-04-18')"
-            ]
-          }
-        },
-        "generated_utc": "2026-08-09T07:00:26.780217+00:00"
-      }
-    },
-    {
-      "window": {
-        "season": "2000-01",
-        "player_id": "1683",
-        "player_name": "Larry Robinson",
-        "team_id": 1610612739,
-        "team_abbr": "CLE",
-        "tenure_start": "2001-01-02",
-        "tenure_end": "2001-01-09",
-        "start_reason": "trade_into_team",
-        "end_reason": "depart_out_of_team",
-        "start_source": "Basketball-Reference via Internet Archive",
-        "end_source": "RealGM league transaction history",
-        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-180",
-        "end_source_reference": "https://basketball.realgm.com/nba/transactions/league/2001",
-        "confidence": "provisional_high",
-        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "team_games_in_window": 3,
-        "audit_flags": [
-          "transaction_day_policy_applied"
-        ],
-        "query_start_date": "2001-01-03",
-        "query_end_date": "2001-01-09",
-        "start_boundary_included": false,
-        "end_boundary_included": true,
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "transaction_day_policy_applied": true,
-        "excluded_incoming_transaction_day_game_ids": [
-          "0020000445"
-        ],
-        "included_departing_transaction_day_game_ids": [],
-        "boundary_game_ids": [
-          "0020000445"
-        ],
-        "same_day_unresolved_game_ids": [],
-        "team_games_min": 3,
-        "team_games_max": 3,
-        "schedule_boundary_status": "resolved",
-        "zero_game_window": false
-      },
-      "result": {
-        "complete": false,
-        "season": "2000-01",
-        "team_id": 1610612739,
-        "team_abbr": "CLE",
-        "player_id": "1683",
-        "player": "Larry Robinson",
-        "tenure_start": "2001-01-02",
-        "tenure_end": "2001-01-09",
-        "query_start_date": "2001-01-03",
-        "query_end_date": "2001-01-09",
-        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
-        "team_games_in_window": 3,
-        "tenure_source": null,
-        "tenure_confidence": "provisional_high",
-        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
-        "minutes_on": null,
-        "minutes_off": null,
-        "metric_count": 89,
-        "metrics": [
-          {
-            "metric": "2pt FGM Assist%",
-            "on": 0.0,
-            "off_corrected": 0.564,
-            "on_minus_off_corrected": -0.564,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non Putback 2pt FGM Assist%",
-            "on": 0.0,
-            "off_corrected": 0.62,
-            "on_minus_off_corrected": -0.62,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FGM Assist%",
-            "on": 0.0,
-            "off_corrected": 0.914,
-            "on_minus_off_corrected": -0.914,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FG%",
-            "on": 0.0,
-            "off_corrected": 0.334,
-            "on_minus_off_corrected": -0.334,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non-Heave 3pt FG%",
-            "on": 0.0,
-            "off_corrected": 0.347,
-            "on_minus_off_corrected": -0.347,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt FG%",
-            "on": 0.0,
-            "off_corrected": 0.455,
-            "on_minus_off_corrected": -0.455,
-            "source_extra": {}
-          },
-          {
-            "metric": "eFG%",
-            "on": 0.0,
-            "off_corrected": 0.459,
-            "on_minus_off_corrected": -0.459,
-            "source_extra": {}
-          },
-          {
-            "metric": "TS%",
-            "on": 0.0,
-            "off_corrected": 0.505,
-            "on_minus_off_corrected": -0.505,
-            "source_extra": {}
-          },
-          {
-            "metric": "3PAr",
-            "on": 0.0,
-            "off_corrected": 0.101,
-            "on_minus_off_corrected": -0.101,
-            "source_extra": {}
-          },
-          {
-            "metric": "% of FG3A Blocked",
-            "on": 0.0,
-            "off_corrected": 0.017,
-            "on_minus_off_corrected": -0.017,
-            "source_extra": {}
-          },
-          {
-            "metric": "% of FG2A Blocked",
-            "on": 0.0,
-            "off_corrected": 0.09,
-            "on_minus_off_corrected": -0.09,
-            "source_extra": {}
-          },
-          {
-            "metric": "Live Ball TO%",
-            "on": 0.5,
-            "off_corrected": 0.514,
-            "on_minus_off_corrected": -0.014,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed FTs",
-            "on": 0.0,
-            "off_corrected": 0.851,
-            "on_minus_off_corrected": -0.851,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed FTs",
-            "on": 0.0,
-            "off_corrected": 0.155,
-            "on_minus_off_corrected": -0.155,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed 2s",
-            "on": 0.0,
-            "off_corrected": 0.673,
-            "on_minus_off_corrected": -0.673,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed 2s",
-            "on": 0.0,
-            "off_corrected": 0.332,
-            "on_minus_off_corrected": -0.332,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed 3s",
-            "on": 0.0,
-            "off_corrected": 0.715,
-            "on_minus_off_corrected": -0.715,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed 3s",
-            "on": 0.0,
-            "off_corrected": 0.299,
-            "on_minus_off_corrected": -0.299,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed FGs",
-            "on": 0.0,
-            "off_corrected": 0.681,
-            "on_minus_off_corrected": -0.681,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed FGs",
-            "on": 0.0,
-            "off_corrected": 0.328,
-            "on_minus_off_corrected": -0.328,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim OReb%",
-            "on": 0.0,
-            "off_corrected": 0.436,
-            "on_minus_off_corrected": -0.436,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid-Range OReb%",
-            "on": 0.0,
-            "off_corrected": 0.338,
-            "on_minus_off_corrected": -0.338,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid-Range OReb%",
-            "on": 0.0,
-            "off_corrected": 0.255,
-            "on_minus_off_corrected": -0.255,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 OReb%",
-            "on": 0.0,
-            "off_corrected": 0.315,
-            "on_minus_off_corrected": -0.315,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 OReb%",
-            "on": 0.0,
-            "off_corrected": 0.274,
-            "on_minus_off_corrected": -0.274,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim DReb%",
-            "on": 0.0,
-            "off_corrected": 0.585,
-            "on_minus_off_corrected": -0.585,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid-Range DReb%",
-            "on": 0.0,
-            "off_corrected": 0.674,
-            "on_minus_off_corrected": -0.674,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid-Range DReb%",
-            "on": 0.0,
-            "off_corrected": 0.731,
-            "on_minus_off_corrected": -0.731,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 DReb%",
-            "on": 0.0,
-            "off_corrected": 0.719,
-            "on_minus_off_corrected": -0.719,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 DReb%",
-            "on": 0.0,
-            "off_corrected": 0.706,
-            "on_minus_off_corrected": -0.706,
-            "source_extra": {}
-          },
-          {
-            "metric": "Blocks Recovered %",
-            "on": 0.0,
-            "off_corrected": 0.557,
-            "on_minus_off_corrected": -0.557,
-            "source_extra": {}
-          },
-          {
-            "metric": "Seconds Per Possession - Offense",
-            "on": 19.667,
-            "off_corrected": 15.627,
-            "on_minus_off_corrected": 4.039,
-            "source_extra": {}
-          },
-          {
-            "metric": "Seconds Per Possession - Defense",
-            "on": 14.0,
-            "off_corrected": 15.894,
-            "on_minus_off_corrected": -1.894,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim Shot Frequency",
-            "on": 1.0,
-            "off_corrected": 0.317,
-            "on_minus_off_corrected": 0.683,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim FG%",
-            "on": 0.0,
-            "off_corrected": 0.58,
-            "on_minus_off_corrected": -0.58,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim % Assisted",
-            "on": 0.0,
-            "off_corrected": 0.55,
-            "on_minus_off_corrected": -0.55,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range Shot Frequency",
-            "on": 0.0,
-            "off_corrected": 0.257,
-            "on_minus_off_corrected": -0.257,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range FG%",
-            "on": 0.0,
-            "off_corrected": 0.368,
-            "on_minus_off_corrected": -0.368,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range % Assisted",
-            "on": 0.0,
-            "off_corrected": 0.421,
-            "on_minus_off_corrected": -0.421,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range Shot Frequency",
-            "on": 0.0,
-            "off_corrected": 0.325,
-            "on_minus_off_corrected": -0.325,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range FG%",
-            "on": 0.0,
-            "off_corrected": 0.401,
-            "on_minus_off_corrected": -0.401,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid % Assisted",
-            "on": 0.0,
-            "off_corrected": 0.69,
-            "on_minus_off_corrected": -0.69,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 Shot Frequency",
-            "on": 0.0,
-            "off_corrected": 0.036,
-            "on_minus_off_corrected": -0.036,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 FG%",
-            "on": 0.0,
-            "off_corrected": 0.356,
-            "on_minus_off_corrected": -0.356,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 % Assisted",
-            "on": 0.0,
-            "off_corrected": 0.964,
-            "on_minus_off_corrected": -0.964,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 Shot Frequency",
-            "on": 0.0,
-            "off_corrected": 0.065,
-            "on_minus_off_corrected": -0.065,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 FG%",
-            "on": 0.0,
-            "off_corrected": 0.322,
-            "on_minus_off_corrected": -0.322,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 % Assisted",
-            "on": 0.0,
-            "off_corrected": 0.883,
-            "on_minus_off_corrected": -0.883,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim or 3pt Shot Frequency",
-            "on": 1.0,
-            "off_corrected": 0.418,
-            "on_minus_off_corrected": 0.582,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non-Heave Arc 3 FG%",
-            "on": 0.0,
-            "off_corrected": 0.343,
-            "on_minus_off_corrected": -0.343,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shot Quality",
-            "on": 0.51,
-            "off_corrected": 0.47,
-            "on_minus_off_corrected": 0.04,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shooting Foul Drawn Rate",
-            "on": 0.0,
-            "off_corrected": 0.115,
-            "on_minus_off_corrected": -0.115,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt Shooting Foul Drawn Rate",
-            "on": 0.0,
-            "off_corrected": 0.126,
-            "on_minus_off_corrected": -0.126,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt Shooting Foul Drawn Rate",
-            "on": 0.0,
-            "off_corrected": 0.009,
-            "on_minus_off_corrected": -0.009,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Points%",
-            "on": 0.0,
-            "off_corrected": 0.154,
-            "on_minus_off_corrected": -0.154,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Points%",
-            "on": 0.0,
-            "off_corrected": 0.291,
-            "on_minus_off_corrected": -0.291,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Possessions%",
-            "on": 1.0,
-            "off_corrected": 0.283,
-            "on_minus_off_corrected": 0.717,
-            "source_extra": {}
-          },
-          {
-            "metric": "Avg 2pt Shot Distance",
-            "on": 0.0,
-            "off_corrected": 9.155,
-            "on_minus_off_corrected": -9.155,
-            "source_extra": {}
-          },
-          {
-            "metric": "Avg 3pt Shot Distance",
-            "on": 0.0,
-            "off_corrected": 26.151,
-            "on_minus_off_corrected": -26.151,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Efficiency Excluding Last Minute Take Foul Possessions",
-            "on": 0.0,
-            "off_corrected": 103.09,
-            "on_minus_off_corrected": -103.09,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb%",
-            "on": 0.0,
-            "off_corrected": 0.692,
-            "on_minus_off_corrected": -0.692,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb%",
-            "on": 0.0,
-            "off_corrected": 0.318,
-            "on_minus_off_corrected": -0.318,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pts per 100 Possessions",
-            "on": 0.0,
-            "off_corrected": 100.345,
-            "on_minus_off_corrected": -100.345,
-            "source_extra": {}
-          },
-          {
-            "metric": "Assist Points per 100 Possessions",
-            "on": 0.0,
-            "off_corrected": 48.003,
-            "on_minus_off_corrected": -48.003,
-            "source_extra": {}
-          },
-          {
-            "metric": "FTA per 100 Possessions",
-            "on": 0.0,
-            "off_corrected": 27.074,
-            "on_minus_off_corrected": -27.074,
-            "source_extra": {}
-          },
-          {
-            "metric": "TOs per 100 Possessions",
-            "on": 66.667,
-            "off_corrected": 17.903,
-            "on_minus_off_corrected": 48.764,
-            "source_extra": {}
-          },
-          {
-            "metric": "Assists per 100 Possessions",
-            "on": 0.0,
-            "off_corrected": 22.668,
-            "on_minus_off_corrected": -22.668,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pts per 100 Possessions - Defense",
-            "on": 250.0,
-            "off_corrected": 104.606,
-            "on_minus_off_corrected": 145.394,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shot Quality - Defense",
-            "on": 0.663,
-            "off_corrected": 0.48,
-            "on_minus_off_corrected": 0.183,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FG% - Defense",
-            "on": 0.0,
-            "off_corrected": 0.366,
-            "on_minus_off_corrected": -0.366,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt FG% - Defense",
-            "on": 1.0,
-            "off_corrected": 0.461,
-            "on_minus_off_corrected": 0.539,
-            "source_extra": {}
-          },
-          {
-            "metric": "eFG% - Defense",
-            "on": 0.667,
-            "off_corrected": 0.477,
-            "on_minus_off_corrected": 0.19,
-            "source_extra": {}
-          },
-          {
-            "metric": "3PAr - Defense",
-            "on": 0.333,
-            "off_corrected": 0.175,
-            "on_minus_off_corrected": 0.158,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim Shot Frequency - Defense",
-            "on": 0.667,
-            "off_corrected": 0.301,
-            "on_minus_off_corrected": 0.366,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim FG% - Defense",
-            "on": 1.0,
-            "off_corrected": 0.598,
-            "on_minus_off_corrected": 0.402,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range Shot Frequency - Defense",
-            "on": 0.0,
-            "off_corrected": 0.218,
-            "on_minus_off_corrected": -0.218,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range FG% - Defense",
-            "on": 0.0,
-            "off_corrected": 0.345,
-            "on_minus_off_corrected": -0.345,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range Shot Frequency - Defense",
-            "on": 0.0,
-            "off_corrected": 0.306,
-            "on_minus_off_corrected": -0.306,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range FG% - Defense",
-            "on": 0.0,
-            "off_corrected": 0.41,
-            "on_minus_off_corrected": -0.41,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 Shot Frequency - Defense",
-            "on": 0.0,
-            "off_corrected": 0.054,
-            "on_minus_off_corrected": -0.054,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 FG% - Defense",
-            "on": 0.0,
-            "off_corrected": 0.376,
-            "on_minus_off_corrected": -0.376,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 Shot Frequency - Defense",
-            "on": 0.333,
-            "off_corrected": 0.121,
-            "on_minus_off_corrected": 0.212,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 FG% - Defense",
-            "on": 0.0,
-            "off_corrected": 0.361,
-            "on_minus_off_corrected": -0.361,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pace",
-            "on": 82.759,
-            "off_corrected": 91.364,
-            "on_minus_off_corrected": -8.606,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Efficiency",
-            "on": 0.0,
-            "off_corrected": 114.033,
-            "on_minus_off_corrected": -114.033,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Efficiency",
-            "on": 0.0,
-            "off_corrected": 103.09,
-            "on_minus_off_corrected": -103.09,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Possessions Per 100 Possessions",
-            "on": 0.0,
-            "off_corrected": 13.524,
-            "on_minus_off_corrected": -13.524,
-            "source_extra": {}
-          },
-          {
-            "metric": "First Chance Points Per 100 Possessions",
-            "on": 0.0,
-            "off_corrected": 84.924,
-            "on_minus_off_corrected": -84.924,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Points Per 100 Possessions",
-            "on": 0.0,
-            "off_corrected": 15.421,
-            "on_minus_off_corrected": -15.421,
-            "source_extra": {}
-          }
-        ],
-        "minute_source_row": null,
-        "requests": {
-          "team": {
-            "ok": true,
-            "attempt": 3,
-            "status_code": 200,
-            "elapsed_seconds": 1.504,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=1683&FromDate=2001-01-03&ToDate=2001-01-09')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=1683&FromDate=2001-01-03&ToDate=2001-01-09')"
-            ]
-          },
-          "stat_minutes": {
-            "ok": false,
-            "attempt": 4,
-            "status_code": null,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612739&Stat=OffRebounds&FromDate=2001-01-03&ToDate=2001-01-09')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612739&Stat=OffRebounds&FromDate=2001-01-03&ToDate=2001-01-09')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612739&Stat=OffRebounds&FromDate=2001-01-03&ToDate=2001-01-09')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612739&Stat=OffRebounds&FromDate=2001-01-03&ToDate=2001-01-09')"
-            ]
-          }
-        },
-        "generated_utc": "2026-08-09T07:00:31.294979+00:00"
+        "generated_utc": "2026-08-09T07:04:36.975309+00:00"
       }
     },
     {
@@ -6690,657 +4315,526 @@
         "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
         "minutes_on": null,
         "minutes_off": null,
-        "metric_count": 89,
-        "metrics": [
-          {
-            "metric": "2pt FGM Assist%",
-            "on": 0.584,
-            "off_corrected": 0.628,
-            "on_minus_off_corrected": -0.044,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non Putback 2pt FGM Assist%",
-            "on": 0.657,
-            "off_corrected": 0.694,
-            "on_minus_off_corrected": -0.037,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FGM Assist%",
-            "on": 0.949,
-            "off_corrected": 0.845,
-            "on_minus_off_corrected": 0.104,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FG%",
-            "on": 0.331,
-            "off_corrected": 0.359,
-            "on_minus_off_corrected": -0.029,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non-Heave 3pt FG%",
-            "on": 0.333,
-            "off_corrected": 0.361,
-            "on_minus_off_corrected": -0.028,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt FG%",
-            "on": 0.455,
-            "off_corrected": 0.454,
-            "on_minus_off_corrected": 0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "eFG%",
-            "on": 0.463,
-            "off_corrected": 0.472,
-            "on_minus_off_corrected": -0.01,
-            "source_extra": {}
-          },
-          {
-            "metric": "TS%",
-            "on": 0.502,
-            "off_corrected": 0.51,
-            "on_minus_off_corrected": -0.007,
-            "source_extra": {}
-          },
-          {
-            "metric": "3PAr",
-            "on": 0.186,
-            "off_corrected": 0.215,
-            "on_minus_off_corrected": -0.029,
-            "source_extra": {}
-          },
-          {
-            "metric": "% of FG3A Blocked",
-            "on": 0.013,
-            "off_corrected": 0.009,
-            "on_minus_off_corrected": 0.003,
-            "source_extra": {}
-          },
-          {
-            "metric": "% of FG2A Blocked",
-            "on": 0.101,
-            "off_corrected": 0.086,
-            "on_minus_off_corrected": 0.015,
-            "source_extra": {}
-          },
-          {
-            "metric": "Live Ball TO%",
-            "on": 0.476,
-            "off_corrected": 0.528,
-            "on_minus_off_corrected": -0.052,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed FTs",
-            "on": 0.762,
-            "off_corrected": 0.849,
-            "on_minus_off_corrected": -0.087,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed FTs",
-            "on": 0.161,
-            "off_corrected": 0.122,
-            "on_minus_off_corrected": 0.038,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed 2s",
-            "on": 0.665,
-            "off_corrected": 0.698,
-            "on_minus_off_corrected": -0.033,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed 2s",
-            "on": 0.326,
-            "off_corrected": 0.309,
-            "on_minus_off_corrected": 0.017,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed 3s",
-            "on": 0.645,
-            "off_corrected": 0.714,
-            "on_minus_off_corrected": -0.068,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed 3s",
-            "on": 0.277,
-            "off_corrected": 0.275,
-            "on_minus_off_corrected": 0.002,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb% - Missed FGs",
-            "on": 0.661,
-            "off_corrected": 0.701,
-            "on_minus_off_corrected": -0.04,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb% - Missed FGs",
-            "on": 0.316,
-            "off_corrected": 0.301,
-            "on_minus_off_corrected": 0.015,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim OReb%",
-            "on": 0.428,
-            "off_corrected": 0.421,
-            "on_minus_off_corrected": 0.006,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid-Range OReb%",
-            "on": 0.296,
-            "off_corrected": 0.325,
-            "on_minus_off_corrected": -0.029,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid-Range OReb%",
-            "on": 0.273,
-            "off_corrected": 0.23,
-            "on_minus_off_corrected": 0.043,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 OReb%",
-            "on": 0.269,
-            "off_corrected": 0.268,
-            "on_minus_off_corrected": 0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 OReb%",
-            "on": 0.3,
-            "off_corrected": 0.291,
-            "on_minus_off_corrected": 0.009,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim DReb%",
-            "on": 0.563,
-            "off_corrected": 0.599,
-            "on_minus_off_corrected": -0.036,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid-Range DReb%",
-            "on": 0.68,
-            "off_corrected": 0.701,
-            "on_minus_off_corrected": -0.021,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid-Range DReb%",
-            "on": 0.715,
-            "off_corrected": 0.759,
-            "on_minus_off_corrected": -0.044,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 DReb%",
-            "on": 0.598,
-            "off_corrected": 0.713,
-            "on_minus_off_corrected": -0.115,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 DReb%",
-            "on": 0.769,
-            "off_corrected": 0.715,
-            "on_minus_off_corrected": 0.054,
-            "source_extra": {}
-          },
-          {
-            "metric": "Blocks Recovered %",
-            "on": 0.556,
-            "off_corrected": 0.614,
-            "on_minus_off_corrected": -0.059,
-            "source_extra": {}
-          },
-          {
-            "metric": "Seconds Per Possession - Offense",
-            "on": 15.017,
-            "off_corrected": 15.563,
-            "on_minus_off_corrected": -0.545,
-            "source_extra": {}
-          },
-          {
-            "metric": "Seconds Per Possession - Defense",
-            "on": 15.602,
-            "off_corrected": 15.455,
-            "on_minus_off_corrected": 0.147,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim Shot Frequency",
-            "on": 0.333,
-            "off_corrected": 0.298,
-            "on_minus_off_corrected": 0.035,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim FG%",
-            "on": 0.605,
-            "off_corrected": 0.611,
-            "on_minus_off_corrected": -0.006,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim % Assisted",
-            "on": 0.552,
-            "off_corrected": 0.594,
-            "on_minus_off_corrected": -0.042,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range Shot Frequency",
-            "on": 0.219,
-            "off_corrected": 0.193,
-            "on_minus_off_corrected": 0.027,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range FG%",
-            "on": 0.33,
-            "off_corrected": 0.358,
-            "on_minus_off_corrected": -0.028,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range % Assisted",
-            "on": 0.484,
-            "off_corrected": 0.513,
-            "on_minus_off_corrected": -0.029,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range Shot Frequency",
-            "on": 0.261,
-            "off_corrected": 0.293,
-            "on_minus_off_corrected": -0.032,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range FG%",
-            "on": 0.369,
-            "off_corrected": 0.358,
-            "on_minus_off_corrected": 0.011,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid % Assisted",
-            "on": 0.726,
-            "off_corrected": 0.763,
-            "on_minus_off_corrected": -0.037,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 Shot Frequency",
-            "on": 0.05,
-            "off_corrected": 0.067,
-            "on_minus_off_corrected": -0.018,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 FG%",
-            "on": 0.359,
-            "off_corrected": 0.387,
-            "on_minus_off_corrected": -0.028,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 % Assisted",
-            "on": 1.0,
-            "off_corrected": 0.945,
-            "on_minus_off_corrected": 0.055,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 Shot Frequency",
-            "on": 0.136,
-            "off_corrected": 0.148,
-            "on_minus_off_corrected": -0.012,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 FG%",
-            "on": 0.32,
-            "off_corrected": 0.347,
-            "on_minus_off_corrected": -0.027,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 % Assisted",
-            "on": 0.929,
-            "off_corrected": 0.794,
-            "on_minus_off_corrected": 0.134,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim or 3pt Shot Frequency",
-            "on": 0.519,
-            "off_corrected": 0.514,
-            "on_minus_off_corrected": 0.005,
-            "source_extra": {}
-          },
-          {
-            "metric": "Non-Heave Arc 3 FG%",
-            "on": 0.324,
-            "off_corrected": 0.349,
-            "on_minus_off_corrected": -0.025,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shot Quality",
-            "on": 0.481,
-            "off_corrected": 0.484,
-            "on_minus_off_corrected": -0.003,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shooting Foul Drawn Rate",
-            "on": 0.113,
-            "off_corrected": 0.097,
-            "on_minus_off_corrected": 0.016,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt Shooting Foul Drawn Rate",
-            "on": 0.137,
-            "off_corrected": 0.119,
-            "on_minus_off_corrected": 0.018,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt Shooting Foul Drawn Rate",
-            "on": 0.0,
-            "off_corrected": 0.011,
-            "on_minus_off_corrected": -0.011,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Points%",
-            "on": 0.151,
-            "off_corrected": 0.137,
-            "on_minus_off_corrected": 0.014,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Points%",
-            "on": 0.376,
-            "off_corrected": 0.276,
-            "on_minus_off_corrected": 0.1,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Possessions%",
-            "on": 0.362,
-            "off_corrected": 0.267,
-            "on_minus_off_corrected": 0.095,
-            "source_extra": {}
-          },
-          {
-            "metric": "Avg 2pt Shot Distance",
-            "on": 8.166,
-            "off_corrected": 9.003,
-            "on_minus_off_corrected": -0.837,
-            "source_extra": {}
-          },
-          {
-            "metric": "Avg 3pt Shot Distance",
-            "on": 25.341,
-            "off_corrected": 25.052,
-            "on_minus_off_corrected": 0.289,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Efficiency Excluding Last Minute Take Foul Possessions",
-            "on": 106.25,
-            "off_corrected": 106.867,
-            "on_minus_off_corrected": -0.617,
-            "source_extra": {}
-          },
-          {
-            "metric": "DReb%",
-            "on": 0.667,
-            "off_corrected": 0.71,
-            "on_minus_off_corrected": -0.044,
-            "source_extra": {}
-          },
-          {
-            "metric": "OReb%",
-            "on": 0.305,
-            "off_corrected": 0.291,
-            "on_minus_off_corrected": 0.014,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pts per 100 Possessions",
-            "on": 102.401,
-            "off_corrected": 103.312,
-            "on_minus_off_corrected": -0.912,
-            "source_extra": {}
-          },
-          {
-            "metric": "Assist Points per 100 Possessions",
-            "on": 53.567,
-            "off_corrected": 57.887,
-            "on_minus_off_corrected": -4.321,
-            "source_extra": {}
-          },
-          {
-            "metric": "FTA per 100 Possessions",
-            "on": 29.355,
-            "off_corrected": 24.699,
-            "on_minus_off_corrected": 4.657,
-            "source_extra": {}
-          },
-          {
-            "metric": "TOs per 100 Possessions",
-            "on": 15.432,
-            "off_corrected": 14.649,
-            "on_minus_off_corrected": 0.783,
-            "source_extra": {}
-          },
-          {
-            "metric": "Assists per 100 Possessions",
-            "on": 24.211,
-            "off_corrected": 26.001,
-            "on_minus_off_corrected": -1.79,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pts per 100 Possessions - Defense",
-            "on": 103.706,
-            "off_corrected": 106.471,
-            "on_minus_off_corrected": -2.765,
-            "source_extra": {}
-          },
-          {
-            "metric": "Shot Quality - Defense",
-            "on": 0.471,
-            "off_corrected": 0.479,
-            "on_minus_off_corrected": -0.008,
-            "source_extra": {}
-          },
-          {
-            "metric": "3pt FG% - Defense",
-            "on": 0.354,
-            "off_corrected": 0.357,
-            "on_minus_off_corrected": -0.003,
-            "source_extra": {}
-          },
-          {
-            "metric": "2pt FG% - Defense",
-            "on": 0.447,
-            "off_corrected": 0.468,
-            "on_minus_off_corrected": -0.021,
-            "source_extra": {}
-          },
-          {
-            "metric": "eFG% - Defense",
-            "on": 0.462,
-            "off_corrected": 0.479,
-            "on_minus_off_corrected": -0.017,
-            "source_extra": {}
-          },
-          {
-            "metric": "3PAr - Defense",
-            "on": 0.18,
-            "off_corrected": 0.166,
-            "on_minus_off_corrected": 0.014,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim Shot Frequency - Defense",
-            "on": 0.28,
-            "off_corrected": 0.301,
-            "on_minus_off_corrected": -0.021,
-            "source_extra": {}
-          },
-          {
-            "metric": "At Rim FG% - Defense",
-            "on": 0.592,
-            "off_corrected": 0.618,
-            "on_minus_off_corrected": -0.026,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range Shot Frequency - Defense",
-            "on": 0.235,
-            "off_corrected": 0.235,
-            "on_minus_off_corrected": 0.0,
-            "source_extra": {}
-          },
-          {
-            "metric": "Short Mid Range FG% - Defense",
-            "on": 0.363,
-            "off_corrected": 0.361,
-            "on_minus_off_corrected": 0.002,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range Shot Frequency - Defense",
-            "on": 0.305,
-            "off_corrected": 0.298,
-            "on_minus_off_corrected": 0.007,
-            "source_extra": {}
-          },
-          {
-            "metric": "Long Mid Range FG% - Defense",
-            "on": 0.378,
-            "off_corrected": 0.4,
-            "on_minus_off_corrected": -0.022,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 Shot Frequency - Defense",
-            "on": 0.049,
-            "off_corrected": 0.043,
-            "on_minus_off_corrected": 0.005,
-            "source_extra": {}
-          },
-          {
-            "metric": "Corner 3 FG% - Defense",
-            "on": 0.369,
-            "off_corrected": 0.376,
-            "on_minus_off_corrected": -0.007,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 Shot Frequency - Defense",
-            "on": 0.131,
-            "off_corrected": 0.123,
-            "on_minus_off_corrected": 0.008,
-            "source_extra": {}
-          },
-          {
-            "metric": "Arc 3 FG% - Defense",
-            "on": 0.349,
-            "off_corrected": 0.35,
-            "on_minus_off_corrected": -0.001,
-            "source_extra": {}
-          },
-          {
-            "metric": "Pace",
-            "on": 94.044,
-            "off_corrected": 92.849,
-            "on_minus_off_corrected": 1.195,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Efficiency",
-            "on": 114.213,
-            "off_corrected": 109.577,
-            "on_minus_off_corrected": 4.636,
-            "source_extra": {}
-          },
-          {
-            "metric": "Penalty Efficiency",
-            "on": 106.25,
-            "off_corrected": 106.867,
-            "on_minus_off_corrected": -0.617,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Possessions Per 100 Possessions",
-            "on": 13.512,
-            "off_corrected": 12.928,
-            "on_minus_off_corrected": 0.584,
-            "source_extra": {}
-          },
-          {
-            "metric": "First Chance Points Per 100 Possessions",
-            "on": 86.968,
-            "off_corrected": 89.146,
-            "on_minus_off_corrected": -2.178,
-            "source_extra": {}
-          },
-          {
-            "metric": "Second Chance Points Per 100 Possessions",
-            "on": 15.432,
-            "off_corrected": 14.166,
-            "on_minus_off_corrected": 1.266,
-            "source_extra": {}
-          }
-        ],
+        "metric_count": 0,
+        "metrics": [],
         "minute_source_row": null,
         "requests": {
           "team": {
-            "ok": true,
-            "attempt": 3,
-            "status_code": 200,
-            "elapsed_seconds": 1.165,
-            "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=1721&FromDate=2000-10-31&ToDate=2001-01-12')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=1721&FromDate=2000-10-31&ToDate=2001-01-12')"
-            ]
-          },
-          "stat_minutes": {
             "ok": false,
             "attempt": 4,
             "status_code": null,
             "errors": [
-              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2001-01-12')",
-              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2001-01-12')",
-              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2001-01-12')",
-              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&Stat=OffRebounds&FromDate=2000-10-31&ToDate=2001-01-12')"
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=1721&FromDate=2000-10-31&ToDate=2001-01-12')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=1721&FromDate=2000-10-31&ToDate=2001-01-12')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=1721&FromDate=2000-10-31&ToDate=2001-01-12')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=1721&FromDate=2000-10-31&ToDate=2001-01-12')"
             ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
           }
         },
-        "generated_utc": "2026-08-09T07:00:34.955338+00:00"
+        "generated_utc": "2026-08-09T07:04:37.269485+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "1721",
+        "player_name": "Keon Clark",
+        "team_id": 1610612761,
+        "team_abbr": "TOR",
+        "tenure_start": "2001-01-12",
+        "tenure_end": "2001-04-18",
+        "start_reason": "trade_into_team",
+        "end_reason": "season_close_roster_continuity",
+        "start_source": "Basketball-Reference via Internet Archive",
+        "end_source": "core affiliation + no in-season departure event",
+        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-192",
+        "end_source_reference": null,
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 46,
+        "audit_flags": [
+          "multi_team_structure_reconciled_exactly",
+          "transaction_day_policy_applied"
+        ],
+        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
+        "query_start_date": "2001-01-13",
+        "query_end_date": "2001-04-18",
+        "start_boundary_included": false,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [
+          "0020000513"
+        ],
+        "included_departing_transaction_day_game_ids": [],
+        "boundary_game_ids": [
+          "0020000513"
+        ],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 46,
+        "team_games_max": 46,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612761,
+        "team_abbr": "TOR",
+        "player_id": "1721",
+        "player": "Keon Clark",
+        "tenure_start": "2001-01-12",
+        "tenure_end": "2001-04-18",
+        "query_start_date": "2001-01-13",
+        "query_end_date": "2001-04-18",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 46,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=1721&FromDate=2001-01-13&ToDate=2001-04-18')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=1721&FromDate=2001-01-13&ToDate=2001-04-18')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=1721&FromDate=2001-01-13&ToDate=2001-04-18')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612761&PlayerId=1721&FromDate=2001-01-13&ToDate=2001-04-18')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:40.882240+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "1737",
+        "player_name": "Nazr Mohammed",
+        "team_id": 1610612737,
+        "team_abbr": "ATL",
+        "tenure_start": "2001-02-22",
+        "tenure_end": "2001-04-18",
+        "start_reason": "trade_into_team",
+        "end_reason": "season_close_roster_continuity",
+        "start_source": "Basketball-Reference via Internet Archive",
+        "end_source": "core affiliation + no in-season departure event",
+        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-211",
+        "end_source_reference": null,
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 28,
+        "audit_flags": [
+          "multi_team_structure_reconciled_exactly",
+          "transaction_day_policy_applied"
+        ],
+        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
+        "query_start_date": "2001-02-23",
+        "query_end_date": "2001-04-18",
+        "start_boundary_included": false,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [],
+        "included_departing_transaction_day_game_ids": [],
+        "boundary_game_ids": [],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 28,
+        "team_games_max": 28,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612737,
+        "team_abbr": "ATL",
+        "player_id": "1737",
+        "player": "Nazr Mohammed",
+        "tenure_start": "2001-02-22",
+        "tenure_end": "2001-04-18",
+        "query_start_date": "2001-02-23",
+        "query_end_date": "2001-04-18",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 28,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612737&PlayerId=1737&FromDate=2001-02-23&ToDate=2001-04-18')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612737&PlayerId=1737&FromDate=2001-02-23&ToDate=2001-04-18')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612737&PlayerId=1737&FromDate=2001-02-23&ToDate=2001-04-18')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612737&PlayerId=1737&FromDate=2001-02-23&ToDate=2001-04-18')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:44.830243+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "1916",
+        "player_name": "Calvin Booth",
+        "team_id": 1610612764,
+        "team_abbr": "WAS",
+        "tenure_start": "2000-10-31",
+        "tenure_end": "2001-02-22",
+        "start_reason": "season_open_roster_continuity",
+        "end_reason": "trade_out_of_team",
+        "start_source": "core affiliation + no in-season acquisition event",
+        "end_source": "Basketball-Reference via Internet Archive",
+        "start_source_reference": null,
+        "end_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-214",
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 55,
+        "audit_flags": [
+          "multi_team_structure_reconciled_exactly",
+          "transaction_day_policy_applied"
+        ],
+        "structural_reconciliation": "exact_nonoverlapping_multi-team chronology",
+        "query_start_date": "2000-10-31",
+        "query_end_date": "2001-02-22",
+        "start_boundary_included": true,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [],
+        "included_departing_transaction_day_game_ids": [
+          "0020000779"
+        ],
+        "boundary_game_ids": [
+          "0020000779"
+        ],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 55,
+        "team_games_max": 55,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612764,
+        "team_abbr": "WAS",
+        "player_id": "1916",
+        "player": "Calvin Booth",
+        "tenure_start": "2000-10-31",
+        "tenure_end": "2001-02-22",
+        "query_start_date": "2000-10-31",
+        "query_end_date": "2001-02-22",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 55,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=1916&FromDate=2000-10-31&ToDate=2001-02-22')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=1916&FromDate=2000-10-31&ToDate=2001-02-22')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=1916&FromDate=2000-10-31&ToDate=2001-02-22')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=1916&FromDate=2000-10-31&ToDate=2001-02-22')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:45.124877+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "1952",
+        "player_name": "Raja Bell",
+        "team_id": 1610612755,
+        "team_abbr": "PHI",
+        "tenure_start": "2001-04-06",
+        "tenure_end": "2001-04-18",
+        "start_reason": "acquire_into_team",
+        "end_reason": "season_close_roster_continuity",
+        "start_source": "Basketball-Reference via Internet Archive",
+        "end_source": "core affiliation + no in-season departure event",
+        "start_source_reference": "https://web.archive.org/web/20221209180953id_/https://www.basketball-reference.com/leagues/NBA_2001_transactions.html#row-238",
+        "end_source_reference": null,
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 6,
+        "audit_flags": [
+          "transaction_day_policy_applied"
+        ],
+        "query_start_date": "2001-04-07",
+        "query_end_date": "2001-04-18",
+        "start_boundary_included": false,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [
+          "0020001089"
+        ],
+        "included_departing_transaction_day_game_ids": [],
+        "boundary_game_ids": [
+          "0020001089"
+        ],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 6,
+        "team_games_max": 6,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612755,
+        "team_abbr": "PHI",
+        "player_id": "1952",
+        "player": "Raja Bell",
+        "tenure_start": "2001-04-06",
+        "tenure_end": "2001-04-18",
+        "query_start_date": "2001-04-07",
+        "query_end_date": "2001-04-18",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 6,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1952&FromDate=2001-04-07&ToDate=2001-04-18')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1952&FromDate=2001-04-07&ToDate=2001-04-18')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1952&FromDate=2001-04-07&ToDate=2001-04-18')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1952&FromDate=2001-04-07&ToDate=2001-04-18')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:48.737940+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "2065",
+        "player_name": "Mike Smith",
+        "team_id": 1610612764,
+        "team_abbr": "WAS",
+        "tenure_start": "2000-10-31",
+        "tenure_end": "2001-02-22",
+        "start_reason": "season_open_roster_continuity",
+        "end_reason": "depart_out_of_team",
+        "start_source": "RealGM league transaction history",
+        "end_source": "RealGM league transaction history",
+        "start_source_reference": null,
+        "end_source_reference": "https://basketball.realgm.com/nba/transactions/league/2001",
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 55,
+        "audit_flags": [
+          "chronology_rebuilt_from_transaction_events",
+          "multi_stint_segment",
+          "segment_1_of_2",
+          "transaction_day_policy_applied"
+        ],
+        "segment_index": 1,
+        "segment_count": 2,
+        "segment_source_references": [
+          "https://basketball.realgm.com/nba/transactions/league/2001"
+        ],
+        "query_start_date": "2000-10-31",
+        "query_end_date": "2001-02-22",
+        "start_boundary_included": true,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [],
+        "included_departing_transaction_day_game_ids": [
+          "0020000779"
+        ],
+        "boundary_game_ids": [
+          "0020000779"
+        ],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 55,
+        "team_games_max": 55,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612764,
+        "team_abbr": "WAS",
+        "player_id": "2065",
+        "player": "Mike Smith",
+        "tenure_start": "2000-10-31",
+        "tenure_end": "2001-02-22",
+        "query_start_date": "2000-10-31",
+        "query_end_date": "2001-02-22",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 55,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=2065&FromDate=2000-10-31&ToDate=2001-02-22')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=2065&FromDate=2000-10-31&ToDate=2001-02-22')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=2065&FromDate=2000-10-31&ToDate=2001-02-22')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612764&PlayerId=2065&FromDate=2000-10-31&ToDate=2001-02-22')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:52.996124+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2000-01",
+        "player_id": "2082",
+        "player_name": "Dan McClintock",
+        "team_id": 1610612743,
+        "team_abbr": "DEN",
+        "tenure_start": "2001-04-04",
+        "tenure_end": "2001-04-18",
+        "start_reason": "acquire_into_team",
+        "end_reason": "season_close_roster_continuity",
+        "start_source": "RealGM league transaction history",
+        "end_source": "core affiliation + no in-season departure event",
+        "start_source_reference": "https://basketball.realgm.com/nba/transactions/league/2001",
+        "end_source_reference": null,
+        "confidence": "provisional_high",
+        "same_day_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "team_games_in_window": 7,
+        "audit_flags": [
+          "transaction_day_policy_applied"
+        ],
+        "query_start_date": "2001-04-05",
+        "query_end_date": "2001-04-18",
+        "start_boundary_included": false,
+        "end_boundary_included": true,
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "transaction_day_policy_applied": true,
+        "excluded_incoming_transaction_day_game_ids": [],
+        "included_departing_transaction_day_game_ids": [],
+        "boundary_game_ids": [],
+        "same_day_unresolved_game_ids": [],
+        "team_games_min": 7,
+        "team_games_max": 7,
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false
+      },
+      "result": {
+        "complete": false,
+        "season": "2000-01",
+        "team_id": 1610612743,
+        "team_abbr": "DEN",
+        "player_id": "2082",
+        "player": "Dan McClintock",
+        "tenure_start": "2001-04-04",
+        "tenure_end": "2001-04-18",
+        "query_start_date": "2001-04-05",
+        "query_end_date": "2001-04-18",
+        "transaction_day_policy": "recorded transaction date belongs to the departing/old team; incoming/new-team tenure begins on the following calendar day",
+        "team_games_in_window": 7,
+        "tenure_source": null,
+        "tenure_confidence": "provisional_high",
+        "boundary_resolution": "resolved_by_deterministic_transaction_day_policy",
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=2082&FromDate=2001-04-05&ToDate=2001-04-18')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=2082&FromDate=2001-04-05&ToDate=2001-04-18')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=2082&FromDate=2001-04-05&ToDate=2001-04-18')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2000-01&SeasonType=Regular+Season&TeamId=1610612743&PlayerId=2082&FromDate=2001-04-05&ToDate=2001-04-18')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-09T07:04:56.593734+00:00"
       }
     }
   ]
