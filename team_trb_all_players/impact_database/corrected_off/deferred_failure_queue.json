@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T19:25:04.921507+00:00",
+  "generated_utc": "2026-08-09T19:31:31.000525+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
-  "window_count": 2605,
+  "window_count": 2608,
   "attempt_histogram": {
-    "1": 2605
+    "1": 2608
   },
   "windows": {
     "2003-04__1610612737__2055__2004-02-19__2004-03-09.json.gz": {
@@ -44791,6 +44791,57 @@
       "player_name": "Ersan Ilyasova",
       "query_start_date": "2021-12-23",
       "query_end_date": "2021-12-31",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2021-22__1610612743__203585__2022-01-11__2022-04-10.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T19:27:15.404128+00:00",
+      "season": "2021-22",
+      "team_id": 1610612743,
+      "team_abbr": "1610612743",
+      "player_id": "203585",
+      "player_name": "Rodney McGruder",
+      "query_start_date": "2022-01-11",
+      "query_end_date": "2022-04-10",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2021-22__1610612745__202683__2022-02-11__2022-02-14.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T19:29:16.362168+00:00",
+      "season": "2021-22",
+      "team_id": 1610612745,
+      "team_abbr": "1610612745",
+      "player_id": "202683",
+      "player_name": "Enes Freedom",
+      "query_start_date": "2022-02-11",
+      "query_end_date": "2022-02-14",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2021-22__1610612745__1630237__2022-03-24__2022-04-10.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T19:29:42.203839+00:00",
+      "season": "2021-22",
+      "team_id": 1610612745,
+      "team_abbr": "1610612745",
+      "player_id": "1630237",
+      "player_name": "Anthony Lamb",
+      "query_start_date": "2022-03-24",
+      "query_end_date": "2022-04-10",
       "last_complete": false,
       "last_metric_count": 0,
       "team_ok": false,
