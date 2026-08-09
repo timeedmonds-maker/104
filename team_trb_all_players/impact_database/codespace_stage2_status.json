@@ -1,9 +1,10 @@
 {
-  "generated_utc": "2026-08-09T09:26:14.158399+00:00",
+  "generated_utc": "2026-08-09T10:02:53.847940+00:00",
   "phase": "checkpoint",
-  "note": "round=13 complete=10067 remaining=5360 mode=fresh successes=0 fresh_before=3557 deferred=1963 transient_rate=0.824742 elapsed=133.09s next_workers=1 next_interval=0.5",
-  "branch": "treb-stage2-v5-live",
-  "mode": "Codespace Stage2 v5: persistent core index + endpoint cache + shared stat payloads + one-shot fresh quarantine + adaptive concurrency + compact Git diagnostics; core 780/780 reused; teammate pairs excluded",
+  "note": "round=1 complete=10067 remaining=5360 mode=fresh successes=0 groups=120 windows=467 group_support=unknown network_calls=120 transient_rate=0.833333 elapsed=60.627s next_workers=1 next_interval=0.6",
+  "branch": "treb-stage2-v6-live",
+  "mode": "Codespace Stage2 v6 grouped interval TEAM profiles: one TeamId+date call can satisfy every target player in that exact interval; no per-player STAT minutes request; core 780/780 reused; teammate pairs excluded",
   "workers": 1,
-  "request_interval_seconds": 0.5
+  "request_interval_seconds": 0.5,
+  "group_limit": 120
 }
