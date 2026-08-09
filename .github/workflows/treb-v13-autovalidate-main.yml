@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'team_trb_all_players/treb_v13_autovalidate_trigger.txt'
+  pull_request:
+    branches: [main]
+    types: [reopened, synchronize]
 
 permissions:
   contents: write
