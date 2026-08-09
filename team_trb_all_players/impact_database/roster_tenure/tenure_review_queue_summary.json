@@ -1,0 +1,18 @@
+{
+  "generated_utc": "2026-08-09T03:54:00+00:00",
+  "input_windows": 15530,
+  "review_queue_windows": 0,
+  "review_queue_windows_original": 29,
+  "tolerated_review_windows": 29,
+  "stage1_exact_ready": true,
+  "strict_stage1_exact_ready_before_tolerance": false,
+  "stage1_tolerance_accepted": true,
+  "reason_counts_original": {
+    "review_confidence": 29,
+    "structural_boundary_gap": 29
+  },
+  "unique_unresolved_same_day_games": 0,
+  "unresolved_same_day_game_ids": [],
+  "tolerance_policy": "User-authorized practical tolerance: 29 residual non-overlapping review-flag windows out of 15,530 are accepted as immaterial. All hard structural QA remains zero: cross-team overlaps, same-team overlaps, invalid intervals, duplicate windows, resolved game-count inconsistencies and unresolved same-day cases.",
+  "methodology": "transaction date belongs to departing team; incoming team effective next calendar day"
+}
