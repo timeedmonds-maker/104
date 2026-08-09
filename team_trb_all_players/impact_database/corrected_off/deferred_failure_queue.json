@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T21:38:17.829594+00:00",
+  "generated_utc": "2026-08-09T21:44:04.537297+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
-  "window_count": 2666,
+  "window_count": 2668,
   "attempt_histogram": {
-    "1": 2666
+    "1": 2668
   },
   "windows": {
     "2003-04__1610612737__2055__2004-02-19__2004-03-09.json.gz": {
@@ -45830,6 +45830,40 @@
       "player_name": "Jalen Crutcher",
       "query_start_date": "2025-02-26",
       "query_end_date": "2025-03-01",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2024-25__1610612747__1631109__2025-02-07__2025-04-13.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T21:38:55.950490+00:00",
+      "season": "2024-25",
+      "team_id": 1610612747,
+      "team_abbr": "1610612747",
+      "player_id": "1631109",
+      "player_name": "Mark Williams",
+      "query_start_date": "2025-02-07",
+      "query_end_date": "2025-04-13",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2024-25__1610612751__1631112__2025-02-26__2025-03-04.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T21:43:33.869948+00:00",
+      "season": "2024-25",
+      "team_id": 1610612751,
+      "team_abbr": "1610612751",
+      "player_id": "1631112",
+      "player_name": "Kendall Brown",
+      "query_start_date": "2025-02-26",
+      "query_end_date": "2025-03-04",
       "last_complete": false,
       "last_metric_count": 0,
       "team_ok": false,
