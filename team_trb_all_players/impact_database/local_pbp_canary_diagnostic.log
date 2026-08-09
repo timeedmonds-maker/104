@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspaces/104/team_trb_all_players/local_pbp_treb_canary.py", line 342, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/workspaces/104/team_trb_all_players/local_pbp_treb_canary.py", line 294, in main
+    raise RuntimeError(f"need >=3 completed {SEASON} partial-tenure caches, found {len(canaries)}")
+RuntimeError: need >=3 completed 2007-08 partial-tenure caches, found 0
