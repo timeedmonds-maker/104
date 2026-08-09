@@ -1,0 +1,1 @@
+V6 grouped interval experiment produced zero completed windows in its first two durable rounds despite reducing request count, due to no valid grouped responses (predominantly HTTP 503 plus other HTTP errors). Do not use v6 as the production collector. Preserve its diagnostic value only.
