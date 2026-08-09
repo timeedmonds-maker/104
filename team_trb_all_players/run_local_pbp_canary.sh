@@ -55,7 +55,9 @@ print('BEST DURABLE STAGE2 BASE CONFIRMED: 10112 complete / 5315 remaining')
 PY
 
 write_status "setup" "Installing local bulk-PBP tooling; no production Stage2 collection running"
-python -m pip install --disable-pip-version-check -q "nba-on-court>=1.0.0" pandas numpy
+# PyPI's current published nba-on-court release is 0.2.1. Pin it exactly so
+# package discovery cannot fail on a nonexistent 1.x version.
+python -m pip install --disable-pip-version-check -q "nba-on-court==0.2.1" pandas numpy
 
 write_status "running" "Downloading one public bulk season and validating six already-completed partial-tenure windows"
 set +e
