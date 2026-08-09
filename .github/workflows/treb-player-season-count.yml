@@ -1,0 +1,53 @@
+name: TREB player-season count diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/treb-player-season-count.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-actions-live
+          fetch-depth: 0
+      - name: Count exact player-seasons
+        run: |
+          python - <<'PY'
+          import gzip, json
+          from pathlib import Path
+          src=Path('team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz')
+          rows=[]
+          with gzip.open(src,'rt',encoding='utf-8') as h:
+              for line in h:
+                  if line.strip(): rows.append(json.loads(line))
+          player_seasons={(str(r.get('season')), str(r.get('player_id'))) for r in rows if r.get('season') and r.get('player_id')}
+          players={pid for _,pid in player_seasons}
+          team_seasons={(str(r.get('season')), str(r.get('player_id')), int(r.get('team_id'))) for r in rows if r.get('season') and r.get('player_id') and r.get('team_id')}
+          impact=[r for r in rows if r.get('player_id') and not bool(r.get('zero_minute_only')) and not bool(r.get('zero_game_window'))]
+          out={
+            'source':'player_team_season_windows_evidence_audited.jsonl.gz',
+            'windows':len(rows),
+            'impact_windows':len(impact),
+            'unique_players':len(players),
+            'unique_player_seasons':len(player_seasons),
+            'unique_player_team_seasons':len(team_seasons),
+          }
+          p=Path('team_trb_all_players/impact_database/roster_tenure/player_season_count.json')
+          p.write_text(json.dumps(out,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Commit diagnostic result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/roster_tenure/player_season_count.json
+          git commit -m 'Record exact TREB player-season count [skip ci]'
+          git push origin HEAD:treb-stage2-actions-live
