@@ -1,0 +1,101 @@
+name: TREB Stage2 slim queue-bypass
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'team_trb_all_players/treb_stage2_slim_trigger.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-slim
+    timeout-minutes: 14
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        chunk: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30]
+    steps:
+      - name: Check out slim Stage2 branch
+        uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-slim
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install collector dependency
+        run: python -m pip install --disable-pip-version-check requests
+      - name: Collect next corrected-OFF batch
+        env:
+          CHUNK: ${{ matrix.chunk }}
+        run: |
+          set +e
+          python team_trb_all_players/run_corrected_off_batch_v2.py --batch-size 120 --workers 4
+          rc=$?
+          set -e
+          echo "TREB_SLIM_CHUNK=$CHUNK batch_rc=$rc"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json')
+          if p.exists():
+              d=json.loads(p.read_text())
+              print('complete=',d.get('complete_windows'),'remaining=',d.get('remaining_windows'),'all_complete=',d.get('all_complete'),'dynamic_core_reused=',d.get('dynamic_core_reused_windows'))
+          PY
+      - name: Commit durable Stage2 progress
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/corrected_off
+          if ! git diff --cached --quiet; then
+            git commit -m "TREB slim Stage2 chunk ${{ matrix.chunk }} [skip ci]"
+            git pull --rebase origin treb-stage2-slim
+            git push origin HEAD:treb-stage2-slim
+          fi
+
+  finalize:
+    needs: collect
+    runs-on: ubuntu-slim
+    timeout-minutes: 14
+    steps:
+      - name: Check out slim Stage2 branch
+        uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-slim
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Confirm collection complete
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json')
+          d=json.loads(p.read_text())
+          if not d.get('all_complete') or int(d.get('remaining_windows') or 0) != 0:
+              raise SystemExit(f"Stage2 still incomplete: complete={d.get('complete_windows')} remaining={d.get('remaining_windows')}")
+          if 'impact_windows_requested' not in d:
+              d['impact_windows_requested']=d.get('impact_windows_total')
+          p.write_text(json.dumps(d,indent=2))
+          print('CORRECTED OFF COLLECTION COMPLETE', d.get('complete_windows'))
+          PY
+      - name: Install finalizer dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+      - name: Build and validate final package
+        run: |
+          python team_trb_all_players/finalize_corrected_off_package.py
+          test -s team_trb_all_players/impact_database/corrected_off/TREB_corrected_off_final.zip
+          echo TREB_FINAL_PACKAGE_READY=1
+      - name: Commit final package
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/corrected_off
+          git commit -m 'Complete TREB corrected OFF final package [skip ci]'
+          git pull --rebase origin treb-stage2-slim
+          git push origin HEAD:treb-stage2-slim
