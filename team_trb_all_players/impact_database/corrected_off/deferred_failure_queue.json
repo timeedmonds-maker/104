@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T19:07:11.025767+00:00",
+  "generated_utc": "2026-08-09T19:13:15.537219+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
-  "window_count": 2598,
+  "window_count": 2600,
   "attempt_histogram": {
-    "1": 2598
+    "1": 2600
   },
   "windows": {
     "2003-04__1610612737__2055__2004-02-19__2004-03-09.json.gz": {
@@ -44672,6 +44672,40 @@
       "player_name": "Austin Rivers",
       "query_start_date": "2021-03-26",
       "query_end_date": "2021-03-28",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2020-21__1610612761__1629743__2021-02-27__2021-03-11.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T19:07:50.610186+00:00",
+      "season": "2020-21",
+      "team_id": 1610612761,
+      "team_abbr": "1610612761",
+      "player_id": "1629743",
+      "player_name": "Donta Hall",
+      "query_start_date": "2021-02-27",
+      "query_end_date": "2021-03-11",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2020-21__1610612764__1630258__2021-05-16__2021-05-16.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T19:10:57.474739+00:00",
+      "season": "2020-21",
+      "team_id": 1610612764,
+      "team_abbr": "1610612764",
+      "player_id": "1630258",
+      "player_name": "Caleb Homesley",
+      "query_start_date": "2021-05-16",
+      "query_end_date": "2021-05-16",
       "last_complete": false,
       "last_metric_count": 0,
       "team_ok": false,
