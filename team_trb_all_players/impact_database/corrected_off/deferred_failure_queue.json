@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T18:54:41.312222+00:00",
+  "generated_utc": "2026-08-09T19:00:46.541853+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
-  "window_count": 2590,
+  "window_count": 2593,
   "attempt_histogram": {
-    "1": 2590
+    "1": 2593
   },
   "windows": {
     "2003-04__1610612737__2055__2004-02-19__2004-03-09.json.gz": {
@@ -44536,6 +44536,57 @@
       "player_name": "Jeremiah Martin",
       "query_start_date": "2020-12-22",
       "query_end_date": "2020-12-22",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2020-21__1610612752__1629619__2021-04-24__2021-04-24.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T18:55:12.007399+00:00",
+      "season": "2020-21",
+      "team_id": 1610612752,
+      "team_abbr": "1610612752",
+      "player_id": "1629619",
+      "player_name": "Myles Powell",
+      "query_start_date": "2021-04-24",
+      "query_end_date": "2021-04-24",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2020-21__1610612752__1630492__2021-05-07__2021-05-16.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T18:55:33.682855+00:00",
+      "season": "2020-21",
+      "team_id": 1610612752,
+      "team_abbr": "1610612752",
+      "player_id": "1630492",
+      "player_name": "Luca Vildoza",
+      "query_start_date": "2021-05-07",
+      "query_end_date": "2021-05-16",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2020-21__1610612753__201952__2021-03-26__2021-03-27.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T18:56:44.915287+00:00",
+      "season": "2020-21",
+      "team_id": 1610612753,
+      "team_abbr": "1610612753",
+      "player_id": "201952",
+      "player_name": "Jeff Teague",
+      "query_start_date": "2021-03-26",
+      "query_end_date": "2021-03-27",
       "last_complete": false,
       "last_metric_count": 0,
       "team_ok": false,
