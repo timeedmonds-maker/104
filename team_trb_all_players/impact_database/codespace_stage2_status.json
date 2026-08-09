@@ -1,9 +1,10 @@
 {
-  "generated_utc": "2026-08-09T09:54:50.380340+00:00",
-  "phase": "checkpoint",
-  "note": "round=7 complete=10112 remaining=5315 mode=fresh successes=3 fresh_before=4525 deferred=950 transient_rate=0.839572 elapsed=115.793s next_workers=1 next_interval=0.5",
-  "branch": "treb-stage2-v5-live",
-  "mode": "Codespace Stage2 v5: persistent core index + endpoint cache + shared stat payloads + one-shot fresh quarantine + adaptive concurrency + compact Git diagnostics; core 780/780 reused; teammate pairs excluded",
+  "generated_utc": "2026-08-09T10:36:05.954685+00:00",
+  "phase": "validation_failed",
+  "note": "v8 totals-derived minutes formula did not reproduce completed-core on/off minutes; zero production API calls made",
+  "branch": "treb-stage2-v8-base",
+  "mode": "Codespace Stage2 v8: player-scoped TEAM metrics + documented date-filtered get-totals minutes; total team court time derived from sum player SecondsPlayed/5; endpoint payloads cached/shared; core 780/780 reused; teammate pairs excluded",
   "workers": 1,
-  "request_interval_seconds": 0.5
+  "request_interval_seconds": 0.5,
+  "batch_size": 200
 }
