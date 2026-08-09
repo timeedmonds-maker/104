@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T18:28:58.045603+00:00",
+  "generated_utc": "2026-08-09T18:35:06.169652+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
-  "window_count": 2585,
+  "window_count": 2588,
   "attempt_histogram": {
-    "1": 2585
+    "1": 2588
   },
   "windows": {
     "2003-04__1610612737__2055__2004-02-19__2004-03-09.json.gz": {
@@ -44450,6 +44450,57 @@
       "player_id": "1626159",
       "player_name": "Justise Winslow",
       "query_start_date": "2020-02-07",
+      "query_end_date": "2020-08-14",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2019-20__1610612763__1629007__2020-03-09__2020-08-14.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T18:29:37.947885+00:00",
+      "season": "2019-20",
+      "team_id": 1610612763,
+      "team_abbr": "1610612763",
+      "player_id": "1629007",
+      "player_name": "Jontay Porter",
+      "query_start_date": "2020-03-09",
+      "query_end_date": "2020-08-14",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2019-20__1610612766__1629606__2019-10-22__2020-01-15.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T18:32:43.714958+00:00",
+      "season": "2019-20",
+      "team_id": 1610612766,
+      "team_abbr": "1610612766",
+      "player_id": "1629606",
+      "player_name": "Robert Franks",
+      "query_start_date": "2019-10-22",
+      "query_end_date": "2020-01-15",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2019-20__1610612766__1629034__2020-01-16__2020-08-14.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T18:33:04.207235+00:00",
+      "season": "2019-20",
+      "team_id": 1610612766,
+      "team_abbr": "1610612766",
+      "player_id": "1629034",
+      "player_name": "Ray Spalding",
+      "query_start_date": "2020-01-16",
       "query_end_date": "2020-08-14",
       "last_complete": false,
       "last_metric_count": 0,
