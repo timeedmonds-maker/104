@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T22:08:19.030366+00:00",
+  "generated_utc": "2026-08-09T22:13:59.809660+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
-  "window_count": 2684,
+  "window_count": 2686,
   "attempt_histogram": {
-    "1": 2684
+    "1": 2686
   },
   "windows": {
     "2003-04__1610612737__2055__2004-02-19__2004-03-09.json.gz": {
@@ -46136,6 +46136,41 @@
       "player_name": "Nikola Djurisic",
       "query_start_date": "2025-10-21",
       "query_end_date": "2026-02-18",
+      "last_complete": false,
+      "last_metric_count": 89,
+      "team_ok": true,
+      "stat_ok": true,
+      "team_status": 200,
+      "stat_status": 200,
+      "failure_class": "minutes_match_missing"
+    },
+    "2025-26__1610612740__1631207__2026-02-06__2026-02-06.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T22:10:48.358155+00:00",
+      "season": "2025-26",
+      "team_id": 1610612740,
+      "team_abbr": "1610612740",
+      "player_id": "1631207",
+      "player_name": "Dalen Terry",
+      "query_start_date": "2026-02-06",
+      "query_end_date": "2026-02-06",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2025-26__1610612741__1631338__2026-04-10__2026-04-12.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T22:13:16.168503+00:00",
+      "season": "2025-26",
+      "team_id": 1610612741,
+      "team_abbr": "CHI",
+      "player_id": "1631338",
+      "player_name": "Mouhamadou Gueye",
+      "query_start_date": "2026-04-10",
+      "query_end_date": "2026-04-12",
       "last_complete": false,
       "last_metric_count": 89,
       "team_ok": true,
