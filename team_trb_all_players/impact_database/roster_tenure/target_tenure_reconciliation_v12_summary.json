@@ -1,11 +1,11 @@
 {
-  "generated_utc": "2026-08-09T01:47:54.373753+00:00",
+  "generated_utc": "2026-08-09T03:17:43.665003+00:00",
   "target_player_seasons": 35,
-  "input_windows": 15530,
-  "output_windows": 15529,
-  "target_windows_rebuilt": 87,
+  "input_windows": 15531,
+  "output_windows": 15530,
+  "target_windows_rebuilt": 88,
   "unsupported_core_phantom_windows_dropped": 1,
-  "unsupported_core_teams_still_requiring_review": 14,
+  "unsupported_core_teams_still_requiring_review": 0,
   "phantom_drop_audit": [
     {
       "season": "2000-01",
@@ -15,92 +15,7 @@
       "reason": "other exact transaction-derived affiliations cover entire regular season"
     }
   ],
-  "unresolved_fallback_audit": [
-    {
-      "season": "2010-11",
-      "player_id": "201591",
-      "player_name": "DJ White",
-      "team_id": 1610612760
-    },
-    {
-      "season": "2010-11",
-      "player_id": "201591",
-      "player_name": "DJ White",
-      "team_id": 1610612766
-    },
-    {
-      "season": "2011-12",
-      "player_id": "2210",
-      "player_name": "Richard Jefferson",
-      "team_id": 1610612744
-    },
-    {
-      "season": "2011-12",
-      "player_id": "2210",
-      "player_name": "Richard Jefferson",
-      "team_id": 1610612759
-    },
-    {
-      "season": "2012-13",
-      "player_id": "200755",
-      "player_name": "JJ Redick",
-      "team_id": 1610612749
-    },
-    {
-      "season": "2012-13",
-      "player_id": "200755",
-      "player_name": "JJ Redick",
-      "team_id": 1610612753
-    },
-    {
-      "season": "2012-13",
-      "player_id": "202397",
-      "player_name": "Ish Smith",
-      "team_id": 1610612749
-    },
-    {
-      "season": "2012-13",
-      "player_id": "202397",
-      "player_name": "Ish Smith",
-      "team_id": 1610612753
-    },
-    {
-      "season": "2013-14",
-      "player_id": "201571",
-      "player_name": "D.J. Augustin",
-      "team_id": 1610612741
-    },
-    {
-      "season": "2014-15",
-      "player_id": "201985",
-      "player_name": "AJ Price",
-      "team_id": 1610612739
-    },
-    {
-      "season": "2014-15",
-      "player_id": "201985",
-      "player_name": "AJ Price",
-      "team_id": 1610612754
-    },
-    {
-      "season": "2014-15",
-      "player_id": "201985",
-      "player_name": "AJ Price",
-      "team_id": 1610612756
-    },
-    {
-      "season": "2014-15",
-      "player_id": "203909",
-      "player_name": "KJ McDaniels",
-      "team_id": 1610612745
-    },
-    {
-      "season": "2014-15",
-      "player_id": "203909",
-      "player_name": "KJ McDaniels",
-      "team_id": 1610612755
-    }
-  ],
+  "unresolved_fallback_audit": [],
   "case_audit": [
     {
       "season": "2000-01",
@@ -209,25 +124,26 @@
       "teams": [
         {
           "team_id": 1610612760,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612766,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         }
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 0,
-      "unsupported_core_teams": [
-        1610612760,
-        1610612766
-      ],
-      "full_season_covered_by_supported_intervals": false
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
     },
     {
       "season": "2010-11",
@@ -300,25 +216,26 @@
       "teams": [
         {
           "team_id": 1610612744,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612759,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         }
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 0,
-      "unsupported_core_teams": [
-        1610612744,
-        1610612759
-      ],
-      "full_season_covered_by_supported_intervals": false
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
     },
     {
       "season": "2012-13",
@@ -327,25 +244,26 @@
       "teams": [
         {
           "team_id": 1610612749,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612753,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         }
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 0,
-      "unsupported_core_teams": [
-        1610612749,
-        1610612753
-      ],
-      "full_season_covered_by_supported_intervals": false
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
     },
     {
       "season": "2012-13",
@@ -354,25 +272,26 @@
       "teams": [
         {
           "team_id": 1610612749,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612753,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         }
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 0,
-      "unsupported_core_teams": [
-        1610612749,
-        1610612753
-      ],
-      "full_season_covered_by_supported_intervals": false
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
     },
     {
       "season": "2012-13",
@@ -453,9 +372,11 @@
       "teams": [
         {
           "team_id": 1610612741,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612761,
@@ -468,10 +389,8 @@
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 1,
-      "unsupported_core_teams": [
-        1610612741
-      ],
+      "event_count": 2,
+      "unsupported_core_teams": [],
       "full_season_covered_by_supported_intervals": false
     },
     {
@@ -617,31 +536,33 @@
       "teams": [
         {
           "team_id": 1610612739,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "latest_preseason_acquisition",
+          "segments": 2,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612754,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612756,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         }
       ],
-      "input_windows": 3,
-      "output_windows": 3,
-      "event_count": 0,
-      "unsupported_core_teams": [
-        1610612739,
-        1610612754,
-        1610612756
-      ],
+      "input_windows": 4,
+      "output_windows": 4,
+      "event_count": 8,
+      "unsupported_core_teams": [],
       "full_season_covered_by_supported_intervals": false
     },
     {
@@ -783,25 +704,26 @@
       "teams": [
         {
           "team_id": 1610612745,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_acquisition",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         },
         {
           "team_id": 1610612755,
-          "supported": false,
-          "reason": "no_transaction_state_evidence",
-          "segments": 0
+          "supported": true,
+          "initial_state_reason": "first_regular_event_is_departure",
+          "segments": 1,
+          "same_day_continuity": 0,
+          "pass_through": 0
         }
       ],
       "input_windows": 2,
       "output_windows": 2,
-      "event_count": 0,
-      "unsupported_core_teams": [
-        1610612745,
-        1610612755
-      ],
-      "full_season_covered_by_supported_intervals": false
+      "event_count": 1,
+      "unsupported_core_teams": [],
+      "full_season_covered_by_supported_intervals": true
     },
     {
       "season": "2015-16",
