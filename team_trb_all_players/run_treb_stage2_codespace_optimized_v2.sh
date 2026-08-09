@@ -37,7 +37,7 @@ d.update({
   'branch': 'treb-stage2-codespace-optimized',
   'workers': int(os.environ['WORKERS_NOW']),
   'request_interval_seconds': float(os.environ['INTERVAL_NOW']),
-  'mode': 'Codespace Stage2 v4: persistent core index + endpoint cache + shared stat payloads + one-shot fresh quarantine + adaptive concurrency; core 780/780 reused; teammate pairs excluded'
+  'mode': 'Codespace Stage2 v5: persistent core index + endpoint cache + shared stat payloads + one-shot fresh quarantine + adaptive concurrency + compact Git diagnostics; core 780/780 reused; teammate pairs excluded'
 })
 p.parent.mkdir(parents=True, exist_ok=True)
 p.write_text(json.dumps(d, indent=2), encoding='utf-8')
@@ -65,7 +65,7 @@ assert int(d.get('tolerated_review_windows') or 0) == 29, d
 print('STAGE1 PRODUCTION-READY CONFIRMED: hard structural QA zero; 29 tolerated review flags recorded')
 PY
 
-write_status "setup" "Validating Stage2 v4 optimized collector"
+write_status "setup" "Validating Stage2 v5 optimized collector"
 python - <<'PY' || python -m pip install --disable-pip-version-check requests pandas numpy pyarrow duckdb
 import requests, pandas, numpy, pyarrow, duckdb
 print('dependencies already available')
@@ -74,6 +74,7 @@ python "$BASE/build_corrected_tenure_off.py" --self-test
 python "$BASE/run_corrected_off_batch_v2.py" --self-test
 python "$BASE/run_corrected_off_batch_v3.py" --self-test
 python "$BASE/run_corrected_off_batch_v4.py" --self-test
+python "$BASE/run_corrected_off_batch_v5.py" --self-test
 python "$BASE/finalize_corrected_off_package.py" --self-test
 
 round=0
@@ -92,8 +93,8 @@ PY
   )
   if [[ "$all_complete" == "true" ]]; then break; fi
 
-  write_status "collect" "round=$round complete=$complete remaining=$remaining v4 workers=$WORKERS batch=$BATCH_SIZE interval=$REQUEST_INTERVAL"
-  python "$BASE/run_corrected_off_batch_v4.py" --batch-size "$BATCH_SIZE" --workers "$WORKERS" --request-interval "$REQUEST_INTERVAL"
+  write_status "collect" "round=$round complete=$complete remaining=$remaining v5 workers=$WORKERS batch=$BATCH_SIZE interval=$REQUEST_INTERVAL"
+  python "$BASE/run_corrected_off_batch_v5.py" --batch-size "$BATCH_SIZE" --workers "$WORKERS" --request-interval "$REQUEST_INTERVAL"
 
   read -r new_complete new_remaining new_all_complete mode successes fresh_before deferred_count next_workers next_interval transient_rate elapsed < <(python - <<'PY'
 import json
@@ -117,7 +118,7 @@ PY
   )
 
   write_status "checkpoint" "round=$round complete=$new_complete remaining=$new_remaining mode=$mode successes=$successes fresh_before=$fresh_before deferred=$deferred_count transient_rate=$transient_rate elapsed=${elapsed}s next_workers=$next_workers next_interval=$next_interval"
-  commit_progress "Codespace v4 corrected OFF checkpoint round $round"
+  commit_progress "Codespace v5 corrected OFF checkpoint round $round"
 
   WORKERS="$next_workers"
   REQUEST_INTERVAL="$next_interval"
@@ -134,7 +135,7 @@ PY
 
   if (( retry_no_progress >= 8 )); then
     write_status "retry_stalled" "Deferred retry queue made no progress for eight retry rounds; durable queue preserved for targeted fallback"
-    commit_progress "Codespace v4 deferred retry stalled"
+    commit_progress "Codespace v5 deferred retry stalled"
     echo "ERROR: deferred retry queue made no progress for eight rounds; all prior progress and endpoint cache are preserved." >&2
     exit 4
   fi
@@ -171,7 +172,7 @@ for rel in ['final_export/quality_report.json','final_export/provenance.json']:
     d['tolerated_stage1_review_windows']=29
     d['material_structural_overlap_count']=0
     d['transaction_day_methodology']='transaction date belongs to departing team; incoming team effective next calendar day'
-    d['execution_route']='4-core GitHub Codespace Stage2 v4 optimized endpoint-cache/failure-quarantine route'
+    d['execution_route']='4-core GitHub Codespace Stage2 v5 optimized endpoint-cache/failure-quarantine route'
     p.write_text(json.dumps(d, indent=2), encoding='utf-8')
 (root/'METHODOLOGY_TOLERANCE_NOTE.txt').write_text(
     'Stage1 retained 29 tolerated non-overlapping review/provenance flags out of 15,530 tenure windows. '
@@ -181,5 +182,5 @@ for rel in ['final_export/quality_report.json','final_export/provenance.json']:
 PY
 
 write_status "complete" "Final corrected-OFF package exists and finalizer QA passed"
-commit_progress "Complete TREB corrected OFF package from v4 optimized Codespace"
-echo "TREB V4 OPTIMIZED CODESPACE BUILD COMPLETE: $CORRECTED/TREB_corrected_off_final.zip"
+commit_progress "Complete TREB corrected OFF package from v5 optimized Codespace"
+echo "TREB V5 OPTIMIZED CODESPACE BUILD COMPLETE: $CORRECTED/TREB_corrected_off_final.zip"
