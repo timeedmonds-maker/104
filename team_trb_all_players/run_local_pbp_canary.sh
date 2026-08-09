@@ -9,6 +9,7 @@ BASE="team_trb_all_players"
 RESULT="$BASE/impact_database/local_pbp_canary_result.json"
 STATUS="$BASE/impact_database/local_pbp_canary_status.json"
 DIAG="$BASE/impact_database/local_pbp_canary_diagnostic.log"
+TMP_CANARY="/tmp/local_pbp_treb_canary_runtime.py"
 
 if [[ "$BRANCH" != "$EXPECTED_BRANCH" ]]; then
   echo "ERROR: expected $EXPECTED_BRANCH, current ${BRANCH:-DETACHED}" >&2
@@ -56,22 +57,77 @@ PY
 write_status "setup" "Installing local bulk-PBP tooling; no production Stage2 collection running"
 python -m pip install --disable-pip-version-check -q "nba-on-court==0.2.1" pandas numpy
 
-write_status "running" "Downloading one public bulk season and validating six already-completed partial-tenure windows"
-rm -f "$DIAG"
+# The first canary hard-coded 2007-08, but this branch has no completed partial-tenure
+# caches from that season. Select a season from the data we actually possess.
+# Restrict to 2000-01..2021-22 for conservative compatibility with the public bulk archive.
+read -r CANARY_SEASON CANARY_YEAR CANARY_COUNT < <(python - <<'PY'
+import gzip, json, re
+from collections import Counter
+from pathlib import Path
+cache=Path('team_trb_all_players/impact_database/corrected_off/cache')
+counts=Counter()
+for p in cache.glob('*.json.gz'):
+    m=re.match(r'^(\d{4})-(\d{2})__', p.name)
+    if not m:
+        continue
+    year=int(m.group(1))
+    if year < 2000 or year > 2021:
+        continue
+    try:
+        with gzip.open(p,'rt',encoding='utf-8') as f: d=json.load(f)
+    except Exception:
+        continue
+    if d.get('complete') is not True:
+        continue
+    start=str(d.get('query_start_date') or '')
+    end=str(d.get('query_end_date') or '')
+    metrics=d.get('metrics')
+    if not start or not end or start >= end or not isinstance(metrics,list) or not metrics:
+        continue
+    names={str(x.get('metric') or '') for x in metrics if isinstance(x,dict)}
+    if not {'OffRebounds','DefRebounds'} <= names:
+        continue
+    if int(d.get('team_games_in_window') or 0) < 1 or float(d.get('minutes_on') or 0) <= 0:
+        continue
+    counts[f'{year}-{str(year+1)[-2:]}'] += 1
+eligible=[(n,s) for s,n in counts.items() if n >= 3]
+if not eligible:
+    raise SystemExit('NO_ELIGIBLE_COMPLETED_PARTIAL_SEASON')
+# Prefer the season with the most available completed canaries; tie-break to earlier year.
+n,season=sorted(eligible,key=lambda x:(-x[0], int(x[1][:4])))[0]
+print(season, int(season[:4]), n)
+PY
+)
+
+echo "AUTO-SELECTED CANARY SEASON: $CANARY_SEASON ($CANARY_COUNT completed eligible partial windows)"
+
+# Run an isolated temporary copy with the selected season. Production code/cache remains untouched.
+python - "$CANARY_SEASON" "$CANARY_YEAR" <<'PY'
+from pathlib import Path
+import re, sys
+season=sys.argv[1]; year=sys.argv[2]
+src=Path('team_trb_all_players/local_pbp_treb_canary.py').read_text(encoding='utf-8')
+src=re.sub(r'^SEASON\s*=\s*"[^"]+"', f'SEASON = "{season}"', src, count=1, flags=re.M)
+src=re.sub(r'^START_YEAR\s*=\s*\d+', f'START_YEAR = {year}', src, count=1, flags=re.M)
+Path('/tmp/local_pbp_treb_canary_runtime.py').write_text(src,encoding='utf-8')
+PY
+
+write_status "running" "Downloading public bulk season $CANARY_SEASON and validating already-completed partial-tenure windows"
+rm -f "$DIAG" "$RESULT"
 set +e
-python "$BASE/local_pbp_treb_canary.py" 2>&1 | tee "$DIAG"
+PYTHONPATH="$BASE:${PYTHONPATH:-}" python "$TMP_CANARY" 2>&1 | tee "$DIAG"
 RC=${PIPESTATUS[0]}
 set -e
 
 if [[ -s "$RESULT" ]]; then
   if (( RC == 0 )); then
-    write_status "passed" "Local bulk-PBP canary reproduced all selected completed windows; safe to design full local Stage2 replacement"
+    write_status "passed" "Local bulk-PBP canary reproduced selected completed windows in $CANARY_SEASON; safe to design full local Stage2 replacement"
   else
-    write_status "failed" "Local bulk-PBP canary completed but did not reproduce every selected window; result and diagnostics committed; no production data changed"
+    write_status "failed" "Local bulk-PBP canary ran on $CANARY_SEASON but did not reproduce every selected window; result and diagnostics committed; no production data changed"
   fi
   commit_result
 else
-  write_status "error" "Canary exited before producing a result file; diagnostic log committed; no production data changed"
+  write_status "error" "Canary exited before producing a result file for $CANARY_SEASON; diagnostic log committed; no production data changed"
   git add "$STATUS" "$DIAG" 2>/dev/null || true
   git commit -m "Record local bulk-PBP canary diagnostic error [skip ci]" || true
   git push origin "HEAD:$EXPECTED_BRANCH" || true
