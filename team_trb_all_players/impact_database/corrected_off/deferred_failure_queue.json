@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T19:13:15.537219+00:00",
+  "generated_utc": "2026-08-09T19:19:10.914301+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
-  "window_count": 2600,
+  "window_count": 2601,
   "attempt_histogram": {
-    "1": 2600
+    "1": 2601
   },
   "windows": {
     "2003-04__1610612737__2055__2004-02-19__2004-03-09.json.gz": {
@@ -44706,6 +44706,23 @@
       "player_name": "Caleb Homesley",
       "query_start_date": "2021-05-16",
       "query_end_date": "2021-05-16",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2021-22__1610612737__1629460__2021-12-29__2022-01-06.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T19:13:43.572839+00:00",
+      "season": "2021-22",
+      "team_id": 1610612737,
+      "team_abbr": "1610612737",
+      "player_id": "1629460",
+      "player_name": "Justin Tillman",
+      "query_start_date": "2021-12-29",
+      "query_end_date": "2022-01-06",
       "last_complete": false,
       "last_metric_count": 0,
       "team_ok": false,
