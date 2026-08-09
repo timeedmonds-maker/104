@@ -1,0 +1,62 @@
+name: TREB v14 full build - macOS ARM race
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-v14-macos-arm-race
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 330
+    steps:
+      - name: Claim cross-pool race lock
+        id: race
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          short="${GITHUB_SHA:0:12}"
+          ref="refs/heads/treb-v14-race-${short}"
+          body=$(printf '{"ref":"%s","sha":"%s"}' "$ref" "$GITHUB_SHA")
+          code=$(curl -sS -o /tmp/treb-race-lock.json -w '%{http_code}' -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/$REPO/git/refs" -d "$body")
+          if [ "$code" = "201" ]; then
+            echo "won=true" >> "$GITHUB_OUTPUT"
+            echo "TREB_RUNNER_RACE_WINNER=macos-arm"
+          elif [ "$code" = "422" ]; then
+            echo "won=false" >> "$GITHUB_OUTPUT"
+            echo "TREB_RUNNER_RACE_LOST=macos-arm"
+          else
+            cat /tmp/treb-race-lock.json || true
+            echo "Unexpected lock response: HTTP $code" >&2
+            exit 1
+          fi
+      - name: Check out authoritative TREB work branch
+        if: steps.race.outputs.won == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: treb-laptop-run
+          fetch-depth: 0
+      - name: Set up Python
+        if: steps.race.outputs.won == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Stage 1 dependencies
+        if: steps.race.outputs.won == 'true'
+        run: python -m pip install --disable-pip-version-check requests beautifulsoup4
+      - name: Run v14 Stage 1 and continue automatically into Stage 2
+        if: steps.race.outputs.won == 'true'
+        run: bash team_trb_all_players/run_treb_laptop_v14_fast.sh
+      - name: Verify final corrected-OFF package
+        if: steps.race.outputs.won == 'true'
+        run: |
+          test -s team_trb_all_players/impact_database/corrected_off/TREB_corrected_off_final.zip
+          echo "TREB_FINAL_PACKAGE_READY=1"
