@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-slim
+    runs-on: macos-15
     timeout-minutes: 330
     steps:
       - name: Check out authoritative TREB work branch
