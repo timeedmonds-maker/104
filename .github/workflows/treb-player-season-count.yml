@@ -32,6 +32,9 @@ jobs:
           players={pid for _,pid in player_seasons}
           team_seasons={(str(r.get('season')), str(r.get('player_id')), int(r.get('team_id'))) for r in rows if r.get('season') and r.get('player_id') and r.get('team_id')}
           impact=[r for r in rows if r.get('player_id') and not bool(r.get('zero_minute_only')) and not bool(r.get('zero_game_window'))]
+          impact_player_seasons={(str(r.get('season')), str(r.get('player_id'))) for r in impact if r.get('season') and r.get('player_id')}
+          impact_players={pid for _,pid in impact_player_seasons}
+          impact_team_seasons={(str(r.get('season')), str(r.get('player_id')), int(r.get('team_id'))) for r in impact if r.get('season') and r.get('player_id') and r.get('team_id')}
           out={
             'source':'player_team_season_windows_evidence_audited.jsonl.gz',
             'windows':len(rows),
@@ -39,6 +42,9 @@ jobs:
             'unique_players':len(players),
             'unique_player_seasons':len(player_seasons),
             'unique_player_team_seasons':len(team_seasons),
+            'impact_unique_players':len(impact_players),
+            'impact_unique_player_seasons':len(impact_player_seasons),
+            'impact_unique_player_team_seasons':len(impact_team_seasons),
           }
           p=Path('team_trb_all_players/impact_database/roster_tenure/player_season_count.json')
           p.write_text(json.dumps(out,indent=2)+'\n',encoding='utf-8')
