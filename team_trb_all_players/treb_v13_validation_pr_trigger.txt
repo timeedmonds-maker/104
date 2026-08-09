@@ -1,6 +1,7 @@
-triggered_utc=2026-08-09T02:25:00Z
-purpose=run-v14-full-build-with-accepted-small-boundary-tolerance
-runner=macos-15
+triggered_utc=2026-08-09T02:34:00Z
+purpose=runner-pool-race-linux-vs-macos-v14-full-build
 repo_visibility=public
-source_fix=remaining-seven-player-seasons
+linux_runner=ubuntu-latest
+macos_runner=macos-15-intel
+cross_pool_lock=true
 auto_continue_stage2=true
