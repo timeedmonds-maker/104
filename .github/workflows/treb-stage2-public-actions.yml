@@ -12,18 +12,18 @@ permissions:
 
 concurrency:
   group: treb-stage2-public-actions
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   collect:
-    name: Stage2 chunk ${{ matrix.chunk }}
+    name: Stage2 resilient chunk ${{ matrix.chunk }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
       max-parallel: 1
       matrix:
-        chunk: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80]
+        chunk: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120]
 
     steps:
       - name: Check out best durable Stage2 branch
@@ -48,10 +48,8 @@ jobs:
             treb-stage2-netcache-v4-${{ github.run_id }}-
             treb-stage2-netcache-v4-
 
-      - name: Confirm safe baseline and read adaptive settings
+      - name: Confirm safe baseline
         id: state
-        env:
-          CHUNK: ${{ matrix.chunk }}
         run: |
           python - <<'PY'
           import json, os
@@ -62,36 +60,30 @@ jobs:
           remaining=int(d.get('remaining_windows') or 0)
           assert complete >= 10112, d
           assert int(d.get('impact_windows_total') or 0) == 15427, d
-          chunk=int(os.environ['CHUNK'])
-          if chunk == 1:
-              workers, interval = 2, 0.25
-          else:
-              workers=max(1,min(4,int(d.get('recommended_workers') or 2)))
-              interval=max(0.08,min(0.50,float(d.get('recommended_request_interval_seconds') or 0.25)))
           with open(os.environ['GITHUB_OUTPUT'],'a') as h:
               h.write(f'done={str(remaining == 0).lower()}\n')
-              h.write(f'workers={workers}\n')
-              h.write(f'interval={interval}\n')
               h.write(f'before={complete}\n')
-          print(f'BASELINE complete={complete} remaining={remaining} workers={workers} interval={interval}')
+          print(f'BASELINE complete={complete} remaining={remaining} workers=1 interval=1.0 attempts=4')
           PY
 
-      - name: Run one durable v5 collection batch
+      - name: Verify resilient request layer
+        if: steps.state.outputs.done != 'true'
+        run: python team_trb_all_players/run_corrected_off_batch_public_resilient.py --self-test
+
+      - name: Run one durable resilient collection batch
         if: steps.state.outputs.done != 'true'
         env:
           TREB_STAGE2_NET_CACHE: ${{ github.workspace }}/.treb_stage2_netcache_v4
-          WORKERS: ${{ steps.state.outputs.workers }}
-          INTERVAL: ${{ steps.state.outputs.interval }}
           CHUNK: ${{ matrix.chunk }}
         run: |
           set +e
-          python team_trb_all_players/run_corrected_off_batch_v5.py \
-            --batch-size 160 \
-            --workers "$WORKERS" \
-            --request-interval "$INTERVAL"
+          python team_trb_all_players/run_corrected_off_batch_public_resilient.py \
+            --batch-size 50 \
+            --workers 1 \
+            --request-interval 1.0
           rc=$?
           set -e
-          echo "TREB_ACTIONS_CHUNK=$CHUNK collector_rc=$rc"
+          echo "TREB_RESILIENT_CHUNK=$CHUNK collector_rc=$rc"
 
       - name: Write observable Actions status
         env:
@@ -108,7 +100,7 @@ jobs:
           status={
             'generated_utc': datetime.now(timezone.utc).isoformat(),
             'runner': 'ubuntu-latest',
-            'workflow': 'TREB Stage2 public Actions',
+            'workflow': 'TREB Stage2 public Actions resilient',
             'run_id': os.environ.get('GITHUB_RUN_ID'),
             'chunk': int(os.environ['CHUNK']),
             'complete_windows': int(d.get('complete_windows') or 0),
@@ -119,8 +111,9 @@ jobs:
             'selection_mode': d.get('selection_mode'),
             'transient_http_failure_rate': d.get('transient_http_failure_rate'),
             'network_counters': d.get('network_counters'),
-            'recommended_workers': d.get('recommended_workers'),
-            'recommended_request_interval_seconds': d.get('recommended_request_interval_seconds'),
+            'public_resilient_request_layer': bool(d.get('public_resilient_request_layer')),
+            'public_resilient_max_attempts': d.get('public_resilient_max_attempts'),
+            'public_resilient_request_interval_seconds': d.get('public_resilient_request_interval_seconds'),
             'all_complete': bool(d.get('all_complete')),
           }
           out=Path('team_trb_all_players/impact_database/actions_stage2_status.json')
@@ -135,7 +128,7 @@ jobs:
           git add team_trb_all_players/impact_database/corrected_off \
                   team_trb_all_players/impact_database/actions_stage2_status.json
           if ! git diff --cached --quiet; then
-            git commit -m "TREB public Actions Stage2 chunk ${{ matrix.chunk }} [skip ci]"
+            git commit -m "TREB public resilient Stage2 chunk ${{ matrix.chunk }} [skip ci]"
             git pull --rebase origin treb-stage2-actions-live
             git push origin HEAD:treb-stage2-actions-live
           else
