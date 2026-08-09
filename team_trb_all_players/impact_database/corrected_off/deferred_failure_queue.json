@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-09T20:31:53.585781+00:00",
+  "generated_utc": "2026-08-09T20:38:09.291727+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
-  "window_count": 2638,
+  "window_count": 2641,
   "attempt_histogram": {
-    "1": 2638
+    "1": 2641
   },
   "windows": {
     "2003-04__1610612737__2055__2004-02-19__2004-03-09.json.gz": {
@@ -45353,6 +45353,57 @@
       "player_name": "Olivier Sarr",
       "query_start_date": "2022-10-18",
       "query_end_date": "2022-11-18",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2022-23__1610612757__1630641__2022-11-19__2023-04-09.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T20:32:32.169848+00:00",
+      "season": "2022-23",
+      "team_id": 1610612757,
+      "team_abbr": "1610612757",
+      "player_id": "1630641",
+      "player_name": "Ibou Badji",
+      "query_start_date": "2022-11-19",
+      "query_end_date": "2023-04-09",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2022-23__1610612759__203473__2023-02-08__2023-02-09.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T20:35:55.343576+00:00",
+      "season": "2022-23",
+      "team_id": 1610612759,
+      "team_abbr": "1610612759",
+      "player_id": "203473",
+      "player_name": "Dewayne Dedmon",
+      "query_start_date": "2023-02-08",
+      "query_end_date": "2023-02-09",
+      "last_complete": false,
+      "last_metric_count": 0,
+      "team_ok": false,
+      "stat_ok": false,
+      "team_status": 500,
+      "failure_class": "team_http_500"
+    },
+    "2022-23__1610612760__1628382__2023-02-10__2023-02-10.json.gz": {
+      "attempts": 1,
+      "last_attempt_utc": "2026-08-09T20:36:52.308762+00:00",
+      "season": "2022-23",
+      "team_id": 1610612760,
+      "team_abbr": "1610612760",
+      "player_id": "1628382",
+      "player_name": "Justin Jackson",
+      "query_start_date": "2023-02-10",
+      "query_end_date": "2023-02-10",
       "last_complete": false,
       "last_metric_count": 0,
       "team_ok": false,
