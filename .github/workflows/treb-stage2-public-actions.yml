@@ -16,14 +16,9 @@ concurrency:
 
 jobs:
   collect:
-    name: Stage2 resilient chunk ${{ matrix.chunk }}
+    name: Stage2 continuous durable collector
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        chunk: [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120]
+    timeout-minutes: 345
 
     steps:
       - name: Check out best durable Stage2 branch
@@ -43,16 +38,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .treb_stage2_netcache_v4
-          key: treb-stage2-netcache-v4-${{ github.run_id }}-${{ matrix.chunk }}
+          key: treb-stage2-netcache-v5-${{ github.run_id }}
           restore-keys: |
-            treb-stage2-netcache-v4-${{ github.run_id }}-
+            treb-stage2-netcache-v5-
             treb-stage2-netcache-v4-
 
-      - name: Confirm safe baseline
-        id: state
+      - name: Confirm safe baseline and self-test collector
         run: |
           python - <<'PY'
-          import json, os
+          import json
           from pathlib import Path
           p=Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json')
           d=json.loads(p.read_text())
@@ -60,60 +54,70 @@ jobs:
           remaining=int(d.get('remaining_windows') or 0)
           assert complete >= 10112, d
           assert int(d.get('impact_windows_total') or 0) == 15427, d
-          with open(os.environ['GITHUB_OUTPUT'],'a') as h:
-              h.write(f'done={str(remaining == 0).lower()}\n')
-              h.write(f'before={complete}\n')
-          print(f'BASELINE complete={complete} remaining={remaining} workers=1 interval=1.0 attempts=4')
+          print(f'BASELINE complete={complete} remaining={remaining}')
           PY
+          python team_trb_all_players/run_corrected_off_batch_public_resilient.py --self-test
 
-      - name: Verify resilient request layer
-        if: steps.state.outputs.done != 'true'
-        run: python team_trb_all_players/run_corrected_off_batch_public_resilient.py --self-test
-
-      - name: Run one durable resilient collection batch
-        if: steps.state.outputs.done != 'true'
+      - name: Continuously collect and checkpoint Stage2
         env:
           TREB_STAGE2_NET_CACHE: ${{ github.workspace }}/.treb_stage2_netcache_v4
-          CHUNK: ${{ matrix.chunk }}
         run: |
-          set +e
-          python team_trb_all_players/run_corrected_off_batch_public_resilient.py \
-            --batch-size 50 \
-            --workers 1 \
-            --request-interval 1.0
-          rc=$?
-          set -e
-          echo "TREB_RESILIENT_CHUNK=$CHUNK collector_rc=$rc"
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          started=$(date +%s)
+          max_runtime=$((5*60*60+15*60))
+          iteration=0
 
-      - name: Write observable Actions status
-        env:
-          CHUNK: ${{ matrix.chunk }}
-          BEFORE: ${{ steps.state.outputs.before }}
-        run: |
-          python - <<'PY'
-          import json, os
+          while true; do
+            iteration=$((iteration+1))
+
+            read -r complete remaining total <<<"$(python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json').read_text())
+          print(int(d.get('complete_windows') or 0), int(d.get('remaining_windows') or 0), int(d.get('impact_windows_total') or 0))
+          PY
+          )"
+
+            echo "ITERATION=$iteration BASELINE=$complete/$total REMAINING=$remaining"
+            if [ "$remaining" -eq 0 ]; then
+              echo 'STAGE2_COLLECTION_COMPLETE=1'
+              break
+            fi
+
+            before=$complete
+            set +e
+            python team_trb_all_players/run_corrected_off_batch_public_resilient.py \
+              --batch-size 50 \
+              --workers 1 \
+              --request-interval 1.0
+            collector_rc=$?
+            set -e
+
+            python - "$iteration" "$before" "$collector_rc" <<'PY'
+          import json, os, sys
           from datetime import datetime, timezone
           from pathlib import Path
+          iteration=int(sys.argv[1]); before=int(sys.argv[2]); rc=int(sys.argv[3])
           src=Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json')
           d=json.loads(src.read_text())
-          before=int(os.environ.get('BEFORE') or 0)
           status={
             'generated_utc': datetime.now(timezone.utc).isoformat(),
             'runner': 'ubuntu-latest',
-            'workflow': 'TREB Stage2 public Actions resilient',
+            'workflow': 'TREB Stage2 continuous durable collector',
             'run_id': os.environ.get('GITHUB_RUN_ID'),
-            'chunk': int(os.environ['CHUNK']),
+            'iteration': iteration,
             'complete_windows': int(d.get('complete_windows') or 0),
             'remaining_windows': int(d.get('remaining_windows') or 0),
-            'added_this_chunk': int(d.get('complete_windows') or 0)-before,
+            'added_this_iteration': int(d.get('complete_windows') or 0)-before,
+            'collector_rc': rc,
             'batch_successes': int(d.get('batch_successes') or 0),
             'batch_requested': int(d.get('batch_requested') or 0),
             'selection_mode': d.get('selection_mode'),
+            'batch_elapsed_seconds': d.get('batch_elapsed_seconds'),
             'transient_http_failure_rate': d.get('transient_http_failure_rate'),
             'network_counters': d.get('network_counters'),
-            'public_resilient_request_layer': bool(d.get('public_resilient_request_layer')),
-            'public_resilient_max_attempts': d.get('public_resilient_max_attempts'),
-            'public_resilient_request_interval_seconds': d.get('public_resilient_request_interval_seconds'),
             'all_complete': bool(d.get('all_complete')),
           }
           out=Path('team_trb_all_players/impact_database/actions_stage2_status.json')
@@ -121,19 +125,48 @@ jobs:
           print(json.dumps(status,indent=2))
           PY
 
-      - name: Commit durable Stage2 progress
+            git add team_trb_all_players/impact_database/corrected_off \
+                    team_trb_all_players/impact_database/actions_stage2_status.json
+            if ! git diff --cached --quiet; then
+              git commit -m "TREB continuous Stage2 iteration $iteration [skip ci]"
+              git pull --rebase origin treb-stage2-actions-live
+              git push origin HEAD:treb-stage2-actions-live
+            fi
+
+            after=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json').read_text())
+          print(int(d.get('complete_windows') or 0))
+          PY
+          )
+
+            if [ "$after" -le "$before" ]; then
+              echo "NO_PROGRESS iteration=$iteration before=$before after=$after rc=$collector_rc"
+              sleep 15
+            fi
+
+            elapsed=$(( $(date +%s) - started ))
+            if [ "$elapsed" -ge "$max_runtime" ]; then
+              echo "RUNNER_HANDOFF_REQUIRED=1 elapsed_seconds=$elapsed"
+              break
+            fi
+          done
+
+      - name: Final collection status
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add team_trb_all_players/impact_database/corrected_off \
-                  team_trb_all_players/impact_database/actions_stage2_status.json
-          if ! git diff --cached --quiet; then
-            git commit -m "TREB public resilient Stage2 chunk ${{ matrix.chunk }} [skip ci]"
-            git pull --rebase origin treb-stage2-actions-live
-            git push origin HEAD:treb-stage2-actions-live
-          else
-            echo 'No durable changes in this chunk.'
-          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json').read_text())
+          print(json.dumps({
+            'complete_windows': d.get('complete_windows'),
+            'impact_windows_total': d.get('impact_windows_total'),
+            'remaining_windows': d.get('remaining_windows'),
+            'failed_windows': d.get('failed_windows'),
+            'all_complete': d.get('all_complete')
+          }, indent=2))
+          PY
 
   finalize:
     name: Final database + @funakistats publication pack
@@ -189,9 +222,7 @@ jobs:
       - name: Build agreed @funakistats visualization and ranking pack
         if: steps.gate.outputs.ready == 'true'
         run: |
-          python team_trb_all_players/build_funakistats_visual_pack.py \
-            --minutes-threshold 10000 \
-            --label-count 20
+          python team_trb_all_players/build_funakistats_visual_pack.py --minutes-threshold 10000 --label-count 20
           test -s team_trb_all_players/impact_database/corrected_off/visual_pack/treb_career_impact_best_only_square.png
           test -s team_trb_all_players/impact_database/corrected_off/visual_pack/treb_career_impact_full_profile_portrait.png
           test -s team_trb_all_players/impact_database/corrected_off/visual_pack/rankings/all_metrics_top20_corrected_swing.csv.gz
@@ -201,15 +232,8 @@ jobs:
         run: |
           set -euo pipefail
           root='team_trb_all_players/impact_database/corrected_off/visual_pack'
-          for stem in \
-            treb_career_impact_best_only_square \
-            treb_career_impact_best_only_portrait \
-            treb_career_impact_full_profile_square \
-            treb_career_impact_full_profile_portrait
-          do
-            python team_trb_all_players/funakistats_publication_provenance.py \
-              --png "$root/$stem.png" \
-              --manifest "$root/${stem}_publication_provenance.json"
+          for stem in treb_career_impact_best_only_square treb_career_impact_best_only_portrait treb_career_impact_full_profile_square treb_career_impact_full_profile_portrait; do
+            python team_trb_all_players/funakistats_publication_provenance.py --png "$root/$stem.png" --manifest "$root/${stem}_publication_provenance.json"
           done
           python team_trb_all_players/finalize_funakistats_visual_pack.py
           test -s "$root/X_READY"
