@@ -1,0 +1,36 @@
+name: Steven Adams exact career TREB query
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/steven-adams-treb-query.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  query:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-actions-live
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install lightweight dependencies
+        run: python -m pip install --disable-pip-version-check numpy pandas duckdb pyarrow
+      - name: Query Steven Adams career TREB swing
+        run: python team_trb_all_players/query_steven_adams_treb.py
+      - name: Commit query result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/corrected_off/steven_adams_career_treb_query.json
+          git commit -m 'Add Steven Adams exact career TREB query result [skip ci]'
+          git pull --rebase origin treb-stage2-actions-live
+          git push origin HEAD:treb-stage2-actions-live
