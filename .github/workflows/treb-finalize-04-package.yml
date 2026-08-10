@@ -1,0 +1,63 @@
+name: TREB finalize 04 package
+
+on:
+  workflow_run:
+    workflows: ['TREB finalize 03 visuals']
+    types: [completed]
+
+permissions:
+  contents: write
+
+env:
+  OUT: team_trb_all_players/impact_database/corrected_off
+
+jobs:
+  package:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-actions-live
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require checkpoint 03
+        run: test -s "$OUT/FINALIZE_03_DONE"
+      - name: Install package dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb matplotlib pillow requests
+      - name: Apply publication provenance guard
+        run: |
+          root="$OUT/visual_pack"
+          for stem in treb_career_impact_best_only_square treb_career_impact_best_only_portrait treb_career_impact_full_profile_square treb_career_impact_full_profile_portrait; do
+            python team_trb_all_players/funakistats_publication_provenance.py --png "$root/$stem.png" --manifest "$root/${stem}_publication_provenance.json"
+          done
+          python team_trb_all_players/finalize_funakistats_visual_pack.py
+          test -s "$root/X_READY"
+          grep -q 'X_READY=1' "$root/X_READY"
+      - name: Verify final package
+        run: |
+          test -s "$OUT/TREB_corrected_off_final.zip"
+          test -s "$OUT/project_completion_status.json"
+      - name: Upload final artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-and-funakistats-visuals
+          retention-days: 90
+          compression-level: 0
+          path: |
+            ${{ env.OUT }}/TREB_corrected_off_final.zip
+            ${{ env.OUT }}/final_export
+            ${{ env.OUT }}/visual_pack
+            ${{ env.OUT }}/project_completion_status.json
+      - name: Commit final checkpoint
+        run: |
+          printf 'TREB_FINALIZE_04=1\n' > "$OUT/FINALIZE_04_DONE"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$OUT/visual_pack" "$OUT/project_completion_status.json" "$OUT/FINALIZE_04_DONE"
+          git commit -m 'Complete chunked TREB finalization [skip ci]' || true
+          git pull --rebase origin treb-stage2-actions-live
+          git push origin HEAD:treb-stage2-actions-live
