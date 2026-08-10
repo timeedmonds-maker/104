@@ -1,10 +1,6 @@
 name: Steven Adams exact career TREB query
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/steven-adams-treb-query.yml'
   workflow_dispatch:
 
 permissions:
