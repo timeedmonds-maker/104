@@ -4,6 +4,8 @@ on:
   workflow_run:
     workflows: ["TREB Stage2 public Actions"]
     types: [completed]
+  schedule:
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -109,7 +111,7 @@ jobs:
           python - <<'PY'
           import json, os, subprocess
           raw=subprocess.check_output([
-              'gh','run','list','--workflow','TREB final database and visualization postprocess','--limit','20',
+              'gh','run','list','--workflow','treb-postprocess.yml','--limit','20',
               '--json','databaseId,status,conclusion,createdAt'
           ],text=True)
           runs=json.loads(raw)
