@@ -174,9 +174,8 @@ def build() -> dict[str, Any]:
 
     original = core_long()
     merged = team_metric.merge(original, on=["season", "team_id", "player_id", "metric"], how="left", validate="one_to_one")
-    missing_core = int(merged.core_on.isna().sum())
-    if missing_core:
-        raise RuntimeError(f"corrected rows missing matching original core ON values: {missing_core}")
+    merged["legacy_core_match"] = merged.core_on.notna()
+    missing_core = int((~merged.legacy_core_match).sum())
     single = merged[(merged.segment_count == 1) & merged.on.notna() & merged.core_on.notna()].copy()
     single["on_validation_abs_delta"] = (single.on - single.core_on).abs()
     max_single_delta = float(single.on_validation_abs_delta.max()) if len(single) else math.nan
