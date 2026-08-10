@@ -1,5 +1,6 @@
 from __future__ import annotations
 import argparse, gzip, json, math, random, time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 import requests
@@ -64,24 +65,30 @@ def minutes(row):
 def cache_name(meta):
     return f"{meta['season']}__{meta['team_id']}__{meta['player_id']}__{meta['query_start_date']}__{meta['query_end_date']}.json.gz"
 
-def query_window(session, meta, attempts, interval):
+def query_window(session, meta, attempts, interval, needs_on=False):
     common={'Season':str(meta['season']),'SeasonType':'Regular Season','TeamId':str(meta['team_id']),
             'FromDate':str(meta['query_start_date']),'ToDate':str(meta['query_end_date'])}
     rows={}; reqs={}
+    states=[('off','0Exactly1OffFloor')]
+    if needs_on:
+        states.insert(0,('on','0Exactly1OnFloor'))
     for typ in ('Team','Opponent'):
-        for state,param in (('on','0Exactly1OnFloor'),('off','0Exactly1OffFloor')):
+        for state,param in states:
             p={**common,'Type':typ,param:str(meta['player_id'])}
             payload, rm=request_json(session,p,attempts=attempts,interval=interval)
             reqs[f'{typ.lower()}_{state}']=rm
             if not rm['ok']: raise RuntimeError(f"{typ} {state} request failed: {rm}")
             rows[f'{typ.lower()}_{state}']=row_from(payload)
-    ton=minutes(rows['team_on']); toff=minutes(rows['team_off']); total=ton+toff
-    oon=minutes(rows['opponent_on']); ooff=minutes(rows['opponent_off']); ototal=oon+ooff
+    old_on=float(meta.get('minutes_on') or 0)
+    ton=minutes(rows.get('team_on',{})) if needs_on else old_on
+    toff=minutes(rows['team_off']); total=ton+toff
+    oon=minutes(rows.get('opponent_on',{})) if needs_on else old_on
+    ooff=minutes(rows['opponent_off']); ototal=oon+ooff
     games=int(meta.get('team_games_in_window') or 0)
     expected=games*48.0
     max_ok=max(60.0,games*65.0)
     min_ok=0.0 if games==0 else games*30.0
-    plausible=(min_ok <= total <= max_ok) and (abs(total-ototal) <= max(3.0,0.03*max(total,ototal,1)))
+    plausible=(min_ok <= total <= max_ok) and (abs(toff-ooff) <= max(3.0,0.03*max(toff,ooff,1)))
     rebound_keys=sorted({k for r in rows.values() for k in r if 'rebound' in k.lower()})
     return {
       'complete': bool(plausible), 'method':'PBP Stats get-wowy-stats exact roster-date window',
@@ -90,6 +97,7 @@ def query_window(session, meta, attempts, interval):
       'query_start_date':meta['query_start_date'],'query_end_date':meta['query_end_date'],
       'team_games_in_window':games,'minutes_on':ton,'minutes_off':toff,'total_team_minutes':total,
       'opponent_minutes_on':oon,'opponent_minutes_off':ooff,'total_opponent_minutes':ototal,
+      'on_query_mode':'exact_date_wowy' if needs_on else 'reused season/team ON; exact because single roster stint',
       'expected_regulation_team_minutes':expected,'plausibility_max_minutes':max_ok,
       'date_window_plausible':bool(plausible),'rebound_keys':rebound_keys,
       'rows':rows,'requests':reqs,'generated_utc':now()
@@ -105,6 +113,7 @@ def main():
         print('WOWY_REPAIR_SELF_TEST=PASS'); return
     OUT.mkdir(parents=True,exist_ok=True); CACHE.mkdir(parents=True,exist_ok=True)
     all_t=targets(); done=completed_set(); pending=[p for p in all_t if p.name not in done]
+    group_counts=Counter('__'.join(p.name.split('__')[:3]) for p in all_t)
     bog='2016-17__1610612739__101106__2017-03-03__2017-03-13.json.gz'
     pending.sort(key=lambda p:(0 if p.name==bog else 1,p.name))
     selected=pending[:a.batch_size]
@@ -113,7 +122,8 @@ def main():
     for i,p in enumerate(selected,1):
         meta=read_gz(p); outp=CACHE/cache_name(meta)
         try:
-            result=query_window(s,meta,a.attempts,a.interval)
+            group='__'.join(p.name.split('__')[:3]); needs_on=(group_counts[group]>1 or p.name==bog)
+            result=query_window(s,meta,a.attempts,a.interval,needs_on=needs_on)
             if not result['complete']:
                 raise RuntimeError(f"date-window plausibility failed: total={result['total_team_minutes']} games={result['team_games_in_window']}")
             if p.name==bog:
@@ -127,7 +137,7 @@ def main():
     done2=completed_set(); remaining=len(all_t)-len(done2)
     summary={'generated_utc':now(),'total_targets':len(all_t),'complete_windows':len(done2),'remaining_windows':remaining,
              'batch_requested':len(selected),'batch_successes':ok,'batch_errors':len(errs),'batch_elapsed_seconds':round(time.monotonic()-started,3),
-             'method':'get-wowy-stats with FromDate/ToDate; Team+Opponent ON/OFF','old_get_on_off_partial_cache_invalid':True,
+             'method':'get-wowy-stats with FromDate/ToDate; exact OFF for every window; exact ON additionally for multi-stint groups','old_get_on_off_partial_cache_invalid':True,
              'errors':errs[-25:],'all_complete':remaining==0}
     write_json(SUMMARY,summary)
     write_json(TRIGGER,{'generated_utc':now(),'remaining_windows':remaining,'complete_windows':len(done2),'all_complete':remaining==0})
