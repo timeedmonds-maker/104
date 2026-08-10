@@ -1,9 +1,9 @@
 {
-  "generated_utc": "2026-08-10T08:34:36.675484+00:00",
+  "generated_utc": "2026-08-10T08:38:25.084422+00:00",
   "runner": "ubuntu-latest",
   "workflow": "TREB Stage2 continuous durable collector",
   "run_id": "31357297220",
-  "iteration": 71,
+  "iteration": 72,
   "complete_windows": 15206,
   "remaining_windows": 221,
   "added_this_iteration": 0,
@@ -11,18 +11,18 @@
   "batch_successes": 0,
   "batch_requested": 25,
   "selection_mode": "retry",
-  "batch_elapsed_seconds": 247.323,
-  "transient_http_failure_rate": 0.34,
+  "batch_elapsed_seconds": 210.837,
+  "transient_http_failure_rate": 0.321429,
   "network_counters": {
-    "request_calls": 25,
-    "network_requests": 100,
-    "cache_hits": 0,
+    "request_calls": 29,
+    "network_requests": 84,
+    "cache_hits": 8,
     "http_success": 0,
-    "http_503": 34,
+    "http_503": 27,
     "http_429": 0,
-    "http_other_error": 66,
+    "http_other_error": 57,
     "exceptions": 0,
-    "transient_retries": 75
+    "transient_retries": 63
   },
   "all_complete": false
 }

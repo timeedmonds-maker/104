@@ -1,15 +1,15 @@
 {
-  "generated_utc": "2026-08-10T08:34:36.400497+00:00",
+  "generated_utc": "2026-08-10T08:38:24.804185+00:00",
   "policy": "Fresh pending tenure windows are attempted once before failures are revisited. Deferred retries use lower concurrency to reduce repeated PBP Stats 503 pressure.",
   "window_count": 221,
   "attempt_histogram": {
-    "2": 204,
-    "1": 17
+    "3": 8,
+    "2": 213
   },
   "windows": {
     "2014-15__1610612766__202343__2015-02-05__2015-02-10.json.gz": {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T06:54:22.902444+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:15.094654+00:00",
       "season": "2014-15",
       "team_id": 1610612766,
       "team_abbr": "1610612766",
@@ -25,8 +25,8 @@
       "failure_class": "team_http_500"
     },
     "2015-16__1610612738__204066__2016-04-12__2016-04-13.json.gz": {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T06:55:24.934560+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:25.118566+00:00",
       "season": "2015-16",
       "team_id": 1610612738,
       "team_abbr": "1610612738",
@@ -42,8 +42,8 @@
       "failure_class": "team_http_500"
     },
     "2015-16__1610612740__203950__2016-02-19__2016-02-19.json.gz": {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T06:56:59.192782+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:35.423541+00:00",
       "season": "2015-16",
       "team_id": 1610612740,
       "team_abbr": "1610612740",
@@ -59,8 +59,8 @@
       "failure_class": "team_http_500"
     },
     "2015-16__1610612743__200779__2016-02-19__2016-02-19.json.gz": {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T06:59:19.359767+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:45.644968+00:00",
       "season": "2015-16",
       "team_id": 1610612743,
       "team_abbr": "1610612743",
@@ -76,8 +76,8 @@
       "failure_class": "team_http_500"
     },
     "2015-16__1610612748__2748__2016-04-13__2016-04-13.json.gz": {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T07:02:50.553386+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:55.843412+00:00",
       "season": "2015-16",
       "team_id": 1610612748,
       "team_abbr": "1610612748",
@@ -93,8 +93,8 @@
       "failure_class": "team_http_500"
     },
     "2015-16__1610612752__203100__2016-03-17__2016-04-13.json.gz": {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T07:05:11.177241+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:38:05.605178+00:00",
       "season": "2015-16",
       "team_id": 1610612752,
       "team_abbr": "1610612752",
@@ -110,8 +110,8 @@
       "failure_class": "team_http_500"
     },
     "2015-16__1610612753__203142__2016-02-25__2016-02-25.json.gz": {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T07:06:02.459987+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:38:15.526483+00:00",
       "season": "2015-16",
       "team_id": 1610612753,
       "team_abbr": "1610612753",
@@ -127,8 +127,8 @@
       "failure_class": "team_http_500"
     },
     "2015-16__1610612755__201202__2016-02-19__2016-04-13.json.gz": {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T07:07:08.962610+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:38:24.803223+00:00",
       "season": "2015-16",
       "team_id": 1610612755,
       "team_abbr": "1610612755",
@@ -3478,8 +3478,8 @@
       "failure_class": "team_http_500"
     },
     "2024-25__1610612762__200782__2025-02-02__2025-02-06.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T21:57:32.768202+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:35:05.514235+00:00",
       "season": "2024-25",
       "team_id": 1610612762,
       "team_abbr": "1610612762",
@@ -3495,8 +3495,8 @@
       "failure_class": "team_http_500"
     },
     "2024-25__1610612762__1641720__2025-02-03__2025-02-07.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T21:57:43.051445+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:35:15.482973+00:00",
       "season": "2024-25",
       "team_id": 1610612762,
       "team_abbr": "1610612762",
@@ -3512,8 +3512,8 @@
       "failure_class": "team_http_500"
     },
     "2024-25__1610612762__1626196__2025-02-07__2025-02-09.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T21:57:52.468823+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:35:25.115550+00:00",
       "season": "2024-25",
       "team_id": 1610612762,
       "team_abbr": "1610612762",
@@ -3529,8 +3529,8 @@
       "failure_class": "team_http_500"
     },
     "2024-25__1610612764__203458__2025-02-07__2025-02-08.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:00:13.583099+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:35:38.264091+00:00",
       "season": "2024-25",
       "team_id": 1610612764,
       "team_abbr": "1610612764",
@@ -3546,8 +3546,8 @@
       "failure_class": "team_http_500"
     },
     "2024-25__1610612764__1629669__2025-02-09__2025-04-13.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:00:41.865861+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:35:47.215351+00:00",
       "season": "2024-25",
       "team_id": 1610612764,
       "team_abbr": "1610612764",
@@ -3563,8 +3563,8 @@
       "failure_class": "team_http_500"
     },
     "2024-25__1610612764__1641907__2025-02-18__2025-02-26.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:00:56.588954+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:35:56.526282+00:00",
       "season": "2024-25",
       "team_id": 1610612764,
       "team_abbr": "1610612764",
@@ -3580,8 +3580,8 @@
       "failure_class": "team_http_500"
     },
     "2024-25__1610612765__1631322__2024-12-16__2024-12-16.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:01:57.457384+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:06.056982+00:00",
       "season": "2024-25",
       "team_id": 1610612765,
       "team_abbr": "1610612765",
@@ -3597,8 +3597,8 @@
       "failure_class": "team_http_500"
     },
     "2024-25__1610612766__1642261__2025-02-07__2025-04-13.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:03:27.439529+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:16.109021+00:00",
       "season": "2024-25",
       "team_id": 1610612766,
       "team_abbr": "1610612766",
@@ -3614,8 +3614,8 @@
       "failure_class": "team_http_500"
     },
     "2025-26__1610612737__1642365__2025-10-21__2026-02-18.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:05:35.692397+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:16.110943+00:00",
       "season": "2025-26",
       "team_id": 1610612737,
       "team_abbr": "1610612737",
@@ -3632,8 +3632,8 @@
       "failure_class": "minutes_match_missing"
     },
     "2025-26__1610612740__1631207__2026-02-06__2026-02-06.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:10:48.358155+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:26.607135+00:00",
       "season": "2025-26",
       "team_id": 1610612740,
       "team_abbr": "1610612740",
@@ -3649,8 +3649,8 @@
       "failure_class": "team_http_500"
     },
     "2025-26__1610612741__1631338__2026-04-10__2026-04-12.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:13:16.168503+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:26.608836+00:00",
       "season": "2025-26",
       "team_id": 1610612741,
       "team_abbr": "CHI",
@@ -3667,8 +3667,8 @@
       "failure_class": "minutes_match_missing"
     },
     "2025-26__1610612749__1628502__2026-02-06__2026-02-06.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:21:01.419203+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:35.657616+00:00",
       "season": "2025-26",
       "team_id": 1610612749,
       "team_abbr": "1610612749",
@@ -3684,8 +3684,8 @@
       "failure_class": "team_http_500"
     },
     "2025-26__1610612752__1641794__2026-01-21__2026-04-12.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:24:18.200402+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:35.659391+00:00",
       "season": "2025-26",
       "team_id": 1610612752,
       "team_abbr": "NYK",
@@ -3702,8 +3702,8 @@
       "failure_class": "minutes_match_missing"
     },
     "2025-26__1610612762__1629111__2026-02-04__2026-02-05.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:35:53.708856+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:45.352480+00:00",
       "season": "2025-26",
       "team_id": 1610612762,
       "team_abbr": "1610612762",
@@ -3719,8 +3719,8 @@
       "failure_class": "team_http_500"
     },
     "2025-26__1610612762__1643060__2026-04-12__2026-04-12.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:37:30.447173+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:45.354215+00:00",
       "season": "2025-26",
       "team_id": 1610612762,
       "team_abbr": "UTA",
@@ -3737,8 +3737,8 @@
       "failure_class": "minutes_match_missing"
     },
     "2025-26__1610612763__201569__2026-02-06__2026-02-06.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:39:13.789224+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:36:54.993139+00:00",
       "season": "2025-26",
       "team_id": 1610612763,
       "team_abbr": "1610612763",
@@ -3754,8 +3754,8 @@
       "failure_class": "team_http_500"
     },
     "2025-26__1610612766__201144__2026-02-05__2026-02-05.json.gz": {
-      "attempts": 1,
-      "last_attempt_utc": "2026-08-09T22:45:15.938648+00:00",
+      "attempts": 2,
+      "last_attempt_utc": "2026-08-10T08:37:04.667489+00:00",
       "season": "2025-26",
       "team_id": 1610612766,
       "team_abbr": "1610612766",

@@ -1,5 +1,5 @@
 {
-  "generated_utc": "2026-08-10T08:34:36.614488+00:00",
+  "generated_utc": "2026-08-10T08:38:25.019242+00:00",
   "stage1_exact_ready": true,
   "impact_windows_total": 15427,
   "complete_windows": 15206,
@@ -16,7 +16,7 @@
   "batch_successes": 0,
   "batch_errors": 25,
   "batch_workers": 1,
-  "batch_elapsed_seconds": 247.323,
+  "batch_elapsed_seconds": 210.837,
   "fresh_pending_before": 0,
   "deferred_pending_before": 221,
   "deferred_queue_windows": 221,
@@ -27,24 +27,24 @@
   "recommended_workers": 1,
   "recommended_request_interval_seconds": 0.35,
   "network_counters": {
-    "request_calls": 25,
-    "network_requests": 100,
-    "cache_hits": 0,
+    "request_calls": 29,
+    "network_requests": 84,
+    "cache_hits": 8,
     "http_success": 0,
-    "http_503": 34,
+    "http_503": 27,
     "http_429": 0,
-    "http_other_error": 66,
+    "http_other_error": 57,
     "exceptions": 0,
-    "transient_retries": 75
+    "transient_retries": 63
   },
-  "transient_http_failure_rate": 0.34,
+  "transient_http_failure_rate": 0.321429,
   "core_reuse_index_windows": 9480,
   "network_cache_root": "/home/runner/work/104/104/.treb_stage2_netcache_v4",
   "network_cache_committed_to_git": false,
   "batch_error_examples": [
     {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T06:54:22.902444+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:15.094654+00:00",
       "season": "2014-15",
       "team_id": 1610612766,
       "team_abbr": "1610612766",
@@ -60,8 +60,8 @@
       "failure_class": "team_http_500"
     },
     {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T06:55:24.934560+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:25.118566+00:00",
       "season": "2015-16",
       "team_id": 1610612738,
       "team_abbr": "1610612738",
@@ -77,8 +77,8 @@
       "failure_class": "team_http_500"
     },
     {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T06:56:59.192782+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:35.423541+00:00",
       "season": "2015-16",
       "team_id": 1610612740,
       "team_abbr": "1610612740",
@@ -94,8 +94,8 @@
       "failure_class": "team_http_500"
     },
     {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T06:59:19.359767+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:45.644968+00:00",
       "season": "2015-16",
       "team_id": 1610612743,
       "team_abbr": "1610612743",
@@ -111,8 +111,8 @@
       "failure_class": "team_http_500"
     },
     {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T07:02:50.553386+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:37:55.843412+00:00",
       "season": "2015-16",
       "team_id": 1610612748,
       "team_abbr": "1610612748",
@@ -128,8 +128,8 @@
       "failure_class": "team_http_500"
     },
     {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T07:05:11.177241+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:38:05.605178+00:00",
       "season": "2015-16",
       "team_id": 1610612752,
       "team_abbr": "1610612752",
@@ -145,8 +145,8 @@
       "failure_class": "team_http_500"
     },
     {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T07:06:02.459987+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:38:15.526483+00:00",
       "season": "2015-16",
       "team_id": 1610612753,
       "team_abbr": "1610612753",
@@ -162,8 +162,8 @@
       "failure_class": "team_http_500"
     },
     {
-      "attempts": 2,
-      "last_attempt_utc": "2026-08-10T07:07:08.962610+00:00",
+      "attempts": 3,
+      "last_attempt_utc": "2026-08-10T08:38:24.803223+00:00",
       "season": "2015-16",
       "team_id": 1610612755,
       "team_abbr": "1610612755",
