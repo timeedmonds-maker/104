@@ -1,0 +1,49 @@
+name: TREB finalize 02 database
+
+on:
+  workflow_run:
+    workflows: ['TREB finalize 01 gate and Adams']
+    types: [completed]
+
+permissions:
+  contents: write
+
+env:
+  OUT: team_trb_all_players/impact_database/corrected_off
+
+jobs:
+  database:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-actions-live
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require checkpoint 01
+        run: test -s "$OUT/FINALIZE_01_DONE"
+      - name: Install database dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+      - name: Self-test finalizer
+        run: python team_trb_all_players/finalize_corrected_off_package_extended.py --self-test
+      - name: Build final database
+        run: python team_trb_all_players/finalize_corrected_off_package_extended.py
+      - name: Validate core outputs
+        run: |
+          test -s "$OUT/final_export/player_season_corrected_on_off.parquet"
+          test -s "$OUT/final_export/career_total_rebound_pct.parquet"
+          test -s "$OUT/final_export/player_season_total_rebound_pct.parquet"
+      - name: Commit checkpoint
+        run: |
+          printf 'TREB_FINALIZE_02=1\n' > "$OUT/FINALIZE_02_DONE"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$OUT/final_export" "$OUT/FINALIZE_02_DONE"
+          while IFS= read -r -d '' f; do git reset -- "$f"; done < <(find "$OUT/final_export" -type f -size +90M -print0)
+          git commit -m 'TREB finalization checkpoint 02 [skip ci]' || true
+          git pull --rebase origin treb-stage2-actions-live
+          git push origin HEAD:treb-stage2-actions-live
