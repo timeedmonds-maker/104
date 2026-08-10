@@ -1,0 +1,75 @@
+name: TREB WOWY exact-date proof
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/treb-wowy-date-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-wowy-date-proof
+  cancel-in-progress: true
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out durable Stage2 branch
+        uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-actions-live
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run Andrew Bogut exact-date WOWY proof
+        run: |
+          python - <<'PY'
+          import json, requests
+          from pathlib import Path
+          url='https://api.pbpstats.com/get-wowy-stats/nba'
+          base={
+            'Season':'2016-17','SeasonType':'Regular Season','TeamId':'1610612739','Type':'Team',
+            'FromDate':'2017-03-03','ToDate':'2017-03-13'
+          }
+          rows={}
+          for state,param in [('on','0Exactly1OnFloor'),('off','0Exactly1OffFloor')]:
+            p=dict(base); p[param]='101106'
+            r=requests.get(url,params=p,timeout=60)
+            r.raise_for_status()
+            d=r.json(); row=d.get('single_row_table_data') or {}
+            if not row:
+              raise RuntimeError(f'empty WOWY {state}: {d}')
+            rows[state]=row
+          mon=float(rows['on'].get('Minutes') or 0); moff=float(rows['off'].get('Minutes') or 0); total=mon+moff
+          result={
+            'method':'get-wowy-stats with exact FromDate/ToDate',
+            'season':'2016-17','team_id':1610612739,'player_id':101106,'player':'Andrew Bogut',
+            'from_date':'2017-03-03','to_date':'2017-03-13','team_games_in_window':6,
+            'minutes_on':mon,'minutes_off':moff,'total_minutes':total,
+            'old_invalid_get_on_off_total_minutes':3976.0,
+            'pass': 200 <= total <= 400,
+            'on_stats':rows['on'],'off_stats':rows['off']
+          }
+          print(json.dumps({k:v for k,v in result.items() if k not in ('on_stats','off_stats')},indent=2))
+          if not result['pass']:
+            raise RuntimeError(f'WOWY date proof failed total_minutes={total}')
+          out=Path('team_trb_all_players/impact_database/corrected_off/wowy_bogut_date_proof.json')
+          out.write_text(json.dumps(result,indent=2))
+          PY
+
+      - name: Commit proof to durable branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/corrected_off/wowy_bogut_date_proof.json
+          git commit -m 'Validate WOWY exact-date tenure query [skip ci]'
+          git pull --rebase origin treb-stage2-actions-live
+          git push origin HEAD:treb-stage2-actions-live
