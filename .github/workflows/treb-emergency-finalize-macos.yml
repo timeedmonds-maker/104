@@ -1,0 +1,88 @@
+name: TREB emergency finalizer macOS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/treb-emergency-finalize-macos.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-emergency-finalize-macos-v1
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - name: Checkout completed Stage2 state
+        uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-actions-live
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb matplotlib pillow requests
+      - name: Verify completed Stage2
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json').read_text())
+          assert d.get('all_complete') is True
+          assert int(d.get('complete_windows') or 0)==int(d.get('impact_windows_total') or 0)==15206
+          assert int(d.get('remaining_windows') or 0)==0
+          assert int(d.get('failed_windows') or 0)==0
+          z=d.get('zero_minute_tail_report') or {}
+          assert int(z.get('total_excluded_zero_minute_windows') or 0)==221
+          assert int(z.get('verified_positive_minute_windows') or 0)==0
+          assert int(z.get('indeterminate_windows') or 0)==0
+          print('STAGE2_VERIFIED')
+          PY
+      - name: Build final database
+        run: python team_trb_all_players/finalize_corrected_off_package_extended.py
+      - name: Query Steven Adams exact career TREB swing
+        run: python team_trb_all_players/query_steven_adams_treb.py
+      - name: Build visual and ranking pack
+        run: |
+          python team_trb_all_players/build_funakistats_visual_pack.py --minutes-threshold 10000 --label-count 20
+          root='team_trb_all_players/impact_database/corrected_off/visual_pack'
+          for stem in treb_career_impact_best_only_square treb_career_impact_best_only_portrait treb_career_impact_full_profile_square treb_career_impact_full_profile_portrait; do
+            python team_trb_all_players/funakistats_publication_provenance.py --png "$root/$stem.png" --manifest "$root/${stem}_publication_provenance.json"
+          done
+          python team_trb_all_players/finalize_funakistats_visual_pack.py
+      - name: Validate required outputs
+        run: |
+          test -s team_trb_all_players/impact_database/corrected_off/TREB_corrected_off_final.zip
+          test -s team_trb_all_players/impact_database/corrected_off/final_export/career_total_rebound_pct.parquet
+          test -s team_trb_all_players/impact_database/corrected_off/steven_adams_career_treb_query.json
+          test -s team_trb_all_players/impact_database/corrected_off/project_completion_status.json
+      - name: Upload final package
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-emergency-final-macos
+          retention-days: 90
+          compression-level: 0
+          path: |
+            team_trb_all_players/impact_database/corrected_off/TREB_corrected_off_final.zip
+            team_trb_all_players/impact_database/corrected_off/final_export
+            team_trb_all_players/impact_database/corrected_off/visual_pack
+            team_trb_all_players/impact_database/corrected_off/project_completion_status.json
+            team_trb_all_players/impact_database/corrected_off/steven_adams_career_treb_query.json
+      - name: Commit durable outputs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/corrected_off
+          while IFS= read -r -d '' f; do git reset -- "$f"; done < <(find team_trb_all_players/impact_database/corrected_off -type f -size +90M -print0)
+          if ! git diff --cached --quiet; then
+            git commit -m 'Complete TREB database and visuals via macOS finalizer [skip ci]'
+            git pull --rebase origin treb-stage2-actions-live
+            git push origin HEAD:treb-stage2-actions-live
+          fi
