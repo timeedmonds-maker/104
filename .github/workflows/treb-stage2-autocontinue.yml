@@ -72,11 +72,10 @@ jobs:
 
       - name: Refuse stale workflow-run event
         if: github.event_name == 'workflow_run' && steps.state.outputs.event_matches != 'true'
-        run: |
-          echo 'Durable status belongs to a different Stage2 run; refusing a stale continuation event.'
+        run: echo 'Durable status belongs to a different Stage2 run; refusing a stale continuation event.'
 
-      - name: Ensure no Stage2 run is already active
-        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.stage2_done != 'true'
+      - name: Check for any active Stage2 owner
+        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.project_done != 'true'
         id: active
         env:
           GH_TOKEN: ${{ github.token }}
@@ -89,7 +88,7 @@ jobs:
           ],text=True)
           runs=json.loads(raw)
           active=[r for r in runs if r.get('status') in {'queued','in_progress','waiting','requested','pending'}]
-          print(json.dumps({'active_runs':active},indent=2))
+          print(json.dumps({'active_stage2_runs':active},indent=2))
           with open(os.environ['GITHUB_OUTPUT'],'a') as h:
               h.write(f'active={str(bool(active)).lower()}\n')
           PY
@@ -103,7 +102,7 @@ jobs:
           gh workflow run treb-stage2-public-actions.yml --ref main
 
       - name: Check for active post-processing run
-        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.stage2_done == 'true' && steps.state.outputs.project_done != 'true'
+        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.stage2_done == 'true' && steps.state.outputs.project_done != 'true' && steps.active.outputs.active != 'true'
         id: postactive
         env:
           GH_TOKEN: ${{ github.token }}
@@ -122,11 +121,11 @@ jobs:
           PY
 
       - name: Dispatch final database and visualization recovery
-        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.stage2_done == 'true' && steps.state.outputs.project_done != 'true' && steps.postactive.outputs.active != 'true'
+        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.stage2_done == 'true' && steps.state.outputs.project_done != 'true' && steps.active.outputs.active != 'true' && steps.postactive.outputs.active != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo 'Stage2 is complete but the end-to-end completion marker is absent. Dispatching post-processing recovery.'
+          echo 'Stage2 is complete, no Stage2 finalizer owns the outputs, and the completion marker is absent. Dispatching post-processing recovery.'
           gh workflow run treb-postprocess.yml --ref main
 
       - name: Confirm entire project already complete
