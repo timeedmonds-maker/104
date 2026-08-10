@@ -156,6 +156,15 @@ def run(batch_size: int, workers: int, request_interval: float) -> dict[str, Any
     summary["public_resilient_transient_statuses"] = sorted(TRANSIENT_STATUSES)
     summary["public_resilient_request_interval_seconds"] = request_interval
     core.SUMMARY.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    # During the final tail, publish a read-only materiality report from the durable
+    # retry queue and original completed core. Reporting must never interrupt collection.
+    if int(summary.get("remaining_windows") or 0) <= 500:
+        try:
+            import report_stage2_tail_materiality as materiality
+            materiality.build()
+        except Exception as exc:
+            print(f"TAIL_MATERIALITY_REPORT_ERROR={exc!r}", flush=True)
     return summary
 
 
