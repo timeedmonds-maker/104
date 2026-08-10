@@ -72,6 +72,15 @@ def finalize() -> dict[str, Any]:
             "x_release_gate_passed": True,
         })
 
+    # Publication sanitation changes the PNG bytes, so refresh all tracked file hashes.
+    for item in visual.get("files", []):
+        if not isinstance(item, dict):
+            continue
+        path = VIZ / str(item.get("name") or "")
+        if path.exists() and path.is_file():
+            item["bytes"] = path.stat().st_size
+            item["sha256"] = sha256(path)
+
     visual["publication_finalized_utc"] = datetime.now(timezone.utc).isoformat()
     visual["publication_guard"] = "funakistats_publication_provenance.py"
     visual["x_ready"] = True
