@@ -36,9 +36,15 @@ jobs:
           complete=int(d.get('complete_windows') or 0)
           remaining=int(d.get('remaining_windows') or 0)
           failed=int(d.get('failed_windows') or 0)
+          z=d.get('zero_minute_tail_report') or {}
+          excluded=int(z.get('total_excluded_zero_minute_windows') or 0)
+          original_total=total+excluded
           assert d.get('all_complete') is True, d
-          assert total == 15427 and complete == total and remaining == 0 and failed == 0, d
-          print(f'POSTPROCESS_GATE complete={complete}/{total} remaining={remaining} failed={failed}')
+          assert complete == total and remaining == 0 and failed == 0, d
+          assert excluded == 221 and original_total == 15427, d
+          assert int(z.get('verified_positive_minute_windows') or 0) == 0, d
+          assert int(z.get('indeterminate_windows') or 0) == 0, d
+          print(f'POSTPROCESS_GATE material={complete}/{total} excluded_zero_minute={excluded} original={original_total} remaining={remaining} failed={failed}')
           PY
 
       - name: Install database and visualization dependencies
