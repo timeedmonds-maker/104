@@ -17,12 +17,12 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import AnnotationBbox, OffsetImage
 
+from funakistats_headshots import DEFAULT_REGISTRY, load_registry, resolve_headshot
+
 BASE = Path(__file__).resolve().parent
 SRC = BASE / "impact_database" / "corrected_off"
 FINAL = SRC / "final_export"
 OUT = SRC / "visual_pack"
-HEADSHOT_ROOT = BASE / "visual_assets" / "licensed_headshots"
-HEADSHOT_MANIFEST = HEADSHOT_ROOT / "manifest.json"
 
 BG = "#0b0d10"
 TEXT = "#f4f1e8"
@@ -42,37 +42,21 @@ def sha256(path: Path) -> str:
 
 
 def load_headshots() -> dict[str, dict[str, Any]]:
-    if not HEADSHOT_MANIFEST.exists():
-        return {}
-    data = json.loads(HEADSHOT_MANIFEST.read_text(encoding="utf-8"))
-    players = data.get("players", []) if isinstance(data, dict) else []
-    output: dict[str, dict[str, Any]] = {}
-    for item in players:
-        if not isinstance(item, dict):
-            continue
-        pid = str(item.get("player_id") or "").strip()
-        if pid:
-            output[pid] = item
-    return output
+    return load_registry(DEFAULT_REGISTRY)
 
 
-def validated_headshot(item: dict[str, Any]) -> Path | None:
+def validated_headshot(player_id: str, item: dict[str, Any]) -> Path | None:
+    # Publication graphics use only explicitly licensed registry entries. Remote fallback
+    # is disabled here; user-approved/local source assets or already-audited cache only.
     if item.get("licensed_for_publication") is not True or item.get("ai_generated") is not False:
         return None
-    if not str(item.get("source_reference") or "").strip():
-        return None
-    rel = str(item.get("file") or "").strip()
-    if not rel:
-        return None
-    path = (HEADSHOT_ROOT / rel).resolve()
-    if HEADSHOT_ROOT.resolve() not in path.parents or not path.exists() or path.suffix.lower() != ".png":
+    if not str(item.get("source") or item.get("source_reference") or "").strip():
         return None
     try:
-        if Image.open(path).mode not in {"RGBA", "LA"}:
-            return None
+        path, audit = resolve_headshot(player_id, DEFAULT_REGISTRY, allow_remote=False)
     except Exception:
         return None
-    return path
+    return path if path and audit.get("ok") is True else None
 
 
 def robust_z(values: pd.Series) -> pd.Series:
@@ -163,7 +147,7 @@ def chart(frame: pd.DataFrame, threshold: float, mode: str, label_count: int, as
         ax.plot([x, x, line_end], [y, ly, ly], color=LEADER, lw=0.85, alpha=0.72, zorder=4)
         label_x, align = (tx_left, "left") if side == "left" else (tx_right, "right")
         item = headshots.get(pid)
-        path = validated_headshot(item) if item else None
+        path = validated_headshot(pid, item) if item else None
         if path:
             used_assets.append(path)
             add_headshot(ax, label_x, ly, path, side, xspan)
@@ -171,17 +155,19 @@ def chart(frame: pd.DataFrame, threshold: float, mode: str, label_count: int, as
         ax.text(label_x, ly, f"{row.player}  {float(row.treb_swing_mid):+.2f}", ha=align, va="center", color=TEXT, fontsize=8.7 if portrait else 8.2, fontweight="medium", zorder=9)
         ax.scatter([x], [y], s=30, c=ACCENT, alpha=0.95, linewidths=0, zorder=6)
 
-    ax.set_xlim(xmin, xmax); ax.set_ylim(ymin, ymax); ax.set_aspect("equal", adjustable="box"); ax.grid(False)
-    for spine in ax.spines.values(): spine.set_visible(False)
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(False)
+    for spine in ax.spines.values():
+        spine.set_visible(False)
     ax.tick_params(colors=MUTED, labelsize=8, length=0, pad=6)
     ax.set_xlabel("Team total rebound % with player OFF court", color=MUTED, fontsize=10, labelpad=12)
     ax.set_ylabel("Team total rebound % with player ON court", color=MUTED, fontsize=10, labelpad=12)
     title_mode = "Career impact highlights" if mode == "best" else "Career impact — full profile"
     fig.text(0.075, 0.955, "WHO CHANGED THEIR TEAM'S REBOUNDING MOST?", color=TEXT, fontsize=20 if portrait else 18, fontweight="bold", ha="left", va="top")
     fig.text(0.075, 0.925, f"{title_mode} • 2000-01 to 2025-26 • {int(threshold):,}+ career minutes", color=MUTED, fontsize=10.5, ha="left", va="top")
-    fig.text(0.925, 0.955, "@funakistats", color=ACCENT, fontsize=10.5, ha="right", va="top", fontweight="bold")
     fig.text(0.075, 0.035, "Source: PBP Stats • OFF court restricted to exact roster tenure • diagonal = no on/off change", color=MUTED, fontsize=8.2, ha="left", va="bottom")
-    fig.text(0.925, 0.035, "Deterministic render • no AI-generated image pixels", color=MUTED, fontsize=7.6, ha="right", va="bottom")
     plt.subplots_adjust(left=0.12, right=0.94, top=0.88, bottom=0.10)
 
     master_png, final_png = OUT / f"{stem}_master.png", OUT / f"{stem}.png"
@@ -199,7 +185,8 @@ def chart(frame: pd.DataFrame, threshold: float, mode: str, label_count: int, as
 
 
 def build_rankings(career_treb: pd.DataFrame, career_metrics: pd.DataFrame, threshold: float) -> list[Path]:
-    rankings = OUT / "rankings"; rankings.mkdir(parents=True, exist_ok=True)
+    rankings = OUT / "rankings"
+    rankings.mkdir(parents=True, exist_ok=True)
     qualifying = career_treb[career_treb.minutes_on >= threshold].copy()
     paths = [rankings / "treb_top20_on_court.csv", rankings / "treb_top20_corrected_swing.csv"]
     qualifying.sort_values(["treb_pct_on_mid", "minutes_on"], ascending=[False, False]).head(20).to_csv(paths[0], index=False)
@@ -214,13 +201,15 @@ def build_rankings(career_treb: pd.DataFrame, career_metrics: pd.DataFrame, thre
 
 
 def build(minutes_threshold: float, label_count: int) -> dict[str, Any]:
-    if OUT.exists(): shutil.rmtree(OUT)
+    if OUT.exists():
+        shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
     career_treb = pd.read_parquet(FINAL / "career_total_rebound_pct.parquet")
     career_metrics = pd.read_parquet(FINAL / "career_corrected_on_off.parquet")
     player_season_treb = pd.read_parquet(FINAL / "player_season_total_rebound_pct.parquet")
     headshots = load_headshots()
-    data_dir = OUT / "data"; data_dir.mkdir(parents=True)
+    data_dir = OUT / "data"
+    data_dir.mkdir(parents=True)
     career_path, player_season_path = data_dir / "career_total_rebound_pct.csv.gz", data_dir / "player_season_total_rebound_pct.csv.gz"
     career_treb.to_csv(career_path, index=False, compression="gzip")
     player_season_treb.to_csv(player_season_path, index=False, compression="gzip")
@@ -232,7 +221,11 @@ def build(minutes_threshold: float, label_count: int) -> dict[str, Any]:
             for path in chart(career_treb, minutes_threshold, mode, label_count, aspect, headshots, stem):
                 files.append(path) if path.is_relative_to(OUT) else asset_paths.add(path)
     readme = OUT / "README.md"
-    readme.write_text("# @funakistats TREB visualization pack\n\nAutomated deterministic publication pack generated only after exact-tenure database QA. Default public view is Best Only / Highlights; Full Profile is retained separately. Scatterplots use a dark no-grid/no-legend treatment, very light grey background players, darker qualifying players, statistically selected outlier labels, and vertical-then-horizontal 90-degree leader lines. The 10,000-minute default is configurable. Licensed real headshots are optional and only used when the controlled manifest explicitly marks a prepared transparent PNG as licensed, source-referenced and non-AI. Final PNGs use deterministic Matplotlib/Pillow rendering; SVG/PDF masters are retained.\n", encoding="utf-8")
+    readme.write_text(
+        "# @funakistats TREB visualization pack\n\n"
+        "Automated deterministic publication pack generated only after exact-tenure database QA. Default public view is Best Only / Highlights; Full Profile is retained separately. Scatterplots use a dark no-grid/no-legend treatment, very light grey background players, darker qualifying players, statistically selected outlier labels, and vertical-then-horizontal 90-degree leader lines. The 10,000-minute default is configurable. Licensed real headshots are optional and only used from the existing funakistats headshot registry when explicitly marked licensed_for_publication=true and ai_generated=false; remote fetching is disabled for the automated publication build. Final PNGs use deterministic Matplotlib/Pillow rendering; SVG/PDF masters are retained and the PNGs are passed through funakistats_publication_provenance.py before release.\n",
+        encoding="utf-8",
+    )
     files.append(readme)
     final_manifest = json.loads((FINAL / "manifest.json").read_text(encoding="utf-8"))
     manifest = {
@@ -247,10 +240,10 @@ def build(minutes_threshold: float, label_count: int) -> dict[str, Any]:
         "outlier_selection": "robust swing z-score; fallback to highest positive swings; full profile includes both tails",
         "point_treatment": "all players very light grey; qualifying players darker",
         "label_treatment": "collision-spread labels with vertical then horizontal 90-degree leaders; no diagonal arms",
-        "branding": "visible @funakistats plus source/method footer",
+        "branding": "publication sanitizer adds primary @funakistats and secondary Data & analysis @funakistats credits; chart carries source/method footer",
         "dataset_manifest_sha256": sha256(FINAL / "manifest.json"),
         "dataset_quality": final_manifest.get("quality"),
-        "headshot_policy": "real licensed source-audited pre-cut transparent PNGs only; never AI-generated/recreated player likenesses",
+        "headshot_policy": "funakistats_headshots registry; local/audited real assets only, licensed_for_publication=true, ai_generated=false; remote fetch disabled for automated publication",
         "headshots_used": [str(p.relative_to(BASE)) for p in sorted(asset_paths)],
         "files": [],
     }
@@ -270,9 +263,13 @@ def self_test() -> None:
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(); p.add_argument("--minutes-threshold", type=float, default=10_000.0); p.add_argument("--label-count", type=int, default=20); p.add_argument("--self-test", action="store_true")
+    p = argparse.ArgumentParser()
+    p.add_argument("--minutes-threshold", type=float, default=10_000.0)
+    p.add_argument("--label-count", type=int, default=20)
+    p.add_argument("--self-test", action="store_true")
     args = p.parse_args()
     self_test() if args.self_test else print(json.dumps(build(args.minutes_threshold, args.label_count), indent=2))
 
 
-if __name__ == "__main__": main()
+if __name__ == "__main__":
+    main()
