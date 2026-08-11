@@ -1,0 +1,39 @@
+name: TREB export snapshot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'treb_export_trigger.txt'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout durable TREB branch
+        uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-actions-live
+          fetch-depth: 1
+      - name: Build snapshot
+        run: |
+          set -euo pipefail
+          tar -czf /tmp/treb-snapshot.tar.gz \
+            team_trb_all_players \
+            career_treb_detail.csv \
+            career_treb_summary.csv \
+            career_treb_metadata.json \
+            README.md
+          ls -lh /tmp/treb-snapshot.tar.gz
+      - name: Upload snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-durable-snapshot
+          path: /tmp/treb-snapshot.tar.gz
+          retention-days: 1
+          compression-level: 0
