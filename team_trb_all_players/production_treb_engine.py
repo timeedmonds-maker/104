@@ -35,6 +35,17 @@ JOIN_REPAIRS = {
     (22401102, 5, "mcdaniels rebound (off:4 def:1)"): 709,
 }
 
+# Exact solved-engine legacy clock repair recovered from the historical gate.
+# Game 20400826 contains a malformed OT row numbered after the 0:00 horn but
+# carrying a 0:19 clock. The solved engine removed 21 seconds from the ten
+# players affected by that feed artifact. This is deliberately one-game-only.
+POST_HORN_SECONDS_REPAIRS = {
+    20400826: {
+        "seconds_removed": 21,
+        "players": [952, 962, 1718, 1729, 1890, 2047, 2207, 2556, 2571, 2753],
+    }
+}
+
 core.STARTER_REPAIRS.update(PRODUCTION_STARTER_REPAIRS)
 
 
@@ -42,10 +53,6 @@ def _norm(value: object) -> str:
     if pd.isna(value):
         return ""
     return re.sub(r"\s+", " ", str(value)).strip().lower()
-
-
-def _clock(value: object) -> str:
-    return str(value).strip()
 
 
 def prepare_nba_game(game: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
@@ -78,30 +85,6 @@ def prepare_nba_game(game: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     if drop_index:
         game = game.drop(index=drop_index)
 
-    # Locked cross-era repair: game 20400826 contains an overtime event numbered
-    # after the explicit 0:00 period-ending horn but carrying a 0:19 clock. The
-    # old solved engine removed exactly this malformed row, restoring the known
-    # 21-second Boston discrepancy. This is deliberately game/event-specific;
-    # EVENTNUM is NOT treated as generic post-horn chronology in other games.
-    if game_id == 20400826:
-        period = game.loc[game.PERIOD.eq(5)]
-        horn = period.loc[(period.EVENTNUM.eq(615)) & period.EVENTMSGTYPE.eq(13) &
-                          period.PCTIMESTRING.map(_clock).isin({"0:00", "00:00", "0:00.0", "00:00.0"})]
-        malformed = period.loc[(period.EVENTNUM.eq(617)) & period.EVENTMSGTYPE.eq(6) &
-                               period.PCTIMESTRING.map(_clock).eq("0:19")]
-        if len(horn) != 1 or len(malformed) != 1:
-            raise ValueError("locked 20400826 overtime post-horn anomaly does not match expected source shape")
-        game = game.drop(index=malformed.index)
-        repairs.append({
-            "game_id": 20400826,
-            "period": 5,
-            "event_num": 617,
-            "type": "post_horn_clock_repair",
-            "seconds_removed": 21,
-            "players": [952, 962, 1718, 1729, 1890, 2047, 2207, 2556, 2571, 2753],
-            "evidence": "event 617 at 0:19 follows explicit overtime horn event 615 at 0:00",
-        })
-
     # IMPORTANT: do not generically delete rows whose EVENTNUM follows a period-end
     # marker. Legacy NBA Stats feeds contain non-chronological EVENTNUM values and
     # replay/correction inserts; any genuine anomaly requires an explicit key.
@@ -112,6 +95,26 @@ def reconstruct_game_lineups(game: pd.DataFrame) -> core.GameLineups:
     prepared, repairs = prepare_nba_game(game)
     result = core.reconstruct_game_lineups(prepared)
     result.repairs.extend(repairs)
+
+    game_id = int(prepared.GAME_ID.iloc[0]) if not prepared.empty else 0
+    clock_repair = POST_HORN_SECONDS_REPAIRS.get(game_id)
+    if clock_repair is not None:
+        seconds_removed = int(clock_repair["seconds_removed"])
+        players = [int(p) for p in clock_repair["players"]]
+        missing = [p for p in players if p not in result.seconds]
+        if missing:
+            raise ValueError(f"locked {game_id} post-horn repair players missing from reconstructed seconds: {missing}")
+        for player in players:
+            if result.seconds[player] < seconds_removed:
+                raise ValueError(f"locked {game_id} post-horn repair would make player {player} seconds negative")
+            result.seconds[player] -= seconds_removed
+        result.repairs.append({
+            "game_id": game_id,
+            "type": "post_horn_clock_repair",
+            "seconds_removed": seconds_removed,
+            "players": players,
+            "evidence": "post-period-end row follows the overtime horn",
+        })
     return result
 
 
