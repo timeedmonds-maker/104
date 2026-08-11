@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Targeted TREB production entry point using audited legacy recovery only."""
+"""Targeted TREB production entry point using audited legacy recovery."""
 from __future__ import annotations
 
-import production_treb_engine_recovered as recovered
+import production_treb_engine_tolerant as recovered
 import run_local_treb_production as runner
 
 # The original runner imported the locked production module at import time.
