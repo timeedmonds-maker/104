@@ -1,0 +1,24 @@
+{
+  "source": "Recovered from Codex PASS task transcript supplied by user on 2026-08-11",
+  "original_validated_implementation_commit": "27cb40f77fc09733363d9b1d30a1a245b4ea1ba5",
+  "original_recovery_package_commit": "09b13f4a9a418e45fec9b559d825cfcba3267c5f",
+  "stage2_base_commit": "fa6090c8c22e3b8c311d73db3c258a4a4ea28ce5",
+  "regression_status": "PASS",
+  "locked_targets": {
+    "okc_oreb_universe": 1277,
+    "adams_seconds_on": 143368,
+    "team_oreb_on": 816,
+    "team_dreb_on": 1846,
+    "team_rebounds_on": 2662,
+    "opponent_rebounds_on": 2275,
+    "rebound_bearing_rows": 8672,
+    "matched_rebound_bearing_rows": 8672,
+    "unmatched_rebound_bearing_rows": 0
+  },
+  "starter_repairs": [
+    {"game_id": 21600235, "period": 4, "team_id": 1610612743},
+    {"game_id": 21600270, "period": 5, "team_id": 1610612764},
+    {"game_id": 21600507, "period": 4, "team_id": 1610612760}
+  ],
+  "note": "The original Codex-local commits were lost from the ephemeral sandbox before push. The validated source and regression runner were recovered verbatim from the supplied task transcript and persisted on this branch. Re-run run_local_2016_regression.py against the public 2016 archives before production use."
+}
