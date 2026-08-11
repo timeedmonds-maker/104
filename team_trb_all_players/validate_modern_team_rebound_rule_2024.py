@@ -43,6 +43,11 @@ def legacy_labels(nba: pd.DataFrame, pbp: pd.DataFrame) -> tuple[pd.DataFrame, d
         ng = ng.sort_values(["PERIOD", "EVENTNUM"], kind="stable").copy()
         ng["DESCRIPTION_NORM"] = core.nba_description(ng)
         ng["ELAPSED"] = [core.elapsed_seconds(int(p), c) for p, c in zip(ng.PERIOD, ng.PCTIMESTRING)]
+        # production_treb_engine.join_pbp_rebounds carries LINEUP through to its
+        # output.  The bridge is labeling rebound semantics only, so no lineup
+        # value is required; provide a neutral placeholder rather than running
+        # lineup reconstruction and introducing an irrelevant dependency.
+        ng["LINEUP"] = None
 
         class Shell:
             events = ng
@@ -153,8 +158,6 @@ def main() -> int:
     v3 = pd.read_csv(args.v3, low_memory=False)
     nba["GAME_ID"] = pd.to_numeric(nba.GAME_ID, errors="raise").astype("int64")
     pbp["GAMEID"] = pd.to_numeric(pbp.GAMEID, errors="raise").astype("int64")
-    # v3_2024 predates CDN's orderNumber field. actionNumber is the native
-    # stable event order in this bridge source and is equivalent for this use.
     if "orderNumber" not in v3.columns:
         v3["orderNumber"] = v3["actionNumber"]
     for col in ("gameId", "actionNumber", "orderNumber", "period", "personId"):
