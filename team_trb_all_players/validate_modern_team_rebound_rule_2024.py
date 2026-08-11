@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Validate a modern-feed live/dead team-rebound rule against 2024 PBP Stats.
+"""Validate modern live/dead team-rebound semantics against 2024 legacy NBA events.
 
-2024-25 is the bridge season: legacy NBA Stats + PBP Stats are available and the
-same games/actions also exist in NBA Stats v3.  The legacy engine remains the
-label source.  A modern rule is acceptable for 2025 only if it reproduces those
-labels on the bridge season with an explicitly audited exception set.
+2024-25 is the bridge season because both the legacy NBA feed and the modern
+NBA Stats v3 feed are available for the same games and action numbers.  The
+historical engine's event-level ``_nba_real_rebound`` decision is the label;
+this avoids possession-row duplication in PBP Stats while testing exactly the
+live/dead rebound concept required by the 2025 adapter.
 """
 from __future__ import annotations
 
@@ -16,7 +17,8 @@ from pathlib import Path
 import pandas as pd
 
 import local_treb_rebuild as core
-import production_treb_engine as prod
+
+PLAYER_MAX = core.PLAYER_MAX
 
 
 def norm(value: object) -> str:
@@ -33,39 +35,24 @@ def iso_clock_seconds(value: object) -> float:
     return 60 * int(m.group(1) or 0) + float(m.group(2))
 
 
-def legacy_labels(nba: pd.DataFrame, pbp: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+def legacy_labels(nba: pd.DataFrame) -> pd.DataFrame:
     rows = []
-    audits = []
-    for game_id, pg in pbp.groupby("GAMEID", sort=False):
-        ng = nba[nba.GAME_ID.eq(int(game_id))].copy()
-        if ng.empty:
-            continue
+    for game_id, ng in nba.groupby("GAME_ID", sort=False):
         ng = ng.sort_values(["PERIOD", "EVENTNUM"], kind="stable").copy()
         ng["DESCRIPTION_NORM"] = core.nba_description(ng)
         ng["ELAPSED"] = [core.elapsed_seconds(int(p), c) for p, c in zip(ng.PERIOD, ng.PCTIMESTRING)]
-        # production_treb_engine.join_pbp_rebounds carries LINEUP through to its
-        # output.  The bridge is labeling rebound semantics only, so no lineup
-        # value is required; provide a neutral placeholder rather than running
-        # lineup reconstruction and introducing an irrelevant dependency.
-        ng["LINEUP"] = None
-
-        class Shell:
-            events = ng
-
-        joined, audit = prod.join_pbp_rebounds(Shell(), pg)
-        labeled = core.classify_rebounds(joined)
-        if len(labeled):
-            rows.append(
-                labeled[["NBA_EVENTNUM", "IS_REAL_REBOUND", "IS_OREB", "DESCRIPTION", "NBA_PLAYER1_ID", "PERIOD", "STARTTIME", "ENDTIME"]]
-                .assign(GAMEID=int(game_id))
-            )
-        audits.append(audit)
-    out = pd.concat(rows, ignore_index=True) if rows else pd.DataFrame()
-    summary = {
-        k: int(sum(a.get(k, 0) for a in audits))
-        for k in ["rebound_bearing_rows", "matched_rebound_bearing_rows", "unmatched_rebound_bearing_rows", "ambiguous_matches", "manual_join_repairs"]
-    }
-    return out, summary
+        for idx, row in ng[ng.EVENTMSGTYPE.eq(4)].iterrows():
+            rows.append({
+                "GAMEID": int(game_id),
+                "NBA_EVENTNUM": int(row.EVENTNUM),
+                "LEGACY_REAL": bool(core._nba_real_rebound(ng, idx)),
+                "NBA_PLAYER1_ID": int(row.PLAYER1_ID) if pd.notna(row.PLAYER1_ID) else 0,
+                "NBA_DESCRIPTION": str(row.DESCRIPTION_NORM),
+            })
+    out = pd.DataFrame(rows)
+    if out.duplicated(["GAMEID", "NBA_EVENTNUM"]).any():
+        raise SystemExit("duplicate legacy NBA rebound event keys")
+    return out
 
 
 def modern_candidate_rule(game: pd.DataFrame) -> pd.Series:
@@ -74,13 +61,14 @@ def modern_candidate_rule(game: pd.DataFrame) -> pd.Series:
     actions = game.actionType.astype("string").fillna("").str.lower()
     rebound = actions.eq("rebound")
     person = pd.to_numeric(game.personId, errors="coerce").fillna(0)
-    team = rebound & ~person.gt(0)
+    team = rebound & ~(person.gt(0) & person.lt(PLAYER_MAX))
     if not team.any():
         return result
 
     indices = list(game.index)
     position = {idx: i for i, idx in enumerate(indices)}
     clocks = {idx: iso_clock_seconds(game.at[idx, "clock"]) for idx in indices}
+
     for idx in game.index[team]:
         pos = position[idx]
         period = int(game.at[idx, "period"])
@@ -98,6 +86,7 @@ def modern_candidate_rule(game: pd.DataFrame) -> pd.Series:
                 prior = cand
                 break
             j -= 1
+
         same_clock = []
         j = pos - 1
         while j >= 0:
@@ -148,16 +137,14 @@ def modern_candidate_rule(game: pd.DataFrame) -> pd.Series:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--nba", type=Path, required=True)
-    ap.add_argument("--pbp", type=Path, required=True)
+    ap.add_argument("--pbp", type=Path, required=False)  # retained for workflow compatibility
     ap.add_argument("--v3", type=Path, required=True)
     ap.add_argument("--output", type=Path, required=True)
     args = ap.parse_args()
 
     nba = pd.read_csv(args.nba, low_memory=False)
-    pbp = pd.read_csv(args.pbp, low_memory=False)
     v3 = pd.read_csv(args.v3, low_memory=False)
     nba["GAME_ID"] = pd.to_numeric(nba.GAME_ID, errors="raise").astype("int64")
-    pbp["GAMEID"] = pd.to_numeric(pbp.GAMEID, errors="raise").astype("int64")
     if "orderNumber" not in v3.columns:
         v3["orderNumber"] = v3["actionNumber"]
     for col in ("gameId", "actionNumber", "orderNumber", "period", "personId"):
@@ -167,50 +154,38 @@ def main() -> int:
     v3["orderNumber"] = v3.orderNumber.fillna(v3.actionNumber).astype("int64")
     v3["period"] = v3.period.astype("int64")
 
-    labels, audit = legacy_labels(nba, pbp)
-    if labels.empty:
-        raise SystemExit("no bridge labels")
-    conflicts = labels.groupby(["GAMEID", "NBA_EVENTNUM"]).IS_REAL_REBOUND.nunique()
-    bad = conflicts[conflicts.gt(1)]
-    if len(bad):
-        raise SystemExit(f"conflicting legacy labels for {len(bad)} action keys")
-    label = labels.groupby(["GAMEID", "NBA_EVENTNUM"], as_index=False).agg(
-        LEGACY_REAL=("IS_REAL_REBOUND", "first"),
-        LEGACY_OREB=("IS_OREB", "first"),
-        PBP_DESCRIPTION=("DESCRIPTION", "first"),
-        NBA_PLAYER1_ID=("NBA_PLAYER1_ID", "first"),
-    )
-
+    labels = legacy_labels(nba)
     v3["MODERN_REAL_CANDIDATE"] = True
     for _, idx in v3.groupby("gameId", sort=False).groups.items():
         rule = modern_candidate_rule(v3.loc[idx])
         v3.loc[rule.index, "MODERN_REAL_CANDIDATE"] = rule
 
     reb = v3[v3.actionType.astype("string").fillna("").str.lower().eq("rebound")].copy()
-    merged = reb.merge(label, left_on=["gameId", "actionNumber"], right_on=["GAMEID", "NBA_EVENTNUM"], how="left", validate="one_to_one")
-    team = merged[~pd.to_numeric(merged.personId, errors="coerce").fillna(0).gt(0)].copy()
-    labeled_team = team[team.LEGACY_REAL.notna()].copy()
-    labeled_team["LEGACY_REAL"] = labeled_team.LEGACY_REAL.astype(bool)
-    labeled_team["MODERN_REAL_CANDIDATE"] = labeled_team.MODERN_REAL_CANDIDATE.astype(bool)
-    mism = labeled_team[labeled_team.LEGACY_REAL.ne(labeled_team.MODERN_REAL_CANDIDATE)].copy()
+    merged = reb.merge(labels, left_on=["gameId", "actionNumber"], right_on=["GAMEID", "NBA_EVENTNUM"], how="left", validate="one_to_one")
+    person = pd.to_numeric(merged.personId, errors="coerce").fillna(0)
+    team = merged[~(person.gt(0) & person.lt(PLAYER_MAX))].copy()
+    labeled = team[team.LEGACY_REAL.notna()].copy()
+    labeled["LEGACY_REAL"] = labeled.LEGACY_REAL.astype(bool)
+    labeled["MODERN_REAL_CANDIDATE"] = labeled.MODERN_REAL_CANDIDATE.astype(bool)
+    mism = labeled[labeled.LEGACY_REAL.ne(labeled.MODERN_REAL_CANDIDATE)].copy()
 
-    def recs(df, n=120):
-        cols = [c for c in ["gameId", "actionNumber", "orderNumber", "clock", "period", "teamId", "teamTricode", "personId", "description", "descriptor", "subType", "actionType", "LEGACY_REAL", "MODERN_REAL_CANDIDATE", "LEGACY_OREB", "PBP_DESCRIPTION"] if c in df]
+    def recs(df: pd.DataFrame, n: int = 150):
+        cols = [c for c in ["gameId", "actionNumber", "orderNumber", "clock", "period", "teamId", "teamTricode", "personId", "description", "descriptor", "subType", "actionType", "LEGACY_REAL", "MODERN_REAL_CANDIDATE", "NBA_PLAYER1_ID", "NBA_DESCRIPTION"] if c in df]
         head = df[cols].head(n)
         return head.where(pd.notna(head), None).to_dict("records")
 
     payload = {
-        "legacy_join_audit": audit,
+        "legacy_rebound_events": int(len(labels)),
         "modern_rebound_rows": int(len(reb)),
         "modern_team_or_nonplayer_rebound_rows": int(len(team)),
-        "team_rows_with_legacy_labels": int(len(labeled_team)),
-        "team_rows_without_legacy_labels": int(team.LEGACY_REAL.isna().sum()),
-        "legacy_real_team_rows": int(labeled_team.LEGACY_REAL.sum()),
-        "legacy_dead_team_rows": int((~labeled_team.LEGACY_REAL).sum()),
+        "team_rows_with_legacy_event_labels": int(len(labeled)),
+        "team_rows_without_legacy_event_labels": int(team.LEGACY_REAL.isna().sum()),
+        "legacy_real_team_rows": int(labeled.LEGACY_REAL.sum()),
+        "legacy_dead_team_rows": int((~labeled.LEGACY_REAL).sum()),
         "candidate_rule_mismatches": int(len(mism)),
-        "candidate_rule_accuracy": float(1 - len(mism) / len(labeled_team)) if len(labeled_team) else None,
+        "candidate_rule_accuracy": float(1 - len(mism) / len(labeled)) if len(labeled) else None,
         "mismatch_samples": recs(mism),
-        "dead_samples": recs(labeled_team[~labeled_team.LEGACY_REAL]),
+        "dead_samples": recs(labeled[~labeled.LEGACY_REAL]),
         "unlabeled_samples": recs(team[team.LEGACY_REAL.isna()]),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
