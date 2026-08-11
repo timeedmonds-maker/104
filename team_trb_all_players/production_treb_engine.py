@@ -35,14 +35,17 @@ JOIN_REPAIRS = {
     (22401102, 5, "mcdaniels rebound (off:4 def:1)"): 709,
 }
 
-# Exact solved-engine legacy clock repair recovered from the historical gate.
+# Exact game-specific legacy clock repair recovered from the historical gate.
 # Game 20400826 contains a malformed OT row numbered after the 0:00 horn but
-# carrying a 0:19 clock. The solved engine removed 21 seconds from the ten
-# players affected by that feed artifact. This is deliberately one-game-only.
+# carrying a 0:19 clock. The historical pre-repair retained-core audit showed
+# the same +21-second signature for the affected full-season Celtics (Pierce,
+# Ricky Davis, Raef LaFrentz, Tony Allen and Marcus Banks). The original repair
+# audit also recorded the ten-player malformed-row lineup. Keep this one-game
+# correction explicit; never generalize it to other post-horn rows.
 POST_HORN_SECONDS_REPAIRS = {
     20400826: {
         "seconds_removed": 21,
-        "players": [952, 962, 1718, 1729, 1890, 2047, 2207, 2556, 2571, 2753],
+        "players": [952, 962, 1711, 1718, 1729, 1890, 2047, 2207, 2556, 2571, 2753, 2754],
     }
 }
 
@@ -113,7 +116,7 @@ def reconstruct_game_lineups(game: pd.DataFrame) -> core.GameLineups:
             "type": "post_horn_clock_repair",
             "seconds_removed": seconds_removed,
             "players": players,
-            "evidence": "post-period-end row follows the overtime horn",
+            "evidence": "post-period-end row follows the overtime horn; affected-player set checked against retained-core seconds",
         })
     return result
 
