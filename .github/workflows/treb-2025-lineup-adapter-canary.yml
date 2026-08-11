@@ -1,0 +1,77 @@
+name: TREB 2025 lineup adapter canary
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - .github/workflows/treb-2025-lineup-adapter-canary.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Inspect CDN substitution and participant semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/treb2025lineup
+          python - <<'PY'
+          import json,re,subprocess,tarfile,urllib.request
+          from pathlib import Path
+          import pandas as pd
+          raw=Path('/tmp/treb2025lineup')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          url=urls['cdnnba_2025']; arc=raw/url.rsplit('/',1)[-1]
+          subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),url],check=True)
+          with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          df=pd.read_csv(raw/'cdnnba_2025.csv',low_memory=False)
+          action=df.actionType.astype('string').fillna('').str.lower()
+          subs=df[action.str.contains('sub',na=False)].copy()
+          def ids(v):
+              if pd.isna(v): return []
+              return [int(x) for x in re.findall(r'\d+',str(v)) if int(x)>0]
+          subs['ids']=subs.personIdsFilter.map(ids)
+          subs['n_ids']=subs.ids.map(len)
+          subs['primary_in_filter']=[int(p) in xs if pd.notna(p) and int(p)>0 else False for p,xs in zip(subs.personId,subs.ids)]
+          print('SUB_ROWS',len(subs))
+          print('SUB_ACTION_TYPES',subs.actionType.value_counts(dropna=False).head(20).to_dict())
+          print('SUB_ID_COUNTS',subs.n_ids.value_counts(dropna=False).sort_index().to_dict())
+          print('PRIMARY_IN_FILTER',subs.primary_in_filter.value_counts(dropna=False).to_dict())
+          cols=['gameId','period','clock','actionNumber','orderNumber','actionType','subType','personId','playerName','teamId','teamTricode','description','personIdsFilter','ids']
+          print('SUB_SAMPLES')
+          print(subs[cols].head(80).to_string(index=False))
+          tech=df[action.isin(['foul','ejection']) & df.description.astype('string').fillna('').str.contains('technical|eject',case=False,regex=True)].copy()
+          print('TECH_SAMPLES')
+          print(tech[[c for c in cols if c in tech.columns]].head(40).to_string(index=False))
+          # Verify every two-ID substitution has exactly one ID equal to primary,
+          # and infer whether description order agrees with player names where possible.
+          payload={
+              'sub_rows':int(len(subs)),
+              'sub_id_counts':{str(k):int(v) for k,v in subs.n_ids.value_counts().items()},
+              'primary_in_filter_counts':{str(k):int(v) for k,v in subs.primary_in_filter.value_counts().items()},
+              'two_id_rows':int(subs.n_ids.eq(2).sum()),
+              'two_id_primary_present':int((subs.n_ids.eq(2)&subs.primary_in_filter).sum()),
+              'sample':subs[cols].head(200).where(pd.notna(subs[cols].head(200)),None).to_dict('records'),
+          }
+          (raw/'lineup_adapter_canary.json').write_text(json.dumps(payload,indent=2,default=str)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2025-lineup-adapter-canary-${{ github.sha }}
+          path: /tmp/treb2025lineup/lineup_adapter_canary.json
+          retention-days: 90
+          if-no-files-found: error
