@@ -22,17 +22,21 @@ env:
 
 jobs:
   gate:
-    # Windows hosted capacity has repeatedly sat queued behind unrelated legacy
-    # TREB jobs. The recovered engine is pure Python/pandas and the historical
-    # solved workspace was POSIX, so use macOS for this verification gate to
-    # bypass that runner bottleneck without changing any engine/data semantics.
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: treb-solved-engine-recovery-20260812
+          # Pin validation to the exact triggering commit. Never validate a
+          # mutable branch head: later recovery commits must not change the
+          # engine underneath an already-created gate run.
+          ref: ${{ github.sha }}
           fetch-depth: 1
+
+      - name: Record immutable validation SHA
+        run: |
+          echo "TREB_VALIDATION_SHA=${GITHUB_SHA}"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
 
       - uses: actions/setup-python@v5
         with:
