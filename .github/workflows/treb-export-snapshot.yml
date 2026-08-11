@@ -20,15 +20,20 @@ jobs:
         with:
           ref: treb-stage2-actions-live
           fetch-depth: 1
+      - name: Publish run id marker
+        run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/impact_database
+          printf 'run_id=%s\ncommit=%s\nutc=%s\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" "$(date -u +%FT%TZ)" > team_trb_all_players/impact_database/treb_snapshot_ready.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/treb_snapshot_ready.txt
+          git commit -m 'Publish TREB snapshot run id [skip ci]' || true
+          git push origin HEAD:treb-stage2-actions-live
       - name: Build snapshot
         run: |
           set -euo pipefail
-          tar -czf /tmp/treb-snapshot.tar.gz \
-            team_trb_all_players \
-            career_treb_detail.csv \
-            career_treb_summary.csv \
-            career_treb_metadata.json \
-            README.md
+          tar -czf /tmp/treb-snapshot.tar.gz team_trb_all_players
           ls -lh /tmp/treb-snapshot.tar.gz
       - name: Upload snapshot
         uses: actions/upload-artifact@v4
@@ -37,12 +42,3 @@ jobs:
           path: /tmp/treb-snapshot.tar.gz
           retention-days: 1
           compression-level: 0
-      - name: Publish run id marker
-        run: |
-          set -euo pipefail
-          printf 'run_id=%s\ncommit=%s\nutc=%s\n' "$GITHUB_RUN_ID" "$GITHUB_SHA" "$(date -u +%FT%TZ)" > team_trb_all_players/impact_database/treb_snapshot_ready.txt
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add team_trb_all_players/impact_database/treb_snapshot_ready.txt
-          git commit -m 'Publish TREB snapshot run id [skip ci]' || true
-          git push origin HEAD:treb-stage2-actions-live
