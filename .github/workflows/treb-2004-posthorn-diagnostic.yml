@@ -43,7 +43,7 @@ jobs:
           urllib.request.urlretrieve(url, arc)
           with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
           PY
-      - name: Pinpoint affected lineup transition
+      - name: Scan Boston clock anomalies and player participation
         run: |
           python -u - <<'PY'
           import sys
@@ -52,30 +52,64 @@ jobs:
           sys.path.insert(0,'team_trb_all_players')
           import local_treb_rebuild as core
 
-          GAME=20400826; BOS=1610612738
-          core.STARTER_REPAIRS[(GAME,1,BOS)] = [952,1711,1718,1729,2753]
+          BOS=1610612738; TONY=2754; RAEF=1711; PIERCE=1718; RICKY=1729; BANKS=2556
+          core.STARTER_REPAIRS[(20400826,1,BOS)] = [952,1711,1718,1729,2753]
           nba=pd.read_csv(Path('team_trb_all_players/impact_database/local_raw/nbastats_2004.csv'), low_memory=False)
           nums=['GAME_ID','EVENTNUM','EVENTMSGTYPE','EVENTMSGACTIONTYPE','PERIOD','PLAYER1_ID','PLAYER2_ID','PLAYER3_ID','PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID','PERSON1TYPE','PERSON2TYPE','PERSON3TYPE']
           for c in nums: nba[c]=pd.to_numeric(nba[c],errors='coerce').fillna(0).astype('int64')
-          g=nba[nba.GAME_ID.eq(GAME)].copy()
-          res=core.reconstruct_game_lineups(g)
-          p2t=core._player_team(g)
-          names={}
-          for n in (1,2,3):
-              for pid,name in zip(g[f'PLAYER{n}_ID'],g[f'PLAYER{n}_NAME']):
-                  if int(pid)>0 and pd.notna(name): names[int(pid)]=str(name)
-          affected={1718,1729,1711,2754,2556}
-          print('AFFECTED',[(p,names.get(p)) for p in sorted(affected)])
-          print('EVENT617',g[g.EVENTNUM.eq(617)][['EVENTNUM','PCTIMESTRING','EVENTMSGTYPE','EVENTMSGACTIONTYPE','PLAYER1_ID','PLAYER1_NAME','NEUTRALDESCRIPTION']].to_dict('records'))
-          p5=res.events[res.events.PERIOD.eq(5)].sort_values(['ELAPSED','EVENTNUM'])
-          last=None
-          for _,r in p5.iterrows():
-              lineup=tuple(r.LINEUP)
-              bos=tuple(sorted(p for p in lineup if p2t.get(int(p))==BOS))
-              if bos!=last or int(r.EVENTNUM) in (598,602,603,604,606,607,609,610,611,612,613,614,615,617):
-                  print('P5',int(r.EVENTNUM),r.PCTIMESTRING,'elapsed',int(r.ELAPSED),'type',int(r.EVENTMSGTYPE),'BOS',[(p,names.get(p)) for p in bos], 'MATCH_AFFECTED',set(bos)==affected)
-                  last=bos
-          print('P5_SOURCE_SUBS')
-          print(g[(g.PERIOD.eq(5)) & (g.EVENTMSGTYPE.eq(8))][['EVENTNUM','PCTIMESTRING','PLAYER1_ID','PLAYER1_NAME','PLAYER2_ID','PLAYER2_NAME']].to_string(index=False))
-          print('GAME_SECONDS_AFFECTED',[(p,names.get(p),res.seconds.get(p,0)) for p in sorted(affected)])
+
+          def is_bos(game):
+              return any(game[c].eq(BOS).any() for c in ('PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID'))
+          def desc(r):
+              return ' | '.join(str(r.get(c,'')) for c in ('HOMEDESCRIPTION','NEUTRALDESCRIPTION','VISITORDESCRIPTION') if pd.notna(r.get(c,'')))
+
+          suspicious=[]; appearances=[]; errors=[]
+          for gid,game in nba.groupby('GAME_ID',sort=False):
+              if not is_bos(game): continue
+              gid=int(gid)
+              try:
+                  res=core.reconstruct_game_lineups(game)
+              except Exception as e:
+                  errors.append((gid,str(e))); continue
+              secs={p:int(res.seconds.get(p,0)) for p in (TONY,RAEF,PIERCE,RICKY,BANKS)}
+              if secs[TONY] or secs[RAEF]: appearances.append((gid,secs))
+              g=game.copy()
+              g['ELAPSED']=[core.elapsed_seconds(int(p),c) for p,c in zip(g.PERIOD,g.PCTIMESTRING)]
+              for period,p in g.groupby('PERIOD',sort=True):
+                  ev=p.sort_values('EVENTNUM',kind='stable').copy()
+                  rows=list(ev.to_dict('records'))
+                  horn_seen=False; prev_elapsed=None; prev_event=None
+                  issues=[]
+                  for r in rows:
+                      elapsed=int(r['ELAPSED']); typ=int(r['EVENTMSGTYPE']); enum=int(r['EVENTNUM'])
+                      if horn_seen and typ!=18 and str(r['PCTIMESTRING']) not in ('0:00','00:00'):
+                          issues.append(('POST_HORN_NONZERO',enum,str(r['PCTIMESTRING']),typ,desc(r)))
+                      if prev_elapsed is not None and elapsed < prev_elapsed and typ!=18:
+                          issues.append(('EVENTNUM_CLOCK_ROLLBACK',prev_event,enum,prev_elapsed,elapsed,str(r['PCTIMESTRING']),typ,desc(r)))
+                      if typ==13: horn_seen=True
+                      prev_elapsed=elapsed; prev_event=enum
+                  if issues:
+                      suspicious.append((gid,int(period),secs,issues))
+
+          print('RECON_ERRORS',errors)
+          print('TONY_OR_RAEF_APPEARANCE_COUNT',len(appearances))
+          print('SUSPICIOUS_COUNT',len(suspicious))
+          for gid,period,secs,issues in suspicious:
+              print('\nSUSPICIOUS_GAME',gid,'PERIOD',period,'SECS',secs,'TONY_OR_RAEF',bool(secs[TONY] or secs[RAEF]))
+              for x in issues: print(' ISSUE',x)
+          print('\nSUSPICIOUS_WITH_TONY')
+          for item in suspicious:
+              if item[2][TONY]: print(item)
+          print('\nSUSPICIOUS_WITH_RAEF')
+          for item in suspicious:
+              if item[2][RAEF]: print(item)
+          print('\nSUSPICIOUS_WITH_BOTH_TONY_RAEF')
+          for item in suspicious:
+              if item[2][TONY] and item[2][RAEF]: print(item)
+          print('\nALL_TONY_GAMES')
+          for gid,secs in appearances:
+              if secs[TONY]: print(gid,secs)
+          print('\nALL_RAEF_GAMES')
+          for gid,secs in appearances:
+              if secs[RAEF]: print(gid,secs)
           PY
