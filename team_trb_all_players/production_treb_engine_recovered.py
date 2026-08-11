@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 """Production-only recovery layer for ambiguous legacy period-opening lineups.
 
-The validated core and the exact 2016 Adams regression implementation are left
-unchanged.  This module first calls the locked starter inference verbatim and
-only attempts a recovery if that inference raises.  Recovery is deliberately
-conservative: it accepts a lineup only when independent local evidence reduces
-one team's candidate state to exactly five players.
+The validated core and exact 2016 Adams regression are left unchanged.  This
+module calls the locked inference first and only attempts a recovery after that
+inference raises.
+
+The principal recovery is evidence-based: legacy NBA play-by-play sometimes
+attributes a technical foul/ejection to a bench player.  Those rows establish
+team identity but do *not* establish that the player was on court.  If removing
+only candidates whose entire period participation consists of technical/ejection
+rows leaves exactly five candidates for the team, those five are accepted.
+
+No prior-quarter lineup is used to choose among six candidates.  Quarter-break
+lineup changes make that inference unsafe.  States that remain ambiguous still
+fail and enter the repair queue.
 """
 from __future__ import annotations
 
@@ -25,7 +33,8 @@ def _candidate_state(period: pd.DataFrame):
     sub_in = set(pd.to_numeric(subs.PLAYER2_ID, errors="coerce").dropna().astype(int))
     candidates = participants - (sub_in - sub_out)
     for player in sub_in & sub_out:
-        first = subs[(subs.PLAYER1_ID.eq(player)) | (subs.PLAYER2_ID.eq(player))].iloc[0]
+        rows = subs[(subs.PLAYER1_ID.eq(player)) | (subs.PLAYER2_ID.eq(player))]
+        first = rows.iloc[0]
         if int(first.PLAYER2_ID) == player:
             candidates.discard(player)
         else:
@@ -33,93 +42,71 @@ def _candidate_state(period: pd.DataFrame):
     return player_team, subs, candidates
 
 
-def _first_sub_role(subs: pd.DataFrame, player: int) -> str | None:
-    rows = subs[(subs.PLAYER1_ID.eq(player)) | (subs.PLAYER2_ID.eq(player))]
+def _row_description(row: pd.Series) -> str:
+    return " ".join(
+        str(row.get(c, ""))
+        for c in ("HOMEDESCRIPTION", "NEUTRALDESCRIPTION", "VISITORDESCRIPTION")
+        if pd.notna(row.get(c))
+    ).lower()
+
+
+def _technical_or_ejection_only(period: pd.DataFrame, player: int) -> tuple[bool, list[dict]]:
+    p1 = pd.to_numeric(period.PLAYER1_ID, errors="coerce")
+    p2 = pd.to_numeric(period.PLAYER2_ID, errors="coerce")
+    p3 = pd.to_numeric(period.PLAYER3_ID, errors="coerce")
+    rows = period[p1.eq(player) | p2.eq(player) | p3.eq(player)].sort_values(["ELAPSED", "EVENTNUM"], kind="stable")
     if rows.empty:
-        return None
-    first = rows.iloc[0]
-    return "in" if int(first.PLAYER2_ID) == int(player) else "out"
+        return False, []
 
-
-def _first_appearance_role(period: pd.DataFrame, player: int) -> str | None:
-    ordered = period.sort_values(["ELAPSED", "EVENTNUM"], kind="stable")
-    for _, row in ordered.iterrows():
+    evidence = []
+    for _, row in rows.iterrows():
         event_type = int(row.EVENTMSGTYPE)
-        p1 = int(row.PLAYER1_ID) if pd.notna(row.PLAYER1_ID) else 0
-        p2 = int(row.PLAYER2_ID) if pd.notna(row.PLAYER2_ID) else 0
-        p3 = int(row.PLAYER3_ID) if pd.notna(row.PLAYER3_ID) else 0
-        if player not in (p1, p2, p3):
+        desc = _row_description(row)
+        event_num = int(row.EVENTNUM)
+        record = {"event_num": event_num, "event_type": event_type, "description": desc}
+        evidence.append(record)
+
+        # A substitution or any ordinary live/statistical event is positive
+        # evidence that the player participated on court during the period.
+        if event_type == 8:
+            return False, evidence
+
+        # NBA Stats event type 11 is ejection.  Event type 6 covers fouls;
+        # only explicit technical descriptions are non-on-court evidence.
+        if event_type == 11:
             continue
-        if event_type == 8 and p2 == player:
-            return "in"
-        if event_type == 8 and p1 == player:
-            return "out"
-        return "play"
-    return None
+        if event_type == 6 and ("technical" in desc or "t.foul" in desc):
+            continue
+
+        return False, evidence
+
+    return True, evidence
 
 
 def _recover_team_starters(
     period: pd.DataFrame,
     team: int,
     team_candidates: set[int],
-    player_team: dict[int, int],
-    subs: pd.DataFrame,
-    prior_lineups: dict[int, set[int]] | None,
 ) -> tuple[set[int] | None, str | None, dict]:
-    prior = set(prior_lineups.get(team, set())) if prior_lineups else set()
+    if len(team_candidates) <= 5:
+        return None, None, {"reason": "not an over-complete candidate set"}
 
-    # Strongest recovery: the ambiguous legacy period contains six apparent
-    # starters, but exactly five were also the known five on court at the end
-    # of the preceding period.  No arbitrary truncation is permitted.
-    if prior:
-        common = team_candidates & prior
-        if len(common) == 5:
-            return common, "prior_period_end_intersection", {
-                "prior_lineup": sorted(prior),
-                "intersection": sorted(common),
-            }
+    technical_only = {}
+    for player in sorted(team_candidates):
+        is_nonfloor_only, evidence = _technical_or_ejection_only(period, player)
+        if is_nonfloor_only:
+            technical_only[player] = evidence
 
-        # Some overtime/legacy periods omit a player who generates no event in
-        # the period.  Carry a prior-period player only when the substitution
-        # chronology does not say that player's first action was entering.
-        if len(team_candidates) < 5:
-            definite = {
-                p for p in prior - team_candidates
-                if _first_sub_role(subs, p) == "out"
-            }
-            if len(team_candidates | definite) == 5:
-                recovered = team_candidates | definite
-                return recovered, "prior_period_first_sub_out", {
-                    "prior_lineup": sorted(prior),
-                    "carried": sorted(definite),
-                }
-            eligible = {
-                p for p in prior - team_candidates
-                if _first_sub_role(subs, p) != "in"
-            }
-            if len(team_candidates | eligible) == 5:
-                recovered = team_candidates | eligible
-                return recovered, "prior_period_non_entry_carry", {
-                    "prior_lineup": sorted(prior),
-                    "carried": sorted(eligible),
-                }
-
-    # Differential fallback used by the previously validated 2016 reference:
-    # a player whose first appearance is a substitution-in did not open the
-    # period.  Accept only if this independently produces exactly five.
-    team_players = {p for p, t in player_team.items() if t == team}
-    first_appearance = {
-        p for p in team_players
-        if _first_appearance_role(period, p) != "in"
-    }
-    if len(first_appearance) == 5:
-        return first_appearance, "validated_first_appearance_fallback", {
-            "first_appearance_candidates": sorted(first_appearance),
+    recovered = team_candidates - set(technical_only)
+    if len(recovered) == 5 and technical_only:
+        return recovered, "exclude_technical_ejection_only_participants", {
+            "excluded_players": sorted(technical_only),
+            "excluded_evidence": {str(k): v for k, v in technical_only.items()},
         }
 
     return None, None, {
-        "prior_lineup": sorted(prior),
-        "first_appearance_candidates": sorted(first_appearance),
+        "technical_ejection_only_candidates": sorted(technical_only),
+        "remaining_candidates": sorted(recovered),
     }
 
 
@@ -129,7 +116,7 @@ def infer_period_starters_recovered(
     period_number: int,
     prior_lineups: dict[int, set[int]] | None = None,
 ):
-    """Run locked inference first; recover only otherwise-unresolved states."""
+    """Run locked inference first; recover only evidence-proven over-complete states."""
     try:
         return _LOCKED_INFER_PERIOD_STARTERS(period, game_id, period_number, prior_lineups)
     except ValueError as locked_error:
@@ -160,9 +147,7 @@ def infer_period_starters_recovered(
                 starters[team] = team_candidates
                 continue
 
-            recovered, method, evidence = _recover_team_starters(
-                period, team, team_candidates, player_team, subs, prior_lineups
-            )
+            recovered, method, evidence = _recover_team_starters(period, team, team_candidates)
             if recovered is None or len(recovered) != 5:
                 raise locked_error
             starters[team] = recovered
@@ -183,8 +168,7 @@ def infer_period_starters_recovered(
 
 
 # core.reconstruct_game_lineups resolves this global at runtime.  Patch only in
-# this production-recovery module; the source file and regression script remain
-# byte-for-byte untouched.
+# this production-recovery module; validated source files remain unchanged.
 core.infer_period_starters = infer_period_starters_recovered
 
 reconstruct_game_lineups = base.reconstruct_game_lineups
