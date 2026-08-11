@@ -66,14 +66,16 @@ jobs:
           d=json.loads(p.read_text())
           expected={
               'validated_player_team_season_rows':14524,
-              'safe_full_core_reuse_rows':9647,
+              'full_core_reuse_rows':9647,
               'partial_player_team_season_rows':4877,
-              'game_bearing_partial_segments':5199,
-              'cross_team_overlaps':0,
+              'wowy_game_bearing_segments':5199,
+              'cross_team_overlap_pairs':0,
               'impossible_minute_rows':0,
               'empty_played_tenures':0,
           }
           for k,v in expected.items(): assert int(d[k])==v,(k,d[k],v)
+          assert int(d['positive_core_rows_original'])==14526,d
+          assert int(d['excluded_stale_core_artifacts'])==2,d
           print('V2_TARGET_GATE=PASS', expected)
           PY
       - name: Download locked 2016 source pair
