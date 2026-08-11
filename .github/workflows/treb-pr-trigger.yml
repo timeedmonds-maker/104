@@ -1,0 +1,24 @@
+name: TREB PR executor
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: write
+jobs:
+  marker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: treb-stage2-actions-live
+          fetch-depth: 1
+      - run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/impact_database
+          printf 'run_id=%s\nutc=%s\n' "$GITHUB_RUN_ID" "$(date -u +%FT%TZ)" > team_trb_all_players/impact_database/treb_pr_executor_marker.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/treb_pr_executor_marker.txt
+          git commit -m 'TREB PR executor marker [skip ci]'
+          git push origin HEAD:treb-stage2-actions-live
