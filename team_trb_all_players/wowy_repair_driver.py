@@ -10,6 +10,7 @@ BASE = Path(__file__).resolve().parent
 REPAIR_DIR = BASE / "impact_database" / "corrected_off_wowy"
 SUMMARY = REPAIR_DIR / "wowy_collection_summary.json"
 COLLECTOR = BASE / "wowy_repair_collector.py"
+ROSTER_GATE = BASE / "impact_database" / "roster_tenure" / "ROSTER_REPAIR_READY_V2"
 TOTAL = 5726
 
 
@@ -37,7 +38,15 @@ def checkpoint() -> None:
 
 
 def main() -> None:
-    # Leave enough headroom under the known finalizer job's 90-minute timeout.
+    # Safety gate added after local QA proved the legacy Stage2 roster-window
+    # metadata contains false extension/re-signing and identity boundaries.
+    # Never collect precise WOWY data against those old windows.
+    if not ROSTER_GATE.exists():
+        raise RuntimeError(
+            "WOWY repair blocked: corrected roster targets V2 have not passed local QA. "
+            "Do not use legacy Stage2 partial-window metadata."
+        )
+
     deadline = time.monotonic() + 70 * 60
     complete, remaining, done = state()
     print(f"WOWY_REPAIR_RESUME complete={complete}/{TOTAL} remaining={remaining}", flush=True)
@@ -57,8 +66,6 @@ def main() -> None:
             "--attempts", "5",
             "--interval", "0.5",
         ], check=False)
-
-        # Preserve successful rows even when another window in the batch errors.
         checkpoint()
         complete, remaining, done = state()
         print(
@@ -68,7 +75,6 @@ def main() -> None:
         if done:
             print("WOWY_REPAIR_COMPLETE=1", flush=True)
             return
-
         if complete <= before:
             stalls += 1
             print(f"WOWY_REPAIR_NO_PROGRESS stalls={stalls}", flush=True)
