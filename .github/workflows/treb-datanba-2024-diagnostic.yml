@@ -1,0 +1,62 @@
+name: TREB datanba 2024 diagnostic
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - .github/workflows/treb-datanba-2024-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Download and inspect datanba_2024
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/datanba2024
+          curl --fail --location --retry 5 --retry-all-errors --output /tmp/datanba2024/datanba_2024.tar.xz \
+            https://github.com/shufinskiy/nba_data/raw/main/datasets/datanba_2024.tar.xz
+          tar -xJf /tmp/datanba2024/datanba_2024.tar.xz -C /tmp/datanba2024
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          raw=Path('/tmp/datanba2024')
+          files=list(raw.glob('*.csv'))
+          print('FILES',[(f.name,f.stat().st_size) for f in files])
+          out={}
+          target_games={22400061,22400331,22400903,22400223,22400900,22400920,22400518,22400875,22400986,22400433}
+          for f in files:
+              df=pd.read_csv(f,low_memory=False)
+              print('FILE',f.name,'ROWS',len(df),'COLS',list(df.columns))
+              print(df.head(8).to_string(index=False))
+              game_cols=[c for c in df.columns if c.lower().replace('_','') in {'gameid','game_id'}]
+              target=[]
+              if game_cols:
+                  gid=pd.to_numeric(df[game_cols[0]],errors='coerce')
+                  t=df[gid.isin(target_games)]
+                  target=t.head(400).where(pd.notna(t.head(400)),None).to_dict('records')
+                  print('TARGET_ROWS',len(t)); print(t.head(80).to_string(index=False))
+              out[f.name]={'rows':len(df),'columns':list(df.columns),'target_sample':target}
+          (raw/'datanba_2024_diagnostic.json').write_text(json.dumps(out,indent=2,default=str)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-datanba-2024-diagnostic
+          path: /tmp/datanba2024/datanba_2024_diagnostic.json
+          retention-days: 90
+          if-no-files-found: error
