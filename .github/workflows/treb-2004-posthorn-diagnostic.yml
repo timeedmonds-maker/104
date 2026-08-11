@@ -1,0 +1,110 @@
+name: TREB 2004 post-horn diagnostic
+
+on:
+  push:
+    branches: [treb-solved-engine-recovery-20260812]
+    paths:
+      - .github/workflows/treb-2004-posthorn-diagnostic.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: treb-2004-posthorn-diagnostic
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r team_trb_all_players/requirements.txt
+      - name: Download 2004 NBA Stats source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile, urllib.request
+          raw=Path('team_trb_all_players/impact_database/local_raw'); raw.mkdir(parents=True, exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls=dict(line.split('=',1) for line in text.splitlines() if '=' in line)
+          url=urls['nbastats_2004'].strip(); arc=raw/url.rsplit('/',1)[-1]
+          urllib.request.urlretrieve(url, arc)
+          with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Compare candidate chronology treatments
+        run: |
+          python -u - <<'PY'
+          import sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import local_treb_rebuild as core
+
+          GAME=20400826; BOS=1610612738
+          core.STARTER_REPAIRS[(GAME,1,BOS)] = [952,1711,1718,1729,2753]
+          raw=Path('team_trb_all_players/impact_database/local_raw')
+          nba=pd.read_csv(raw/'nbastats_2004.csv', low_memory=False)
+          nums=['GAME_ID','EVENTNUM','EVENTMSGTYPE','EVENTMSGACTIONTYPE','PERIOD','PLAYER1_ID','PLAYER2_ID','PLAYER3_ID','PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID','PERSON1TYPE','PERSON2TYPE','PERSON3TYPE']
+          for c in nums:
+              nba[c]=pd.to_numeric(nba[c],errors='coerce').fillna(0).astype('int64')
+          g=nba[nba.GAME_ID.eq(GAME)].copy()
+          print('EVENT617')
+          print(g[g.EVENTNUM.eq(617)].to_dict('records'))
+          print('P5_TAIL')
+          print(g[g.PERIOD.eq(5)].sort_values('EVENTNUM').tail(15)[['EVENTNUM','PCTIMESTRING','EVENTMSGTYPE','PLAYER1_ID','PLAYER1_NAME','PLAYER2_ID','PLAYER2_NAME','PLAYER3_ID','PLAYER3_NAME']].to_string(index=False))
+
+          core_df=pd.read_csv('team_trb_all_players/impact_database/outputs/2004-05/team_rebound_derived.csv.gz')
+          core_df['player_id']=pd.to_numeric(core_df.player_id,errors='coerce')
+          b=core_df[core_df.team_id.eq(BOS)].copy()
+          wanted=[1718,1729,56,1711,1548,2754,2556,2744,2570,2753,2770]
+          expected={int(r.player_id):int(r.seconds) for _,r in b[b.player_id.isin(wanted)].iterrows()}
+          names={int(r.player_id):str(r.player) for _,r in b[b.player_id.isin(wanted)].iterrows()}
+
+          def transform(game, mode):
+              x=game.copy()
+              m=x.EVENTNUM.eq(617)
+              if mode=='drop617': x=x[~m].copy()
+              elif mode=='clamp617': x.loc[m,'PCTIMESTRING']='0:00'
+              elif mode=='neutral617':
+                  for n in (1,2,3):
+                      x.loc[m,f'PLAYER{n}_ID']=0; x.loc[m,f'PLAYER{n}_TEAM_ID']=0; x.loc[m,f'PERSON{n}TYPE']=0
+              elif mode=='clamp_neutral617':
+                  x.loc[m,'PCTIMESTRING']='0:00'
+                  for n in (1,2,3):
+                      x.loc[m,f'PLAYER{n}_ID']=0; x.loc[m,f'PLAYER{n}_TEAM_ID']=0; x.loc[m,f'PERSON{n}TYPE']=0
+              return x
+
+          modes=['raw','drop617','clamp617','neutral617','clamp_neutral617']
+          for mode in modes:
+              print('\nMODE',mode,flush=True)
+              totals={p:0 for p in wanted}; errors=[]
+              for gid,game in nba.groupby('GAME_ID',sort=False):
+                  # only BOS games
+                  if not any(game[c].eq(BOS).any() for c in ('PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID')): continue
+                  try:
+                      use=transform(game,mode) if int(gid)==GAME else game
+                      res=core.reconstruct_game_lineups(use)
+                      for p in wanted: totals[p]+=int(res.seconds.get(p,0))
+                      if int(gid)==GAME:
+                          p5=res.events[res.events.PERIOD.eq(5)]
+                          print('game_seconds', {p:int(res.seconds.get(p,0)) for p in wanted if res.seconds.get(p,0)}, flush=True)
+                          for ev in (614,615,617):
+                              q=p5[p5.EVENTNUM.eq(ev)]
+                              if len(q): print('event',ev,'elapsed',int(q.iloc[0].ELAPSED),'lineup',q.iloc[0].LINEUP,flush=True)
+                  except Exception as e:
+                      errors.append((int(gid),str(e)))
+              print('errors',errors,flush=True)
+              print('season_diffs',[(p,names.get(p),totals[p]-expected.get(p,0)) for p in wanted],flush=True)
+          PY
