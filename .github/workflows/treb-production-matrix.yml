@@ -1,0 +1,221 @@
+name: TREB production matrix
+
+on:
+  push:
+    branches:
+      - treb-validated-2016-recovery
+    paths:
+      - team_trb_all_players/impact_database/ACTIONS_CONTROL.json
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+concurrency:
+  group: treb-production-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.plan.outputs.enabled }}
+      years: ${{ steps.plan.outputs.years }}
+      max_parallel: ${{ steps.plan.outputs.max_parallel }}
+      run_label: ${{ steps.plan.outputs.run_label }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          p = Path("team_trb_all_players/impact_database/ACTIONS_CONTROL.json")
+          d = json.loads(p.read_text())
+          years = [int(x) for x in d.get("years", [])]
+          if any(y < 2002 or y > 2025 for y in years):
+              raise SystemExit(f"invalid production year in {years}")
+          print("enabled=" + ("true" if d.get("enabled", False) else "false"))
+          print("years=" + json.dumps(years, separators=(",", ":")))
+          print("max_parallel=" + str(int(d.get("max_parallel", 4))))
+          print("run_label=" + str(d.get("run_label", "treb-production")))
+          PY
+
+  preflight:
+    needs: plan
+    if: needs.plan.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r team_trb_all_players/requirements.txt
+      - name: Rebuild and verify V2 target universe
+        run: |
+          python -u team_trb_all_players/build_roster_targets_v2.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("team_trb_all_players/impact_database/roster_tenure_v2/roster_repair_v2_summary.json")
+          d = json.loads(p.read_text())
+          expected = {
+              "validated_player_team_season_rows": 14524,
+              "full_core_reuse_rows": 9647,
+              "partial_player_team_season_rows": 4877,
+              "wowy_game_bearing_segments": 5199,
+              "cross_team_overlap_pairs": 0,
+              "impossible_minute_rows": 0,
+              "empty_played_tenures": 0,
+          }
+          for k, v in expected.items():
+              if d.get(k) != v:
+                  raise SystemExit(f"V2 target mismatch {k}: {d.get(k)} != {v}")
+          print("V2_TARGET_GATE=PASS")
+          PY
+      - name: Download locked 2016 regression sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          raw=team_trb_all_players/impact_database/local_raw
+          mkdir -p "$raw"
+          for kind in nbastats pbpstats; do
+            url="https://github.com/shufinskiy/nba_data/raw/main/datasets/${kind}_2016.tar.xz"
+            file="$raw/${kind}_2016.tar.xz"
+            curl -L --fail --retry 5 --retry-delay 2 -o "$file" "$url"
+            xz -t "$file"
+            tar -xJf "$file" -C "$raw"
+          done
+      - name: Locked 2016 exact regression
+        run: python -u team_trb_all_players/run_local_2016_regression.py
+      - name: Pack canonical V2 targets
+        run: |
+          tar -czf "$RUNNER_TEMP/treb-v2-targets.tgz" \
+            team_trb_all_players/impact_database/roster_tenure_v2 \
+            team_trb_all_players/impact_database/roster_tenure/ROSTER_REPAIR_READY_V2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v2-targets-${{ github.sha }}
+          path: ${{ runner.temp }}/treb-v2-targets.tgz
+          retention-days: 30
+          if-no-files-found: error
+
+  reconstruct:
+    needs: [plan, preflight]
+    if: needs.plan.outputs.enabled == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJSON(needs.plan.outputs.max_parallel) }}
+      matrix:
+        year: ${{ fromJSON(needs.plan.outputs.years) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+      - name: Install dependencies
+        run: python -m pip install -r team_trb_all_players/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-v2-targets-${{ github.sha }}
+          path: ${{ runner.temp }}/targets
+      - name: Restore canonical V2 targets
+        run: tar -xzf "$RUNNER_TEMP/targets/treb-v2-targets.tgz" -C .
+      - name: Resolve season label
+        shell: bash
+        run: |
+          y=${{ matrix.year }}
+          yy=$(printf "%02d" $(( (y + 1) % 100 )))
+          echo "TREB_YEAR=$y" >> "$GITHUB_ENV"
+          echo "TREB_SEASON=${y}-${yy}" >> "$GITHUB_ENV"
+      - name: Download this season only
+        shell: bash
+        run: |
+          set -euo pipefail
+          raw=team_trb_all_players/impact_database/local_raw
+          mkdir -p "$raw"
+          y="$TREB_YEAR"
+          if [ "$y" -le 2024 ]; then
+            kinds=(nbastats pbpstats)
+          else
+            kinds=(nbastatsv3 cdnnba)
+          fi
+          for kind in "${kinds[@]}"; do
+            url="https://github.com/shufinskiy/nba_data/raw/main/datasets/${kind}_${y}.tar.xz"
+            file="$raw/${kind}_${y}.tar.xz"
+            curl -L --fail --retry 5 --retry-delay 2 -o "$file" "$url"
+            xz -t "$file"
+            tar -xJf "$file" -C "$raw"
+          done
+          sha256sum "$raw"/*.tar.xz | sort > "$raw/source_archives.sha256"
+      - name: Verify single-season runner interface
+        shell: bash
+        run: |
+          python team_trb_all_players/run_local_treb_production.py --help | tee "$RUNNER_TEMP/production-help.txt"
+          grep -q -- '--years' "$RUNNER_TEMP/production-help.txt" || {
+            echo "run_local_treb_production.py must expose --years before Actions takeover" >&2
+            exit 2
+          }
+      - name: Reconstruct season
+        id: run
+        shell: bash
+        run: |
+          set +e
+          python -u team_trb_all_players/run_local_treb_production.py --years "$TREB_YEAR" \
+            2>&1 | tee "$RUNNER_TEMP/treb-${TREB_SEASON}.log"
+          rc=${PIPESTATUS[0]}
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Package season state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=team_trb_all_players/impact_database/final_local_rebuild
+          mkdir -p "$RUNNER_TEMP/package"
+          test -f "$RUNNER_TEMP/treb-${TREB_SEASON}.log" && cp "$RUNNER_TEMP/treb-${TREB_SEASON}.log" "$RUNNER_TEMP/package/" || true
+          test -d "$out/checkpoints/$TREB_SEASON" && mkdir -p "$RUNNER_TEMP/package/checkpoints" && cp -a "$out/checkpoints/$TREB_SEASON" "$RUNNER_TEMP/package/checkpoints/" || true
+          test -f "$out/locked_seasons/$TREB_SEASON.json" && mkdir -p "$RUNNER_TEMP/package/locked_seasons" && cp "$out/locked_seasons/$TREB_SEASON.json" "$RUNNER_TEMP/package/locked_seasons/" || true
+          test -f "$out/master_manifest.json" && cp "$out/master_manifest.json" "$RUNNER_TEMP/package/season_manifest.json" || true
+          cp team_trb_all_players/impact_database/local_raw/source_archives.sha256 "$RUNNER_TEMP/package/source_archives.sha256"
+          tar -czf "$RUNNER_TEMP/treb-${TREB_SEASON}.tgz" -C "$RUNNER_TEMP/package" .
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-${{ env.TREB_SEASON }}-${{ github.sha }}
+          path: ${{ runner.temp }}/treb-${{ env.TREB_SEASON }}.tgz
+          retention-days: 90
+          if-no-files-found: error
+      - name: Publish successful locked season branch
+        if: steps.run.outputs.rc == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=team_trb_all_players/impact_database/final_local_rebuild
+          test -f "$out/locked_seasons/$TREB_SEASON.json"
+          branch="treb-prod-${TREB_YEAR}"
+          mkdir -p "$out/season_manifests"
+          cp "$out/master_manifest.json" "$out/season_manifests/$TREB_SEASON.json"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$branch"
+          git add -f "$out/checkpoints/$TREB_SEASON" "$out/locked_seasons/$TREB_SEASON.json" "$out/season_manifests/$TREB_SEASON.json"
+          git commit -m "Lock reconstructed $TREB_SEASON partial tenures"
+          git push --force origin "HEAD:refs/heads/$branch"
+      - name: Fail on repair queue or production error
+        if: steps.run.outputs.rc != '0'
+        shell: bash
+        run: |
+          echo "TREB season $TREB_SEASON requires repair; durable artifact uploaded." >&2
+          exit "${{ steps.run.outputs.rc }}"
