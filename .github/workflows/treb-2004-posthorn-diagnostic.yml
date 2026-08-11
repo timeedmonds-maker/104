@@ -43,73 +43,46 @@ jobs:
           urllib.request.urlretrieve(url, arc)
           with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
           PY
-      - name: Scan Boston clock anomalies and player participation
+      - name: Inspect retained core granularity and probe official endpoints
         run: |
           python -u - <<'PY'
-          import sys
+          import gzip, json, urllib.request, urllib.error
           from pathlib import Path
           import pandas as pd
-          sys.path.insert(0,'team_trb_all_players')
-          import local_treb_rebuild as core
 
-          BOS=1610612738; TONY=2754; RAEF=1711; PIERCE=1718; RICKY=1729; BANKS=2556
-          core.STARTER_REPAIRS[(20400826,1,BOS)] = [952,1711,1718,1729,2753]
-          nba=pd.read_csv(Path('team_trb_all_players/impact_database/local_raw/nbastats_2004.csv'), low_memory=False)
-          nums=['GAME_ID','EVENTNUM','EVENTMSGTYPE','EVENTMSGACTIONTYPE','PERIOD','PLAYER1_ID','PLAYER2_ID','PLAYER3_ID','PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID','PERSON1TYPE','PERSON2TYPE','PERSON3TYPE']
-          for c in nums: nba[c]=pd.to_numeric(nba[c],errors='coerce').fillna(0).astype('int64')
+          print('PLAYER_TEAM_TOTALS')
+          p='team_trb_all_players/impact_database/outputs/2004-05/player_team_totals.csv.gz'
+          d=pd.read_csv(p)
+          print('columns',list(d.columns))
+          print('shape',d.shape)
+          print(d[d.astype(str).apply(lambda r: r.str.contains('2754',regex=False).any(),axis=1)].head(10).to_string(index=False))
 
-          def is_bos(game):
-              return any(game[c].eq(BOS).any() for c in ('PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID'))
-          def desc(r):
-              return ' | '.join(str(r.get(c,'')) for c in ('HOMEDESCRIPTION','NEUTRALDESCRIPTION','VISITORDESCRIPTION') if pd.notna(r.get(c,'')))
+          game='0020400965'
+          urls=[
+            f'https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{game}.json',
+            f'https://data.nba.net/prod/v1/2004/{game}_boxscore.json',
+            f'https://data.nba.com/data/v2015/json/mobile_teams/nba/2004/scores/gamedetail/{game}_gamedetail.json',
+          ]
+          headers={
+            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
+            'Referer':'https://www.nba.com/',
+            'Origin':'https://www.nba.com',
+            'Accept':'application/json, text/plain, */*',
+          }
+          for u in urls:
+            print('\nPROBE',u)
+            try:
+              req=urllib.request.Request(u,headers=headers)
+              with urllib.request.urlopen(req,timeout=15) as r:
+                b=r.read(); print('status',r.status,'bytes',len(b),'type',r.headers.get('content-type')); print(b[:1000].decode('utf-8','replace'))
+            except Exception as e: print('ERROR',repr(e))
 
-          suspicious=[]; appearances=[]; errors=[]
-          for gid,game in nba.groupby('GAME_ID',sort=False):
-              if not is_bos(game): continue
-              gid=int(gid)
-              try:
-                  res=core.reconstruct_game_lineups(game)
-              except Exception as e:
-                  errors.append((gid,str(e))); continue
-              secs={p:int(res.seconds.get(p,0)) for p in (TONY,RAEF,PIERCE,RICKY,BANKS)}
-              if secs[TONY] or secs[RAEF]: appearances.append((gid,secs))
-              g=game.copy()
-              g['ELAPSED']=[core.elapsed_seconds(int(p),c) for p,c in zip(g.PERIOD,g.PCTIMESTRING)]
-              for period,p in g.groupby('PERIOD',sort=True):
-                  ev=p.sort_values('EVENTNUM',kind='stable').copy()
-                  rows=list(ev.to_dict('records'))
-                  horn_seen=False; prev_elapsed=None; prev_event=None
-                  issues=[]
-                  for r in rows:
-                      elapsed=int(r['ELAPSED']); typ=int(r['EVENTMSGTYPE']); enum=int(r['EVENTNUM'])
-                      if horn_seen and typ!=18 and str(r['PCTIMESTRING']) not in ('0:00','00:00'):
-                          issues.append(('POST_HORN_NONZERO',enum,str(r['PCTIMESTRING']),typ,desc(r)))
-                      if prev_elapsed is not None and elapsed < prev_elapsed and typ!=18:
-                          issues.append(('EVENTNUM_CLOCK_ROLLBACK',prev_event,enum,prev_elapsed,elapsed,str(r['PCTIMESTRING']),typ,desc(r)))
-                      if typ==13: horn_seen=True
-                      prev_elapsed=elapsed; prev_event=enum
-                  if issues:
-                      suspicious.append((gid,int(period),secs,issues))
-
-          print('RECON_ERRORS',errors)
-          print('TONY_OR_RAEF_APPEARANCE_COUNT',len(appearances))
-          print('SUSPICIOUS_COUNT',len(suspicious))
-          for gid,period,secs,issues in suspicious:
-              print('\nSUSPICIOUS_GAME',gid,'PERIOD',period,'SECS',secs,'TONY_OR_RAEF',bool(secs[TONY] or secs[RAEF]))
-              for x in issues: print(' ISSUE',x)
-          print('\nSUSPICIOUS_WITH_TONY')
-          for item in suspicious:
-              if item[2][TONY]: print(item)
-          print('\nSUSPICIOUS_WITH_RAEF')
-          for item in suspicious:
-              if item[2][RAEF]: print(item)
-          print('\nSUSPICIOUS_WITH_BOTH_TONY_RAEF')
-          for item in suspicious:
-              if item[2][TONY] and item[2][RAEF]: print(item)
-          print('\nALL_TONY_GAMES')
-          for gid,secs in appearances:
-              if secs[TONY]: print(gid,secs)
-          print('\nALL_RAEF_GAMES')
-          for gid,secs in appearances:
-              if secs[RAEF]: print(gid,secs)
+          print('\nSTATS_API')
+          u=('https://stats.nba.com/stats/boxscoretraditionalv2?'
+             'EndPeriod=10&EndRange=28800&GameID=0020400965&RangeType=0&StartPeriod=1&StartRange=0')
+          try:
+            req=urllib.request.Request(u,headers=headers)
+            with urllib.request.urlopen(req,timeout=20) as r:
+              b=r.read(); print('status',r.status,'bytes',len(b)); print(b[:4000].decode('utf-8','replace'))
+          except Exception as e: print('ERROR',repr(e))
           PY
