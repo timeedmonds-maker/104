@@ -35,16 +35,18 @@ JOIN_REPAIRS = {
     (22401102, 5, "mcdaniels rebound (off:4 def:1)"): 709,
 }
 
-# Exact game-specific legacy clock repair recovered from the historical gate.
-# Game 20400826 contains a malformed OT row numbered after the 0:00 horn but
-# carrying a 0:19 clock. Full-season retained-core comparison proves that the
-# resulting +21 seconds applies only to Pierce, Ricky Davis, Raef LaFrentz,
-# Tony Allen and Marcus Banks. Keep this one-game correction explicit; never
-# generalize it to other post-horn rows or to the full malformed-row lineup.
-POST_HORN_SECONDS_REPAIRS = {
-    20400826: {
+# Exact source-proven period-opening clock gap.
+# In game 20400152 the corrected PBP Stats event stream places the period-4
+# start marker (EVENTNUM 375, EVENTMSGTYPE 12) at 11:39 rather than 12:00.
+# The legacy NBA event reconstruction otherwise allocates those unrecorded 21
+# seconds to the inferred quarter-opening ten. Retained-core season seconds and
+# the corrected historical event stream independently isolate the same gap.
+# Keep this repair keyed to this game/period only; do not generalize it.
+PERIOD_START_GAP_REPAIRS = {
+    (20400152, 4): {
+        "start_event": 375,
+        "start_clock": "11:39",
         "seconds_removed": 21,
-        "players": [1711, 1718, 1729, 2556, 2754],
     }
 }
 
@@ -99,23 +101,47 @@ def reconstruct_game_lineups(game: pd.DataFrame) -> core.GameLineups:
     result.repairs.extend(repairs)
 
     game_id = int(prepared.GAME_ID.iloc[0]) if not prepared.empty else 0
-    clock_repair = POST_HORN_SECONDS_REPAIRS.get(game_id)
-    if clock_repair is not None:
-        seconds_removed = int(clock_repair["seconds_removed"])
-        players = [int(p) for p in clock_repair["players"]]
-        missing = [p for p in players if p not in result.seconds]
-        if missing:
-            raise ValueError(f"locked {game_id} post-horn repair players missing from reconstructed seconds: {missing}")
+    for (repair_game, period_number), spec in PERIOD_START_GAP_REPAIRS.items():
+        if game_id != repair_game:
+            continue
+        source = prepared[(prepared.PERIOD.eq(period_number)) & prepared.EVENTNUM.eq(int(spec["start_event"]))]
+        if len(source) != 1:
+            raise ValueError(f"locked period-start repair source event missing game={game_id} period={period_number}")
+        row = source.iloc[0]
+        if int(row.EVENTMSGTYPE) != 12 or str(row.PCTIMESTRING) != str(spec["start_clock"]):
+            raise ValueError(
+                f"locked period-start repair source changed game={game_id} period={period_number}: "
+                f"type={int(row.EVENTMSGTYPE)} clock={row.PCTIMESTRING}"
+            )
+        gap = int(spec["seconds_removed"])
+        expected_gap = core.elapsed_seconds(period_number, spec["start_clock"]) - (
+            (period_number - 1) * 720 if period_number <= 4 else 2880 + (period_number - 5) * 300
+        )
+        if expected_gap != gap:
+            raise ValueError(f"locked period-start repair gap mismatch: {expected_gap} != {gap}")
+
+        period_events = result.events[result.events.PERIOD.eq(period_number)]
+        first_elapsed = int(period_events.ELAPSED.min())
+        first = period_events[period_events.ELAPSED.eq(first_elapsed)].sort_values("EVENTNUM", kind="stable").iloc[0]
+        same_time_subs = period_events[(period_events.ELAPSED.eq(first_elapsed)) & period_events.EVENTMSGTYPE.eq(8)]
+        if len(same_time_subs):
+            raise ValueError(f"locked period-start repair opening lineup ambiguous game={game_id} period={period_number}")
+        players = [int(p) for p in first.LINEUP]
+        if len(players) != 10:
+            raise ValueError(f"locked period-start repair expected ten players, got {len(players)}")
         for player in players:
-            if result.seconds[player] < seconds_removed:
-                raise ValueError(f"locked {game_id} post-horn repair would make player {player} seconds negative")
-            result.seconds[player] -= seconds_removed
+            if result.seconds.get(player, 0) < gap:
+                raise ValueError(f"locked period-start repair would make player {player} seconds negative")
+            result.seconds[player] -= gap
         result.repairs.append({
             "game_id": game_id,
-            "type": "post_horn_clock_repair",
-            "seconds_removed": seconds_removed,
-            "players": players,
-            "evidence": "full-season retained-core comparison isolates the +21-second artifact to five Celtics",
+            "period": period_number,
+            "type": "period_start_clock_gap_repair",
+            "source_event": int(spec["start_event"]),
+            "source_clock": str(spec["start_clock"]),
+            "seconds_removed": gap,
+            "players": sorted(players),
+            "evidence": "corrected PBP Stats stream starts period at 11:39; nominal 12:00-to-11:39 interval is not recorded play",
         })
     return result
 
