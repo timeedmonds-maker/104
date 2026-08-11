@@ -1,0 +1,16 @@
+name: TREB executor runner race
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  race:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 5
+    steps:
+      - run: echo "TREB_RUNNER_READY=${{ matrix.runner }}"
