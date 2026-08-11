@@ -16,6 +16,23 @@ EXPECTED = {
     "opponent_rebounds_on": 2275,
 }
 
+
+def existing_archive_csv(preferred: Path) -> Path:
+    """Resolve either supported extraction layout without moving raw data.
+
+    Historical workspaces extracted CSVs directly into ``local_raw`` while
+    the recovered runner used ``local_raw/extracted``.  Accept both layouts so
+    a resumed build does not redownload or copy the large season files.
+    """
+    if preferred.exists():
+        return preferred
+    if preferred.parent.name == "extracted":
+        fallback = preferred.parent.parent / preferred.name
+        if fallback.exists():
+            return fallback
+    raise FileNotFoundError(f"raw season CSV not found: {preferred}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     root = Path(__file__).resolve().parent
@@ -24,8 +41,8 @@ def main() -> int:
     parser.add_argument("--pbpstats", type=Path, default=default / "pbpstats_2016.csv")
     parser.add_argument("--output", type=Path, default=root / "impact_database" / "regression_2016_result.json")
     args = parser.parse_args()
-    nba = pd.read_csv(args.nbastats)
-    pbp = pd.read_csv(args.pbpstats)
+    nba = pd.read_csv(existing_archive_csv(args.nbastats))
+    pbp = pd.read_csv(existing_archive_csv(args.pbpstats))
     result = okc_2016_regression(nba, pbp)
     checks = {key: result[key] == value for key, value in EXPECTED.items()}
     checks["opponent_rebounds_retained_range"] = 2270 <= result["opponent_rebounds_on"] <= 2279
