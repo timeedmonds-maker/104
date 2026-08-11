@@ -16,7 +16,7 @@ concurrency:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -31,33 +31,132 @@ jobs:
         run: |
           python -m pip install -r team_trb_all_players/requirements.txt
           python -m pip install remotezip
-      - name: Inspect pbpstats corrected archive remotely
+      - name: Download 2004 NBA Stats source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile, urllib.request
+          raw=Path('team_trb_all_players/impact_database/local_raw'); raw.mkdir(parents=True, exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls=dict(line.split('=',1) for line in text.splitlines() if '=' in line)
+          url=urls['nbastats_2004'].strip(); arc=raw/url.rsplit('/',1)[-1]
+          urllib.request.urlretrieve(url, arc)
+          with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Compare every Boston game to corrected PBP Stats boxscore minutes
         run: |
           python -u - <<'PY'
+          import json, sys
+          from collections import defaultdict
+          from pathlib import Path
+          import pandas as pd
           from remotezip import RemoteZip
-          import json
-          url='https://pbpstats.s3.amazonaws.com/data.zip'
-          games=['0020400826','0020400965']
-          print('OPEN',url,flush=True)
-          with RemoteZip(url) as z:
-              infos=z.infolist()
-              print('MEMBERS',len(infos),flush=True)
-              for game in games:
-                  hits=[i for i in infos if game in i.filename]
-                  print('\nGAME',game,'HITS',[(h.filename,h.file_size) for h in hits],flush=True)
-                  for h in hits:
-                      if h.file_size > 5_000_000: continue
-                      b=z.read(h.filename)
-                      print('FILE',h.filename,'BYTES',len(b),flush=True)
-                      text=b.decode('utf-8','replace')
-                      if len(text)<=20000:
-                          print(text,flush=True)
-                      else:
-                          print(text[:10000],flush=True)
-                          print('...TAIL...',text[-5000:],flush=True)
-              # show likely override paths for 2004 game IDs even if filenames do not contain leading-zero form
-              for needle in ('20400826','20400965'):
-                  hits=[i for i in infos if needle in i.filename]
-                  print('\nSHORTID',needle,'HITS',[(h.filename,h.file_size) for h in hits],flush=True)
-              print('\nTOP_PATHS', [i.filename for i in infos[:100]], flush=True)
+
+          sys.path.insert(0,'team_trb_all_players')
+          import local_treb_rebuild as core
+
+          BOS=1610612738
+          # exact solved starter repair, independent of the post-horn issue
+          core.STARTER_REPAIRS[(20400826,1,BOS)] = [952,1711,1718,1729,2753]
+
+          nba=pd.read_csv(Path('team_trb_all_players/impact_database/local_raw/nbastats_2004.csv'), low_memory=False)
+          nums=['GAME_ID','EVENTNUM','EVENTMSGTYPE','EVENTMSGACTIONTYPE','PERIOD','PLAYER1_ID','PLAYER2_ID','PLAYER3_ID','PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID','PERSON1TYPE','PERSON2TYPE','PERSON3TYPE']
+          for c in nums: nba[c]=pd.to_numeric(nba[c],errors='coerce').fillna(0).astype('int64')
+
+          core_df=pd.read_csv('team_trb_all_players/impact_database/outputs/2004-05/team_rebound_derived.csv.gz')
+          core_df['player_id']=pd.to_numeric(core_df.player_id,errors='coerce').astype('int64')
+          retained={int(r.player_id):int(r.seconds) for _,r in core_df[core_df.team_id.eq(BOS)].iterrows()}
+          retained_names={int(r.player_id):str(r.player) for _,r in core_df[core_df.team_id.eq(BOS)].iterrows()}
+
+          def is_bos_game(g):
+              return any(g[c].eq(BOS).any() for c in ('PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID'))
+          bos_games=[(int(gid),g.copy()) for gid,g in nba.groupby('GAME_ID',sort=False) if is_bos_game(g)]
+          print('BOS_GAMES',len(bos_games),flush=True)
+          assert len(bos_games)==82, len(bos_games)
+
+          def min_to_sec(s):
+              if s is None: return 0
+              t=str(s).strip()
+              if not t: return 0
+              a,b=t.split(':')
+              return int(a)*60+int(b)
+
+          local_season=defaultdict(int)
+          official_season=defaultdict(int)
+          mismatch_games=[]
+          reconstruction_errors=[]
+          boxscore_missing=[]
+          rzip_url='https://pbpstats.s3.amazonaws.com/data.zip'
+          with RemoteZip(rzip_url) as z:
+              names=set(i.filename for i in z.infolist())
+              for gid,g in bos_games:
+                  try:
+                      res=core.reconstruct_game_lineups(g)
+                  except Exception as e:
+                      reconstruction_errors.append((gid,str(e)))
+                      continue
+                  nba_id='00'+str(gid).zfill(8)
+                  path=f'response_data/game_details/stats_boxscore_{nba_id}.json'
+                  if path not in names:
+                      boxscore_missing.append((gid,path)); continue
+                  obj=json.loads(z.read(path))
+                  rs=obj['resultSets'][0]
+                  headers=rs['headers']; idx={h:i for i,h in enumerate(headers)}
+                  off={}
+                  off_name={}
+                  for row in rs['rowSet']:
+                      if int(row[idx['TEAM_ID']])!=BOS: continue
+                      pid=int(row[idx['PLAYER_ID']]); sec=min_to_sec(row[idx['MIN']])
+                      off[pid]=sec; off_name[pid]=str(row[idx['PLAYER_NAME']])
+                  players=set(off)|set(res.seconds)
+                  diffs=[]
+                  for pid in sorted(players):
+                      # Only compare Boston players. Use official roster membership as authoritative here;
+                      # also retain locally reconstructed BOS players that appear in the season core.
+                      if pid not in off and pid not in retained: continue
+                      local=int(res.seconds.get(pid,0)); official=int(off.get(pid,0))
+                      if pid in off:
+                          local_season[pid]+=local; official_season[pid]+=official
+                      if local!=official:
+                          diffs.append((pid,off_name.get(pid,retained_names.get(pid)),local,official,local-official))
+                  if diffs:
+                      mismatch_games.append((gid,diffs))
+                      print('GAME_MISMATCH',gid,diffs,flush=True)
+
+              print('\nRECON_ERRORS',reconstruction_errors,flush=True)
+              print('BOXSCORE_MISSING',boxscore_missing,flush=True)
+              print('MISMATCH_GAME_COUNT',len(mismatch_games),flush=True)
+              print('\nSEASON_LOCAL_VS_OFFICIAL')
+              allp=sorted(set(retained)|set(official_season)|set(local_season))
+              for pid in allp:
+                  local=int(local_season.get(pid,0)); official=int(official_season.get(pid,0)); expected=int(retained.get(pid,0))
+                  if pid in retained or local!=official:
+                      print('SEASON',pid,retained_names.get(pid),
+                            'local',local,'official',official,'retained',expected,
+                            'local-official',local-official,
+                            'official-retained',official-expected,
+                            'local-retained',local-expected,flush=True)
+
+              # For each mismatch game, compare raw event-number order to pbpstats' corrected event order.
+              print('\nEVENT_ORDER_DIFFERENCES')
+              for gid,diffs in mismatch_games:
+                  nba_id='00'+str(gid).zfill(8)
+                  p=f'response_data/pbp/stats_{nba_id}.json'
+                  if p not in names:
+                      print('NO_CORRECTED_PBP',gid); continue
+                  obj=json.loads(z.read(p)); rs=obj['resultSets'][0]
+                  h=rs['headers']; ix={x:i for i,x in enumerate(h)}
+                  corr=[(int(r[ix['EVENTNUM']]),int(r[ix['PERIOD']]),str(r[ix['PCTIMESTRING']]),int(r[ix['EVENTMSGTYPE']])) for r in rs['rowSet']]
+                  raw=[(int(r.EVENTNUM),int(r.PERIOD),str(r.PCTIMESTRING),int(r.EVENTMSGTYPE)) for r in nba[nba.GAME_ID.eq(gid)].sort_values('EVENTNUM').itertuples(index=False)]
+                  raw_pos={ev:i for i,(ev,_,_,_) in enumerate(raw)}; cor_pos={ev:i for i,(ev,_,_,_) in enumerate(corr)}
+                  common=set(raw_pos)&set(cor_pos)
+                  moved=sorted(((ev,raw_pos[ev],cor_pos[ev]) for ev in common if raw_pos[ev]!=cor_pos[ev]), key=lambda x:abs(x[1]-x[2]), reverse=True)
+                  # Restrict output to event-order movements and nearby corrected rows; no giant raw dumps.
+                  print('ORDER_GAME',gid,'PLAYER_DIFFS',diffs,'MOVED_COUNT',len(moved),'TOP_MOVED',moved[:30],flush=True)
+                  focus=set(ev for ev,_,_ in moved[:30])
+                  if focus:
+                      positions=sorted({cor_pos[e]+d for e in focus for d in range(-2,3) if 0<=cor_pos[e]+d<len(corr)})
+                      print('CORRECTED_WINDOWS', [corr[i] for i in positions], flush=True)
           PY
