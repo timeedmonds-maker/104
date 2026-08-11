@@ -19,21 +19,28 @@ function Ensure-Gh {
     }
 }
 
-Ensure-Gh
-
-$authOk = $false
-try {
-    gh auth status 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) { $authOk = $true }
-} catch {}
-
-if (-not $authOk) {
-    Write-Host "GitHub authentication is required. A browser login will open now."
-    gh auth login --hostname github.com --web --git-protocol https
-    if ($LASTEXITCODE -ne 0) { throw "GitHub authentication failed." }
+function Test-GhAuth {
+    try {
+        gh auth status --hostname github.com 2>$null | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        return $false
+    }
 }
 
-$token = (gh auth token).Trim()
+Ensure-Gh
+
+if (-not (Test-GhAuth)) {
+    Write-Host "GitHub authentication is required. A browser login will open now."
+    # gh can authenticate successfully and still return non-zero on Windows if Git itself is not installed.
+    # We therefore verify the stored GitHub authentication after login instead of trusting that exit code.
+    gh auth login --hostname github.com --web --git-protocol https
+    if (-not (Test-GhAuth)) {
+        throw "GitHub authentication failed."
+    }
+}
+
+$token = (gh auth token --hostname github.com).Trim()
 if (-not $token) { throw "Could not obtain a GitHub token from gh." }
 
 Write-Host "Repository: $Repo"
@@ -82,7 +89,6 @@ if ($runs.Count -eq 0) {
     exit 0
 }
 
-# Reuse one HttpClient and cancel in bounded asynchronous batches. This works in Windows PowerShell 5.1+
 Add-Type -AssemblyName System.Net.Http
 $handler = New-Object System.Net.Http.HttpClientHandler
 $client = New-Object System.Net.Http.HttpClient($handler)
@@ -112,7 +118,6 @@ for ($i = 0; $i -lt $runs.Count; $i += $Concurrency) {
             if ($resp.IsSuccessStatusCode -or [int]$resp.StatusCode -eq 409) {
                 $cancelled++
             } else {
-                # Force-cancel only when ordinary cancellation was rejected.
                 $forceUrl = "https://api.github.com/repos/$Repo/actions/runs/$($item.Run.id)/force-cancel"
                 $forceResp = $client.PostAsync($forceUrl, $null).GetAwaiter().GetResult()
                 if ($forceResp.IsSuccessStatusCode -or [int]$forceResp.StatusCode -eq 409) {
