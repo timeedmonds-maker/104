@@ -6,9 +6,12 @@ Design goals:
 - use explicit CDN substitution-in / substitution-out rows;
 - infer only the first-quarter opening five from local participation evidence;
 - carry the previous period's ending five into later periods and apply explicit
-  period-start substitutions at 12:00 / 5:00 before timing the period;
+  period-start substitutions in native CDN event order;
 - never treat technical/ejection-only participation as proof a player was on court;
-- hard-fail any state that does not resolve to exactly five players per team.
+- allow transient 4/6-player states only *between substitution rows at the same
+  game clock*, where zero playing time elapses;
+- hard-fail any live/statistical row, timestamp boundary, or period boundary that
+  does not resolve to exactly five players per team.
 
 The engine is intentionally independent of the historical TREB production
 engine so it can be validated against 2024 before being used for 2025-26.
@@ -17,7 +20,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import re
-from typing import Iterable
 
 import pandas as pd
 
@@ -133,7 +135,10 @@ def _first_quarter_starters(period: pd.DataFrame, player_team: dict[int, int], t
         pid = int(row.personId) if pd.notna(row.personId) else 0
         if action == "substitution":
             if subtype not in {"in", "out"}:
-                raise ValueError(f"unknown CDN substitution subtype game={int(row.gameId)} action={int(row.actionNumber)}: {row.subType!r}")
+                raise ValueError(
+                    f"unknown CDN substitution subtype game={int(row.gameId)} "
+                    f"action={int(row.actionNumber)}: {row.subType!r}"
+                )
             register(pid, subtype, row)
             continue
         if _is_administrative(row):
@@ -145,44 +150,93 @@ def _first_quarter_starters(period: pd.DataFrame, player_team: dict[int, int], t
     starters: dict[int, set[int]] = {}
     audit = []
     for team in teams:
-        chosen = {pid for pid, kind in first_evidence.items() if player_team.get(pid) == team and kind in {"play", "out"}}
+        chosen = {
+            pid
+            for pid, kind in first_evidence.items()
+            if player_team.get(pid) == team and kind in {"play", "out"}
+        }
         if len(chosen) != 5:
-            details = {pid: {"kind": first_evidence.get(pid), "evidence": evidence_rows.get(pid)} for pid in sorted(first_evidence) if player_team.get(pid) == team}
-            raise ValueError(f"unresolved CDN first-quarter starters game={int(period.gameId.iloc[0])} team={team}: {sorted(chosen)} evidence={details}")
+            details = {
+                pid: {"kind": first_evidence.get(pid), "evidence": evidence_rows.get(pid)}
+                for pid in sorted(first_evidence)
+                if player_team.get(pid) == team
+            }
+            raise ValueError(
+                f"unresolved CDN first-quarter starters game={int(period.gameId.iloc[0])} "
+                f"team={team}: {sorted(chosen)} evidence={details}"
+            )
         starters[team] = chosen
-        audit.append({"period": 1, "team_id": team, "method": "first_local_evidence_before_entry", "starters": sorted(chosen)})
+        audit.append(
+            {
+                "period": 1,
+                "team_id": team,
+                "method": "first_local_evidence_before_entry",
+                "starters": sorted(chosen),
+            }
+        )
     return starters, audit
 
 
-def _apply_substitution_group(lineups: dict[int, set[int]], rows: pd.DataFrame, player_team: dict[int, int], game_id: int, period: int, clock: str) -> list[dict]:
-    changes = []
-    subs = rows[rows.actionType.astype("string").fillna("").str.lower().eq("substitution")].copy()
-    if subs.empty:
-        return changes
-
-    # CDN represents paired substitutions as separate rows. Apply all outs first
-    # and all ins second at the same game clock, then validate the five-player state.
-    for wanted in ("out", "in"):
-        selected = subs[subs.subType.astype("string").fillna("").str.lower().eq(wanted)]
-        for _, row in selected.sort_values(["orderNumber", "actionNumber"], kind="stable").iterrows():
-            pid = int(row.personId) if pd.notna(row.personId) else 0
-            team = int(row.teamId) if pd.notna(row.teamId) else player_team.get(pid, 0)
-            if pid <= 0 or team not in lineups:
-                raise ValueError(f"invalid CDN substitution game={game_id} period={period} action={int(row.actionNumber)} player={pid} team={team}")
-            if wanted == "out":
-                if pid not in lineups[team]:
-                    raise ValueError(f"CDN substitution outgoing absent game={game_id} period={period} action={int(row.actionNumber)} player={pid} lineup={sorted(lineups[team])}")
-                lineups[team].remove(pid)
-            else:
-                if pid in lineups[team]:
-                    raise ValueError(f"CDN substitution incoming already present game={game_id} period={period} action={int(row.actionNumber)} player={pid}")
-                lineups[team].add(pid)
-            changes.append({"actionNumber": int(row.actionNumber), "clock": clock, "team_id": team, "player_id": pid, "direction": wanted})
-
-    for team, lineup in lineups.items():
+def _validate_five(lineups: dict[int, set[int]], teams: list[int], game_id: int, period: int, clock: str, context: str) -> None:
+    for team in teams:
+        lineup = lineups.get(team, set())
         if len(lineup) != 5:
-            raise ValueError(f"CDN lineup size {len(lineup)} after substitutions game={game_id} period={period} clock={clock} team={team}: {sorted(lineup)}")
-    return changes
+            raise ValueError(
+                f"CDN lineup size {len(lineup)} {context} game={game_id} period={period} "
+                f"clock={clock} team={team}: {sorted(lineup)}"
+            )
+    combined = set().union(*(lineups[team] for team in teams))
+    if len(combined) != 10:
+        raise ValueError(
+            f"invalid CDN ten-player state {context} game={game_id} period={period} "
+            f"clock={clock}: {sorted(combined)}"
+        )
+
+
+def _apply_one_substitution(
+    lineups: dict[int, set[int]],
+    row: pd.Series,
+    player_team: dict[int, int],
+    game_id: int,
+    period: int,
+) -> dict:
+    subtype = _norm(row.subType)
+    if subtype not in {"in", "out"}:
+        raise ValueError(
+            f"unknown CDN substitution subtype game={game_id} period={period} "
+            f"action={int(row.actionNumber)}: {row.subType!r}"
+        )
+    pid = int(row.personId) if pd.notna(row.personId) else 0
+    team = int(row.teamId) if pd.notna(row.teamId) else player_team.get(pid, 0)
+    if pid <= 0 or team not in lineups:
+        raise ValueError(
+            f"invalid CDN substitution game={game_id} period={period} "
+            f"action={int(row.actionNumber)} player={pid} team={team}"
+        )
+
+    if subtype == "out":
+        if pid not in lineups[team]:
+            raise ValueError(
+                f"CDN substitution outgoing absent game={game_id} period={period} "
+                f"action={int(row.actionNumber)} player={pid} lineup={sorted(lineups[team])}"
+            )
+        lineups[team].remove(pid)
+    else:
+        if pid in lineups[team]:
+            raise ValueError(
+                f"CDN substitution incoming already present game={game_id} period={period} "
+                f"action={int(row.actionNumber)} player={pid}"
+            )
+        lineups[team].add(pid)
+
+    return {
+        "actionNumber": int(row.actionNumber),
+        "orderNumber": int(row.orderNumber),
+        "clock": str(row.clock),
+        "team_id": team,
+        "player_id": pid,
+        "direction": subtype,
+    }
 
 
 @dataclass
@@ -200,8 +254,6 @@ def reconstruct_game_lineups(game: pd.DataFrame) -> ModernGameLineups:
     game_id = int(g.gameId.iloc[0])
     player_team = _player_team_map(g)
     teams = sorted({int(x) for x in g.teamId.dropna().astype(int) if int(x) > 0})
-    # Administrative rows can contain non-NBA team identifiers, but the two
-    # overwhelmingly represented team IDs are the game teams. Resolve by count.
     if len(teams) != 2:
         counts = g.loc[g.teamId.notna() & g.personId.notna()].teamId.astype(int).value_counts()
         teams = [int(x) for x in counts.head(2).index]
@@ -227,52 +279,81 @@ def reconstruct_game_lineups(game: pd.DataFrame) -> ModernGameLineups:
                 raise ValueError(f"missing prior CDN lineup game={game_id} period={period_number}")
             lineups = {team: set(players) for team, players in lineups.items()}
 
-        # Apply substitutions timestamped exactly at the period opening before
-        # the first interval. This encodes quarter/half-time lineup changes.
-        opening = period[period.ELAPSED.sub(start).abs().le(0.011)]
-        if len(opening):
-            changes = _apply_substitution_group(lineups, opening, player_team, game_id, period_number, str(opening.clock.iloc[0]))
-            if changes:
-                audit.append({"period": period_number, "type": "period_opening_substitutions", "changes": changes})
-
-        for team in teams:
-            if len(lineups.get(team, set())) != 5:
-                raise ValueError(f"invalid CDN opening five game={game_id} period={period_number} team={team}: {sorted(lineups.get(team, set()))}")
+        _validate_five(lineups, teams, game_id, period_number, str(period.iloc[0].clock), "at period carry/start")
 
         last = start
-        period_rows = []
+        period_rows: list[dict] = []
         for now, group in period.groupby("ELAPSED", sort=True):
             now = float(now)
             if now > last + 1e-9:
+                # A transient substitution state may exist only at one timestamp;
+                # never allow playing time to accrue while a team has !=5 players.
+                _validate_five(lineups, teams, game_id, period_number, str(group.iloc[0].clock), "before elapsed interval")
                 delta = now - last
                 for players in lineups.values():
                     for pid in players:
                         seconds[pid] = seconds.get(pid, 0.0) + delta
                 last = now
 
-            is_opening = abs(now - start) <= 0.011
-            changes = [] if is_opening else _apply_substitution_group(lineups, group, player_team, game_id, period_number, str(group.clock.iloc[0]))
+            ordered = group.sort_values(["orderNumber", "actionNumber"], kind="stable")
+            changes: list[dict] = []
+            clock = str(ordered.iloc[0].clock)
 
-            lineup_tuple = tuple(sorted(set().union(*lineups.values())))
-            if len(lineup_tuple) != 10:
-                raise ValueError(f"invalid CDN ten-player state game={game_id} period={period_number} clock={group.clock.iloc[0]}: {lineup_tuple}")
-            for _, row in group.sort_values(["orderNumber", "actionNumber"], kind="stable").iterrows():
+            # Event order matters at identical clocks. CDN emits substitutions
+            # as separate in/out rows; a player can enter and then leave before
+            # the clock moves. No time elapses between these actions, so 4/6
+            # player transient states are valid only inside this ordered block.
+            for _, row in ordered.iterrows():
+                action = _norm(row.actionType)
+                if action == "substitution":
+                    change = _apply_one_substitution(lineups, row, player_team, game_id, period_number)
+                    changes.append(change)
+                    item = row.to_dict()
+                    item["LINEUP"] = tuple(sorted(set().union(*(lineups[t] for t in teams))))
+                    period_rows.append(item)
+                    continue
+
+                # Any live/statistical or administrative non-substitution row is
+                # observed at a definite lineup state. If a substitution chain
+                # has not returned to 5+5 yet, the feed ordering is unresolved.
+                _validate_five(
+                    lineups,
+                    teams,
+                    game_id,
+                    period_number,
+                    str(row.clock),
+                    f"at non-substitution action {int(row.actionNumber)}",
+                )
                 item = row.to_dict()
-                item["LINEUP"] = lineup_tuple
+                item["LINEUP"] = tuple(sorted(set().union(*(lineups[t] for t in teams))))
                 period_rows.append(item)
+
+            _validate_five(lineups, teams, game_id, period_number, clock, "at timestamp end")
             if changes:
-                audit.append({"period": period_number, "type": "substitutions", "elapsed": now, "changes": changes})
+                audit.append(
+                    {
+                        "period": period_number,
+                        "type": "ordered_same_clock_substitutions",
+                        "elapsed": now,
+                        "changes": changes,
+                    }
+                )
 
         if end > last + 1e-9:
+            _validate_five(lineups, teams, game_id, period_number, "00:00", "before period-end interval")
             delta = end - last
             for players in lineups.values():
                 for pid in players:
                     seconds[pid] = seconds.get(pid, 0.0) + delta
+        _validate_five(lineups, teams, game_id, period_number, "00:00", "at period end")
         snapshots.append(pd.DataFrame(period_rows))
 
     events = pd.concat(snapshots, ignore_index=True) if snapshots else g.iloc[0:0].copy()
     expected_total = sum(period_length(int(p)) for p in sorted(g.period.unique())) * 10.0
     observed_total = sum(seconds.values())
     if abs(observed_total - expected_total) > 0.05:
-        raise ValueError(f"CDN player-seconds total mismatch game={game_id}: observed={observed_total:.3f} expected={expected_total:.3f}")
+        raise ValueError(
+            f"CDN player-seconds total mismatch game={game_id}: "
+            f"observed={observed_total:.3f} expected={expected_total:.3f}"
+        )
     return ModernGameLineups(events=events, seconds=seconds, repairs=audit, teams=teams)
