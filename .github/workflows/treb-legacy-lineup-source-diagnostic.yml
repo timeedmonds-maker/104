@@ -1,0 +1,59 @@
+name: TREB legacy lineup source diagnostic
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - .github/workflows/treb-legacy-lineup-source-diagnostic.yml
+      - team_trb_all_players/diagnose_legacy_lineup_sources.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Download 2003 independent source set
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/trebdiag
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess, tarfile, urllib.request
+          raw=Path('/tmp/trebdiag')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for key in ('nbastats_2003','pbpstats_2003','nbastatsv3_2003'):
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Inspect columns and seven ambiguity games
+        run: |
+          python -u team_trb_all_players/diagnose_legacy_lineup_sources.py \
+            --nba /tmp/trebdiag/nbastats_2003.csv \
+            --pbp /tmp/trebdiag/pbpstats_2003.csv \
+            --v3 /tmp/trebdiag/nbastatsv3_2003.csv \
+            --output /tmp/trebdiag/legacy_lineup_source_diagnostic.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-legacy-lineup-source-diagnostic-${{ github.sha }}
+          path: /tmp/trebdiag/legacy_lineup_source_diagnostic.json
+          retention-days: 90
+          if-no-files-found: error
