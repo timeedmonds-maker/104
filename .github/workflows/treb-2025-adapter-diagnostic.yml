@@ -24,13 +24,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install diagnostic dependencies
+        run: python -m pip install pandas
       - name: Download and inspect 2025 archives
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import hashlib, json, os, tarfile, urllib.request
+          import hashlib, tarfile, urllib.request
           import pandas as pd
 
           raw=Path('/tmp/treb2025'); raw.mkdir(parents=True,exist_ok=True)
