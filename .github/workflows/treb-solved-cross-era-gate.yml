@@ -1,0 +1,82 @@
+name: TREB solved-engine cross-era gate
+
+on:
+  push:
+    branches: [treb-solved-engine-recovery-20260812]
+    paths:
+      - .github/workflows/treb-solved-cross-era-gate.yml
+      - team_trb_all_players/run_cross_era_regression_recovered.py
+      - team_trb_all_players/production_treb_engine.py
+      - team_trb_all_players/local_treb_rebuild.py
+      - team_trb_all_players/run_local_2016_regression.py
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  gate:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: treb-solved-engine-recovery-20260812
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install -r team_trb_all_players/requirements.txt
+
+      - name: Compile recovered engine and gates
+        run: python -m py_compile team_trb_all_players/local_treb_rebuild.py team_trb_all_players/production_treb_engine.py team_trb_all_players/run_local_2016_regression.py team_trb_all_players/run_cross_era_regression_recovered.py
+
+      - name: Download seven cross-era source pairs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile, urllib.request
+          years=(2000,2004,2008,2012,2016,2020,2024)
+          raw=Path('team_trb_all_players/impact_database/local_raw')
+          raw.mkdir(parents=True, exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls={}
+          for line in text.splitlines():
+              if '=' in line:
+                  k,v=line.split('=',1); urls[k.strip()]=v.strip()
+          for year in years:
+              for kind in ('nbastats','pbpstats'):
+                  url=urls[f'{kind}_{year}']
+                  arc=raw / url.rsplit('/',1)[-1]
+                  print('download', year, kind, flush=True)
+                  urllib.request.urlretrieve(url, arc)
+                  with tarfile.open(arc, 'r:xz') as tf:
+                      tf.extractall(raw)
+          PY
+
+      - name: Exact 2016 Adams regression
+        run: python -u team_trb_all_players/run_local_2016_regression.py
+
+      - name: Seven-era strict structural and count gate
+        run: python -u team_trb_all_players/run_cross_era_regression_recovered.py
+
+      - name: Upload gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-solved-cross-era-${{ github.sha }}
+          path: |
+            team_trb_all_players/impact_database/cross_era_regression_recovered.json
+            team_trb_all_players/impact_database/cross_era_recovered_*_checkpoint.json
+            team_trb_all_players/impact_database/regression_2016_result.json
+          if-no-files-found: warn
+          retention-days: 30
