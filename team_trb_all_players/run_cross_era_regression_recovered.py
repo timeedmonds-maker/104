@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,6 +25,18 @@ SAMPLES = {
     2016: ("OKC", 1610612760),
     2020: ("PHX", 1610612756),
     2024: ("DEN", 1610612743),
+}
+
+# Exact player samples used by the previously solved cross-era gate. Do not
+# substitute a dynamically selected top-minutes cohort: that changes the gate.
+SAMPLE_PLAYERS = {
+    2000: (1891, 953, 673),       # Jason Terry, Lorenzen Wright, Alan Henderson
+    2004: (1718, 2754, 2744),    # Paul Pierce, Tony Allen, Al Jefferson
+    2008: (2544, 2760, 2753),    # LeBron James, Anderson Varejao, Delonte West
+    2012: (201980, 2225, 1495),  # Danny Green, Tony Parker, Tim Duncan
+    2016: (201566, 203500, 203460),  # Russell Westbrook, Steven Adams, Andre Roberson
+    2020: (1628969, 1626164, 101108),  # Mikal Bridges, Devin Booker, Chris Paul
+    2024: (1631128, 1629008, 203999),  # Christian Braun, Michael Porter Jr., Nikola Jokic
 }
 
 
@@ -126,6 +139,8 @@ def compare_player(player_id: int, player: str, expected: dict, actual: dict) ->
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser()
     root = Path(__file__).resolve().parent
     parser.add_argument("--raw", type=Path, default=root / "impact_database" / "local_raw")
@@ -138,18 +153,26 @@ def main() -> int:
         abbr, team_id = SAMPLES[year]
         season = f"{year}-{str(year + 1)[-2:]}"
         core = pd.read_csv(args.core / season / "team_rebound_derived.csv.gz")
-        candidates = core[(core.team_id.eq(team_id)) & core.seconds.notna()].nlargest(3, "seconds")
+        core["player_id"] = pd.to_numeric(core["player_id"], errors="coerce")
+        wanted = set(SAMPLE_PLAYERS[year])
+        candidates = core[(core.team_id.eq(team_id)) & core.player_id.isin(wanted)].copy()
+        found = set(candidates.player_id.dropna().astype(int))
+        if len(candidates) != len(wanted) or found != wanted:
+            raise ValueError(f"{season} solved sample mismatch: expected={sorted(wanted)} found={sorted(found)} rows={len(candidates)}")
         expected = {}
         names = {}
-        for _, row in candidates.iterrows():
-            pid = int(row.player_id)
+        for pid in SAMPLE_PLAYERS[year]:
+            rows = candidates[candidates.player_id.eq(pid)]
+            if len(rows) != 1:
+                raise ValueError(f"{season} player {pid} expected exactly one retained-core row, found {len(rows)}")
+            row = rows.iloc[0]
             expected[pid] = {"seconds": int(row.seconds), "team_off_rebounds": int(row.team_off_rebounds),
                              "team_def_rebounds": int(row.team_def_rebounds), "team_rebounds": int(row.team_rebounds)}
             names[pid] = str(row.player)
         nba = normalize_nba(pd.read_csv(args.raw / f"nbastats_{year}.csv", low_memory=False))
         pbp = normalize_pbp(pd.read_csv(args.raw / f"pbpstats_{year}.csv", low_memory=False))
         actual, audit = reconstruct_team(nba, pbp, abbr, team_id, set(expected))
-        comparisons = [compare_player(pid, names[pid], expected[pid], actual[pid]) for pid in expected]
+        comparisons = [compare_player(pid, names[pid], expected[pid], actual[pid]) for pid in SAMPLE_PLAYERS[year]]
         structural = (audit["games_completed"] == audit["games_expected"]
                       and audit["unmatched_rebound_bearing_rows"] == 0 and not audit["exceptions"])
         passed = structural and all(x["passed"] for x in comparisons)

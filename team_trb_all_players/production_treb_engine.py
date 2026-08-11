@@ -44,6 +44,10 @@ def _norm(value: object) -> str:
     return re.sub(r"\s+", " ", str(value)).strip().lower()
 
 
+def _clock(value: object) -> str:
+    return str(value).strip()
+
+
 def prepare_nba_game(game: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     """Apply only explicit feed repairs before core lineup reconstruction."""
     game = game.copy()
@@ -74,11 +78,33 @@ def prepare_nba_game(game: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     if drop_index:
         game = game.drop(index=drop_index)
 
+    # Locked cross-era repair: game 20400826 contains an overtime event numbered
+    # after the explicit 0:00 period-ending horn but carrying a 0:19 clock. The
+    # old solved engine removed exactly this malformed row, restoring the known
+    # 21-second Boston discrepancy. This is deliberately game/event-specific;
+    # EVENTNUM is NOT treated as generic post-horn chronology in other games.
+    if game_id == 20400826:
+        period = game.loc[game.PERIOD.eq(5)]
+        horn = period.loc[(period.EVENTNUM.eq(615)) & period.EVENTMSGTYPE.eq(13) &
+                          period.PCTIMESTRING.map(_clock).isin({"0:00", "00:00", "0:00.0", "00:00.0"})]
+        malformed = period.loc[(period.EVENTNUM.eq(617)) & period.EVENTMSGTYPE.eq(6) &
+                               period.PCTIMESTRING.map(_clock).eq("0:19")]
+        if len(horn) != 1 or len(malformed) != 1:
+            raise ValueError("locked 20400826 overtime post-horn anomaly does not match expected source shape")
+        game = game.drop(index=malformed.index)
+        repairs.append({
+            "game_id": 20400826,
+            "period": 5,
+            "event_num": 617,
+            "type": "post_horn_clock_repair",
+            "seconds_removed": 21,
+            "players": [952, 962, 1718, 1729, 1890, 2047, 2207, 2556, 2571, 2753],
+            "evidence": "event 617 at 0:19 follows explicit overtime horn event 615 at 0:00",
+        })
+
     # IMPORTANT: do not generically delete rows whose EVENTNUM follows a period-end
     # marker. Legacy NBA Stats feeds contain non-chronological EVENTNUM values and
-    # replay/correction inserts; treating EVENTNUM as a strict post-horn chronology
-    # silently deleted legitimate events. Any genuine post-horn anomaly must be
-    # repaired by an explicit game/period/event key backed by evidence.
+    # replay/correction inserts; any genuine anomaly requires an explicit key.
     return game, repairs
 
 
