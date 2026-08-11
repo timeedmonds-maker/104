@@ -74,23 +74,11 @@ def prepare_nba_game(game: pd.DataFrame) -> tuple[pd.DataFrame, list[dict]]:
     if drop_index:
         game = game.drop(index=drop_index)
 
-    bad_after_horn = []
-    for period_no, period in game.groupby("PERIOD", sort=False):
-        ordered = period.sort_values("EVENTNUM", kind="stable")
-        horns = ordered.loc[ordered.EVENTMSGTYPE.eq(13), "EVENTNUM"]
-        if horns.empty:
-            continue
-        first_horn = int(horns.iloc[0])
-        later = ordered[ordered.EVENTNUM.gt(first_horn)]
-        for idx, row in later.iterrows():
-            if str(row.PCTIMESTRING) not in {"0:00", "00:00", "0:00.0", "00:00.0"} and int(row.EVENTMSGTYPE) != 18:
-                bad_after_horn.append(idx)
-                repairs.append({"game_id": game_id, "period": int(period_no),
-                                "event_num": int(row.EVENTNUM), "type": "post_horn_clock_repair",
-                                "clock": str(row.PCTIMESTRING),
-                                "evidence": "non-zero-clock row appears after explicit period-ending horn"})
-    if bad_after_horn:
-        game = game.drop(index=bad_after_horn)
+    # IMPORTANT: do not generically delete rows whose EVENTNUM follows a period-end
+    # marker. Legacy NBA Stats feeds contain non-chronological EVENTNUM values and
+    # replay/correction inserts; treating EVENTNUM as a strict post-horn chronology
+    # silently deleted legitimate events. Any genuine post-horn anomaly must be
+    # repaired by an explicit game/period/event key backed by evidence.
     return game, repairs
 
 
