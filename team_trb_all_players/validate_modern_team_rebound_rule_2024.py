@@ -3,9 +3,14 @@
 
 2024-25 is the bridge season because both the legacy NBA feed and the modern
 NBA Stats v3 feed are available for the same games and action numbers.  The
-historical engine's event-level ``_nba_real_rebound`` decision is the label;
-this avoids possession-row duplication in PBP Stats while testing exactly the
-live/dead rebound concept required by the 2025 adapter.
+historical engine's event-level ``_nba_real_rebound`` decision is the label.
+
+The modern candidate below mirrors the five historical dead-ball mechanisms:
+1. modern ``Normal Rebound`` placeholders (legacy non-zero rebound action);
+2. same-clock turnover/violation placeholders;
+3. non-final/flagrant missed free throws;
+4. exact horn/end-period team rebounds;
+5. near-horn team rebounds sharing the terminal timestamp.
 """
 from __future__ import annotations
 
@@ -55,6 +60,47 @@ def legacy_labels(nba: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _period_terminal_after(game: pd.DataFrame, indices: list[int], pos: int, period: int) -> bool:
+    """Return true when the next meaningful row is the period terminator/next period."""
+    for j in range(pos + 1, len(indices)):
+        cand = indices[j]
+        cand_period = int(game.at[cand, "period"])
+        if cand_period != period:
+            return True
+        action = norm(game.at[cand, "actionType"])
+        if action in {"replay", "instant replay"}:
+            continue
+        if action in {"period", "game", "end period", "end game"}:
+            return True
+        return False
+    return True
+
+
+def _missed_nonfinal_or_special_ft(game: pd.DataFrame, prior: int | None) -> bool:
+    if prior is None:
+        return False
+    action = norm(game.at[prior, "actionType"])
+    desc = norm(game.at[prior, "description"])
+    subtype = norm(game.at[prior, "subType"] if "subType" in game else "")
+    descriptor = norm(game.at[prior, "descriptor"] if "descriptor" in game else "")
+    shot_result = norm(game.at[prior, "shotResult"] if "shotResult" in game else "")
+    if "free throw" not in action and "freethrow" not in action and "free throw" not in desc:
+        return False
+    if shot_result not in {"missed", "miss"} and "miss" not in desc:
+        return False
+
+    # NBA descriptions consistently expose x of y for ordinary trips. A missed
+    # free throw is live only on the final attempt; technical/flagrant attempts
+    # are administrative even when text numbering is absent.
+    numbered = re.search(r"free throw\s+(\d+)\s+of\s+(\d+)", desc)
+    if numbered and int(numbered.group(1)) < int(numbered.group(2)):
+        return True
+    special_text = " ".join((desc, subtype, descriptor))
+    if "technical" in special_text or "flagrant" in special_text or "clear path" in special_text:
+        return True
+    return False
+
+
 def modern_candidate_rule(game: pd.DataFrame) -> pd.Series:
     game = game.sort_values(["period", "orderNumber", "actionNumber"], kind="stable").copy()
     result = pd.Series(True, index=game.index, dtype=bool)
@@ -75,59 +121,51 @@ def modern_candidate_rule(game: pd.DataFrame) -> pd.Series:
         clock = clocks[idx]
         dead = False
 
+        # 1. 2024 bridge proves modern Normal Rebound maps one-for-one to the
+        # historical non-zero team rebound action, which is always dead-ball.
+        if norm(game.at[idx, "subType"] if "subType" in game else "") == "normal rebound":
+            result.at[idx] = False
+            continue
+
+        # Find nearest previous meaningful action.
         prior = None
-        j = pos - 1
-        while j >= 0:
+        for j in range(pos - 1, -1, -1):
             cand = indices[j]
             if int(game.at[cand, "period"]) != period:
                 break
-            at = norm(game.at[cand, "actionType"])
-            if at not in {"replay", "instant replay"}:
-                prior = cand
-                break
-            j -= 1
+            if norm(game.at[cand, "actionType"]) in {"replay", "instant replay"}:
+                continue
+            prior = cand
+            break
 
-        same_clock = []
-        j = pos - 1
-        while j >= 0:
-            cand = indices[j]
-            if int(game.at[cand, "period"]) != period or abs(clocks[cand] - clock) > 0.011:
-                break
-            same_clock.append(cand)
-            j -= 1
-
-        for cand in same_clock:
-            at = norm(game.at[cand, "actionType"])
+        # 2. Historical turnover placeholder uses same-clock evidence. Search
+        # both directions because modern feeds often emit the turnover after
+        # the synthetic team rebound at exactly the same clock.
+        for cand in indices:
+            if cand == idx or int(game.at[cand, "period"]) != period:
+                continue
+            if abs(clocks[cand] - clock) > 0.011:
+                continue
+            action = norm(game.at[cand, "actionType"])
             desc = norm(game.at[cand, "description"])
-            if "turnover" in at or "violation" in at or "turnover" in desc or "violation" in desc:
+            if "turnover" in action or "violation" in action or "turnover" in desc or "violation" in desc:
                 dead = True
                 break
 
-        if not dead and prior is not None:
-            at = norm(game.at[prior, "actionType"])
-            desc = norm(game.at[prior, "description"])
-            subtype = norm(game.at[prior, "subType"] if "subType" in game else "")
-            if "freethrow" in at or "free throw" in desc:
-                miss = ("miss" in desc) or norm(game.at[prior, "shotResult"] if "shotResult" in game else "") == "missed"
-                if miss:
-                    nonfinal = bool(re.search(r"free throw (?:1 of [23]|2 of 3)", desc))
-                    special = "technical" in desc or "flagrant" in desc or "technical" in subtype or "flagrant" in subtype
-                    if nonfinal or special:
-                        dead = True
+        # 3. Non-final/flagrant free-throw misses do not create live rebounds.
+        if not dead and _missed_nonfinal_or_special_ft(game, prior):
+            dead = True
 
-        if not dead and clock <= 0.11:
-            next_live = None
-            j = pos + 1
-            while j < len(indices):
-                cand = indices[j]
-                if int(game.at[cand, "period"]) != period:
-                    break
-                at = norm(game.at[cand, "actionType"])
-                if at not in {"replay", "instant replay"}:
-                    next_live = cand
-                    break
-                j += 1
-            if next_live is None or norm(game.at[next_live, "actionType"]) in {"period", "game", "end period", "end game"}:
+        terminal = _period_terminal_after(game, indices, pos, period)
+
+        # 4. Exact horn/end-period team rebound.
+        if not dead and clock <= 0.011 and terminal:
+            dead = True
+
+        # 5. Near-horn bookkeeping rebound: terminal timestamp within three
+        # seconds of the horn and shares that clock with the preceding action.
+        if not dead and clock <= 3.011 and terminal and prior is not None:
+            if abs(clocks[prior] - clock) <= 0.011:
                 dead = True
 
         result.at[idx] = not dead
@@ -137,7 +175,7 @@ def modern_candidate_rule(game: pd.DataFrame) -> pd.Series:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--nba", type=Path, required=True)
-    ap.add_argument("--pbp", type=Path, required=False)  # retained for workflow compatibility
+    ap.add_argument("--pbp", type=Path, required=False)
     ap.add_argument("--v3", type=Path, required=True)
     ap.add_argument("--output", type=Path, required=True)
     args = ap.parse_args()
@@ -169,7 +207,7 @@ def main() -> int:
     labeled["MODERN_REAL_CANDIDATE"] = labeled.MODERN_REAL_CANDIDATE.astype(bool)
     mism = labeled[labeled.LEGACY_REAL.ne(labeled.MODERN_REAL_CANDIDATE)].copy()
 
-    def recs(df: pd.DataFrame, n: int = 150):
+    def recs(df: pd.DataFrame, n: int = 200):
         cols = [c for c in ["gameId", "actionNumber", "orderNumber", "clock", "period", "teamId", "teamTricode", "personId", "description", "descriptor", "subType", "actionType", "LEGACY_REAL", "MODERN_REAL_CANDIDATE", "NBA_PLAYER1_ID", "NBA_DESCRIPTION"] if c in df]
         head = df[cols].head(n)
         return head.where(pd.notna(head), None).to_dict("records")
@@ -184,13 +222,13 @@ def main() -> int:
         "legacy_dead_team_rows": int((~labeled.LEGACY_REAL).sum()),
         "candidate_rule_mismatches": int(len(mism)),
         "candidate_rule_accuracy": float(1 - len(mism) / len(labeled)) if len(labeled) else None,
+        "false_dead": int((mism.LEGACY_REAL & ~mism.MODERN_REAL_CANDIDATE).sum()) if len(mism) else 0,
+        "false_live": int((~mism.LEGACY_REAL & mism.MODERN_REAL_CANDIDATE).sum()) if len(mism) else 0,
         "mismatch_samples": recs(mism),
-        "dead_samples": recs(labeled[~labeled.LEGACY_REAL]),
-        "unlabeled_samples": recs(team[team.LEGACY_REAL.isna()]),
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, indent=2, default=str) + "\n", encoding="utf-8")
-    print(json.dumps({k: v for k, v in payload.items() if not k.endswith("samples")}, indent=2))
+    print(json.dumps({k: v for k, v in payload.items() if k != "mismatch_samples"}, indent=2))
     print("BRIDGE_MISMATCHES", len(mism))
     return 0
 
