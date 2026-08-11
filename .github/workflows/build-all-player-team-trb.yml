@@ -2,10 +2,6 @@ name: Build all-player team TRB leaderboard
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'team_trb_all_players/**'
-      - '.github/workflows/build-all-player-team-trb.yml'
 
 permissions:
   contents: write

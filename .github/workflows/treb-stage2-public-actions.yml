@@ -2,10 +2,6 @@ name: TREB Stage2 public Actions
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'team_trb_all_players/treb_stage2_public_actions_trigger.txt'
 
 permissions:
   contents: read
