@@ -1,21 +1,20 @@
 {
-  "schema_version": 1,
-  "years": [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+  "schema_version": 2,
+  "years": [2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
   "max_parallel": 8,
   "runner": "run_local_treb_production_recovered.py",
   "lineup_recovery": "exclude technical/ejection-only participants only when exactly five candidates remain; otherwise hard fail",
-  "rebound_tolerance": {
-    "max_unmatched_rebound_rows_per_season": 5,
-    "fabricate_or_reclassify_rows": false
-  },
+  "rebound_row_policy": "strict: every rebound-bearing source row must be independently joined and validated; zero unmatched rows permitted",
   "source_gap_repairs": {
     "2009_game_20900212": "nbastatsv3 rebound actions mapped one-to-one to legacy NBA EVENTNUM with audited classification"
   },
   "hard_failures": [
+    "any unmatched rebound-bearing source row",
     "unresolved lineup after evidence-only recovery",
     "minute inconsistency",
-    "more than five unmatched rebound-bearing rows in a season",
-    "any source-gap fallback that cannot be independently mapped and audited"
+    "any source-gap fallback that cannot be independently mapped and audited",
+    "duplicate player-team-season key",
+    "authoritative V2 invariant or exact 2016 Adams regression failure"
   ],
-  "notes": "Corrected final historical sweep. Uses isolated safe-lock branches and does not treat prior-quarter ending lineups as quarter-opening evidence. Exact 2016 Adams regression remains unchanged preflight gate."
+  "notes": "Strict final historical repair sweep. Re-runs only seasons not already cleanly complete (2000-01, 2001-02 and 2003-04 are preserved). Uses isolated safe-lock branches. BOS_2004_LEGACY_CLOCK_21S is non-blocking player-seconds QA only and does not relax rebound, roster-tenure, duplicate-key or 2016 gates."
 }
