@@ -1,0 +1,69 @@
+name: TREB period boxscore recovery canary
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - .github/workflows/treb-period-boxscore-canary.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install 'nba_api>=1.5,<2' pandas
+      - name: Query period-specific box scores for the seven 2003-04 anomalies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, time
+          from pathlib import Path
+          from nba_api.stats.endpoints import boxscoretraditionalv2
+
+          cases=[
+            (20300300,1),(20300442,4),(20300594,2),(20300785,3),
+            (20300787,4),(20300915,3),(20301110,2),
+          ]
+          out=[]
+          for gid,period in cases:
+              last=None
+              for attempt in range(1,4):
+                  try:
+                      bx=boxscoretraditionalv2.BoxScoreTraditionalV2(
+                          game_id='00'+str(gid), start_period=str(period), end_period=str(period),
+                          range_type='1', timeout=30
+                      )
+                      df=bx.player_stats.get_data_frame()
+                      cols=[c for c in ['GAME_ID','TEAM_ID','TEAM_ABBREVIATION','PLAYER_ID','PLAYER_NAME','START_POSITION','MIN','PF','PTS'] if c in df.columns]
+                      rows=df[cols].where(df[cols].notna(),None).to_dict('records')
+                      out.append({'game_id':gid,'period':period,'status':'ok','rows':rows})
+                      print('PASS',gid,'P',period,'rows',len(rows))
+                      last=None
+                      break
+                  except Exception as e:
+                      last=repr(e); print('RETRY',gid,period,attempt,last); time.sleep(attempt*2)
+              if last is not None:
+                  out.append({'game_id':gid,'period':period,'status':'error','error':last})
+              time.sleep(0.8)
+          Path('/tmp/period_boxscore_canary.json').write_text(json.dumps(out,indent=2,default=str)+'\n')
+          if any(x['status']!='ok' for x in out):
+              raise SystemExit('one or more period boxscore queries failed')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-period-boxscore-canary-${{ github.sha }}
+          path: /tmp/period_boxscore_canary.json
+          retention-days: 90
+          if-no-files-found: error
