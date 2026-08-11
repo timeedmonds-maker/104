@@ -40,10 +40,10 @@ jobs:
           p=Path('team_trb_all_players/impact_database/roster_tenure_v2/roster_repair_v2_summary.json')
           d=json.loads(p.read_text())
           assert d['validated_player_team_season_rows']==14524, d
-          assert d['safe_full_core_reuse_rows']==9647, d
+          assert d['full_core_reuse_rows']==9647, d
           assert d['partial_player_team_season_rows']==4877, d
-          assert d['game_bearing_partial_segments']==5199, d
-          assert d['cross_team_overlaps']==0, d
+          assert d['wowy_game_bearing_segments']==5199, d
+          assert d['cross_team_overlap_pairs']==0, d
           assert d['impossible_minute_rows']==0, d
           assert d['empty_played_tenures']==0, d
           print('V2_TARGET_GATE=PASS')
@@ -168,5 +168,3 @@ jobs:
             team_trb_all_players/impact_database/local_raw/source_archives.sha256
           if-no-files-found: warn
           retention-days: 90
-
-# clean-queue relaunch marker: 2026-08-12T06:23+12:00
