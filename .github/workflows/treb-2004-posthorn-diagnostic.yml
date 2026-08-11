@@ -16,7 +16,7 @@ concurrency:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,7 +43,7 @@ jobs:
           urllib.request.urlretrieve(url, arc)
           with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
           PY
-      - name: Compare candidate chronology treatments
+      - name: Pinpoint affected lineup transition
         run: |
           python -u - <<'PY'
           import sys
@@ -54,57 +54,28 @@ jobs:
 
           GAME=20400826; BOS=1610612738
           core.STARTER_REPAIRS[(GAME,1,BOS)] = [952,1711,1718,1729,2753]
-          raw=Path('team_trb_all_players/impact_database/local_raw')
-          nba=pd.read_csv(raw/'nbastats_2004.csv', low_memory=False)
+          nba=pd.read_csv(Path('team_trb_all_players/impact_database/local_raw/nbastats_2004.csv'), low_memory=False)
           nums=['GAME_ID','EVENTNUM','EVENTMSGTYPE','EVENTMSGACTIONTYPE','PERIOD','PLAYER1_ID','PLAYER2_ID','PLAYER3_ID','PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID','PERSON1TYPE','PERSON2TYPE','PERSON3TYPE']
-          for c in nums:
-              nba[c]=pd.to_numeric(nba[c],errors='coerce').fillna(0).astype('int64')
+          for c in nums: nba[c]=pd.to_numeric(nba[c],errors='coerce').fillna(0).astype('int64')
           g=nba[nba.GAME_ID.eq(GAME)].copy()
-          print('EVENT617')
-          print(g[g.EVENTNUM.eq(617)].to_dict('records'))
-          print('P5_TAIL')
-          print(g[g.PERIOD.eq(5)].sort_values('EVENTNUM').tail(15)[['EVENTNUM','PCTIMESTRING','EVENTMSGTYPE','PLAYER1_ID','PLAYER1_NAME','PLAYER2_ID','PLAYER2_NAME','PLAYER3_ID','PLAYER3_NAME']].to_string(index=False))
-
-          core_df=pd.read_csv('team_trb_all_players/impact_database/outputs/2004-05/team_rebound_derived.csv.gz')
-          core_df['player_id']=pd.to_numeric(core_df.player_id,errors='coerce')
-          b=core_df[core_df.team_id.eq(BOS)].copy()
-          wanted=[1718,1729,56,1711,1548,2754,2556,2744,2570,2753,2770]
-          expected={int(r.player_id):int(r.seconds) for _,r in b[b.player_id.isin(wanted)].iterrows()}
-          names={int(r.player_id):str(r.player) for _,r in b[b.player_id.isin(wanted)].iterrows()}
-
-          def transform(game, mode):
-              x=game.copy()
-              m=x.EVENTNUM.eq(617)
-              if mode=='drop617': x=x[~m].copy()
-              elif mode=='clamp617': x.loc[m,'PCTIMESTRING']='0:00'
-              elif mode=='neutral617':
-                  for n in (1,2,3):
-                      x.loc[m,f'PLAYER{n}_ID']=0; x.loc[m,f'PLAYER{n}_TEAM_ID']=0; x.loc[m,f'PERSON{n}TYPE']=0
-              elif mode=='clamp_neutral617':
-                  x.loc[m,'PCTIMESTRING']='0:00'
-                  for n in (1,2,3):
-                      x.loc[m,f'PLAYER{n}_ID']=0; x.loc[m,f'PLAYER{n}_TEAM_ID']=0; x.loc[m,f'PERSON{n}TYPE']=0
-              return x
-
-          modes=['raw','drop617','clamp617','neutral617','clamp_neutral617']
-          for mode in modes:
-              print('\nMODE',mode,flush=True)
-              totals={p:0 for p in wanted}; errors=[]
-              for gid,game in nba.groupby('GAME_ID',sort=False):
-                  # only BOS games
-                  if not any(game[c].eq(BOS).any() for c in ('PLAYER1_TEAM_ID','PLAYER2_TEAM_ID','PLAYER3_TEAM_ID')): continue
-                  try:
-                      use=transform(game,mode) if int(gid)==GAME else game
-                      res=core.reconstruct_game_lineups(use)
-                      for p in wanted: totals[p]+=int(res.seconds.get(p,0))
-                      if int(gid)==GAME:
-                          p5=res.events[res.events.PERIOD.eq(5)]
-                          print('game_seconds', {p:int(res.seconds.get(p,0)) for p in wanted if res.seconds.get(p,0)}, flush=True)
-                          for ev in (614,615,617):
-                              q=p5[p5.EVENTNUM.eq(ev)]
-                              if len(q): print('event',ev,'elapsed',int(q.iloc[0].ELAPSED),'lineup',q.iloc[0].LINEUP,flush=True)
-                  except Exception as e:
-                      errors.append((int(gid),str(e)))
-              print('errors',errors,flush=True)
-              print('season_diffs',[(p,names.get(p),totals[p]-expected.get(p,0)) for p in wanted],flush=True)
+          res=core.reconstruct_game_lineups(g)
+          p2t=core._player_team(g)
+          names={}
+          for n in (1,2,3):
+              for pid,name in zip(g[f'PLAYER{n}_ID'],g[f'PLAYER{n}_NAME']):
+                  if int(pid)>0 and pd.notna(name): names[int(pid)]=str(name)
+          affected={1718,1729,1711,2754,2556}
+          print('AFFECTED',[(p,names.get(p)) for p in sorted(affected)])
+          print('EVENT617',g[g.EVENTNUM.eq(617)][['EVENTNUM','PCTIMESTRING','EVENTMSGTYPE','EVENTMSGACTIONTYPE','PLAYER1_ID','PLAYER1_NAME','NEUTRALDESCRIPTION']].to_dict('records'))
+          p5=res.events[res.events.PERIOD.eq(5)].sort_values(['ELAPSED','EVENTNUM'])
+          last=None
+          for _,r in p5.iterrows():
+              lineup=tuple(r.LINEUP)
+              bos=tuple(sorted(p for p in lineup if p2t.get(int(p))==BOS))
+              if bos!=last or int(r.EVENTNUM) in (598,602,603,604,606,607,609,610,611,612,613,614,615,617):
+                  print('P5',int(r.EVENTNUM),r.PCTIMESTRING,'elapsed',int(r.ELAPSED),'type',int(r.EVENTMSGTYPE),'BOS',[(p,names.get(p)) for p in bos], 'MATCH_AFFECTED',set(bos)==affected)
+                  last=bos
+          print('P5_SOURCE_SUBS')
+          print(g[(g.PERIOD.eq(5)) & (g.EVENTMSGTYPE.eq(8))][['EVENTNUM','PCTIMESTRING','PLAYER1_ID','PLAYER1_NAME','PLAYER2_ID','PLAYER2_NAME']].to_string(index=False))
+          print('GAME_SECONDS_AFFECTED',[(p,names.get(p),res.seconds.get(p,0)) for p in sorted(affected)])
           PY
