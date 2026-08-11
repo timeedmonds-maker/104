@@ -1,0 +1,71 @@
+name: TREB Windows preflight probe
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - team_trb_all_players/impact_database/RUNNER_RACE_20260811.txt
+
+permissions:
+  contents: read
+
+jobs:
+  windows-preflight:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: treb-validated-2016-recovery
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        shell: bash
+        run: python -m pip install -r team_trb_all_players/requirements.txt
+      - name: Rebuild and verify V2 target universe
+        shell: bash
+        run: |
+          python -u team_trb_all_players/build_roster_targets_v2.py
+          python - <<'PY'
+          import json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/roster_repair_v2_summary.json'
+          d=json.load(open(p))
+          assert d['validated_player_team_season_rows']==14524, d
+          assert d['safe_full_core_reuse_rows']==9647, d
+          assert d['partial_player_team_season_rows']==4877, d
+          assert d['game_bearing_partial_segments']==5199, d
+          assert d['cross_team_overlaps']==0, d
+          assert d['impossible_minute_rows']==0, d
+          assert d['empty_played_tenures']==0, d
+          print('V2_TARGET_GATE=PASS')
+          PY
+      - name: Download and extract locked 2016 source pair
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile, urllib.request
+          raw=Path('team_trb_all_players/impact_database/local_raw')
+          raw.mkdir(parents=True, exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt', timeout=60).read().decode()
+          mapping={}
+          for line in text.splitlines():
+              if '=' in line:
+                  k,v=line.split('=',1); mapping[k.strip()]=v.strip()
+          for kind in ('nbastats','pbpstats'):
+              url=mapping[f'{kind}_2016']
+              dest=raw / url.rsplit('/',1)[-1]
+              print('downloading', url)
+              urllib.request.urlretrieve(url, dest)
+              with tarfile.open(dest, 'r:xz') as tf:
+                  tf.extractall(raw)
+              print('extracted', dest)
+          PY
+      - name: Exact 2016 Adams regression gate
+        shell: bash
+        run: python -u team_trb_all_players/run_local_2016_regression.py
+      - name: Compile production code
+        shell: bash
+        run: python -m py_compile team_trb_all_players/local_treb_rebuild.py team_trb_all_players/production_treb_engine.py team_trb_all_players/run_local_treb_production.py
