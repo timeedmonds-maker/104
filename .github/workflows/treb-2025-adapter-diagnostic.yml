@@ -32,7 +32,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-          import hashlib, tarfile, urllib.request
+          import hashlib, subprocess, tarfile, urllib.request
           import pandas as pd
 
           raw=Path('/tmp/treb2025'); raw.mkdir(parents=True,exist_ok=True)
@@ -42,7 +42,7 @@ jobs:
           for key in ('nbastatsv3_2025','cdnnba_2025'):
               url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
               print('\nDOWNLOAD',key,url,flush=True)
-              urllib.request.urlretrieve(url,arc)
+              subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),url],check=True)
               print('ARCHIVE',arc.name,'bytes',arc.stat().st_size,'sha256',hashlib.sha256(arc.read_bytes()).hexdigest())
               out=raw/key; out.mkdir(exist_ok=True)
               with tarfile.open(arc,'r:xz') as tf:
