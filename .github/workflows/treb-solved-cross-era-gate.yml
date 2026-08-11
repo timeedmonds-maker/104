@@ -13,12 +13,20 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: treb-solved-engine-cross-era-gate
+  cancel-in-progress: true
+
 env:
   PYTHONUNBUFFERED: "1"
 
 jobs:
   gate:
-    runs-on: windows-latest
+    # Windows hosted capacity has repeatedly sat queued behind unrelated legacy
+    # TREB jobs. The recovered engine is pure Python/pandas and the historical
+    # solved workspace was POSIX, so use macOS for this verification gate to
+    # bypass that runner bottleneck without changing any engine/data semantics.
+    runs-on: macos-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
