@@ -1,0 +1,169 @@
+name: TREB production takeover
+
+on:
+  pull_request:
+    branches: [treb-validated-2016-recovery]
+    types: [opened, synchronize, reopened]
+    paths:
+      - team_trb_all_players/impact_database/ACTIONS_CONTROL.json
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.plan.outputs.enabled }}
+      years: ${{ steps.plan.outputs.years }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - id: plan
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          p='team_trb_all_players/impact_database/ACTIONS_CONTROL.json'
+          d=json.load(open(p))
+          print('enabled=' + ('true' if d.get('enabled') else 'false'))
+          print('years=' + json.dumps(d.get('years', []), separators=(',',':')))
+          PY
+
+  preflight:
+    needs: plan
+    if: needs.plan.outputs.enabled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+      - run: pip install -r team_trb_all_players/requirements.txt
+      - name: Rebuild authoritative V2 targets
+        run: |
+          python -u team_trb_all_players/build_roster_targets_v2.py
+          python - <<'PY'
+          import json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/roster_repair_v2_summary.json'
+          d=json.load(open(p))
+          assert d['validated_player_team_season_rows']==14524, d
+          assert d['safe_full_core_reuse_rows']==9647, d
+          assert d['partial_player_team_season_rows']==4877, d
+          assert d['game_bearing_partial_segments']==5199, d
+          assert d['cross_team_overlaps']==0 and d['impossible_minute_rows']==0 and d['empty_played_tenures']==0, d
+          print('V2 PASS', d)
+          PY
+      - name: Download locked 2016 source pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          raw=team_trb_all_players/impact_database/local_raw
+          mkdir -p "$raw"
+          curl -L --fail --retry 5 --silent https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt -o "$raw/list_data.txt"
+          for kind in nbastats pbpstats; do
+            url=$(grep "^${kind}_2016=" "$raw/list_data.txt" | cut -d= -f2-)
+            test -n "$url"
+            f="$raw/${url##*/}"
+            curl -L --fail --retry 5 -o "$f" "$url"
+            xz -t "$f"
+            tar -xJf "$f" -C "$raw"
+          done
+      - name: Exact 2016 Adams regression gate
+        run: python -u team_trb_all_players/run_local_2016_regression.py
+      - name: Compile production code
+        run: python -m py_compile team_trb_all_players/local_treb_rebuild.py team_trb_all_players/production_treb_engine.py team_trb_all_players/run_local_treb_production.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v2-targets
+          path: |
+            team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+            team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz
+            team_trb_all_players/impact_database/roster_tenure_v2/roster_repair_v2_summary.json
+          retention-days: 30
+
+  reconstruct:
+    needs: [plan, preflight]
+    if: needs.plan.outputs.enabled == 'true'
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        year: ${{ fromJSON(needs.plan.outputs.years) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+      - run: pip install -r team_trb_all_players/requirements.txt
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-v2-targets
+          path: team_trb_all_players/impact_database/roster_tenure_v2
+      - name: Download and verify season sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          y=${{ matrix.year }}
+          raw=team_trb_all_players/impact_database/local_raw
+          mkdir -p "$raw"
+          curl -L --fail --retry 5 --silent https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt -o "$raw/list_data.txt"
+          for kind in nbastats pbpstats; do
+            url=$(grep "^${kind}_${y}=" "$raw/list_data.txt" | cut -d= -f2-)
+            test -n "$url"
+            f="$raw/${url##*/}"
+            curl -L --fail --retry 5 -o "$f" "$url"
+            xz -t "$f"
+            tar -xJf "$f" -C "$raw"
+            sha256sum "$f" >> "$raw/source_archives.sha256"
+          done
+      - name: Reconstruct season once
+        id: production
+        shell: bash
+        run: |
+          set -o pipefail
+          y=${{ matrix.year }}
+          python -u team_trb_all_players/run_local_treb_production.py --years "$y" 2>&1 | tee "treb-production-${y}.log"
+      - name: Persist successful season branch
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          y=${{ matrix.year }}
+          season="${y}-$(printf '%02d' $(((y+1)%100)))"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B "treb-prod-${y}"
+          git add "team_trb_all_players/impact_database/final_local_rebuild/checkpoints/${season}" \
+                  "team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/${season}.json" \
+                  team_trb_all_players/impact_database/final_local_rebuild/master_manifest.json
+          git commit -m "Lock reconstructed ${season} partial tenures"
+          git push --force-with-lease origin "HEAD:treb-prod-${y}"
+      - name: Upload durable season result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-season-${{ matrix.year }}
+          path: |
+            treb-production-${{ matrix.year }}.log
+            team_trb_all_players/impact_database/final_local_rebuild/**
+            team_trb_all_players/impact_database/local_raw/source_archives.sha256
+          if-no-files-found: warn
+          retention-days: 30
