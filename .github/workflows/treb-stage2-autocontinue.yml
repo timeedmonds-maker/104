@@ -1,133 +1,15 @@
 name: TREB Stage2 autonomous continuation
 
 on:
-  workflow_run:
-    workflows: ["TREB Stage2 public Actions"]
-    types: [completed]
-  schedule:
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
-  actions: write
-
-concurrency:
-  group: treb-stage2-autocontinue
-  cancel-in-progress: false
+  actions: read
 
 jobs:
-  decide:
+  retired:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 2
     steps:
-      - name: Check out authoritative durable Stage2 state
-        uses: actions/checkout@v4
-        with:
-          ref: treb-stage2-actions-live
-          fetch-depth: 1
-
-      - name: Inspect durable project state
-        id: state
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
-        run: |
-          python - <<'PY'
-          import json, os
-          from pathlib import Path
-
-          root=Path('team_trb_all_players/impact_database/corrected_off')
-          summary=json.loads((root/'corrected_off_collection_summary.json').read_text())
-          actions_path=root.parent/'actions_stage2_status.json'
-          actions=json.loads(actions_path.read_text()) if actions_path.exists() else {}
-          completion_path=root/'project_completion_status.json'
-          completion=json.loads(completion_path.read_text()) if completion_path.exists() else {}
-
-          total=int(summary.get('impact_windows_total') or 0)
-          complete=int(summary.get('complete_windows') or 0)
-          remaining=int(summary.get('remaining_windows') or 0)
-          failed=int(summary.get('failed_windows') or 0)
-          stage2_done=bool(summary.get('all_complete')) and total==15427 and complete==total and remaining==0 and failed==0
-          project_done=bool(completion.get('x_ready')) and bool(completion.get('final_database_ready')) and bool(completion.get('visualization_pack_ready'))
-
-          event_name=os.environ.get('EVENT_NAME','')
-          event_run_id=str(os.environ.get('EVENT_RUN_ID') or '')
-          status_run_id=str(actions.get('run_id') or '')
-          event_matches=True
-          if event_name=='workflow_run' and event_run_id:
-              event_matches=(not status_run_id) or status_run_id==event_run_id
-
-          print(json.dumps({
-              'complete':complete,'total':total,'remaining':remaining,'failed':failed,
-              'stage2_done':stage2_done,'project_done':project_done,
-              'event_run_id':event_run_id,'status_run_id':status_run_id,'event_matches':event_matches
-          },indent=2))
-          with open(os.environ['GITHUB_OUTPUT'],'a') as h:
-              h.write(f'stage2_done={str(stage2_done).lower()}\n')
-              h.write(f'project_done={str(project_done).lower()}\n')
-              h.write(f'event_matches={str(event_matches).lower()}\n')
-              h.write(f'remaining={remaining}\n')
-          PY
-
-      - name: Refuse stale workflow-run event
-        if: github.event_name == 'workflow_run' && steps.state.outputs.event_matches != 'true'
-        run: echo 'Durable status belongs to a different Stage2 run; refusing a stale continuation event.'
-
-      - name: Check for any active Stage2 owner
-        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.project_done != 'true'
-        id: active
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python - <<'PY'
-          import json, os, subprocess
-          raw=subprocess.check_output([
-              'gh','run','list','--workflow','TREB Stage2 public Actions','--limit','30',
-              '--json','databaseId,status,conclusion,createdAt'
-          ],text=True)
-          runs=json.loads(raw)
-          active=[r for r in runs if r.get('status') in {'queued','in_progress','waiting','requested','pending'}]
-          print(json.dumps({'active_stage2_runs':active},indent=2))
-          with open(os.environ['GITHUB_OUTPUT'],'a') as h:
-              h.write(f'active={str(bool(active)).lower()}\n')
-          PY
-
-      - name: Dispatch next durable Stage2 pass
-        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.stage2_done != 'true' && steps.active.outputs.active != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo "Stage2 still has ${{ steps.state.outputs.remaining }} windows. Dispatching next durable pass."
-          gh workflow run treb-stage2-public-actions.yml --ref main
-
-      - name: Check for active post-processing run
-        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.stage2_done == 'true' && steps.state.outputs.project_done != 'true' && steps.active.outputs.active != 'true'
-        id: postactive
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          python - <<'PY'
-          import json, os, subprocess
-          raw=subprocess.check_output([
-              'gh','run','list','--workflow','treb-postprocess.yml','--limit','20',
-              '--json','databaseId,status,conclusion,createdAt'
-          ],text=True)
-          runs=json.loads(raw)
-          active=[r for r in runs if r.get('status') in {'queued','in_progress','waiting','requested','pending'}]
-          print(json.dumps({'active_postprocess_runs':active},indent=2))
-          with open(os.environ['GITHUB_OUTPUT'],'a') as h:
-              h.write(f'active={str(bool(active)).lower()}\n')
-          PY
-
-      - name: Dispatch final database and visualization recovery
-        if: steps.state.outputs.event_matches == 'true' && steps.state.outputs.stage2_done == 'true' && steps.state.outputs.project_done != 'true' && steps.active.outputs.active != 'true' && steps.postactive.outputs.active != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          echo 'Stage2 is complete, no Stage2 finalizer owns the outputs, and the completion marker is absent. Dispatching post-processing recovery.'
-          gh workflow run treb-postprocess.yml --ref main
-
-      - name: Confirm entire project already complete
-        if: steps.state.outputs.stage2_done == 'true' && steps.state.outputs.project_done == 'true'
-        run: echo 'TREB database, rankings, visualization pack and X-ready provenance are already complete.'
+      - run: echo 'Legacy Stage2 autonomous continuation retired during solved-engine recovery. No automatic dispatch.'
