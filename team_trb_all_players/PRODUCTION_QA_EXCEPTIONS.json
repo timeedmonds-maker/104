@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "purpose": "Explicit non-blocking QA exceptions accepted for the final TREB production build. No exception may loosen rebound-row matching, roster-tenure integrity, duplicate-key checks, or the exact 2016 Adams regression.",
+  "exceptions": [
+    {
+      "id": "BOS_2004_LEGACY_CLOCK_21S",
+      "season": "2004-05",
+      "team_id": 1610612738,
+      "team_abbr": "BOS",
+      "scope": "player-seconds cross-era validation only",
+      "maximum_abs_seconds_variance": 21,
+      "game_id": 20400152,
+      "period": 4,
+      "source_event": 375,
+      "source_clock": "11:39",
+      "reason": "Legacy historical event chronology contains a 21-second nominal period-opening clock gap. The discrepancy is immaterial to the TREB results and is accepted as a documented outlier rather than a production blocker.",
+      "non_blocking": true,
+      "does_not_apply_to": [
+        "rebound counts",
+        "unmatched rebound-bearing rows",
+        "roster-tenure boundaries",
+        "cross-team overlap checks",
+        "duplicate player-team-season keys",
+        "2016 Adams exact regression"
+      ]
+    }
+  ]
+}
