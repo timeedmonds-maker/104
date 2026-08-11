@@ -39,6 +39,14 @@ SAMPLE_PLAYERS = {
     2024: (1631128, 1629008, 203999),  # Christian Braun, Michael Porter Jr., Nikola Jokic
 }
 
+# The historical pre-repair 2004 diagnostic exposed a +21-second clock artifact
+# beyond the three formal sample players. Guard against a repair that merely
+# makes the sample green by requiring exact retained-core seconds for the known
+# full-season Boston cohort. Mid-season Welsch/Walker/McCarty rows are excluded.
+SECONDS_AUDIT_PLAYERS = {
+    2004: (1718, 1729, 56, 1711, 1548, 2754, 2556, 2744, 2570, 2753, 2770),
+}
+
 
 def json_default(value: object) -> object:
     if isinstance(value, np.generic):
@@ -154,14 +162,16 @@ def main() -> int:
         season = f"{year}-{str(year + 1)[-2:]}"
         core = pd.read_csv(args.core / season / "team_rebound_derived.csv.gz")
         core["player_id"] = pd.to_numeric(core["player_id"], errors="coerce")
-        wanted = set(SAMPLE_PLAYERS[year])
-        candidates = core[(core.team_id.eq(team_id)) & core.player_id.isin(wanted)].copy()
+        sample_wanted = set(SAMPLE_PLAYERS[year])
+        seconds_wanted = set(SECONDS_AUDIT_PLAYERS.get(year, ()))
+        all_wanted = sample_wanted | seconds_wanted
+        candidates = core[(core.team_id.eq(team_id)) & core.player_id.isin(all_wanted)].copy()
         found = set(candidates.player_id.dropna().astype(int))
-        if len(candidates) != len(wanted) or found != wanted:
-            raise ValueError(f"{season} solved sample mismatch: expected={sorted(wanted)} found={sorted(found)} rows={len(candidates)}")
+        if found != all_wanted:
+            raise ValueError(f"{season} solved/audit sample mismatch: expected={sorted(all_wanted)} found={sorted(found)} rows={len(candidates)}")
         expected = {}
         names = {}
-        for pid in SAMPLE_PLAYERS[year]:
+        for pid in all_wanted:
             rows = candidates[candidates.player_id.eq(pid)]
             if len(rows) != 1:
                 raise ValueError(f"{season} player {pid} expected exactly one retained-core row, found {len(rows)}")
@@ -171,13 +181,21 @@ def main() -> int:
             names[pid] = str(row.player)
         nba = normalize_nba(pd.read_csv(args.raw / f"nbastats_{year}.csv", low_memory=False))
         pbp = normalize_pbp(pd.read_csv(args.raw / f"pbpstats_{year}.csv", low_memory=False))
-        actual, audit = reconstruct_team(nba, pbp, abbr, team_id, set(expected))
+        actual, audit = reconstruct_team(nba, pbp, abbr, team_id, all_wanted)
         comparisons = [compare_player(pid, names[pid], expected[pid], actual[pid]) for pid in SAMPLE_PLAYERS[year]]
+        seconds_audit = []
+        for pid in SECONDS_AUDIT_PLAYERS.get(year, ()):
+            diff = actual[pid]["seconds"] - expected[pid]["seconds"]
+            seconds_audit.append({"player_id": pid, "player": names[pid],
+                                  "expected_seconds": expected[pid]["seconds"],
+                                  "actual_seconds": actual[pid]["seconds"],
+                                  "seconds_diff": diff, "passed": bool(diff == 0)})
         structural = (audit["games_completed"] == audit["games_expected"]
                       and audit["unmatched_rebound_bearing_rows"] == 0 and not audit["exceptions"])
-        passed = structural and all(x["passed"] for x in comparisons)
+        passed = structural and all(x["passed"] for x in comparisons) and all(x["passed"] for x in seconds_audit)
         result = {"season": season, "team": abbr, "team_id": team_id, "passed": bool(passed),
-                  "comparisons": comparisons, "join_and_lineup_audit": audit}
+                  "comparisons": comparisons, "seconds_audit": seconds_audit,
+                  "join_and_lineup_audit": audit}
         seasons.append(result)
         checkpoint = args.output.with_name(f"cross_era_recovered_{year}_checkpoint.json")
         checkpoint.write_text(json.dumps(result, indent=2, sort_keys=True, default=json_default) + "\n")
@@ -187,6 +205,9 @@ def main() -> int:
         for x in comparisons:
             print(" ", x["player"], "sec", x["seconds_diff"], "OREB", x["oreb_diff"],
                   "DREB", x["dreb_diff"], "TRB", x["team_rebounds_diff"], x["passed"], flush=True)
+        for x in seconds_audit:
+            if not x["passed"]:
+                print("  SECONDS_AUDIT_FAIL", x["player"], x["seconds_diff"], flush=True)
     report = {"generated_at": datetime.now(timezone.utc).isoformat(),
               "status": "PASS" if all(s["passed"] for s in seasons) else "FAIL", "seasons": seasons}
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True, default=json_default) + "\n")
