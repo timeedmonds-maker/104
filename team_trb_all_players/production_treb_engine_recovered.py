@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
 """Production-only recovery layer for ambiguous legacy period-opening lineups.
 
-The validated core and exact 2016 Adams regression are left unchanged.  This
+The validated core and exact 2016 Adams regression are left unchanged. This
 module calls the locked inference first and only attempts a recovery after that
 inference raises.
 
-The principal recovery is evidence-based: legacy NBA play-by-play sometimes
-attributes a technical foul/ejection to a bench player.  Those rows establish
-team identity but do *not* establish that the player was on court.  If removing
-only candidates whose entire period participation consists of technical/ejection
-rows leaves exactly five candidates for the team, those five are accepted.
+Two evidence-only legacy artifacts are recoverable without guessing:
+1. a bench player whose entire period participation is technical/ejection rows;
+2. a player whose entire recorded participation occurs *after* the NBA Stats
+   End Period event at the horn (post-period bookkeeping).
 
-No prior-quarter lineup is used to choose among six candidates.  Quarter-break
-lineup changes make that inference unsafe.  States that remain ambiguous still
-fail and enter the repair queue.
+If excluding only those non-floor candidates leaves exactly five players for a
+team, those five are accepted. No prior-quarter ending lineup is used to choose
+among candidates. States that remain ambiguous still hard-fail.
 """
 from __future__ import annotations
 
@@ -50,11 +49,15 @@ def _row_description(row: pd.Series) -> str:
     ).lower()
 
 
-def _technical_or_ejection_only(period: pd.DataFrame, player: int) -> tuple[bool, list[dict]]:
+def _player_rows(period: pd.DataFrame, player: int) -> pd.DataFrame:
     p1 = pd.to_numeric(period.PLAYER1_ID, errors="coerce")
     p2 = pd.to_numeric(period.PLAYER2_ID, errors="coerce")
     p3 = pd.to_numeric(period.PLAYER3_ID, errors="coerce")
-    rows = period[p1.eq(player) | p2.eq(player) | p3.eq(player)].sort_values(["ELAPSED", "EVENTNUM"], kind="stable")
+    return period[p1.eq(player) | p2.eq(player) | p3.eq(player)].sort_values(["ELAPSED", "EVENTNUM"], kind="stable")
+
+
+def _technical_or_ejection_only(period: pd.DataFrame, player: int) -> tuple[bool, list[dict]]:
+    rows = _player_rows(period, player)
     if rows.empty:
         return False, []
 
@@ -66,20 +69,43 @@ def _technical_or_ejection_only(period: pd.DataFrame, player: int) -> tuple[bool
         record = {"event_num": event_num, "event_type": event_type, "description": desc}
         evidence.append(record)
 
-        # A substitution or any ordinary live/statistical event is positive
-        # evidence that the player participated on court during the period.
         if event_type == 8:
             return False, evidence
-
-        # NBA Stats event type 11 is ejection.  Event type 6 covers fouls;
-        # only explicit technical descriptions are non-on-court evidence.
         if event_type == 11:
             continue
         if event_type == 6 and ("technical" in desc or "t.foul" in desc):
             continue
-
         return False, evidence
 
+    return True, evidence
+
+
+def _post_period_end_only(period: pd.DataFrame, player: int) -> tuple[bool, list[dict]]:
+    """True only when every player row occurs after the recorded End Period event.
+
+    This deliberately uses EVENTNUM ordering, not clock==0 alone. Legitimate
+    horn events at 0:00 before the End Period marker remain normal evidence.
+    """
+    end_rows = period[pd.to_numeric(period.EVENTMSGTYPE, errors="coerce").eq(13)].sort_values("EVENTNUM", kind="stable")
+    if end_rows.empty:
+        return False, []
+    end_event = int(end_rows.iloc[0].EVENTNUM)
+    rows = _player_rows(period, player)
+    if rows.empty:
+        return False, []
+
+    evidence = []
+    for _, row in rows.iterrows():
+        event_num = int(row.EVENTNUM)
+        evidence.append({
+            "event_num": event_num,
+            "event_type": int(row.EVENTMSGTYPE),
+            "clock": str(row.get("PCTIMESTRING", "")),
+            "description": _row_description(row),
+            "end_period_event_num": end_event,
+        })
+        if event_num <= end_event:
+            return False, evidence
     return True, evidence
 
 
@@ -91,21 +117,32 @@ def _recover_team_starters(
     if len(team_candidates) <= 5:
         return None, None, {"reason": "not an over-complete candidate set"}
 
-    technical_only = {}
+    excluded: dict[int, dict] = {}
     for player in sorted(team_candidates):
-        is_nonfloor_only, evidence = _technical_or_ejection_only(period, player)
-        if is_nonfloor_only:
-            technical_only[player] = evidence
+        is_tech_only, tech_evidence = _technical_or_ejection_only(period, player)
+        if is_tech_only:
+            excluded[player] = {
+                "reason": "technical_ejection_only",
+                "evidence": tech_evidence,
+            }
+            continue
+        is_post_end_only, end_evidence = _post_period_end_only(period, player)
+        if is_post_end_only:
+            excluded[player] = {
+                "reason": "post_period_end_bookkeeping_only",
+                "evidence": end_evidence,
+            }
 
-    recovered = team_candidates - set(technical_only)
-    if len(recovered) == 5 and technical_only:
-        return recovered, "exclude_technical_ejection_only_participants", {
-            "excluded_players": sorted(technical_only),
-            "excluded_evidence": {str(k): v for k, v in technical_only.items()},
+    recovered = team_candidates - set(excluded)
+    if len(recovered) == 5 and excluded:
+        return recovered, "exclude_nonfloor_legacy_participants", {
+            "excluded_players": sorted(excluded),
+            "excluded_evidence": {str(k): v for k, v in excluded.items()},
         }
 
     return None, None, {
-        "technical_ejection_only_candidates": sorted(technical_only),
+        "excluded_nonfloor_candidates": sorted(excluded),
+        "excluded_evidence": {str(k): v for k, v in excluded.items()},
         "remaining_candidates": sorted(recovered),
     }
 
@@ -167,7 +204,7 @@ def infer_period_starters_recovered(
         return starters, repairs
 
 
-# core.reconstruct_game_lineups resolves this global at runtime.  Patch only in
+# core.reconstruct_game_lineups resolves this global at runtime. Patch only in
 # this production-recovery module; validated source files remain unchanged.
 core.infer_period_starters = infer_period_starters_recovered
 
