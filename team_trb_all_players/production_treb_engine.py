@@ -37,15 +37,14 @@ JOIN_REPAIRS = {
 
 # Exact game-specific legacy clock repair recovered from the historical gate.
 # Game 20400826 contains a malformed OT row numbered after the 0:00 horn but
-# carrying a 0:19 clock. The historical pre-repair retained-core audit showed
-# the same +21-second signature for the affected full-season Celtics (Pierce,
-# Ricky Davis, Raef LaFrentz, Tony Allen and Marcus Banks). The original repair
-# audit also recorded the ten-player malformed-row lineup. Keep this one-game
-# correction explicit; never generalize it to other post-horn rows.
+# carrying a 0:19 clock. Full-season retained-core comparison proves that the
+# resulting +21 seconds applies only to Pierce, Ricky Davis, Raef LaFrentz,
+# Tony Allen and Marcus Banks. Keep this one-game correction explicit; never
+# generalize it to other post-horn rows or to the full malformed-row lineup.
 POST_HORN_SECONDS_REPAIRS = {
     20400826: {
         "seconds_removed": 21,
-        "players": [952, 962, 1711, 1718, 1729, 1890, 2047, 2207, 2556, 2571, 2753, 2754],
+        "players": [1711, 1718, 1729, 2556, 2754],
     }
 }
 
@@ -116,7 +115,7 @@ def reconstruct_game_lineups(game: pd.DataFrame) -> core.GameLineups:
             "type": "post_horn_clock_repair",
             "seconds_removed": seconds_removed,
             "players": players,
-            "evidence": "post-period-end row follows the overtime horn; affected-player set checked against retained-core seconds",
+            "evidence": "full-season retained-core comparison isolates the +21-second artifact to five Celtics",
         })
     return result
 
