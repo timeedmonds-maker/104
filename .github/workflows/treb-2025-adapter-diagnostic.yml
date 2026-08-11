@@ -1,0 +1,66 @@
+name: TREB 2025-26 adapter diagnostic
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - .github/workflows/treb-2025-adapter-diagnostic.yml
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download and inspect 2025 archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json, os, tarfile, urllib.request
+          import pandas as pd
+
+          raw=Path('/tmp/treb2025'); raw.mkdir(parents=True,exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          print('2025_KEYS',sorted(k for k in urls if '2025' in k))
+          for key in ('nbastatsv3_2025','cdnnba_2025'):
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              print('\nDOWNLOAD',key,url,flush=True)
+              urllib.request.urlretrieve(url,arc)
+              print('ARCHIVE',arc.name,'bytes',arc.stat().st_size,'sha256',hashlib.sha256(arc.read_bytes()).hexdigest())
+              out=raw/key; out.mkdir(exist_ok=True)
+              with tarfile.open(arc,'r:xz') as tf:
+                  members=tf.getmembers()
+                  print('MEMBERS',[(m.name,m.size) for m in members[:50]])
+                  tf.extractall(out)
+              files=sorted(p for p in out.rglob('*') if p.is_file())
+              print('EXTRACTED_FILES',[(str(p.relative_to(out)),p.stat().st_size) for p in files[:50]])
+              for p in files[:20]:
+                  print('\nFILE',p.relative_to(out),'size',p.stat().st_size)
+                  try:
+                      if p.suffix.lower()=='.csv':
+                          df=pd.read_csv(p,nrows=5,low_memory=False)
+                          print('COLUMNS',list(df.columns))
+                          print(df.head(3).to_string(index=False))
+                      elif p.suffix.lower() in ('.json','.jsonl'):
+                          txt=p.read_text(errors='replace')
+                          print(txt[:4000])
+                      else:
+                          with p.open('rb') as f: print(f.read(1000).decode('utf-8','replace'))
+                  except Exception as e:
+                      print('INSPECT_ERROR',repr(e))
+          PY
