@@ -3,6 +3,7 @@ name: Build all-player team TRB leaderboard parallel
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - 'team_trb_all_players/**'
       - '.github/workflows/build-all-player-team-trb-parallel.yml'
