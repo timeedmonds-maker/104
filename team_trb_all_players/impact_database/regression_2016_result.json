@@ -1,0 +1,60 @@
+{
+  "adams_seconds_on": 143368,
+  "checks": {
+    "adams_seconds_on": true,
+    "okc_oreb_universe": true,
+    "opponent_rebounds_on": true,
+    "opponent_rebounds_retained_range": true,
+    "rebound_rows_8672_of_8672": true,
+    "team_dreb_on": true,
+    "team_oreb_on": true,
+    "team_rebounds_on": true,
+    "zero_unmatched_rebound_rows": true
+  },
+  "games": 82,
+  "join_audit": {
+    "ambiguous_matches": 759,
+    "locked_substitution_clock_tie_adjustments": {
+      "opponent_rebounds_on": -1,
+      "team_dreb_on": -2
+    },
+    "manual_join_repairs": 0,
+    "matched_rebound_bearing_rows": 8672,
+    "rebound_bearing_rows": 8672,
+    "total_pbp_rows": 32813,
+    "unmatched_rebound_bearing_rows": 0
+  },
+  "okc_oreb_universe": 1277,
+  "opponent_rebounds_on": 2275,
+  "season": "2016-17",
+  "starter_repairs": [
+    {
+      "evidence": "local participant record plus substitution propagation",
+      "game_id": 21600235,
+      "inferred_candidates": [2749, 201589, 202087, 203999, 1627736, 1627750],
+      "period": 4,
+      "repaired_starters": [2749, 201589, 202087, 203999, 1627750],
+      "team_id": 1610612743
+    },
+    {
+      "evidence": "local participant record plus substitution propagation",
+      "game_id": 21600270,
+      "inferred_candidates": [202322, 202693, 203078, 1626162],
+      "period": 5,
+      "repaired_starters": [202322, 202693, 203078, 203490, 1626162],
+      "team_id": 1610612764
+    },
+    {
+      "evidence": "local participant record plus substitution propagation",
+      "game_id": 21600507,
+      "inferred_candidates": [201566, 202683, 203460, 203530, 203902, 203924],
+      "period": 4,
+      "repaired_starters": [202683, 203460, 203530, 203902, 203924],
+      "team_id": 1610612760
+    }
+  ],
+  "status": "PASS",
+  "team_dreb_on": 1846,
+  "team_oreb_on": 816,
+  "team_rebounds_on": 2662
+}
