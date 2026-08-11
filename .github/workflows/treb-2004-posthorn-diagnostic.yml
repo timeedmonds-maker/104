@@ -28,61 +28,36 @@ jobs:
           cache: pip
           cache-dependency-path: team_trb_all_players/requirements.txt
       - name: Install dependencies
-        run: python -m pip install -r team_trb_all_players/requirements.txt
-      - name: Download 2004 NBA Stats source
-        shell: bash
         run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import tarfile, urllib.request
-          raw=Path('team_trb_all_players/impact_database/local_raw'); raw.mkdir(parents=True, exist_ok=True)
-          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
-          urls=dict(line.split('=',1) for line in text.splitlines() if '=' in line)
-          url=urls['nbastats_2004'].strip(); arc=raw/url.rsplit('/',1)[-1]
-          urllib.request.urlretrieve(url, arc)
-          with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
-          PY
-      - name: Inspect retained core granularity and probe official endpoints
+          python -m pip install -r team_trb_all_players/requirements.txt
+          python -m pip install remotezip
+      - name: Inspect pbpstats corrected archive remotely
         run: |
           python -u - <<'PY'
-          import gzip, json, urllib.request, urllib.error
-          from pathlib import Path
-          import pandas as pd
-
-          print('PLAYER_TEAM_TOTALS')
-          p='team_trb_all_players/impact_database/outputs/2004-05/player_team_totals.csv.gz'
-          d=pd.read_csv(p)
-          print('columns',list(d.columns))
-          print('shape',d.shape)
-          print(d[d.astype(str).apply(lambda r: r.str.contains('2754',regex=False).any(),axis=1)].head(10).to_string(index=False))
-
-          game='0020400965'
-          urls=[
-            f'https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{game}.json',
-            f'https://data.nba.net/prod/v1/2004/{game}_boxscore.json',
-            f'https://data.nba.com/data/v2015/json/mobile_teams/nba/2004/scores/gamedetail/{game}_gamedetail.json',
-          ]
-          headers={
-            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
-            'Referer':'https://www.nba.com/',
-            'Origin':'https://www.nba.com',
-            'Accept':'application/json, text/plain, */*',
-          }
-          for u in urls:
-            print('\nPROBE',u)
-            try:
-              req=urllib.request.Request(u,headers=headers)
-              with urllib.request.urlopen(req,timeout=15) as r:
-                b=r.read(); print('status',r.status,'bytes',len(b),'type',r.headers.get('content-type')); print(b[:1000].decode('utf-8','replace'))
-            except Exception as e: print('ERROR',repr(e))
-
-          print('\nSTATS_API')
-          u=('https://stats.nba.com/stats/boxscoretraditionalv2?'
-             'EndPeriod=10&EndRange=28800&GameID=0020400965&RangeType=0&StartPeriod=1&StartRange=0')
-          try:
-            req=urllib.request.Request(u,headers=headers)
-            with urllib.request.urlopen(req,timeout=20) as r:
-              b=r.read(); print('status',r.status,'bytes',len(b)); print(b[:4000].decode('utf-8','replace'))
-          except Exception as e: print('ERROR',repr(e))
+          from remotezip import RemoteZip
+          import json
+          url='https://pbpstats.s3.amazonaws.com/data.zip'
+          games=['0020400826','0020400965']
+          print('OPEN',url,flush=True)
+          with RemoteZip(url) as z:
+              infos=z.infolist()
+              print('MEMBERS',len(infos),flush=True)
+              for game in games:
+                  hits=[i for i in infos if game in i.filename]
+                  print('\nGAME',game,'HITS',[(h.filename,h.file_size) for h in hits],flush=True)
+                  for h in hits:
+                      if h.file_size > 5_000_000: continue
+                      b=z.read(h.filename)
+                      print('FILE',h.filename,'BYTES',len(b),flush=True)
+                      text=b.decode('utf-8','replace')
+                      if len(text)<=20000:
+                          print(text,flush=True)
+                      else:
+                          print(text[:10000],flush=True)
+                          print('...TAIL...',text[-5000:],flush=True)
+              # show likely override paths for 2004 game IDs even if filenames do not contain leading-zero form
+              for needle in ('20400826','20400965'):
+                  hits=[i for i in infos if needle in i.filename]
+                  print('\nSHORTID',needle,'HITS',[(h.filename,h.file_size) for h in hits],flush=True)
+              print('\nTOP_PATHS', [i.filename for i in infos[:100]], flush=True)
           PY
