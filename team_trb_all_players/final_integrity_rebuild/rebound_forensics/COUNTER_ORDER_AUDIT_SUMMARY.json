@@ -1,0 +1,1822 @@
+{
+  "status": "COMPLETE",
+  "workflow_run_id": 31637129009,
+  "strategies": {
+    "end_source": {
+      "applicable": 5163,
+      "correct": 5098,
+      "wrong": 15,
+      "unresolved": 50
+    },
+    "end_start_source": {
+      "applicable": 5163,
+      "correct": 5098,
+      "wrong": 15,
+      "unresolved": 50
+    },
+    "period_end_start_source": {
+      "applicable": 5163,
+      "correct": 5098,
+      "wrong": 15,
+      "unresolved": 50
+    },
+    "period_start_end_source": {
+      "applicable": 5163,
+      "correct": 5098,
+      "wrong": 15,
+      "unresolved": 50
+    },
+    "source_only": {
+      "applicable": 5163,
+      "correct": 436,
+      "wrong": 2,
+      "unresolved": 4725
+    },
+    "start_end_source": {
+      "applicable": 5163,
+      "correct": 5098,
+      "wrong": 15,
+      "unresolved": 50
+    },
+    "start_source": {
+      "applicable": 5163,
+      "correct": 5096,
+      "wrong": 15,
+      "unresolved": 52
+    }
+  },
+  "zero_wrong_strategies": [],
+  "best_order": [
+    "source_only",
+    "end_source",
+    "end_start_source",
+    "period_end_start_source",
+    "period_start_end_source",
+    "start_end_source",
+    "start_source"
+  ],
+  "mismatches": {
+    "end_source": [
+      {
+        "game_id": 21000288,
+        "pbp_index": 66,
+        "description": "Horford REBOUND (Off:1 Def:3)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 3,
+          "prev_off": 0,
+          "prev_def": 3
+        },
+        "start_time": "05:05",
+        "end_time": "04:53",
+        "start_elapsed": 1855,
+        "end_elapsed": 1867,
+        "source_index": 66
+      },
+      {
+        "game_id": 21700075,
+        "pbp_index": 8087,
+        "description": "Gortat REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "06:46",
+        "end_time": "06:23",
+        "start_elapsed": 1754,
+        "end_elapsed": 1777,
+        "source_index": 292
+      },
+      {
+        "game_id": 21700077,
+        "pbp_index": 8291,
+        "description": "Cousins REBOUND (Off:1 Def:7)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 7,
+          "prev_off": 0,
+          "prev_def": 7
+        },
+        "start_time": "02:09",
+        "end_time": "01:26",
+        "start_elapsed": 2031,
+        "end_elapsed": 2074,
+        "source_index": 75
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1865,
+        "description": "Vucevic REBOUND (Off:0 Def:2)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:39",
+        "end_time": "03:28",
+        "start_elapsed": 501,
+        "end_elapsed": 512,
+        "source_index": 179
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1953,
+        "description": "Isaac REBOUND (Off:2 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 2,
+          "prev_off": 1,
+          "prev_def": 2
+        },
+        "start_time": "10:33",
+        "end_time": "09:56",
+        "start_elapsed": 2247,
+        "end_elapsed": 2284,
+        "source_index": 267
+      },
+      {
+        "game_id": 21700363,
+        "pbp_index": 6927,
+        "description": "Caldwell-Pope REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "02:18",
+        "end_time": "01:55",
+        "start_elapsed": 1302,
+        "end_elapsed": 1325,
+        "source_index": 310
+      },
+      {
+        "game_id": 21701150,
+        "pbp_index": 321,
+        "description": "George REBOUND (Off:1 Def:6)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 6,
+          "prev_off": 0,
+          "prev_def": 6
+        },
+        "start_time": "02:19",
+        "end_time": "01:40",
+        "start_elapsed": 1301,
+        "end_elapsed": 1340,
+        "source_index": 321
+      },
+      {
+        "game_id": 21800689,
+        "pbp_index": 1355,
+        "description": "Towns REBOUND (Off:7 Def:5)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 7,
+          "def": 5,
+          "prev_off": 6,
+          "prev_def": 5
+        },
+        "start_time": "01:07",
+        "end_time": "00:52",
+        "start_elapsed": 2813,
+        "end_elapsed": 2828,
+        "source_index": 9
+      },
+      {
+        "game_id": 21900343,
+        "pbp_index": 971,
+        "description": "Lamb REBOUND (Off:2 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 1
+        },
+        "start_time": "06:25",
+        "end_time": "06:09",
+        "start_elapsed": 1775,
+        "end_elapsed": 1791,
+        "source_index": 84
+      },
+      {
+        "game_id": 22201076,
+        "pbp_index": 554,
+        "description": "[SAC] Monk Rebound (Off:0 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "11:05",
+        "end_time": "10:33",
+        "start_elapsed": 775,
+        "end_elapsed": 807,
+        "source_index": 142
+      },
+      {
+        "game_id": 22201218,
+        "pbp_index": 2169,
+        "description": "[CHA] Mykhailiuk Rebound (Off:1 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 0
+        },
+        "start_time": "05:23",
+        "end_time": "04:52",
+        "start_elapsed": 397,
+        "end_elapsed": 428,
+        "source_index": 169
+      },
+      {
+        "game_id": 22200322,
+        "pbp_index": 3542,
+        "description": "Mann REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "06:50",
+        "end_time": "06:12",
+        "start_elapsed": 1750,
+        "end_elapsed": 1788,
+        "source_index": 302
+      },
+      {
+        "game_id": 22200547,
+        "pbp_index": 5023,
+        "description": "Konchar REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "04:25",
+        "end_time": "04:06",
+        "start_elapsed": 455,
+        "end_elapsed": 474,
+        "source_index": 186
+      },
+      {
+        "game_id": 22200602,
+        "pbp_index": 5408,
+        "description": "Waters III REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "02:59",
+        "end_time": "02:55",
+        "start_elapsed": 541,
+        "end_elapsed": 545,
+        "source_index": 154
+      },
+      {
+        "game_id": 22400072,
+        "pbp_index": 20,
+        "description": "Walker REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:58",
+        "end_time": "03:36",
+        "start_elapsed": 2642,
+        "end_elapsed": 2664,
+        "source_index": 20
+      }
+    ],
+    "end_start_source": [
+      {
+        "game_id": 21000288,
+        "pbp_index": 66,
+        "description": "Horford REBOUND (Off:1 Def:3)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 3,
+          "prev_off": 0,
+          "prev_def": 3
+        },
+        "start_time": "05:05",
+        "end_time": "04:53",
+        "start_elapsed": 1855,
+        "end_elapsed": 1867,
+        "source_index": 66
+      },
+      {
+        "game_id": 21700075,
+        "pbp_index": 8087,
+        "description": "Gortat REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "06:46",
+        "end_time": "06:23",
+        "start_elapsed": 1754,
+        "end_elapsed": 1777,
+        "source_index": 292
+      },
+      {
+        "game_id": 21700077,
+        "pbp_index": 8291,
+        "description": "Cousins REBOUND (Off:1 Def:7)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 7,
+          "prev_off": 0,
+          "prev_def": 7
+        },
+        "start_time": "02:09",
+        "end_time": "01:26",
+        "start_elapsed": 2031,
+        "end_elapsed": 2074,
+        "source_index": 75
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1865,
+        "description": "Vucevic REBOUND (Off:0 Def:2)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:39",
+        "end_time": "03:28",
+        "start_elapsed": 501,
+        "end_elapsed": 512,
+        "source_index": 179
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1953,
+        "description": "Isaac REBOUND (Off:2 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 2,
+          "prev_off": 1,
+          "prev_def": 2
+        },
+        "start_time": "10:33",
+        "end_time": "09:56",
+        "start_elapsed": 2247,
+        "end_elapsed": 2284,
+        "source_index": 267
+      },
+      {
+        "game_id": 21700363,
+        "pbp_index": 6927,
+        "description": "Caldwell-Pope REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "02:18",
+        "end_time": "01:55",
+        "start_elapsed": 1302,
+        "end_elapsed": 1325,
+        "source_index": 310
+      },
+      {
+        "game_id": 21701150,
+        "pbp_index": 321,
+        "description": "George REBOUND (Off:1 Def:6)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 6,
+          "prev_off": 0,
+          "prev_def": 6
+        },
+        "start_time": "02:19",
+        "end_time": "01:40",
+        "start_elapsed": 1301,
+        "end_elapsed": 1340,
+        "source_index": 321
+      },
+      {
+        "game_id": 21800689,
+        "pbp_index": 1355,
+        "description": "Towns REBOUND (Off:7 Def:5)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 7,
+          "def": 5,
+          "prev_off": 6,
+          "prev_def": 5
+        },
+        "start_time": "01:07",
+        "end_time": "00:52",
+        "start_elapsed": 2813,
+        "end_elapsed": 2828,
+        "source_index": 9
+      },
+      {
+        "game_id": 21900343,
+        "pbp_index": 971,
+        "description": "Lamb REBOUND (Off:2 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 1
+        },
+        "start_time": "06:25",
+        "end_time": "06:09",
+        "start_elapsed": 1775,
+        "end_elapsed": 1791,
+        "source_index": 84
+      },
+      {
+        "game_id": 22201076,
+        "pbp_index": 554,
+        "description": "[SAC] Monk Rebound (Off:0 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "11:05",
+        "end_time": "10:33",
+        "start_elapsed": 775,
+        "end_elapsed": 807,
+        "source_index": 142
+      },
+      {
+        "game_id": 22201218,
+        "pbp_index": 2169,
+        "description": "[CHA] Mykhailiuk Rebound (Off:1 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 0
+        },
+        "start_time": "05:23",
+        "end_time": "04:52",
+        "start_elapsed": 397,
+        "end_elapsed": 428,
+        "source_index": 169
+      },
+      {
+        "game_id": 22200322,
+        "pbp_index": 3542,
+        "description": "Mann REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "06:50",
+        "end_time": "06:12",
+        "start_elapsed": 1750,
+        "end_elapsed": 1788,
+        "source_index": 302
+      },
+      {
+        "game_id": 22200547,
+        "pbp_index": 5023,
+        "description": "Konchar REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "04:25",
+        "end_time": "04:06",
+        "start_elapsed": 455,
+        "end_elapsed": 474,
+        "source_index": 186
+      },
+      {
+        "game_id": 22200602,
+        "pbp_index": 5408,
+        "description": "Waters III REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "02:59",
+        "end_time": "02:55",
+        "start_elapsed": 541,
+        "end_elapsed": 545,
+        "source_index": 154
+      },
+      {
+        "game_id": 22400072,
+        "pbp_index": 20,
+        "description": "Walker REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:58",
+        "end_time": "03:36",
+        "start_elapsed": 2642,
+        "end_elapsed": 2664,
+        "source_index": 20
+      }
+    ],
+    "period_end_start_source": [
+      {
+        "game_id": 21000288,
+        "pbp_index": 66,
+        "description": "Horford REBOUND (Off:1 Def:3)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 3,
+          "prev_off": 0,
+          "prev_def": 3
+        },
+        "start_time": "05:05",
+        "end_time": "04:53",
+        "start_elapsed": 1855,
+        "end_elapsed": 1867,
+        "source_index": 66
+      },
+      {
+        "game_id": 21700075,
+        "pbp_index": 8087,
+        "description": "Gortat REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "06:46",
+        "end_time": "06:23",
+        "start_elapsed": 1754,
+        "end_elapsed": 1777,
+        "source_index": 292
+      },
+      {
+        "game_id": 21700077,
+        "pbp_index": 8291,
+        "description": "Cousins REBOUND (Off:1 Def:7)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 7,
+          "prev_off": 0,
+          "prev_def": 7
+        },
+        "start_time": "02:09",
+        "end_time": "01:26",
+        "start_elapsed": 2031,
+        "end_elapsed": 2074,
+        "source_index": 75
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1865,
+        "description": "Vucevic REBOUND (Off:0 Def:2)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:39",
+        "end_time": "03:28",
+        "start_elapsed": 501,
+        "end_elapsed": 512,
+        "source_index": 179
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1953,
+        "description": "Isaac REBOUND (Off:2 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 2,
+          "prev_off": 1,
+          "prev_def": 2
+        },
+        "start_time": "10:33",
+        "end_time": "09:56",
+        "start_elapsed": 2247,
+        "end_elapsed": 2284,
+        "source_index": 267
+      },
+      {
+        "game_id": 21700363,
+        "pbp_index": 6927,
+        "description": "Caldwell-Pope REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "02:18",
+        "end_time": "01:55",
+        "start_elapsed": 1302,
+        "end_elapsed": 1325,
+        "source_index": 310
+      },
+      {
+        "game_id": 21701150,
+        "pbp_index": 321,
+        "description": "George REBOUND (Off:1 Def:6)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 6,
+          "prev_off": 0,
+          "prev_def": 6
+        },
+        "start_time": "02:19",
+        "end_time": "01:40",
+        "start_elapsed": 1301,
+        "end_elapsed": 1340,
+        "source_index": 321
+      },
+      {
+        "game_id": 21800689,
+        "pbp_index": 1355,
+        "description": "Towns REBOUND (Off:7 Def:5)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 7,
+          "def": 5,
+          "prev_off": 6,
+          "prev_def": 5
+        },
+        "start_time": "01:07",
+        "end_time": "00:52",
+        "start_elapsed": 2813,
+        "end_elapsed": 2828,
+        "source_index": 9
+      },
+      {
+        "game_id": 21900343,
+        "pbp_index": 971,
+        "description": "Lamb REBOUND (Off:2 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 1
+        },
+        "start_time": "06:25",
+        "end_time": "06:09",
+        "start_elapsed": 1775,
+        "end_elapsed": 1791,
+        "source_index": 84
+      },
+      {
+        "game_id": 22201076,
+        "pbp_index": 554,
+        "description": "[SAC] Monk Rebound (Off:0 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "11:05",
+        "end_time": "10:33",
+        "start_elapsed": 775,
+        "end_elapsed": 807,
+        "source_index": 142
+      },
+      {
+        "game_id": 22201218,
+        "pbp_index": 2169,
+        "description": "[CHA] Mykhailiuk Rebound (Off:1 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 0
+        },
+        "start_time": "05:23",
+        "end_time": "04:52",
+        "start_elapsed": 397,
+        "end_elapsed": 428,
+        "source_index": 169
+      },
+      {
+        "game_id": 22200322,
+        "pbp_index": 3542,
+        "description": "Mann REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "06:50",
+        "end_time": "06:12",
+        "start_elapsed": 1750,
+        "end_elapsed": 1788,
+        "source_index": 302
+      },
+      {
+        "game_id": 22200547,
+        "pbp_index": 5023,
+        "description": "Konchar REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "04:25",
+        "end_time": "04:06",
+        "start_elapsed": 455,
+        "end_elapsed": 474,
+        "source_index": 186
+      },
+      {
+        "game_id": 22200602,
+        "pbp_index": 5408,
+        "description": "Waters III REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "02:59",
+        "end_time": "02:55",
+        "start_elapsed": 541,
+        "end_elapsed": 545,
+        "source_index": 154
+      },
+      {
+        "game_id": 22400072,
+        "pbp_index": 20,
+        "description": "Walker REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:58",
+        "end_time": "03:36",
+        "start_elapsed": 2642,
+        "end_elapsed": 2664,
+        "source_index": 20
+      }
+    ],
+    "period_start_end_source": [
+      {
+        "game_id": 21000288,
+        "pbp_index": 66,
+        "description": "Horford REBOUND (Off:1 Def:3)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 3,
+          "prev_off": 0,
+          "prev_def": 3
+        },
+        "start_time": "05:05",
+        "end_time": "04:53",
+        "start_elapsed": 1855,
+        "end_elapsed": 1867,
+        "source_index": 66
+      },
+      {
+        "game_id": 21700075,
+        "pbp_index": 8087,
+        "description": "Gortat REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "06:46",
+        "end_time": "06:23",
+        "start_elapsed": 1754,
+        "end_elapsed": 1777,
+        "source_index": 292
+      },
+      {
+        "game_id": 21700077,
+        "pbp_index": 8291,
+        "description": "Cousins REBOUND (Off:1 Def:7)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 7,
+          "prev_off": 0,
+          "prev_def": 7
+        },
+        "start_time": "02:09",
+        "end_time": "01:26",
+        "start_elapsed": 2031,
+        "end_elapsed": 2074,
+        "source_index": 75
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1865,
+        "description": "Vucevic REBOUND (Off:0 Def:2)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:39",
+        "end_time": "03:28",
+        "start_elapsed": 501,
+        "end_elapsed": 512,
+        "source_index": 179
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1953,
+        "description": "Isaac REBOUND (Off:2 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 2,
+          "prev_off": 1,
+          "prev_def": 2
+        },
+        "start_time": "10:33",
+        "end_time": "09:56",
+        "start_elapsed": 2247,
+        "end_elapsed": 2284,
+        "source_index": 267
+      },
+      {
+        "game_id": 21700363,
+        "pbp_index": 6927,
+        "description": "Caldwell-Pope REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "02:18",
+        "end_time": "01:55",
+        "start_elapsed": 1302,
+        "end_elapsed": 1325,
+        "source_index": 310
+      },
+      {
+        "game_id": 21701150,
+        "pbp_index": 321,
+        "description": "George REBOUND (Off:1 Def:6)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 6,
+          "prev_off": 0,
+          "prev_def": 6
+        },
+        "start_time": "02:19",
+        "end_time": "01:40",
+        "start_elapsed": 1301,
+        "end_elapsed": 1340,
+        "source_index": 321
+      },
+      {
+        "game_id": 21800689,
+        "pbp_index": 1355,
+        "description": "Towns REBOUND (Off:7 Def:5)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 7,
+          "def": 5,
+          "prev_off": 6,
+          "prev_def": 5
+        },
+        "start_time": "01:07",
+        "end_time": "00:52",
+        "start_elapsed": 2813,
+        "end_elapsed": 2828,
+        "source_index": 9
+      },
+      {
+        "game_id": 21900343,
+        "pbp_index": 971,
+        "description": "Lamb REBOUND (Off:2 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 1
+        },
+        "start_time": "06:25",
+        "end_time": "06:09",
+        "start_elapsed": 1775,
+        "end_elapsed": 1791,
+        "source_index": 84
+      },
+      {
+        "game_id": 22201076,
+        "pbp_index": 554,
+        "description": "[SAC] Monk Rebound (Off:0 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "11:05",
+        "end_time": "10:33",
+        "start_elapsed": 775,
+        "end_elapsed": 807,
+        "source_index": 142
+      },
+      {
+        "game_id": 22201218,
+        "pbp_index": 2169,
+        "description": "[CHA] Mykhailiuk Rebound (Off:1 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 0
+        },
+        "start_time": "05:23",
+        "end_time": "04:52",
+        "start_elapsed": 397,
+        "end_elapsed": 428,
+        "source_index": 169
+      },
+      {
+        "game_id": 22200322,
+        "pbp_index": 3542,
+        "description": "Mann REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "06:50",
+        "end_time": "06:12",
+        "start_elapsed": 1750,
+        "end_elapsed": 1788,
+        "source_index": 302
+      },
+      {
+        "game_id": 22200547,
+        "pbp_index": 5023,
+        "description": "Konchar REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "04:25",
+        "end_time": "04:06",
+        "start_elapsed": 455,
+        "end_elapsed": 474,
+        "source_index": 186
+      },
+      {
+        "game_id": 22200602,
+        "pbp_index": 5408,
+        "description": "Waters III REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "02:59",
+        "end_time": "02:55",
+        "start_elapsed": 541,
+        "end_elapsed": 545,
+        "source_index": 154
+      },
+      {
+        "game_id": 22400072,
+        "pbp_index": 20,
+        "description": "Walker REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:58",
+        "end_time": "03:36",
+        "start_elapsed": 2642,
+        "end_elapsed": 2664,
+        "source_index": 20
+      }
+    ],
+    "source_only": [
+      {
+        "game_id": 22200322,
+        "pbp_index": 3542,
+        "description": "Mann REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "06:50",
+        "end_time": "06:12",
+        "start_elapsed": 1750,
+        "end_elapsed": 1788,
+        "source_index": 302
+      },
+      {
+        "game_id": 22200602,
+        "pbp_index": 5408,
+        "description": "Waters III REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "02:59",
+        "end_time": "02:55",
+        "start_elapsed": 541,
+        "end_elapsed": 545,
+        "source_index": 154
+      }
+    ],
+    "start_end_source": [
+      {
+        "game_id": 21000288,
+        "pbp_index": 66,
+        "description": "Horford REBOUND (Off:1 Def:3)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 3,
+          "prev_off": 0,
+          "prev_def": 3
+        },
+        "start_time": "05:05",
+        "end_time": "04:53",
+        "start_elapsed": 1855,
+        "end_elapsed": 1867,
+        "source_index": 66
+      },
+      {
+        "game_id": 21700075,
+        "pbp_index": 8087,
+        "description": "Gortat REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "06:46",
+        "end_time": "06:23",
+        "start_elapsed": 1754,
+        "end_elapsed": 1777,
+        "source_index": 292
+      },
+      {
+        "game_id": 21700077,
+        "pbp_index": 8291,
+        "description": "Cousins REBOUND (Off:1 Def:7)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 7,
+          "prev_off": 0,
+          "prev_def": 7
+        },
+        "start_time": "02:09",
+        "end_time": "01:26",
+        "start_elapsed": 2031,
+        "end_elapsed": 2074,
+        "source_index": 75
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1865,
+        "description": "Vucevic REBOUND (Off:0 Def:2)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:39",
+        "end_time": "03:28",
+        "start_elapsed": 501,
+        "end_elapsed": 512,
+        "source_index": 179
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1953,
+        "description": "Isaac REBOUND (Off:2 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 2,
+          "prev_off": 1,
+          "prev_def": 2
+        },
+        "start_time": "10:33",
+        "end_time": "09:56",
+        "start_elapsed": 2247,
+        "end_elapsed": 2284,
+        "source_index": 267
+      },
+      {
+        "game_id": 21700363,
+        "pbp_index": 6927,
+        "description": "Caldwell-Pope REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "02:18",
+        "end_time": "01:55",
+        "start_elapsed": 1302,
+        "end_elapsed": 1325,
+        "source_index": 310
+      },
+      {
+        "game_id": 21701150,
+        "pbp_index": 321,
+        "description": "George REBOUND (Off:1 Def:6)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 6,
+          "prev_off": 0,
+          "prev_def": 6
+        },
+        "start_time": "02:19",
+        "end_time": "01:40",
+        "start_elapsed": 1301,
+        "end_elapsed": 1340,
+        "source_index": 321
+      },
+      {
+        "game_id": 21800689,
+        "pbp_index": 1355,
+        "description": "Towns REBOUND (Off:7 Def:5)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 7,
+          "def": 5,
+          "prev_off": 6,
+          "prev_def": 5
+        },
+        "start_time": "01:07",
+        "end_time": "00:52",
+        "start_elapsed": 2813,
+        "end_elapsed": 2828,
+        "source_index": 9
+      },
+      {
+        "game_id": 21900343,
+        "pbp_index": 971,
+        "description": "Lamb REBOUND (Off:2 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 1
+        },
+        "start_time": "06:25",
+        "end_time": "06:09",
+        "start_elapsed": 1775,
+        "end_elapsed": 1791,
+        "source_index": 84
+      },
+      {
+        "game_id": 22201076,
+        "pbp_index": 554,
+        "description": "[SAC] Monk Rebound (Off:0 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "11:05",
+        "end_time": "10:33",
+        "start_elapsed": 775,
+        "end_elapsed": 807,
+        "source_index": 142
+      },
+      {
+        "game_id": 22201218,
+        "pbp_index": 2169,
+        "description": "[CHA] Mykhailiuk Rebound (Off:1 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 0
+        },
+        "start_time": "05:23",
+        "end_time": "04:52",
+        "start_elapsed": 397,
+        "end_elapsed": 428,
+        "source_index": 169
+      },
+      {
+        "game_id": 22200322,
+        "pbp_index": 3542,
+        "description": "Mann REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "06:50",
+        "end_time": "06:12",
+        "start_elapsed": 1750,
+        "end_elapsed": 1788,
+        "source_index": 302
+      },
+      {
+        "game_id": 22200547,
+        "pbp_index": 5023,
+        "description": "Konchar REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "04:25",
+        "end_time": "04:06",
+        "start_elapsed": 455,
+        "end_elapsed": 474,
+        "source_index": 186
+      },
+      {
+        "game_id": 22200602,
+        "pbp_index": 5408,
+        "description": "Waters III REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "02:59",
+        "end_time": "02:55",
+        "start_elapsed": 541,
+        "end_elapsed": 545,
+        "source_index": 154
+      },
+      {
+        "game_id": 22400072,
+        "pbp_index": 20,
+        "description": "Walker REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:58",
+        "end_time": "03:36",
+        "start_elapsed": 2642,
+        "end_elapsed": 2664,
+        "source_index": 20
+      }
+    ],
+    "start_source": [
+      {
+        "game_id": 21000288,
+        "pbp_index": 66,
+        "description": "Horford REBOUND (Off:1 Def:3)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 3,
+          "prev_off": 0,
+          "prev_def": 3
+        },
+        "start_time": "05:05",
+        "end_time": "04:53",
+        "start_elapsed": 1855,
+        "end_elapsed": 1867,
+        "source_index": 66
+      },
+      {
+        "game_id": 21700075,
+        "pbp_index": 8087,
+        "description": "Gortat REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "06:46",
+        "end_time": "06:23",
+        "start_elapsed": 1754,
+        "end_elapsed": 1777,
+        "source_index": 292
+      },
+      {
+        "game_id": 21700077,
+        "pbp_index": 8291,
+        "description": "Cousins REBOUND (Off:1 Def:7)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 7,
+          "prev_off": 0,
+          "prev_def": 7
+        },
+        "start_time": "02:09",
+        "end_time": "01:26",
+        "start_elapsed": 2031,
+        "end_elapsed": 2074,
+        "source_index": 75
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1865,
+        "description": "Vucevic REBOUND (Off:0 Def:2)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:39",
+        "end_time": "03:28",
+        "start_elapsed": 501,
+        "end_elapsed": 512,
+        "source_index": 179
+      },
+      {
+        "game_id": 21700174,
+        "pbp_index": 1953,
+        "description": "Isaac REBOUND (Off:2 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 2,
+          "prev_off": 1,
+          "prev_def": 2
+        },
+        "start_time": "10:33",
+        "end_time": "09:56",
+        "start_elapsed": 2247,
+        "end_elapsed": 2284,
+        "source_index": 267
+      },
+      {
+        "game_id": 21700363,
+        "pbp_index": 6927,
+        "description": "Caldwell-Pope REBOUND (Off:1 Def:2)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 2,
+          "prev_off": 0,
+          "prev_def": 2
+        },
+        "start_time": "02:18",
+        "end_time": "01:55",
+        "start_elapsed": 1302,
+        "end_elapsed": 1325,
+        "source_index": 310
+      },
+      {
+        "game_id": 21701150,
+        "pbp_index": 321,
+        "description": "George REBOUND (Off:1 Def:6)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 6,
+          "prev_off": 0,
+          "prev_def": 6
+        },
+        "start_time": "02:19",
+        "end_time": "01:40",
+        "start_elapsed": 1301,
+        "end_elapsed": 1340,
+        "source_index": 321
+      },
+      {
+        "game_id": 21800689,
+        "pbp_index": 1355,
+        "description": "Towns REBOUND (Off:7 Def:5)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 7,
+          "def": 5,
+          "prev_off": 6,
+          "prev_def": 5
+        },
+        "start_time": "01:07",
+        "end_time": "00:52",
+        "start_elapsed": 2813,
+        "end_elapsed": 2828,
+        "source_index": 9
+      },
+      {
+        "game_id": 21900343,
+        "pbp_index": 971,
+        "description": "Lamb REBOUND (Off:2 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 2,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 1
+        },
+        "start_time": "06:25",
+        "end_time": "06:09",
+        "start_elapsed": 1775,
+        "end_elapsed": 1791,
+        "source_index": 84
+      },
+      {
+        "game_id": 22201076,
+        "pbp_index": 554,
+        "description": "[SAC] Monk Rebound (Off:0 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 0,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "11:05",
+        "end_time": "10:33",
+        "start_elapsed": 775,
+        "end_elapsed": 807,
+        "source_index": 142
+      },
+      {
+        "game_id": 22201218,
+        "pbp_index": 2169,
+        "description": "[CHA] Mykhailiuk Rebound (Off:1 Def:1)",
+        "actual": "OREB",
+        "predicted": "DREB",
+        "counter": {
+          "kind": "DREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 1,
+          "prev_def": 0
+        },
+        "start_time": "05:23",
+        "end_time": "04:52",
+        "start_elapsed": 397,
+        "end_elapsed": 428,
+        "source_index": 169
+      },
+      {
+        "game_id": 22200322,
+        "pbp_index": 3542,
+        "description": "Mann REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "06:50",
+        "end_time": "06:12",
+        "start_elapsed": 1750,
+        "end_elapsed": 1788,
+        "source_index": 302
+      },
+      {
+        "game_id": 22200547,
+        "pbp_index": 5023,
+        "description": "Konchar REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "04:25",
+        "end_time": "04:06",
+        "start_elapsed": 455,
+        "end_elapsed": 474,
+        "source_index": 186
+      },
+      {
+        "game_id": 22200602,
+        "pbp_index": 5408,
+        "description": "Waters III REBOUND (Off:1 Def:0)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 0,
+          "prev_off": 0,
+          "prev_def": 0
+        },
+        "start_time": "02:59",
+        "end_time": "02:55",
+        "start_elapsed": 541,
+        "end_elapsed": 545,
+        "source_index": 154
+      },
+      {
+        "game_id": 22400072,
+        "pbp_index": 20,
+        "description": "Walker REBOUND (Off:1 Def:1)",
+        "actual": "DREB",
+        "predicted": "OREB",
+        "counter": {
+          "kind": "OREB",
+          "off": 1,
+          "def": 1,
+          "prev_off": 0,
+          "prev_def": 1
+        },
+        "start_time": "03:58",
+        "end_time": "03:36",
+        "start_elapsed": 2642,
+        "end_elapsed": 2664,
+        "source_index": 20
+      }
+    ]
+  }
+}
