@@ -1,0 +1,129 @@
+name: TREB unique-window rebound residual diagnostic
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - .github/workflows/treb-unique-window-rebound-diagnostic.yml
+      - team_trb_all_players/final_integrity_rebuild/UNIQUE_WINDOW_REBOUND_CONTROL.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        year: [2008,2009,2010,2011,2015,2017,2018,2019,2021,2022,2023,2024]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Download residual summary and season sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          cp team_trb_all_players/final_integrity_rebuild/nonlive_unmatched_rebound/NONLIVE_UNMATCHED_REBOUND_SUMMARY.json /tmp/nonlive-summary.json
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{y}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}',f'pbpstats_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Test unique unused rebound event in possession window
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"
+          NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
+          V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
+          PBP=$(find "$RAW" -name "pbpstats_${YEAR}.csv" -print -quit)
+          python -u team_trb_all_players/unique_window_rebound_diagnostic.py \
+            --nba "$NBA" --v3 "$V3" --pbp "$PBP" --summary /tmp/nonlive-summary.json \
+            --year "$YEAR" --output "/tmp/UNIQUE_WINDOW_${YEAR}.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-unique-window-${{ matrix.year }}
+          path: /tmp/UNIQUE_WINDOW_${{ matrix.year }}.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-unique-window-*
+          path: /tmp/results
+      - name: Aggregate and enforce control veto
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          chunks=[]
+          for p in Path('/tmp/results').rglob('UNIQUE_WINDOW_*.json'):
+              try: chunks.append(json.loads(p.read_text()))
+              except Exception: pass
+          games=[g for c in chunks for g in c.get('games',[])]
+          ok=[g for g in games if g.get('status')=='OK']
+          out={
+            'status':'COMPLETE' if len(chunks)==12 and len(games)==106 and all(g.get('status')=='OK' for g in games) else 'PARTIAL',
+            'chunks_found':len(chunks),'games_screened':len(games),'games_ok':len(ok),
+            'unmatched_rows':sum(c.get('unmatched_rows',0) for c in chunks),
+            'unique_window_rows':sum(c.get('unique_window_rows',0) for c in chunks),
+            'games_all_unmatched_unique_window':sum(c.get('games_all_unmatched_unique_window',0) for c in chunks),
+            'games_all_unmatched_invariant_lineup':sum(c.get('games_all_unmatched_invariant_lineup',0) for c in chunks),
+            'control_applicable':sum(c.get('control_applicable',0) for c in chunks),
+            'control_correct':sum(c.get('control_correct',0) for c in chunks),
+            'control_wrong':sum(c.get('control_wrong',0) for c in chunks),
+            'games':games,
+          }
+          out['promotion_candidate']=bool(out['status']=='COMPLETE' and out['control_wrong']==0 and out['unique_window_rows']>0)
+          Path('/tmp/UNIQUE_WINDOW_REBOUND_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2))
+          PY
+      - name: Persist diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/unique_window_rebound
+          mkdir -p "$DEST"; cp /tmp/UNIQUE_WINDOW_REBOUND_SUMMARY.json "$DEST"/
+          git add -f "$DEST/UNIQUE_WINDOW_REBOUND_SUMMARY.json"
+          if ! git diff --cached --quiet; then git commit -m 'Persist unique-window rebound residual diagnostic'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-unique-window-summary
+          path: /tmp/UNIQUE_WINDOW_REBOUND_SUMMARY.json
+          retention-days: 90
