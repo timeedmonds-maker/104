@@ -1,0 +1,112 @@
+name: TREB join identity three-control diagnostic
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-join-identity-three-control-diagnostic.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  SOURCE_RUN_ID: '31634201123'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - {year: 2019, game_id: 21900343, pbp_index: 1163}
+          - {year: 2021, game_id: 22101198, pbp_index: 1741}
+          - {year: 2024, game_id: 22400422, pbp_index: 771}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_join_identity_diagnostic.py \
+            --year '${{ matrix.year }}' --game-id '${{ matrix.game_id }}' --pbp-index '${{ matrix.pbp_index }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' \
+            --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' \
+            --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/JOIN_IDENTITY_${{ matrix.game_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-join-identity-${{ matrix.game_id }}-${{ github.run_id }}
+          path: /tmp/JOIN_IDENTITY_${{ matrix.game_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-join-identity-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Aggregate explicit evidence
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          paths=sorted(Path('/tmp/results').rglob('JOIN_IDENTITY_*.json'))
+          assert len(paths)==3, [str(p) for p in paths]
+          rows=[json.loads(p.read_text()) for p in paths]
+          summary=[]
+          for r in rows:
+              f=r['diagnostic_flags']
+              summary.append({
+                  'game_id':r['game_id'],
+                  'pbp_index':r['pbp_index'],
+                  'description':r['description'],
+                  'resolved_rebounder_id':r['resolved_rebounder_id'],
+                  'current_eventnum':None if r['current_match'] is None else r['current_match']['eventnum'],
+                  'current_player1_id':None if r['current_match'] is None else r['current_match']['player1_id'],
+                  'legal_rebound_eventnums':[x['eventnum'] for x in r['legal_rebound_candidates']],
+                  'semantic_legal_eventnums':[x['eventnum'] for x in r['semantic_legal_candidates']],
+                  'exact_description_legal_eventnums':[x['eventnum'] for x in r['exact_description_legal_candidates']],
+                  **f,
+              })
+          out={
+              'status':'COMPLETE',
+              'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+              'purpose':'Diagnose the three dual-anchor control failures at the accepted PBP-to-NBA rebound join layer; no repair is promoted.',
+              'cases':summary,
+              'all_current_matches_conflict':all(x['current_match_rebounder_conflicts_with_pbp'] for x in summary),
+              'all_have_unique_semantic_alternative':all(x['unique_semantic_rebound_candidate_in_legal_window'] and x['semantic_candidate_differs_from_current'] for x in summary),
+              'full_evidence':rows,
+          }
+          Path('/tmp/JOIN_IDENTITY_THREE_CONTROL_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='full_evidence'},indent=2))
+          PY
+      - name: Persist durable checkpoint
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          cp /tmp/JOIN_IDENTITY_THREE_CONTROL_SUMMARY.json "$D/"
+          git add -f "$D/JOIN_IDENTITY_THREE_CONTROL_SUMMARY.json"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist three-control rebound join identity diagnostic'
+            git push origin HEAD:agent/treb-batched-game-facts-20260812
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-join-identity-three-control-summary-${{ github.run_id }}
+          path: /tmp/JOIN_IDENTITY_THREE_CONTROL_SUMMARY.json
+          retention-days: 90
