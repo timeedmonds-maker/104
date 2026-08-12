@@ -33,7 +33,10 @@ def main()->int:
     ap.add_argument('--summary',type=Path,required=True); ap.add_argument('--year',type=int,required=True); ap.add_argument('--chunk-index',type=int,required=True); ap.add_argument('--chunk-size',type=int,default=10); ap.add_argument('--output',type=Path,required=True)
     a=ap.parse_args()
     src=json.loads(a.summary.read_text())
-    lo=a.year*100000; hi=(a.year+1)*100000
+    # NBA regular-season game IDs use a three-digit season prefix: 200 for
+    # 2000-01, 208 for 2008-09, 223 for 2023-24, etc.  Therefore the start
+    # year maps to prefix (year - 1800), not year itself.
+    lo=(a.year-1800)*100000; hi=(a.year-1799)*100000
     ids=sorted(int(r['game_id']) for r in src['residual_failures'] if lo<=int(r['game_id'])<hi)
     start=a.chunk_index*a.chunk_size; chunk=ids[start:start+a.chunk_size]
     nba=io.normalize_nba(pd.read_csv(a.nba,low_memory=False)); v3=eng.normalize_v3(pd.read_csv(a.v3,low_memory=False)); pbp=io.normalize_pbp(pd.read_csv(a.pbp,low_memory=False))
