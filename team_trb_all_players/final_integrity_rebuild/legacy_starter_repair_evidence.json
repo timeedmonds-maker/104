@@ -1,1 +1,29 @@
-__CONTENT_PLACEHOLDER__
+{
+  "policy": "Use external boxscore starter evidence only where period-1 PBP cannot contain enough information to identify a silent fifth starter. All other repairs must be derived from offline NBA/PBP event evidence.",
+  "repairs": [
+    {
+      "game_id": 20400736,
+      "season": "2004-05",
+      "period": 1,
+      "team_id": 1610612739,
+      "team": "CLE",
+      "starters": [976, 980, 1956, 2400, 2544],
+      "starter_names": ["Jeff McInnis", "Zydrunas Ilgauskas", "Ira Newble", "Drew Gooden", "LeBron James"],
+      "source": "Basketball-Reference historical box score, Denver Nuggets at Cleveland Cavaliers, February 11 2005",
+      "source_url": "https://www.basketball-reference.com/boxscores/200502110CLE.html",
+      "reason": "NBA legacy/v3 PBP period has only four opening candidates because Ira Newble generates no identifiable period event before a missing substitution; boxscore identifies the actual starting five."
+    },
+    {
+      "game_id": 20500102,
+      "season": "2005-06",
+      "period": 1,
+      "team_id": 1610612748,
+      "team": "MIA",
+      "starters": [297, 1715, 1899, 2548, 2617],
+      "starter_names": ["Alonzo Mourning", "Jason Williams", "James Posey", "Dwyane Wade", "Udonis Haslem"],
+      "source": "Basketball-Reference historical box score, New Orleans/Oklahoma City Hornets at Miami Heat, November 15 2005",
+      "source_url": "https://www.basketball-reference.com/boxscores/200511150MIA.html",
+      "reason": "NBA legacy/v3 PBP period has only four opening candidates because James Posey is silent in the opening event evidence; boxscore identifies the actual starting five."
+    }
+  ]
+}
