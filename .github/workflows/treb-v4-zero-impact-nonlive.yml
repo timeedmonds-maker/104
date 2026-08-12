@@ -1,0 +1,190 @@
+name: TREB v4 zero-impact non-live
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-v4-zero-impact-nonlive.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+  TAIL: team_trb_all_players/final_integrity_rebuild/rebound_forensics/V4_REBOUND_TAIL_SUMMARY.json
+  SOURCE_RUN_ID: '31634201123'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,re
+          from collections import defaultdict
+          from pathlib import Path
+          s=json.loads(Path(os.environ['TAIL']).read_text())
+          assert s['status']=='COMPLETE' and s['target_rebound_failure_games']==58 and s['recovered_games']==33 and s['residual_rebound_failure_games']==25
+          byyear=defaultdict(list); total_rows=0
+          for r in s['residual_records']:
+              gid=int(r['game_id']); m=re.search(r': (\d+)$',r['error']); assert m,r
+              n=int(m.group(1)); total_rows+=n; year=2000+(int(str(gid).zfill(8)[:3])-200)
+              byyear[year].append((gid,n))
+          assert total_rows==77,total_rows
+          chunks=[]
+          for year,items in sorted(byyear.items()):
+              light=[]
+              for gid,n in items:
+                  if n>3:
+                      chunks.append({'chunk_id':f'{year}-H-{gid}','year':year,'games':str(gid),'expected_rows':n})
+                  else:
+                      light.append((gid,n))
+              for i in range(0,len(light),4):
+                  part=light[i:i+4]
+                  chunks.append({'chunk_id':f'{year}-L{i//4+1:02d}','year':year,'games':','.join(str(g) for g,_ in part),'expected_rows':sum(n for _,n in part)})
+          ids=[int(g) for c in chunks for g in c['games'].split(',')]
+          assert len(ids)==25 and len(set(ids))==25
+          matrix={'include':chunks}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(matrix,separators=(',',':'))+'\n')
+          print(f'PLAN chunks={len(chunks)} games=25 rows=77 years={sorted(byyear)}')
+          PY
+
+  diagnose:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - name: Prove zero-impact non-live exclusions
+        shell: bash
+        env:
+          YEAR: ${{ matrix.year }}
+          GAMES: ${{ matrix.games }}
+          CHUNK_ID: ${{ matrix.chunk_id }}
+          EXPECTED_ROWS: ${{ matrix.expected_rows }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,re,sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import local_treb_rebuild as core
+          import production_treb_engine as locked_classifier
+          import production_treb_engine_v3 as lineup_engine
+          import production_rebound_v4 as rebound
+          import run_local_treb_production as io
+          y=int(os.environ['YEAR']); ids=[int(x) for x in os.environ['GAMES'].split(',') if x]
+          nba=io.normalize_nba(pd.read_csv(f'/tmp/source/nbastats_{y}.csv',low_memory=False)); v3=lineup_engine.normalize_v3(pd.read_csv(f'/tmp/source/nbastatsv3_{y}.csv',low_memory=False)); pbp=io.normalize_pbp(pd.read_csv(f'/tmp/source/pbpstats_{y}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}; pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          outgames=[]
+          ft_re=re.compile(r'Free Throw (?:1 of [23]|2 of 3)|Technical Free Throw|Flagrant Free Throw',re.I)
+          for gid in ids:
+              lu=lineup_engine.reconstruct_game_lineups(ng[gid],vg[gid]); joined,audit=rebound.join_pbp_rebounds(lu,pg[gid])
+              ordered=pg[gid].copy(); ordered['PREV_PBP_DESCRIPTION']=ordered.groupby(core.POSSESSION_ID,dropna=False).DESCRIPTION.shift(1)
+              rows=ordered[ordered.DESCRIPTION.fillna('').str.contains('rebound',case=False)].copy()
+              unmatched=[idx for idx in rows.index if idx not in joined.index]
+              assert len(unmatched)==int(audit['unmatched_rebound_bearing_rows'])>0,(gid,len(unmatched),audit)
+              baseline=locked_classifier.classify_rebounds(joined.copy())
+              details=[]; all_proven=True
+              synth_rows=[]
+              for idx in unmatched:
+                  r=rows.loc[idx]; desc=str(r.DESCRIPTION); prev='' if pd.isna(r.PREV_PBP_DESCRIPTION) else str(r.PREV_PBP_DESCRIPTION)
+                  generic=re.search(r'\(Off:',desc,re.I) is None
+                  reasons=[]
+                  if generic and ft_re.search(prev): reasons.append('generic_after_nonlive_ft')
+                  if generic and re.search(r'Turnover|Violation',prev,re.I): reasons.append('generic_after_turnover_or_violation')
+                  if generic and str(r.ENDTIME)=='00:00': reasons.append('generic_buzzer_placeholder')
+                  if generic and str(r.STARTTIME)==str(r.ENDTIME): reasons.append('generic_same_time_placeholder')
+                  proven=bool(reasons); all_proven &= proven
+                  sr=r.to_dict(); sr['NBA_IS_REAL_REBOUND']=False
+                  synth_rows.append((idx,sr))
+                  details.append({'pbp_index':int(idx),'period':int(r.PERIOD),'start_time':str(r.STARTTIME),'end_time':str(r.ENDTIME),'description':desc,'previous_description':prev,'proven_nonlive':proven,'reasons':reasons})
+              zero_delta=False; inserted_safe=False; changed=[]
+              if all_proven:
+                  synth=pd.DataFrame([r for _,r in synth_rows],index=[i for i,_ in synth_rows])
+                  full=pd.concat([joined,synth],axis=0,sort=False).sort_index(kind='stable')
+                  fullc=locked_classifier.classify_rebounds(full)
+                  for idx in joined.index:
+                      b=baseline.loc[idx]; f=fullc.loc[idx]
+                      if bool(b.IS_OREB)!=bool(f.IS_OREB) or bool(b.IS_REAL_REBOUND)!=bool(f.IS_REAL_REBOUND):
+                          changed.append({'pbp_index':int(idx),'baseline_oreb':bool(b.IS_OREB),'with_insert_oreb':bool(f.IS_OREB),'baseline_real':bool(b.IS_REAL_REBOUND),'with_insert_real':bool(f.IS_REAL_REBOUND)})
+                  inserted_safe=all((not bool(fullc.loc[idx].IS_REAL_REBOUND)) and (not bool(fullc.loc[idx].IS_OREB)) for idx in unmatched)
+                  zero_delta=(not changed and inserted_safe)
+                  for d in details:
+                      idx=d['pbp_index']; d['simulated_is_real']=bool(fullc.loc[idx].IS_REAL_REBOUND); d['simulated_is_oreb']=bool(fullc.loc[idx].IS_OREB)
+              outgames.append({'game_id':gid,'unmatched_rows':len(unmatched),'all_unmatched_pbp_proven_nonlive':all_proven,'inserted_rows_nonreal_and_nonoreb':inserted_safe,'matched_classification_changes':changed,'zero_treb_impact_if_excluded':zero_delta,'rows':details})
+          out={'chunk_id':os.environ['CHUNK_ID'],'year':y,'games':len(outgames),'unmatched_rows':sum(g['unmatched_rows'] for g in outgames),'zero_impact_games':sum(g['zero_treb_impact_if_excluded'] for g in outgames),'results':outgames}
+          assert out['unmatched_rows']==int(os.environ['EXPECTED_ROWS']),(out,os.environ['EXPECTED_ROWS'])
+          Path('/tmp').joinpath('NONLIVE_'+os.environ['CHUNK_ID']+'.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='results'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v4-nonlive-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/NONLIVE_${{ matrix.chunk_id }}.json
+          retention-days: 90
+
+  aggregate:
+    needs: [plan, diagnose]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-v4-nonlive-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Strict aggregate and persist
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          chunks=[json.loads(p.read_text()) for p in sorted(Path('/tmp/results').rglob('NONLIVE_*.json'))]
+          games=[g for c in chunks for g in c['results']]
+          ids=[int(g['game_id']) for g in games]; rows=sum(int(g['unmatched_rows']) for g in games)
+          assert len(ids)==25 and len(set(ids))==25 and rows==77,(len(ids),len(set(ids)),rows)
+          safe=[g for g in games if g['zero_treb_impact_if_excluded']]
+          out={'status':'COMPLETE','workflow_run_id':int(__import__('os').environ['GITHUB_RUN_ID']),'target_games':25,'target_unmatched_rows':77,'games_seen':25,'rows_seen':77,'zero_impact_games':len(safe),'zero_impact_rows':sum(g['unmatched_rows'] for g in safe),'zero_impact_game_ids':[g['game_id'] for g in safe],'games':games}
+          Path('/tmp/ZERO_IMPACT_NONLIVE_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2))
+          PY
+      - name: Persist checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics; cp /tmp/ZERO_IMPACT_NONLIVE_SUMMARY.json "$D/"
+          git add -f "$D/ZERO_IMPACT_NONLIVE_SUMMARY.json"
+          if ! git diff --cached --quiet; then git commit -m 'Persist zero-impact non-live rebound diagnostic'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v4-zero-impact-nonlive-summary-${{ github.run_id }}
+          path: /tmp/ZERO_IMPACT_NONLIVE_SUMMARY.json
+          retention-days: 90
