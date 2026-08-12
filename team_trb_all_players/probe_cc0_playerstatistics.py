@@ -6,12 +6,24 @@ import json
 from pathlib import Path
 import pandas as pd
 
-# Nine still-ambiguous historical lineup games plus the three 2019 games for
-# which the legacy source pair was missing.  These IDs are stored without the
-# leading NBA API "00" prefix; normalize source IDs numerically before match.
 BLOCKER_GAMES = {
     20201160, 20400335, 20600887, 20700319, 20800142, 21100842,
     21500916, 21800143, 22000485, 21901316, 21901317, 21901318,
+}
+
+# Candidate pools emitted by the V3/team-local canary.  The CC0 source is used
+# as independent full-game minute evidence only; `startingPosition` is retained
+# in the audit but is NOT treated as a quarter-starter flag.
+AMBIGUITIES = {
+    20201160: {"period": 5, "team_id": 1610612765, "candidates": [1088, 1442, 1888]},
+    20400335: {"period": 2, "team_id": 1610612740, "candidates": [1924, 2365, 2424, 2437, 2454, 2747]},
+    20600887: {"period": 5, "team_id": 1610612750, "candidates": [1536, 2033]},
+    20700319: {"period": 4, "team_id": 1610612752, "candidates": [255, 1897, 2756, 101181]},
+    20800142: {"period": 5, "team_id": 1610612752, "candidates": [2216, 200776]},
+    21100842: {"period": 2, "team_id": 1610612766, "candidates": [2550, 2736]},
+    21500916: {"period": 5, "team_id": 1610612757, "candidates": [202334, 203148, 203459, 203943, 203994, 1626145, 1626192, 1626242]},
+    21800143: {"period": 6, "team_id": 1610612741, "candidates": [202703, 203487, 203200, 1627885]},
+    22000485: {"period": 1, "team_id": 1610612742, "candidates": [1628973, 1630179, 201144]},
 }
 
 
@@ -63,11 +75,9 @@ def main() -> int:
     cols = list(d.columns)
     game = pick(cols, ["gameId", "game_id", "GAME_ID"])
     player = pick(cols, ["personId", "playerId", "player_id", "PERSON_ID", "PLAYER_ID"])
-    # Historical NBA dataset names this playerteamId.  Keep generic aliases as
-    # fallbacks so the probe remains useful if a future snapshot renames it.
     team = pick(cols, ["playerteamId", "playerTeamId", "teamId", "team_id", "TEAM_ID"])
     minutes = pick(cols, ["numMinutes", "minutes", "min", "MIN"])
-    date = pick(cols, ["gameDateTime", "gameDate", "game_date", "GAME_DATE"])
+    date = pick(cols, ["gameDateTimeEst", "gameDateTime", "gameDate", "game_date", "GAME_DATE"])
     name = pick(cols, ["playerName", "player_name", "name", "PLAYER_NAME"])
     first = pick(cols, ["firstName", "first_name", "FIRST_NAME"])
     last = pick(cols, ["lastName", "last_name", "LAST_NAME"])
@@ -90,6 +100,7 @@ def main() -> int:
         "blocker_game_ids_found": [],
         "blocker_game_ids_missing": [],
         "blocker_rows": [],
+        "ambiguity_evidence": [],
         "sample_zero_or_blank_minute_rows": [],
         "sample_positive_rows": [],
     }
@@ -127,6 +138,28 @@ def main() -> int:
             b = b.sort_values(sort_cols, kind="stable")
         payload["blocker_rows"] = b.where(pd.notna(b), None).to_dict("records")
 
+        if player and team:
+            player_num = pd.to_numeric(d[player], errors="coerce")
+            team_num = pd.to_numeric(d[team], errors="coerce")
+            for gid, spec in sorted(AMBIGUITIES.items()):
+                mask = normalized_game.eq(gid) & team_num.eq(spec["team_id"])
+                team_rows = d.loc[mask].copy()
+                team_minutes = minute_num.loc[mask] if minute_num is not None else pd.Series(index=team_rows.index, dtype=float)
+                candidate_mask = mask & player_num.isin(spec["candidates"])
+                candidate_rows = d.loc[candidate_mask, [c for c in (player, first, last, minutes, starter) if c]].copy()
+                if minute_num is not None:
+                    candidate_rows["parsed_minutes"] = minute_num.loc[candidate_mask].values
+                    candidate_rows["parsed_seconds"] = (candidate_rows["parsed_minutes"] * 60.0).round(3)
+                payload["ambiguity_evidence"].append({
+                    "game_id": gid,
+                    "period": spec["period"],
+                    "team_id": spec["team_id"],
+                    "candidate_ids": spec["candidates"],
+                    "candidate_rows": candidate_rows.where(pd.notna(candidate_rows), None).to_dict("records"),
+                    "team_positive_minutes_sum": float(team_minutes.fillna(0).clip(lower=0).sum()) if minute_num is not None else None,
+                    "note": "startingPosition retained as source metadata only; resolution is based on full-game minute fit plus event legality",
+                })
+
     a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_text(json.dumps(payload, indent=2, default=str) + "\n")
     print(json.dumps({
@@ -135,6 +168,7 @@ def main() -> int:
         "blocker_game_ids_found": payload["blocker_game_ids_found"],
         "blocker_game_ids_missing": payload["blocker_game_ids_missing"],
         "blocker_rows": len(payload["blocker_rows"]),
+        "ambiguity_evidence_rows": len(payload["ambiguity_evidence"]),
     }, indent=2))
     if payload["blocker_game_ids_missing"]:
         raise SystemExit("CC0 dataset is missing one or more blocker games")
