@@ -1,0 +1,193 @@
+name: TREB promote order repairs v4
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-promote-order-repairs-v4.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+  SUMMARY: team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_FORENSICS_V3_SUMMARY.json
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    outputs:
+      patch_sha: ${{ steps.commit.outputs.patch_sha }}
+      chunk_matrix: ${{ steps.promote.outputs.chunk_matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - id: promote
+        name: Materialize exact 33-row evidence and wire v4 builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          s=json.loads(Path(os.environ['SUMMARY']).read_text())
+          assert s['status']=='COMPLETE'
+          assert s['diagnostic_engine']=='production_rebound_v3'
+          assert s['target_games']==58 and s['unmatched_rows_observed']==110
+          assert s['games_all_unmatched_uniquely_assigned']==33 and s['assigned_rows_in_solvable_games']==33
+          assert s['control_applicable']==5693 and s['control_correct']==5693 and s['control_wrong']==0
+          repairs=[]
+          for g in s['games']:
+              if not g.get('all_unmatched_uniquely_assigned'): continue
+              assert int(g['unmatched_rows'])==1 and int(g['assigned_rows'])==1, g['game_id']
+              unique_periods=[p for p in g.get('periods',[]) if p.get('unique_complete_assignment')]
+              assert len(unique_periods)==1, (g['game_id'],unique_periods)
+              p=unique_periods[0]; assert len(p['assignments'])==1 and len(p['candidate_detail'])==1
+              a=p['assignments'][0]; d=p['candidate_detail'][0]
+              assert int(a['pbp_index'])==int(d['pbp_index'])
+              rec={
+                'game_id':int(g['game_id']),'period':int(p['period']),
+                'start_time':str(d['start_time']),'end_time':str(d['end_time']),'pbp_description':str(d['description']),
+                'nba_eventnum':int(a['eventnum']),'nba_elapsed':int(a['elapsed']),
+                'lineup':[int(x) for x in a['lineup']],'real':bool(a['real']),
+                'method':'unique_complete_order_preserving_assignment_within_existing_legal_window'
+              }
+              repairs.append(rec)
+          assert len(repairs)==33 and len({r['game_id'] for r in repairs})==33
+          keys=[(r['game_id'],r['period'],r['start_time'],r['end_time'],r['pbp_description']) for r in repairs]
+          assert len(keys)==len(set(keys))
+          evidence={
+            'status':'PROMOTED','source_summary':'REBOUND_FORENSICS_V3_SUMMARY.json',
+            'source_production_run_id':s['source_production_run_id'],'source_production_patch_sha':s['source_production_patch_sha'],
+            'forensic_aggregate_run_id':s['aggregate_run_id'],'repair_games':33,'repair_rows':33,
+            'control_applicable':s['control_applicable'],'control_correct':s['control_correct'],'control_wrong':s['control_wrong'],
+            'policy':'Finite evidence only. No matcher widening. Runtime must assert exact PBP identity, NBA event identity, elapsed, lineup, real status, and event non-reuse.',
+            'repairs':sorted(repairs,key=lambda r:r['game_id'])
+          }
+          ep=Path('team_trb_all_players/final_integrity_rebuild/rebound_forensics/ORDER_PRESERVING_REBOUND_REPAIRS.json')
+          ep.write_text(json.dumps(evidence,indent=2)+'\n')
+          bp=Path('team_trb_all_players/build_exact_game_fact_layer.py'); text=bp.read_text()
+          old='import production_rebound_v3 as rebound_join_engine'
+          new='import production_rebound_v4 as rebound_join_engine'
+          assert old in text or new in text
+          text=text.replace(old,new); bp.write_text(text)
+          m=json.loads(Path(os.environ['MANIFEST']).read_text())
+          matrix={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('chunk_matrix='+json.dumps(matrix,separators=(',',':'))+'\n')
+          print('PROMOTE repair_games=33 repair_rows=33 controls=5693/5693 builder=production_rebound_v4 chunks=24')
+          PY
+      - id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/final_integrity_rebuild/rebound_forensics/ORDER_PRESERVING_REBOUND_REPAIRS.json team_trb_all_players/build_exact_game_fact_layer.py team_trb_all_players/production_rebound_v4.py
+          git commit -m 'Promote 33 exact order-preserving rebound repairs'
+          git push origin HEAD:agent/treb-batched-game-facts-20260812
+          echo "patch_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  verify-chunk:
+    needs: promote
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.promote.outputs.chunk_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: '${{ needs.promote.outputs.patch_sha }}'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - name: Rebuild only this current rebound-tail chunk with production v4
+        shell: bash
+        env:
+          YEAR: ${{ matrix.year }}
+          CHUNK_ID: ${{ matrix.chunk_id }}
+          GAMES: ${{ matrix.games }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as lineup_engine
+          import build_exact_game_fact_layer as build
+          ids=[int(x) for x in os.environ['GAMES'].split(',') if x]; y=int(os.environ['YEAR'])
+          nba=io.normalize_nba(pd.read_csv(f'/tmp/source/nbastats_{y}.csv',low_memory=False)); v3=lineup_engine.normalize_v3(pd.read_csv(f'/tmp/source/nbastatsv3_{y}.csv',low_memory=False)); pbp=io.normalize_pbp(pd.read_csv(f'/tmp/source/pbpstats_{y}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}; pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          recovered=[]; residual=[]; audits=[]
+          for gid in ids:
+              try:
+                  _,_,a=build.build_game(gid,ng[gid],vg[gid],pg[gid]); recovered.append(gid); audits.append(a)
+              except Exception as exc:
+                  residual.append({'game_id':gid,'error':f'{type(exc).__name__}: {exc}'})
+          out={'chunk_id':os.environ['CHUNK_ID'],'year':y,'targets':len(ids),'recovered':len(recovered),'residual':len(residual),'recovered_games':recovered,'residual_games':residual,'order_repairs_applied':sum(int(a.get('join_audit',{}).get('order_preserving_repairs',0)) for a in audits)}
+          Path('/tmp').joinpath('VERIFY_'+os.environ['CHUNK_ID']+'.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-v4-verify-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/VERIFY_${{ matrix.chunk_id }}.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: [promote, verify-chunk]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: '${{ needs.promote.outputs.patch_sha }}'}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-v4-verify-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Measure exact post-promotion rebound tail
+        shell: bash
+        env:
+          PATCH_SHA: ${{ needs.promote.outputs.patch_sha }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          files=sorted(Path('/tmp/results').rglob('VERIFY_*.json')); chunks=[json.loads(p.read_text()) for p in files]
+          assert len(chunks)==24, len(chunks)
+          targets=sum(c['targets'] for c in chunks); recovered=sum(c['recovered'] for c in chunks); residual=sum(c['residual'] for c in chunks); repairs=sum(c['order_repairs_applied'] for c in chunks)
+          ids=[g for c in chunks for g in c['recovered_games']]+[r['game_id'] for c in chunks for r in c['residual_games']]
+          assert targets==58 and len(ids)==58 and len(set(ids))==58
+          assert repairs==33, repairs
+          residual_records=[r for c in chunks for r in c['residual_games']]
+          out={'status':'COMPLETE','patch_sha':os.environ['PATCH_SHA'],'target_rebound_failure_games':58,'recovered_games':recovered,'residual_rebound_failure_games':residual,'order_preserving_repairs_applied':repairs,'residual_records':sorted(residual_records,key=lambda r:r['game_id'])}
+          Path('/tmp/V4_REBOUND_TAIL_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps(out,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v4-rebound-tail-summary-${{ github.run_id }}
+          path: /tmp/V4_REBOUND_TAIL_SUMMARY.json
+          retention-days: 90
+      - name: Persist verification checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics; cp /tmp/V4_REBOUND_TAIL_SUMMARY.json "$D/"
+          git add -f "$D/V4_REBOUND_TAIL_SUMMARY.json"; git commit -m 'Persist v4 rebound-tail verification'; git push origin HEAD:agent/treb-batched-game-facts-20260812
