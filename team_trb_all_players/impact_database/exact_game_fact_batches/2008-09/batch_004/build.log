@@ -1,0 +1,17 @@
+BATCH_PROGRESS season=2008-09 batch=4 processed=20/100 success=19 failures=1
+BATCH_PROGRESS season=2008-09 batch=4 processed=40/100 success=35 failures=5
+BATCH_PROGRESS season=2008-09 batch=4 processed=60/100 success=52 failures=8
+BATCH_PROGRESS season=2008-09 batch=4 processed=80/100 success=70 failures=10
+BATCH_PROGRESS season=2008-09 batch=4 processed=100/100 success=88 failures=12
+{
+  "season": "2008-09",
+  "batch_index": 4,
+  "batch_size": 100,
+  "total_common_games": 1230,
+  "start_index": 400,
+  "stop_index": 500,
+  "games_requested": 100,
+  "successful_games": 88,
+  "failed_games": 12,
+  "status": "REPAIR_REQUIRED"
+}
