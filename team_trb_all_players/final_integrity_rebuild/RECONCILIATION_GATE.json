@@ -1,5 +1,5 @@
 {
-  "status": "LOCKED_FROM_AUTHORITATIVE_V2_BUILDER",
+  "status": "FINAL_PTS_UNIVERSE_LOCKED_V2_SPLIT_PROVISIONAL",
   "source_commit": "0249c24df836f31931e955999b9b9f0eee3bb77f",
   "source_builder": "team_trb_all_players/build_roster_targets_v2.py",
   "raw_positive_core_pts": 14526,
@@ -8,12 +8,22 @@
     {"season": "2003-04", "player_id": "1917", "team_id": 1610612746}
   ],
   "final_pts_target": 14524,
-  "full_core_reuse_pts": 9647,
-  "partial_pts": 4877,
-  "partial_segments": 5199,
-  "identity_checks": [
-    "14526 - 2 = 14524",
-    "9647 + 4877 = 14524"
-  ],
-  "acceptance_policy": "These counts and exact orphan keys are hard gates. Finalization must fail closed on any mismatch."
+  "hard_identity_check": "14526 - 2 = 14524",
+  "v2_classification": {
+    "full_core_reuse_pts": 9647,
+    "partial_pts": 4877,
+    "partial_segments": 5199,
+    "status": "PROVISIONAL_NOT_A_FINAL_HARD_GATE",
+    "reason": "Post-finalization integrity audit proved at least 30 V2 roster windows structurally impossible because team_games_in_tenure was less than locked-core GamesPlayed. The final full/partial/segment split must therefore be re-derived after targeted tenure repairs."
+  },
+  "rejected_broad_v3_candidate": {
+    "full_core_reuse_pts": 9535,
+    "partial_pts": 4989,
+    "partial_segments": 5309,
+    "tenure_game_count_failures": 114,
+    "empty_played_tenures": 1,
+    "impossible_minute_rows": 19,
+    "status": "REJECTED"
+  },
+  "acceptance_policy": "The 14,524 unique PTS universe and the two exact orphan exclusions are hard gates. Full-core/partial/segment counts are outputs of the corrected tenure model and must be reconciled after targeted evidence-backed repairs; no historical split count may override a structural integrity failure."
 }
