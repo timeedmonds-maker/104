@@ -17,6 +17,7 @@ import argparse
 import json
 from pathlib import Path
 
+AUDIT_VERSION = 2
 ROUNDING_TOLERANCE_MINUTES = 0.55
 
 
@@ -124,6 +125,7 @@ def main() -> int:
         counts[r["status"]] = counts.get(r["status"], 0) + 1
     payload = {
         "status": "COMPLETE",
+        "audit_version": AUDIT_VERSION,
         "rounding_tolerance_minutes": ROUNDING_TOLERANCE_MINUTES,
         "games_with_explicit_trials": len(rows),
         "status_counts": counts,
