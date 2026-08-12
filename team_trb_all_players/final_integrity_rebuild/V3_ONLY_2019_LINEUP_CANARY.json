@@ -4,23 +4,631 @@
     {
       "game_id": 21901316,
       "v3_rows": 487,
-      "status": "FAIL_LINEUP",
-      "error": "CDN substitution outgoing absent game=21901316 period=3 action=3860 player=1629134 lineup=[2617, 203086, 203524, 1629130, 1629639]"
+      "status": "PASS_LINEUP",
+      "players_with_seconds": 22,
+      "substitution_expansion_count": 33,
+      "lineup_audit_count": 24,
+      "player_seconds": {
+        "2617": 1411.0,
+        "203086": 1726.0,
+        "203200": 1431.0,
+        "203482": 1219.0,
+        "203524": 2434.0,
+        "203926": 1313.0,
+        "203960": 1402.0,
+        "204456": 1273.0,
+        "1627763": 1471.0,
+        "1627884": 963.0,
+        "1628388": 1081.0,
+        "1628410": 1843.0,
+        "1628513": 136.0,
+        "1628968": 136.0,
+        "1628988": 1037.0,
+        "1628993": 2299.0,
+        "1629048": 978.0,
+        "1629130": 804.0,
+        "1629134": 1978.0,
+        "1629639": 1676.0,
+        "1629734": 720.0,
+        "1629735": 1469.0
+      },
+      "minute_comparisons": [
+        {
+          "player_id": 2617,
+          "player": "Udonis Haslem",
+          "source_minutes": 23.0,
+          "engine_minutes": 23.516667,
+          "abs_delta_minutes": 0.516667
+        },
+        {
+          "player_id": 2738,
+          "player": "Andre Iguodala",
+          "source_minutes": 0.0,
+          "engine_minutes": 0.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 202710,
+          "player": "Jimmy Butler",
+          "source_minutes": 0.0,
+          "engine_minutes": 0.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 203086,
+          "player": "Meyers Leonard",
+          "source_minutes": 28.0,
+          "engine_minutes": 28.766667,
+          "abs_delta_minutes": 0.766667
+        },
+        {
+          "player_id": 203109,
+          "player": "Jae Crowder",
+          "source_minutes": 0.0,
+          "engine_minutes": 0.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 203482,
+          "player": "Kelly Olynyk",
+          "source_minutes": 20.0,
+          "engine_minutes": 20.316667,
+          "abs_delta_minutes": 0.316667
+        },
+        {
+          "player_id": 203524,
+          "player": "Solomon Hill",
+          "source_minutes": 40.0,
+          "engine_minutes": 40.566667,
+          "abs_delta_minutes": 0.566667
+        },
+        {
+          "player_id": 1627884,
+          "player": "Derrick Jones Jr.",
+          "source_minutes": 16.0,
+          "engine_minutes": 16.05,
+          "abs_delta_minutes": 0.05
+        },
+        {
+          "player_id": 1629130,
+          "player": "Duncan Robinson",
+          "source_minutes": 13.0,
+          "engine_minutes": 13.4,
+          "abs_delta_minutes": 0.4
+        },
+        {
+          "player_id": 1629134,
+          "player": "Kendrick Nunn",
+          "source_minutes": 32.0,
+          "engine_minutes": 32.966667,
+          "abs_delta_minutes": 0.966667
+        },
+        {
+          "player_id": 1629639,
+          "player": "Tyler Herro",
+          "source_minutes": 27.0,
+          "engine_minutes": 27.933333,
+          "abs_delta_minutes": 0.933333
+        },
+        {
+          "player_id": 1629734,
+          "player": "Kyle Alexander",
+          "source_minutes": 12.0,
+          "engine_minutes": 12.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 1629735,
+          "player": "Chris Silva",
+          "source_minutes": 24.0,
+          "engine_minutes": 24.483333,
+          "abs_delta_minutes": 0.483333
+        },
+        {
+          "player_id": 203200,
+          "player": "Justin Holiday",
+          "source_minutes": 23.0,
+          "engine_minutes": 23.85,
+          "abs_delta_minutes": 0.85
+        },
+        {
+          "player_id": 203926,
+          "player": "Doug McDermott",
+          "source_minutes": 21.0,
+          "engine_minutes": 21.883333,
+          "abs_delta_minutes": 0.883333
+        },
+        {
+          "player_id": 203960,
+          "player": "JaKarr Sampson",
+          "source_minutes": 23.0,
+          "engine_minutes": 23.366667,
+          "abs_delta_minutes": 0.366667
+        },
+        {
+          "player_id": 204456,
+          "player": "T.J. McConnell",
+          "source_minutes": 21.0,
+          "engine_minutes": 21.216667,
+          "abs_delta_minutes": 0.216667
+        },
+        {
+          "player_id": 1627763,
+          "player": "Malcolm Brogdon",
+          "source_minutes": 24.0,
+          "engine_minutes": 24.516667,
+          "abs_delta_minutes": 0.516667
+        },
+        {
+          "player_id": 1628388,
+          "player": "T.J. Leaf",
+          "source_minutes": 18.0,
+          "engine_minutes": 18.016667,
+          "abs_delta_minutes": 0.016667
+        },
+        {
+          "player_id": 1628410,
+          "player": "Edmond Sumner",
+          "source_minutes": 30.0,
+          "engine_minutes": 30.716667,
+          "abs_delta_minutes": 0.716667
+        },
+        {
+          "player_id": 1628513,
+          "player": "Naz Mitrou-Long",
+          "source_minutes": 2.0,
+          "engine_minutes": 2.266667,
+          "abs_delta_minutes": 0.266667
+        },
+        {
+          "player_id": 1628968,
+          "player": "Brian Bowen II",
+          "source_minutes": 2.0,
+          "engine_minutes": 2.266667,
+          "abs_delta_minutes": 0.266667
+        },
+        {
+          "player_id": 1628988,
+          "player": "Aaron Holiday",
+          "source_minutes": 17.0,
+          "engine_minutes": 17.283333,
+          "abs_delta_minutes": 0.283333
+        },
+        {
+          "player_id": 1628993,
+          "player": "Alize Johnson",
+          "source_minutes": 38.0,
+          "engine_minutes": 38.316667,
+          "abs_delta_minutes": 0.316667
+        },
+        {
+          "player_id": 1629048,
+          "player": "ga Bitadze",
+          "source_minutes": 16.0,
+          "engine_minutes": 16.3,
+          "abs_delta_minutes": 0.3
+        }
+      ],
+      "max_abs_delta_minutes": 0.966667,
+      "sum_abs_delta_minutes": 10.000003
     },
     {
       "game_id": 21901317,
       "v3_rows": 569,
-      "status": "FAIL_LINEUP",
-      "error": "CDN substitution incoming already present game=21901317 period=2 action=1871 player=1628390"
+      "status": "PASS_LINEUP",
+      "players_with_seconds": 21,
+      "substitution_expansion_count": 31,
+      "lineup_audit_count": 33,
+      "player_seconds": {
+        "201149": 1739.0,
+        "201568": 532.0,
+        "202335": 2334.0,
+        "202704": 971.7,
+        "203210": 1645.0,
+        "203457": 922.0,
+        "203460": 1687.0,
+        "203471": 1529.0,
+        "203488": 856.0,
+        "203500": 382.0,
+        "203585": 3076.0,
+        "1627826": 642.0,
+        "1628390": 1048.0,
+        "1628977": 2387.0,
+        "1628983": 811.0,
+        "1628985": 1456.0,
+        "1628987": 671.0,
+        "1629126": 1772.0,
+        "1629599": 2978.3,
+        "1629611": 2514.0,
+        "1629647": 1847.0
+      },
+      "minute_comparisons": [
+        {
+          "player_id": 101150,
+          "player": "Lou Williams",
+          "source_minutes": 0.0,
+          "engine_minutes": 0.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 201149,
+          "player": "Joakim Noah",
+          "source_minutes": 28.0,
+          "engine_minutes": 28.983333,
+          "abs_delta_minutes": 0.983333
+        },
+        {
+          "player_id": 202331,
+          "player": "Paul George",
+          "source_minutes": 0.0,
+          "engine_minutes": 0.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 202335,
+          "player": "Patrick Patterson",
+          "source_minutes": 38.0,
+          "engine_minutes": 38.9,
+          "abs_delta_minutes": 0.9
+        },
+        {
+          "player_id": 202694,
+          "player": "Marcus Morris Sr.",
+          "source_minutes": 0.0,
+          "engine_minutes": 0.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 202695,
+          "player": "Kawhi Leonard",
+          "source_minutes": 0.0,
+          "engine_minutes": 0.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 202704,
+          "player": "Reggie Jackson",
+          "source_minutes": 16.0,
+          "engine_minutes": 16.195,
+          "abs_delta_minutes": 0.195
+        },
+        {
+          "player_id": 203210,
+          "player": "JaMychal Green",
+          "source_minutes": 27.0,
+          "engine_minutes": 27.416667,
+          "abs_delta_minutes": 0.416667
+        },
+        {
+          "player_id": 203585,
+          "player": "Rodney McGruder",
+          "source_minutes": 51.0,
+          "engine_minutes": 51.266667,
+          "abs_delta_minutes": 0.266667
+        },
+        {
+          "player_id": 1627826,
+          "player": "Ivica Zubac",
+          "source_minutes": 10.0,
+          "engine_minutes": 10.7,
+          "abs_delta_minutes": 0.7
+        },
+        {
+          "player_id": 1629599,
+          "player": "Amir Coffey",
+          "source_minutes": 49.0,
+          "engine_minutes": 49.638333,
+          "abs_delta_minutes": 0.638333
+        },
+        {
+          "player_id": 1629611,
+          "player": "Terance Mann",
+          "source_minutes": 41.0,
+          "engine_minutes": 41.9,
+          "abs_delta_minutes": 0.9
+        },
+        {
+          "player_id": 201568,
+          "player": "Danilo Gallinari",
+          "source_minutes": 8.0,
+          "engine_minutes": 8.866667,
+          "abs_delta_minutes": 0.866667
+        },
+        {
+          "player_id": 203457,
+          "player": "Nerlens Noel",
+          "source_minutes": 15.0,
+          "engine_minutes": 15.366667,
+          "abs_delta_minutes": 0.366667
+        },
+        {
+          "player_id": 203460,
+          "player": "Andre Roberson",
+          "source_minutes": 28.0,
+          "engine_minutes": 28.116667,
+          "abs_delta_minutes": 0.116667
+        },
+        {
+          "player_id": 203471,
+          "player": "Dennis Schroder",
+          "source_minutes": 25.0,
+          "engine_minutes": 25.483333,
+          "abs_delta_minutes": 0.483333
+        },
+        {
+          "player_id": 203488,
+          "player": "Mike Muscala",
+          "source_minutes": 14.0,
+          "engine_minutes": 14.266667,
+          "abs_delta_minutes": 0.266667
+        },
+        {
+          "player_id": 203500,
+          "player": "Steven Adams",
+          "source_minutes": 6.0,
+          "engine_minutes": 6.366667,
+          "abs_delta_minutes": 0.366667
+        },
+        {
+          "player_id": 1628390,
+          "player": "Terrance Ferguson",
+          "source_minutes": 17.0,
+          "engine_minutes": 17.466667,
+          "abs_delta_minutes": 0.466667
+        },
+        {
+          "player_id": 1628977,
+          "player": "Hamidou Diallo",
+          "source_minutes": 39.0,
+          "engine_minutes": 39.783333,
+          "abs_delta_minutes": 0.783333
+        },
+        {
+          "player_id": 1628983,
+          "player": "Shai Gilgeous-Alexander",
+          "source_minutes": 13.0,
+          "engine_minutes": 13.516667,
+          "abs_delta_minutes": 0.516667
+        },
+        {
+          "player_id": 1628985,
+          "player": "Devon Hall",
+          "source_minutes": 24.0,
+          "engine_minutes": 24.266667,
+          "abs_delta_minutes": 0.266667
+        },
+        {
+          "player_id": 1628987,
+          "player": "Kevin Hervey",
+          "source_minutes": 11.0,
+          "engine_minutes": 11.183333,
+          "abs_delta_minutes": 0.183333
+        },
+        {
+          "player_id": 1629126,
+          "player": "Deonte Burton",
+          "source_minutes": 29.0,
+          "engine_minutes": 29.533333,
+          "abs_delta_minutes": 0.533333
+        },
+        {
+          "player_id": 1629647,
+          "player": "Darius Bazley",
+          "source_minutes": 30.0,
+          "engine_minutes": 30.783333,
+          "abs_delta_minutes": 0.783333
+        }
+      ],
+      "max_abs_delta_minutes": 0.983333,
+      "sum_abs_delta_minutes": 11.000001
     },
     {
       "game_id": 21901318,
       "v3_rows": 475,
-      "status": "FAIL_LINEUP",
-      "error": "CDN substitution outgoing absent game=21901318 period=2 action=1950 player=1626178 lineup=[1626169, 1626259, 1628449, 1628778, 1629056]"
+      "status": "PASS_LINEUP",
+      "players_with_seconds": 23,
+      "substitution_expansion_count": 32,
+      "lineup_audit_count": 25,
+      "player_seconds": {
+        "200794": 930.0,
+        "201188": 1003.0,
+        "203486": 1182.0,
+        "203584": 1680.0,
+        "203924": 1098.0,
+        "203943": 390.0,
+        "203999": 612.0,
+        "1626169": 1714.0,
+        "1626178": 1338.0,
+        "1626181": 1368.0,
+        "1626259": 1537.0,
+        "1627750": 612.0,
+        "1628408": 1848.0,
+        "1628420": 1791.0,
+        "1628449": 1290.0,
+        "1628470": 898.0,
+        "1628778": 1648.0,
+        "1628966": 1461.0,
+        "1629056": 2042.0,
+        "1629076": 971.0,
+        "1629608": 762.0,
+        "1629626": 927.0,
+        "1629744": 1698.0
+      },
+      "minute_comparisons": [
+        {
+          "player_id": 200794,
+          "player": "Paul Millsap",
+          "source_minutes": 15.0,
+          "engine_minutes": 15.5,
+          "abs_delta_minutes": 0.5
+        },
+        {
+          "player_id": 203486,
+          "player": "Mason Plumlee",
+          "source_minutes": 19.0,
+          "engine_minutes": 19.7,
+          "abs_delta_minutes": 0.7
+        },
+        {
+          "player_id": 203584,
+          "player": "Troy Daniels",
+          "source_minutes": 28.0,
+          "engine_minutes": 28.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 203924,
+          "player": "Jerami Grant",
+          "source_minutes": 18.0,
+          "engine_minutes": 18.3,
+          "abs_delta_minutes": 0.3
+        },
+        {
+          "player_id": 203943,
+          "player": "Noah Vonleh",
+          "source_minutes": 6.0,
+          "engine_minutes": 6.5,
+          "abs_delta_minutes": 0.5
+        },
+        {
+          "player_id": 203999,
+          "player": "Nikola Jokic",
+          "source_minutes": 10.0,
+          "engine_minutes": 10.2,
+          "abs_delta_minutes": 0.2
+        },
+        {
+          "player_id": 1627750,
+          "player": "Jamal Murray",
+          "source_minutes": 10.0,
+          "engine_minutes": 10.2,
+          "abs_delta_minutes": 0.2
+        },
+        {
+          "player_id": 1628408,
+          "player": "PJ Dozier",
+          "source_minutes": 30.0,
+          "engine_minutes": 30.8,
+          "abs_delta_minutes": 0.8
+        },
+        {
+          "player_id": 1628420,
+          "player": "Monte Morris",
+          "source_minutes": 29.0,
+          "engine_minutes": 29.85,
+          "abs_delta_minutes": 0.85
+        },
+        {
+          "player_id": 1628470,
+          "player": "Torrey Craig",
+          "source_minutes": 14.0,
+          "engine_minutes": 14.966667,
+          "abs_delta_minutes": 0.966667
+        },
+        {
+          "player_id": 1628966,
+          "player": "Keita Bates-Diop",
+          "source_minutes": 24.0,
+          "engine_minutes": 24.35,
+          "abs_delta_minutes": 0.35
+        },
+        {
+          "player_id": 1629076,
+          "player": "Tyler Cook",
+          "source_minutes": 16.0,
+          "engine_minutes": 16.183333,
+          "abs_delta_minutes": 0.183333
+        },
+        {
+          "player_id": 1629626,
+          "player": "Bol Bol",
+          "source_minutes": 15.0,
+          "engine_minutes": 15.45,
+          "abs_delta_minutes": 0.45
+        },
+        {
+          "player_id": 201188,
+          "player": "Marc Gasol",
+          "source_minutes": 16.0,
+          "engine_minutes": 16.716667,
+          "abs_delta_minutes": 0.716667
+        },
+        {
+          "player_id": 1626169,
+          "player": "Stanley Johnson",
+          "source_minutes": 28.0,
+          "engine_minutes": 28.566667,
+          "abs_delta_minutes": 0.566667
+        },
+        {
+          "player_id": 1626178,
+          "player": "Rondae Hollis-Jefferson",
+          "source_minutes": 22.0,
+          "engine_minutes": 22.3,
+          "abs_delta_minutes": 0.3
+        },
+        {
+          "player_id": 1626181,
+          "player": "Norman Powell",
+          "source_minutes": 22.0,
+          "engine_minutes": 22.8,
+          "abs_delta_minutes": 0.8
+        },
+        {
+          "player_id": 1626259,
+          "player": "Malcolm Miller",
+          "source_minutes": 25.0,
+          "engine_minutes": 25.616667,
+          "abs_delta_minutes": 0.616667
+        },
+        {
+          "player_id": 1628449,
+          "player": "Chris Boucher",
+          "source_minutes": 21.0,
+          "engine_minutes": 21.5,
+          "abs_delta_minutes": 0.5
+        },
+        {
+          "player_id": 1628778,
+          "player": "Paul Watson",
+          "source_minutes": 27.0,
+          "engine_minutes": 27.466667,
+          "abs_delta_minutes": 0.466667
+        },
+        {
+          "player_id": 1629052,
+          "player": "Oshae Brissett",
+          "source_minutes": 0.0,
+          "engine_minutes": 0.0,
+          "abs_delta_minutes": 0.0
+        },
+        {
+          "player_id": 1629056,
+          "player": "Terence Davis",
+          "source_minutes": 34.0,
+          "engine_minutes": 34.033333,
+          "abs_delta_minutes": 0.033333
+        },
+        {
+          "player_id": 1629608,
+          "player": "Dewan Hernandez",
+          "source_minutes": 12.0,
+          "engine_minutes": 12.7,
+          "abs_delta_minutes": 0.7
+        },
+        {
+          "player_id": 1629744,
+          "player": "Matt Thomas",
+          "source_minutes": 28.0,
+          "engine_minutes": 28.3,
+          "abs_delta_minutes": 0.3
+        }
+      ],
+      "max_abs_delta_minutes": 0.966667,
+      "sum_abs_delta_minutes": 11.000001
     }
   ],
   "status_counts": {
-    "FAIL_LINEUP": 3
+    "PASS_LINEUP": 3
   }
 }
