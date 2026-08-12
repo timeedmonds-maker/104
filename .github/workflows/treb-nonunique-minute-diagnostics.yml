@@ -1,0 +1,270 @@
+name: TREB residual starter minute diagnostics
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/NONUNIQUE_MINUTE_DIAGNOSTIC_CONTROL.json
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  prepare-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas
+      - name: Collect wave-1 nonunique targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin treb-game-fact-repair-wave1
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          root='team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1'
+          by_year={}
+          for year in range(2006,2025):
+              path=f'{root}/{year}/residual_failures.json'
+              text=subprocess.check_output(['git','show',f'origin/treb-game-fact-repair-wave1:{path}'],text=True)
+              rows=json.loads(text)
+              ids=[int(r['game_id']) for r in rows if 'non-unique v3/team-local starter solution' in str(r.get('error',''))]
+              by_year[str(year)]=sorted(set(ids))
+          payload={'targets_by_year':by_year,'target_count':sum(map(len,by_year.values()))}
+          Path('/tmp/NONUNIQUE_TARGETS.json').write_text(json.dumps(payload,indent=2)+'\n')
+          print(json.dumps({'target_count':payload['target_count'],'by_year':{k:len(v) for k,v in by_year.items()}},indent=2))
+          PY
+      - name: Download independent CC0 PlayerStatistics once
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cc0
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            -o /tmp/cc0/dataset.zip \
+            'https://www.kaggle.com/api/v1/datasets/download/eoinamoore/historical-nba-data-and-player-box-scores'
+          unzip -j /tmp/cc0/dataset.zip 'PlayerStatistics.csv' -d /tmp/cc0 || \
+          unzip -j /tmp/cc0/dataset.zip '*/PlayerStatistics.csv' -d /tmp/cc0
+          test -s /tmp/cc0/PlayerStatistics.csv
+      - name: Extract only target-game minute/roster evidence
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          targets=json.loads(Path('/tmp/NONUNIQUE_TARGETS.json').read_text())
+          target_ids={g for ids in targets['targets_by_year'].values() for g in ids}
+          df=pd.read_csv('/tmp/cc0/PlayerStatistics.csv',low_memory=False)
+          gid=pd.to_numeric(df['gameId'],errors='coerce')
+          pid=pd.to_numeric(df['personId'],errors='coerce')
+          team=pd.to_numeric(df['playerteamId'],errors='coerce')
+          mins=pd.to_numeric(df['numMinutes'],errors='coerce')
+          evidence={str(g):[] for g in sorted(target_ids)}
+          mask=gid.isin(target_ids) & pid.notna()
+          for idx in df.index[mask]:
+              g=str(int(gid.loc[idx])); raw=mins.loc[idx]
+              evidence[g].append({
+                  'player_id':int(pid.loc[idx]),
+                  'team_id':None if pd.isna(team.loc[idx]) else int(team.loc[idx]),
+                  'source_minutes':None if pd.isna(raw) else float(raw),
+                  'source_blank_dnp':bool(pd.isna(raw)),
+                  'player':f"{str(df.at[idx,'firstName'] if not pd.isna(df.at[idx,'firstName']) else '').strip()} {str(df.at[idx,'lastName'] if not pd.isna(df.at[idx,'lastName']) else '').strip()}".strip(),
+              })
+          missing=sorted(g for g,rows in evidence.items() if not rows)
+          out={**targets,'evidence_by_game':evidence,'missing_cc0_games':missing,'cc0_games_found':len(evidence)-len(missing)}
+          Path('/tmp/NONUNIQUE_CC0_EVIDENCE.json').write_text(json.dumps(out,separators=(',',':'))+'\n')
+          print(json.dumps({'target_count':out['target_count'],'cc0_games_found':out['cc0_games_found'],'missing_cc0_games':missing},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-nonunique-cc0-evidence
+          path: /tmp/NONUNIQUE_CC0_EVIDENCE.json
+          retention-days: 90
+
+  diagnose:
+    needs: prepare-evidence
+    strategy:
+      fail-fast: false
+      max-parallel: 19
+      matrix:
+        year: [2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-nonunique-cc0-evidence
+          path: /tmp/evidence
+      - name: Download season lineup sources only
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess, tarfile, urllib.request
+          from pathlib import Path
+          year=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{year}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for key in [f'nbastats_{year}',f'nbastatsv3_{year}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Search full-game legal chains and score against independent minutes
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"
+          NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
+          V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
+          NBA="$NBA" V3="$V3" YEAR="$YEAR" python - <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as engine
+          import canary_v3_lineup_repair as ambiguity
+          import resolve_ambiguous_lineups_from_minutes as minute_gate
+
+          year=int(os.environ['YEAR'])
+          evidence=json.loads(Path('/tmp/evidence/NONUNIQUE_CC0_EVIDENCE.json').read_text())
+          targets=[int(x) for x in evidence['targets_by_year'].get(str(year),[])]
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False))
+          v3=engine.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+
+          rows=[]
+          for i,gid in enumerate(targets,1):
+              official={}
+              for r in evidence['evidence_by_game'].get(str(gid),[]):
+                  official[int(r['player_id'])]={
+                      'source_minutes':0.0 if r['source_blank_dnp'] else float(r['source_minutes']),
+                      'source_blank_dnp':bool(r['source_blank_dnp']),
+                      'player':r.get('player'),'team_id':r.get('team_id'),
+                  }
+              rec={'game_id':gid}
+              if gid not in ng or gid not in vg:
+                  rec.update({'status':'SOURCE_MISSING','search_complete':False,'full_game_solution_count':0,'passing_solution_count':0})
+                  rows.append(rec); continue
+              search=ambiguity.search_full_game_repairs(ng[gid],vg[gid],gid)
+              compact=[]; passing=[]
+              for idx,sol in enumerate(search.get('full_game_solutions',[]),1):
+                  score=minute_gate.score_seconds(sol.get('player_seconds',{}),official) if official else {'gate_pass':False,'minute_rule_violations':999,'missing_source_active_players':999,'floor_distance_minutes':999,'comparisons':[]}
+                  item={
+                      'solution_index':idx,'repair_choices':sol.get('repair_choices',[]),
+                      'gate_pass':bool(score['gate_pass']),
+                      'minute_rule_violations':int(score['minute_rule_violations']),
+                      'missing_source_active_players':int(score['missing_source_active_players']),
+                      'floor_distance_minutes':int(score['floor_distance_minutes']),
+                  }
+                  compact.append(item)
+                  if score['gate_pass']:
+                      passing.append({'summary':item,'score':score})
+              complete=bool(search.get('search_complete'))
+              if not complete: status='SEARCH_INCOMPLETE'
+              elif not official: status='NO_CC0_GAME_ROSTER'
+              elif len(passing)==1: status='UNIQUE_FLOOR_MINUTE_FIT'
+              elif len(passing)>1: status='MULTIPLE_FLOOR_MINUTE_FITS'
+              elif not compact: status='NO_FULL_GAME_LEGAL_SOLUTION'
+              else: status='NO_FLOOR_MINUTE_FIT'
+              rec.update({
+                  'status':status,'search_complete':complete,'states_explored':search.get('states_explored'),
+                  'full_game_solution_count':len(compact),'passing_solution_count':len(passing),
+                  'recommended_repair_choices':passing[0]['summary']['repair_choices'] if status=='UNIQUE_FLOOR_MINUTE_FIT' else None,
+                  'unique_passing_score':passing[0]['score'] if status=='UNIQUE_FLOOR_MINUTE_FIT' else None,
+                  'solution_scores':compact,
+              })
+              rows.append(rec)
+              print(f'MINUTE_DIAG year={year} {i}/{len(targets)} game={gid} status={status} legal={len(compact)} minute_pass={len(passing)} states={search.get("states_explored")}',flush=True)
+
+          counts={}
+          for r in rows: counts[r['status']]=counts.get(r['status'],0)+1
+          out={'year':year,'target_count':len(targets),'status_counts':counts,'unique_repair_count':counts.get('UNIQUE_FLOOR_MINUTE_FIT',0),'games':rows}
+          Path(f'/tmp/NONUNIQUE_MINUTE_DIAG_{year}.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-nonunique-minute-diag-${{ matrix.year }}
+          path: /tmp/NONUNIQUE_MINUTE_DIAG_${{ matrix.year }}.json
+          retention-days: 90
+          if-no-files-found: error
+
+  aggregate:
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-nonunique-minute-diag-*
+          path: /tmp/diag
+          merge-multiple: true
+      - name: Aggregate exact minute-gate yield
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          files=sorted(Path('/tmp/diag').glob('NONUNIQUE_MINUTE_DIAG_*.json'))
+          seasons=[json.loads(p.read_text()) for p in files]
+          games=[g for s in seasons for g in s.get('games',[])]
+          counts=Counter(g['status'] for g in games)
+          repairs=[{'game_id':g['game_id'],'repair_choices':g['recommended_repair_choices']} for g in games if g['status']=='UNIQUE_FLOOR_MINUTE_FIT']
+          out={
+              'seasons_found':len(seasons),'target_games':sum(s.get('target_count',0) for s in seasons),
+              'status_counts':dict(counts),'unique_minute_validated_repairs':len(repairs),
+              'recommended_repairs':repairs,'season_summaries':[{k:v for k,v in s.items() if k!='games'} for s in seasons]
+          }
+          out['status']='COMPLETE' if len(seasons)==19 else 'INCOMPLETE_MATRIX'
+          Path('/tmp/NONUNIQUE_MINUTE_DIAGNOSTIC_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k not in {'recommended_repairs','season_summaries'}},indent=2))
+          PY
+      - name: Persist diagnostic results durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          BR=treb-nonunique-minute-diagnostics
+          git checkout -B "$BR" "${{ github.sha }}"
+          DEST=team_trb_all_players/final_integrity_rebuild/nonunique_minute_diagnostics
+          rm -rf "$DEST"; mkdir -p "$DEST/seasons"
+          cp /tmp/NONUNIQUE_MINUTE_DIAGNOSTIC_SUMMARY.json "$DEST"/
+          cp /tmp/diag/NONUNIQUE_MINUTE_DIAG_*.json "$DEST/seasons"/
+          git add -f "$DEST"
+          git commit -m 'Persist residual starter independent-minute diagnostics'
+          git push --force origin HEAD:"$BR"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-nonunique-minute-diagnostic-summary
+          path: /tmp/NONUNIQUE_MINUTE_DIAGNOSTIC_SUMMARY.json
+          retention-days: 90
