@@ -1,0 +1,18 @@
+[
+  {
+    "game_id": 21200615,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21200615 period=3 team=1610612753: starters=[2749, 200755, 201167, 201175, 202696] violations=[{'kind': 'participant', 'event_num': 272, 'player_id': 201175, 'event_type': 6}]"
+  },
+  {
+    "game_id": 21200640,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21200640 period=3 team=1610612758: starters=[2422, 201574, 201936, 202326, 202738] violations=[{'kind': 'participant', 'event_num': 329, 'player_id': 202738, 'event_type': 6}]"
+  },
+  {
+    "game_id": 21200650,
+    "error": "ValueError: non-unique v3/team-local starter solution game=21200650 period=5 team=1610612754: candidates=[2561, 101133, 201571, 201579, 201588, 201965, 202331, 202362, 203111] prior=[2561, 201571, 201579, 201588, 202331] best_score=0 solutions=[[2561, 101133, 201579, 201588, 202331], [2561, 201571, 201579, 201588, 202331], [2561, 201579, 201588, 201965, 202331], [2561, 201579, 201588, 202331, 202362], [2561, 201579, 201588, 202331, 203111]]"
+  },
+  {
+    "game_id": 21200652,
+    "error": "ValueError: non-unique v3/team-local starter solution game=21200652 period=5 team=1610612738: candidates=[708, 1718, 1891, 2404, 101138, 201145, 201584, 202340, 203096] prior=[708, 1718, 1891, 201145, 201584] best_score=0 solutions=[[708, 1718, 1891, 201145, 202340], [708, 1718, 2404, 201145, 202340], [708, 1718, 101138, 201145, 202340], [708, 1718, 201145, 201584, 202340], [708, 1718, 201145, 202340, 203096]]"
+  }
+]
