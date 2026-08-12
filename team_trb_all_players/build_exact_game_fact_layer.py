@@ -89,10 +89,12 @@ def build_game(game_id: int, nba_game: pd.DataFrame, v3_game: pd.DataFrame, pbp_
     oreb = joined.IS_OREB.astype(bool)
 
     team_rows: list[dict] = []
+    team_masks = {}
     for tid in teams:
         abbr = team_abbr[tid]
         team_offense = ~joined.OPPONENT.astype(str).eq(abbr)
-        team_defense = joined.OPPONENT.astype(str).eq(abbr)
+        team_defense = ~team_offense
+        team_masks[tid] = (team_offense, team_defense)
         team_rows.append({
             "game_id": int(game_id),
             "game_date": date,
@@ -117,8 +119,7 @@ def build_game(game_id: int, nba_game: pd.DataFrame, v3_game: pd.DataFrame, pbp_
         tid = int(tid)
         abbr = team_abbr[tid]
         on = joined.LINEUP.map(lambda lineup: pid in lineup)
-        team_offense = ~joined.OPPONENT.astype(str).eq(abbr)
-        team_defense = joined.OPPONENT.astype(str).eq(abbr)
+        team_offense, team_defense = team_masks[tid]
         player_rows.append({
             "game_id": int(game_id),
             "game_date": date,
@@ -133,7 +134,6 @@ def build_game(game_id: int, nba_game: pd.DataFrame, v3_game: pd.DataFrame, pbp_
             "opponent_dreb_on": _count(on & team_offense & real & ~oreb),
         })
 
-    # Strong game-level invariants. Each team must account for five player-slots.
     for tid in teams:
         observed = sum(r["seconds_on"] for r in player_rows if r["team_id"] == tid)
         expected = duration * 5
@@ -169,10 +169,14 @@ def main() -> int:
     v3 = lineup_engine.normalize_v3(pd.read_csv(args.v3, low_memory=False))
     pbp = io.normalize_pbp(pd.read_csv(args.pbp, low_memory=False))
 
-    nba_ids = set(pd.to_numeric(nba.GAME_ID, errors="coerce").dropna().astype(int))
-    v3_ids = set(pd.to_numeric(v3.gameId, errors="coerce").dropna().astype(int))
-    pbp_ids = set(pd.to_numeric(pbp.GAMEID, errors="coerce").dropna().astype(int))
+    nba_groups = {int(gid): frame.copy() for gid, frame in nba.groupby("GAME_ID", sort=False)}
+    v3_groups = {int(gid): frame.copy() for gid, frame in v3.groupby("gameId", sort=False)}
+    pbp_groups = {int(gid): frame.copy() for gid, frame in pbp.groupby("GAMEID", sort=False)}
+    nba_ids = set(nba_groups)
+    v3_ids = set(v3_groups)
+    pbp_ids = set(pbp_groups)
     all_ids = sorted(nba_ids & v3_ids & pbp_ids)
+    del nba, v3, pbp
 
     team_rows: list[dict] = []
     player_rows: list[dict] = []
@@ -181,12 +185,7 @@ def main() -> int:
 
     for i, gid in enumerate(all_ids, 1):
         try:
-            tr, pr, audit = build_game(
-                gid,
-                nba[nba.GAME_ID.eq(gid)].copy(),
-                v3[v3.gameId.eq(gid)].copy(),
-                pbp[pbp.GAMEID.eq(gid)].copy(),
-            )
+            tr, pr, audit = build_game(gid, nba_groups[gid], v3_groups[gid], pbp_groups[gid])
             team_rows.extend(tr)
             player_rows.extend(pr)
             audits.append(audit)
