@@ -1,0 +1,92 @@
+name: TREB final 26-season database export
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - .github/workflows/treb-final-database-export.yml
+      - team_trb_all_players/finalize_treb_database.py
+      - team_trb_all_players/impact_database/FINAL_DATABASE_EXPORT_CONTROL.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+concurrency:
+  group: treb-final-database-export-20260812
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Compile finalizer
+        run: python -m py_compile team_trb_all_players/finalize_treb_database.py
+      - name: Gather all 26 durable season locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOCKS=/tmp/treb-final-locks
+          rm -rf "$LOCKS"
+          mkdir -p "$LOCKS"
+          for y in $(seq 2000 2025); do
+            season="${y}-$(printf '%02d' $(((y+1)%100)))"
+            branch="treb-final-safe-lock-${y}"
+            echo "FETCH_LOCK $season $branch"
+            git fetch --quiet origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
+            git show "origin/${branch}:team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/${season}.json" > "$LOCKS/${season}.json"
+            test -s "$LOCKS/${season}.json"
+          done
+          test "$(find "$LOCKS" -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+          echo "LOCK_COUNT=26"
+      - name: Build final CSV and SQLite databases with QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb-final-export
+          python -u team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb-final-locks \
+            --output-dir /tmp/treb-final-export 2>&1 | tee /tmp/treb-final-export.log
+          test "$(python -c 'import json; print(json.load(open("/tmp/treb-final-export/qa_report.json"))["status"])')" = PASS
+      - name: Package final database
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/treb-final-export.log /tmp/treb-final-export/build.log
+          cd /tmp/treb-final-export
+          sha256sum * > SHA256SUMS.txt
+          zip -9 -r /tmp/treb-final-database-2000-01-to-2025-26.zip .
+          ls -lh /tmp/treb-final-database-2000-01-to-2025-26.zip
+      - name: Persist final export branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf team_trb_all_players/final_database_export
+          mkdir -p team_trb_all_players/final_database_export
+          cp /tmp/treb-final-export/* team_trb_all_players/final_database_export/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B treb-final-database-complete-20260812
+          git add -f team_trb_all_players/final_database_export
+          git commit -m 'Final TREB database 2000-01 through 2025-26'
+          git push --force origin HEAD:refs/heads/treb-final-database-complete-20260812
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-final-database-2000-01-to-2025-26-${{ github.sha }}
+          path: |
+            /tmp/treb-final-database-2000-01-to-2025-26.zip
+            /tmp/treb-final-export/**
+          retention-days: 90
+          if-no-files-found: error
