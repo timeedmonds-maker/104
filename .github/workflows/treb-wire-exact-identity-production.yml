@@ -1,0 +1,81 @@
+name: TREB wire exact-identity rebound production
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - .github/workflows/treb-wire-exact-identity-production.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-batched-game-facts-20260812
+          fetch-depth: 0
+      - name: Wire validated join and restore locked classifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          build = Path('team_trb_all_players/build_exact_game_fact_layer.py')
+          text = build.read_text()
+          legacy_import = 'import production_treb_engine as rebound_engine\n'
+          v2_import = 'import production_rebound_v2 as rebound_join_engine\n'
+          if v2_import not in text:
+              assert text.count(legacy_import) == 1, text.count(legacy_import)
+              text = text.replace(legacy_import, legacy_import + v2_import)
+          old_join = 'joined, join_audit = rebound_engine.join_pbp_rebounds(lineups, pbp_game)'
+          new_join = 'joined, join_audit = rebound_join_engine.join_pbp_rebounds(lineups, pbp_game)'
+          if old_join in text:
+              text = text.replace(old_join, new_join)
+          elif new_join not in text:
+              raise SystemExit('production join call target not found')
+          locked_classifier = 'joined = rebound_engine.classify_rebounds(joined)'
+          assert locked_classifier in text, 'locked legacy classifier call missing from production builder'
+          build.write_text(text)
+
+          v2 = Path('team_trb_all_players/production_rebound_v2.py')
+          text = v2.read_text()
+          start = text.index('def classify_rebounds(pbp_game: pd.DataFrame) -> pd.DataFrame:')
+          replacement = '''def classify_rebounds(pbp_game: pd.DataFrame) -> pd.DataFrame:\n    \"\"\"Preserve the locked legacy rebound classifier; v2 extends joining only.\"\"\"\n    return legacy.classify_rebounds(pbp_game)\n'''
+          text = text[:start] + replacement
+          old_doc = '''Two deliberately narrow changes over production_treb_engine:\n1) after the baseline fuzzy join fails, allow an unused NBA EVENTMSGTYPE=4 row\n   only when its normalized description is an exact match (or exact player +\n   cumulative rebound counter identity); and\n2) classify the first N *real* rebounds in a possession as the authoritative N\n   offensive rebounds, so non-live placeholder rows cannot consume an OREB slot.\n'''
+          new_doc = '''One deliberately narrow production extension over production_treb_engine:\nafter the baseline fuzzy join fails, allow an unused NBA EVENTMSGTYPE=4 row\nonly when its normalized description is an exact match (or exact player +\ncumulative rebound counter identity). Rebound classification remains the locked\nlegacy production classifier.\n'''
+          if old_doc in text:
+              text = text.replace(old_doc, new_doc)
+          v2.write_text(text)
+
+          control = Path('team_trb_all_players/final_integrity_rebuild/FAST_FINAL_REPAIR_CONTROL.json')
+          payload = {
+              'launched_at': '2026-08-12T18:36:00Z',
+              'purpose': 'Wire validated exact-identity rebound join into the actual production builder, restore the locked legacy classifier globally, and rerun only the 357 Wave-1 residual targets with the exact Adams gate.'
+          }
+          control.write_text(json.dumps(payload, indent=2) + '\n')
+          print('PATCH_READY exact_identity_join=production locked_classifier=legacy residual_rerun=357')
+          PY
+      - name: Commit and trigger residual repair wave
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/build_exact_game_fact_layer.py \
+                  team_trb_all_players/production_rebound_v2.py \
+                  team_trb_all_players/final_integrity_rebuild/FAST_FINAL_REPAIR_CONTROL.json
+          git diff --cached --check
+          git commit -m 'Wire exact-identity rebound join into production'
+          git push origin HEAD:agent/treb-batched-game-facts-20260812
