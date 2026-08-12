@@ -1,0 +1,30 @@
+[
+  {
+    "game_id": 20801111,
+    "error": "ValueError: unmatched PBP rebound rows game=20801111: 1"
+  },
+  {
+    "game_id": 20801120,
+    "error": "ValueError: non-unique v3/team-local starter solution game=20801120 period=5 team=1610612744: candidates=[1894, 2037, 101142, 101145, 101235, 201228, 201576, 201633] prior=[2037, 101145, 101235, 201228, 201627] best_score=0 solutions=[[1894, 2037, 101142, 101145, 101235], [2037, 101142, 101145, 101235, 201228], [2037, 101142, 101145, 101235, 201576], [2037, 101142, 101145, 101235, 201633]]"
+  },
+  {
+    "game_id": 20801124,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20801124 period=3 team=1610612762: starters=[2246, 2430, 101114, 101139, 200758] violations=[{'kind': 'participant', 'event_num': 374, 'player_id': 101114, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20801144,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20801144 period=4 team=1610612765: starters=[739, 2198, 2419, 101198, 201167] violations=[{'kind': 'participant', 'event_num': 364, 'player_id': 1888, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20801146,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20801146 period=2 team=1610612745: starters=[2397, 101144, 101236, 200768, 201166] violations=[{'kind': 'participant', 'event_num': 207, 'player_id': 87, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20801154,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20801154 period=2 team=1610612737: starters=[2230, 2436, 2585, 2746, 201151] violations=[{'kind': 'participant', 'event_num': 165, 'player_id': 2585, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20801192,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20801192 period=3 team=1610612741: starters=[2422, 2732, 200748, 201149, 201565] violations=[{'kind': 'participant', 'event_num': 265, 'player_id': 201149, 'event_type': 6}]"
+  }
+]
