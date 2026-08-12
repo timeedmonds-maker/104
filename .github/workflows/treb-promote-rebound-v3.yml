@@ -1,0 +1,47 @@
+name: TREB promote rebound v3
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - .github/workflows/treb-promote-rebound-v3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-batched-game-facts-20260812
+          fetch-depth: 0
+      - name: Wire validated v3 into production builder
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('team_trb_all_players/build_exact_game_fact_layer.py')
+          s=p.read_text()
+          old='import production_rebound_v2 as rebound_join_engine'
+          new='import production_rebound_v3 as rebound_join_engine'
+          assert old in s or new in s
+          s=s.replace(old,new)
+          p.write_text(s)
+          PY
+          git diff --check
+          grep -n 'production_rebound_v3 as rebound_join_engine' team_trb_all_players/build_exact_game_fact_layer.py
+      - name: Commit promotion
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/build_exact_game_fact_layer.py
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Promote validated rebound v3 into game-fact builder'
+          git push origin HEAD:agent/treb-batched-game-facts-20260812
