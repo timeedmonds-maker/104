@@ -1,37 +1,27 @@
 {
-  "status": "CANARY_INCOMPLETE",
-  "years": [
-    2002,
-    2004,
-    2005,
-    2006,
-    2007,
-    2008,
-    2009,
-    2010,
-    2011,
-    2012,
-    2013,
-    2014,
-    2016,
-    2017,
-    2018,
-    2019,
-    2020,
-    2021,
-    2022,
-    2023,
-    2024
+  "source_files": [
+    "treb-canary-2002.json",
+    "treb-canary-2004.json",
+    "treb-canary-2005.json",
+    "treb-canary-2006.json",
+    "treb-canary-2007.json",
+    "treb-canary-2008.json",
+    "treb-canary-2009.json",
+    "treb-canary-2010.json",
+    "treb-canary-2011.json",
+    "treb-canary-2012.json",
+    "treb-canary-2013.json",
+    "treb-canary-2014.json",
+    "treb-canary-2016.json",
+    "treb-canary-2017.json",
+    "treb-canary-2018.json",
+    "treb-canary-2019.json",
+    "treb-canary-2020.json",
+    "treb-canary-2021.json",
+    "treb-canary-2022.json",
+    "treb-canary-2023.json",
+    "treb-canary-2024.json"
   ],
-  "years_found": 21,
-  "games_expected": 40,
-  "games_found": 37,
-  "status_counts": {
-    "FAIL": 8,
-    "PASS_V3_TEAM_LOCAL": 15,
-    "V3_ONLY_REQUIRED": 3,
-    "PASS_CDN": 11
-  },
   "games": [
     {
       "game_id": 20201160,
@@ -21464,5 +21454,76 @@
       }
     }
   ],
-  "policy": "No game may remain excluded from final target windows. FAIL/V3_ONLY_REQUIRED/SOURCE_MISSING rows remain blockers."
+  "status_counts": {
+    "FAIL": 8,
+    "PASS_V3_TEAM_LOCAL": 15,
+    "V3_ONLY_REQUIRED": 3,
+    "PASS_CDN": 11
+  },
+  "repair_search_summary": {
+    "20201160": {
+      "method": "dynamic_current_engine_ambiguity_search",
+      "states_explored": 4,
+      "full_game_solution_count": 3,
+      "terminal_failure_count": 0,
+      "search_complete": true,
+      "queue_remaining_at_stop": 0
+    },
+    "20400335": {
+      "method": "dynamic_current_engine_ambiguity_search",
+      "states_explored": 1,
+      "full_game_solution_count": 0,
+      "terminal_failure_count": 1,
+      "search_complete": true,
+      "queue_remaining_at_stop": 0
+    },
+    "20600887": {
+      "method": "dynamic_current_engine_ambiguity_search",
+      "states_explored": 36,
+      "full_game_solution_count": 30,
+      "terminal_failure_count": 0,
+      "search_complete": true,
+      "queue_remaining_at_stop": 0
+    },
+    "20700319": {
+      "method": "dynamic_current_engine_ambiguity_search",
+      "states_explored": 4,
+      "full_game_solution_count": 3,
+      "terminal_failure_count": 0,
+      "search_complete": true,
+      "queue_remaining_at_stop": 0
+    },
+    "20800142": {
+      "method": "dynamic_current_engine_ambiguity_search",
+      "states_explored": 3,
+      "full_game_solution_count": 2,
+      "terminal_failure_count": 0,
+      "search_complete": true,
+      "queue_remaining_at_stop": 0
+    },
+    "21100842": {
+      "method": "dynamic_current_engine_ambiguity_search",
+      "states_explored": 5,
+      "full_game_solution_count": 4,
+      "terminal_failure_count": 0,
+      "search_complete": true,
+      "queue_remaining_at_stop": 0
+    },
+    "21800143": {
+      "method": "dynamic_current_engine_ambiguity_search",
+      "states_explored": 37,
+      "full_game_solution_count": 30,
+      "terminal_failure_count": 0,
+      "search_complete": true,
+      "queue_remaining_at_stop": 0
+    },
+    "22000485": {
+      "method": "dynamic_current_engine_ambiguity_search",
+      "states_explored": 4,
+      "full_game_solution_count": 3,
+      "terminal_failure_count": 0,
+      "search_complete": true,
+      "queue_remaining_at_stop": 0
+    }
+  }
 }
