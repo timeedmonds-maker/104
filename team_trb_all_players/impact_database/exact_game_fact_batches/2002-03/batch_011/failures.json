@@ -1,0 +1,30 @@
+[
+  {
+    "game_id": 20201104,
+    "error": "ValueError: non-unique v3/team-local starter solution game=20201104 period=5 team=1610612738: candidates=[952, 960, 962, 1499, 1548, 1718, 2208, 2452] prior=[677, 952, 960, 962, 1718] best_score=0 solutions=[[952, 960, 962, 1499, 1718], [952, 962, 1499, 1548, 1718], [952, 962, 1499, 1718, 2208], [952, 962, 1499, 1718, 2452]]"
+  },
+  {
+    "game_id": 20201108,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20201108 period=2 team=1610612754: starters=[896, 1065, 1733, 1886, 1902] violations=[{'kind': 'participant', 'event_num': 221, 'player_id': 1065, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20201121,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20201121 period=3 team=1610612756: starters=[358, 950, 1890, 2054, 2405] violations=[{'kind': 'participant', 'event_num': 347, 'player_id': 950, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20201139,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20201139 period=3 team=1610612752: starters=[84, 221, 275, 458, 703] violations=[{'kind': 'participant', 'event_num': 286, 'player_id': 703, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20201160,
+    "error": "ValueError: non-unique v3/team-local starter solution game=20201160 period=5 team=1610612765: candidates=[361, 688, 1088, 1442, 1497, 1888, 2246] prior=[361, 468, 722, 1497, 2246] best_score=0 solutions=[[361, 688, 1088, 1497, 2246], [361, 688, 1442, 1497, 2246], [361, 688, 1497, 1888, 2246]]"
+  },
+  {
+    "game_id": 20201163,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20201163 period=3 team=1610612759: starters=[764, 1477, 1495, 1536, 2225] violations=[{'kind': 'participant', 'event_num': 316, 'player_id': 1536, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20201170,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20201170 period=3 team=1610612746: starters=[399, 1882, 1885, 1889, 1894] violations=[{'kind': 'participant', 'event_num': 370, 'player_id': 1885, 'event_type': 6}]"
+  }
+]
