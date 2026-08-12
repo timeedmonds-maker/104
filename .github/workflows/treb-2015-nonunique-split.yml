@@ -1,0 +1,148 @@
+name: TREB 2015 starter ambiguity split diagnostics
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/NONUNIQUE_2015_SPLIT_CONTROL.json
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        game_id: [21500025,21500359,21500515,21500523,21500587,21500624,21500674,21500721,21500916,21501197]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Download 2015-16 lineup sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          RAW=/tmp/trebraw-2015; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=2015; raw=Path('/tmp/trebraw-2015')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Download independent CC0 PlayerStatistics
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cc0
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/cc0/dataset.zip \
+            'https://www.kaggle.com/api/v1/datasets/download/eoinamoore/historical-nba-data-and-player-box-scores'
+          unzip -j /tmp/cc0/dataset.zip 'PlayerStatistics.csv' -d /tmp/cc0 || unzip -j /tmp/cc0/dataset.zip '*/PlayerStatistics.csv' -d /tmp/cc0
+          test -s /tmp/cc0/PlayerStatistics.csv
+      - name: Search one game and apply strict completed-minute gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          NBA=$(find /tmp/trebraw-2015 -name 'nbastats_2015.csv' -print -quit)
+          V3=$(find /tmp/trebraw-2015 -name 'nbastatsv3_2015.csv' -print -quit)
+          NBA="$NBA" V3="$V3" CC0=/tmp/cc0/PlayerStatistics.csv GID='${{ matrix.game_id }}' python - <<'PY'
+          import json,os,sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as engine
+          import canary_v3_lineup_repair as ambiguity
+          import resolve_ambiguous_lineups_from_minutes as minute_gate
+
+          gid=int(os.environ['GID'])
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False))
+          v3=engine.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False))
+          ng=nba[nba.GAME_ID.eq(gid)].copy(); vg=v3[v3.gameId.eq(gid)].copy()
+          cc0=pd.read_csv(os.environ['CC0'],low_memory=False)
+          cg=pd.to_numeric(cc0['gameId'],errors='coerce'); cp=pd.to_numeric(cc0['personId'],errors='coerce'); ct=pd.to_numeric(cc0['playerteamId'],errors='coerce'); cm=pd.to_numeric(cc0['numMinutes'],errors='coerce')
+          official={}
+          mask=cg.eq(gid)&cp.notna()
+          for idx in cc0.index[mask]:
+              pid=int(cp.loc[idx]); raw=cm.loc[idx]
+              official[pid]={
+                'source_minutes':0.0 if pd.isna(raw) else float(raw),
+                'source_blank_dnp':bool(pd.isna(raw)),
+                'player':f"{str(cc0.at[idx,'firstName'] if not pd.isna(cc0.at[idx,'firstName']) else '').strip()} {str(cc0.at[idx,'lastName'] if not pd.isna(cc0.at[idx,'lastName']) else '').strip()}".strip(),
+                'team_id':None if pd.isna(ct.loc[idx]) else int(ct.loc[idx]),
+              }
+          search=ambiguity.search_full_game_repairs(ng,vg,gid)
+          scored=[]; passing=[]
+          for i,sol in enumerate(search.get('full_game_solutions',[]),1):
+              score=minute_gate.score_seconds(sol.get('player_seconds',{}),official)
+              item={'solution_index':i,'repair_choices':sol.get('repair_choices',[]),'score':score}
+              scored.append(item)
+              if score['gate_pass']: passing.append(item)
+          if not search.get('search_complete'): status='SEARCH_INCOMPLETE'
+          elif not official: status='NO_CC0_GAME_ROSTER'
+          elif len(passing)==1: status='UNIQUE_FLOOR_MINUTE_FIT'
+          elif len(passing)>1: status='MULTIPLE_FLOOR_MINUTE_FITS'
+          elif not scored: status='NO_FULL_GAME_LEGAL_SOLUTION'
+          else: status='NO_FLOOR_MINUTE_FIT'
+          out={
+            'game_id':gid,'status':status,'search_complete':bool(search.get('search_complete')),
+            'states_explored':search.get('states_explored'),'queue_remaining_at_stop':search.get('queue_remaining_at_stop'),
+            'full_game_solution_count':len(scored),'passing_solution_count':len(passing),
+            'recommended_repair_choices':passing[0]['repair_choices'] if status=='UNIQUE_FLOOR_MINUTE_FIT' else None,
+            'ranked_solutions':scored,
+          }
+          Path(f'/tmp/NONUNIQUE_2015_{gid}.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='ranked_solutions'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2015-nonunique-${{ matrix.game_id }}
+          path: /tmp/NONUNIQUE_2015_${{ matrix.game_id }}.json
+          retention-days: 90
+          if-no-files-found: error
+
+  aggregate:
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-2015-nonunique-*
+          path: /tmp/diag
+          merge-multiple: true
+      - name: Aggregate split results
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          rows=[json.loads(p.read_text()) for p in sorted(Path('/tmp/diag').glob('NONUNIQUE_2015_*.json'))]
+          counts=Counter(r['status'] for r in rows)
+          out={'games_found':len(rows),'status_counts':dict(counts),'unique_floor_minute_fit':counts.get('UNIQUE_FLOOR_MINUTE_FIT',0),'games':rows}
+          Path('/tmp/NONUNIQUE_2015_SPLIT_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-2015-nonunique-split-summary
+          path: /tmp/NONUNIQUE_2015_SPLIT_SUMMARY.json
+          retention-days: 90
