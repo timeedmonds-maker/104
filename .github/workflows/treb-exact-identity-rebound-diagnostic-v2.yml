@@ -1,0 +1,158 @@
+name: TREB exact-identity rebound diagnostic v2
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/EXACT_IDENTITY_REBOUND_DIAG_V2_CONTROL.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        include:
+          - {year: 2008, chunk: 0}
+          - {year: 2009, chunk: 0}
+          - {year: 2010, chunk: 0}
+          - {year: 2011, chunk: 0}
+          - {year: 2015, chunk: 0}
+          - {year: 2017, chunk: 0}
+          - {year: 2017, chunk: 1}
+          - {year: 2017, chunk: 2}
+          - {year: 2017, chunk: 3}
+          - {year: 2017, chunk: 4}
+          - {year: 2017, chunk: 5}
+          - {year: 2018, chunk: 0}
+          - {year: 2018, chunk: 1}
+          - {year: 2019, chunk: 0}
+          - {year: 2021, chunk: 0}
+          - {year: 2021, chunk: 1}
+          - {year: 2022, chunk: 0}
+          - {year: 2022, chunk: 1}
+          - {year: 2022, chunk: 2}
+          - {year: 2023, chunk: 0}
+          - {year: 2024, chunk: 0}
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Fetch Wave-1 residual list
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin treb-game-fact-repair-wave1
+          git show origin/treb-game-fact-repair-wave1:team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1/${{ matrix.year }}/residual_failures.json > /tmp/residual.json
+      - name: Download season sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{y}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}',f'pbpstats_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Diagnose at most 10 unmatched-rebound games
+        shell: bash
+        run: |
+          set -o pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"
+          NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
+          V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
+          PBP=$(find "$RAW" -name "pbpstats_${YEAR}.csv" -print -quit)
+          python -u team_trb_all_players/exact_identity_rebound_join_diagnostic_v2.py \
+            --nba "$NBA" --v3 "$V3" --pbp "$PBP" --residual-json /tmp/residual.json \
+            --year "$YEAR" --chunk-index '${{ matrix.chunk }}' --chunk-size 10 \
+            --output '/tmp/EXACT_IDENTITY_V2_${{ matrix.year }}_${{ matrix.chunk }}.json'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-exact-identity-v2-${{ matrix.year }}-${{ matrix.chunk }}
+          path: /tmp/EXACT_IDENTITY_V2_${{ matrix.year }}_${{ matrix.chunk }}.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-exact-identity-v2-*
+          path: /tmp/results
+      - name: Aggregate partial-safe diagnostic
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          for p in Path('/tmp/results').rglob('EXACT_IDENTITY_V2_*.json'):
+              try: rows.append(json.loads(p.read_text()))
+              except Exception: pass
+          games=[g for r in rows for g in r.get('games',[])]
+          controls=[c for r in rows for c in r.get('healthy_controls',[])]
+          residual=[g for g in games if g.get('status')!='RECOVERED']
+          complete=(len(rows)==21 and len(games)==146 and not any(not c.get('pass',False) for c in controls))
+          out={
+              'status':'COMPLETE' if complete else 'PARTIAL_OR_CONTROL_FAILURE',
+              'expected_chunks':21,'chunks_found':len(rows),'target_games_attempted':len(games),
+              'recovered_games':sum(r.get('recovered_games',0) for r in rows),'residual_games':len(residual),
+              'exact_identity_join_repairs':sum(r.get('exact_identity_join_repairs',0) for r in rows),
+              'exact_description_repairs':sum(r.get('exact_description_repairs',0) for r in rows),
+              'exact_player_counter_repairs':sum(r.get('exact_player_counter_repairs',0) for r in rows),
+              'healthy_controls_run':len(controls),'control_regressions':sum(not c.get('pass',False) for c in controls),
+              'residual_failures':residual,'healthy_controls':controls,
+              'chunk_summaries':[{k:v for k,v in r.items() if k not in {'games','healthy_controls'}} for r in rows]
+          }
+          Path('/tmp/EXACT_IDENTITY_REBOUND_DIAGNOSTIC_V2_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k not in {'residual_failures','healthy_controls','chunk_summaries'}},indent=2))
+          PY
+      - name: Persist diagnostic checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/exact_identity_rebound_diagnostic_v2
+          mkdir -p "$DEST"; cp /tmp/EXACT_IDENTITY_REBOUND_DIAGNOSTIC_V2_SUMMARY.json "$DEST"/
+          git add -f "$DEST/EXACT_IDENTITY_REBOUND_DIAGNOSTIC_V2_SUMMARY.json"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Persist corrected exact-identity rebound diagnostic'; git push origin HEAD:agent/treb-batched-game-facts-20260812
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-exact-identity-rebound-diagnostic-v2-summary
+          path: /tmp/EXACT_IDENTITY_REBOUND_DIAGNOSTIC_V2_SUMMARY.json
+          retention-days: 90
+          if-no-files-found: warn
