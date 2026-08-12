@@ -1,0 +1,93 @@
+name: TREB Adams classifier aggregate recovery
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - .github/workflows/treb-adams-classifier-aggregate-recover.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-batched-game-facts-20260812
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-adams-classifier-micro-*
+          path: /tmp/chunks
+          run-id: 31612460053
+          github-token: ${{ github.token }}
+      - name: Build recovered aggregate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          LOCKED={'seconds_on':143368,'team_oreb_on':816,'team_dreb_on':1846,'opponent_oreb_on':643,'opponent_dreb_on':1632}
+          KEYS=list(LOCKED); MODES=['current','real_first','description_counter']
+          def zero(): return {k:0 for k in KEYS}
+          def add(dst,src):
+              for k in KEYS: dst[k]+=int(src.get(k,0))
+          def diff(a,b): return {k:int(a[k]-b[k]) for k in KEYS}
+          payloads=[]
+          for p in sorted(Path('/tmp/chunks').rglob('ADAMS_REBOUND_CLASSIFIER_MICRO_*.json')):
+              try:
+                  x=json.loads(p.read_text())
+                  if 'chunk_index' in x:
+                      payloads.append(x)
+              except Exception:
+                  pass
+          by_chunk={int(x['chunk_index']):x for x in payloads}
+          expected=list(range(82)); found=sorted(by_chunk); missing=[x for x in expected if x not in by_chunk]
+          per_game=[]; failures=[]
+          for idx in found:
+              p=by_chunk[idx]
+              per_game.extend(p.get('per_game',[]))
+              failures.extend(p.get('failures',[]))
+          per_game=sorted(per_game,key=lambda x:int(x['game_id']))
+          truth=zero(); methods={m:{'observed':zero(),'exact_games':0,'sum_abs_game_error':zero()} for m in MODES}
+          for g in per_game:
+              t=g['truth']; add(truth,t)
+              for m in MODES:
+                  loc=g['local'][m]; add(methods[m]['observed'],loc)
+                  ds={k:int(loc.get(k,0))-int(t.get(k,0)) for k in KEYS}
+                  if all(v==0 for v in ds.values()): methods[m]['exact_games']+=1
+                  for k,v in ds.items(): methods[m]['sum_abs_game_error'][k]+=abs(v)
+          for m in MODES: methods[m]['diff_vs_api_truth']=diff(methods[m]['observed'],truth)
+          complete=(not missing and len(per_game)==82 and not failures)
+          out={'status':'COMPLETE' if complete else 'PARTIAL','expected_chunks':expected,'found_chunks':found,'missing_chunks':missing,'games_compared':len(per_game),'failures':failures,'api_truth':truth,'locked':LOCKED,'api_truth_diff_vs_locked':diff(truth,LOCKED),'methods':methods,'per_game':per_game}
+          Path('/tmp/ADAMS_REBOUND_CLASSIFIER_MICRO_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='per_game'},indent=2))
+          PY
+      - name: Persist recovered aggregate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/adams_classifier_microchunks
+          mkdir -p "$DEST"
+          cp /tmp/ADAMS_REBOUND_CLASSIFIER_MICRO_SUMMARY.json "$DEST"/
+          git add -f "$DEST/ADAMS_REBOUND_CLASSIFIER_MICRO_SUMMARY.json"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Persist recovered Adams classifier aggregate'
+          git push origin HEAD:agent/treb-batched-game-facts-20260812
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-adams-classifier-recovered-summary
+          path: /tmp/ADAMS_REBOUND_CLASSIFIER_MICRO_SUMMARY.json
+          retention-days: 90
+          if-no-files-found: warn
