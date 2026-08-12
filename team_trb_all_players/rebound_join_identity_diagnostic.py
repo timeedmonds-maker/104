@@ -61,6 +61,10 @@ def serial(v):
     return v
 
 
+def safe_int(v):
+    return None if pd.isna(v) else int(v)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, required=True)
@@ -138,8 +142,8 @@ def main() -> int:
             "pbp_index": int(idx),
             "start_time": str(rr.STARTTIME),
             "end_time": str(rr.ENDTIME),
-            "start_elapsed": int(rr.START_ELAPSED),
-            "end_elapsed": int(rr.END_ELAPSED),
+            "start_elapsed": safe_int(rr.START_ELAPSED),
+            "end_elapsed": safe_int(rr.END_ELAPSED),
             "description": str(rr.DESCRIPTION),
             "previous_description": "" if pd.isna(rr.PREV_PBP_DESCRIPTION) else str(rr.PREV_PBP_DESCRIPTION),
             "is_target": int(idx) == a.pbp_index,
