@@ -18,7 +18,7 @@ import pandas as pd
 
 import local_treb_rebuild as core
 import production_treb_engine as rebound_engine
-import production_rebound_v2 as rebound_join_engine
+import production_rebound_v3 as rebound_join_engine
 import production_treb_engine_v3 as lineup_engine
 import run_local_treb_production as io
 
