@@ -16,22 +16,7 @@ import modern_cdn_lineups as modern
 
 BASE = Path(__file__).resolve().parent
 TARGETS = BASE / 'final_integrity_rebuild' / 'EXCLUDED_GAME_REPAIR_TARGETS.json'
-
-# First ambiguity exposed by the current diagnostic engine for each unresolved
-# game.  These complete pools seed a recursive search.  Once one choice is
-# supplied, later ambiguities are discovered and branched automatically.
-AMBIGUOUS_TRIALS = {
-    20201160: {'period': 5, 'team_id': 1610612765, 'fixed': [361, 688, 1497, 2246], 'variable': [1088, 1442, 1888]},
-    20600887: {'period': 5, 'team_id': 1610612750, 'fixed': [1729, 201147, 201567, 200826], 'variable': [1536, 2033]},
-    20700319: {'period': 4, 'team_id': 1610612752, 'fixed': [2446, 2546, 2754, 201163], 'variable': [255, 1897, 2756, 101181]},
-    20800142: {'period': 5, 'team_id': 1610612752, 'fixed': [2037, 2047, 2768, 201163], 'variable': [2216, 200776]},
-    21100842: {'period': 2, 'team_id': 1610612766, 'fixed': [101107, 201150, 201946, 201974], 'variable': [2550, 2736]},
-    21500916: {'period': 5, 'team_id': 1610612757, 'fixed': [], 'variable': [202334, 203148, 203459, 203943, 203994, 1626145, 1626192, 1626242]},
-    21800143: {'period': 6, 'team_id': 1610612741, 'fixed': [201577, 203897, 203953, 1626166], 'variable': [202703, 203487, 203200, 1627885]},
-    22000485: {'period': 1, 'team_id': 1610612742, 'fixed': [201599, 202710, 203083, 203939], 'variable': [1628973, 1630179, 201144]},
-}
-MISSING_TRANSITION_GAME = 20400335
-MAX_SEARCH_STATES = 2500
+MAX_SEARCH_STATES = 1500
 
 
 def normalize_v3(df: pd.DataFrame) -> pd.DataFrame:
@@ -46,19 +31,15 @@ def normalize_cdn(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def trial_combos(spec: dict) -> list[tuple[int, ...]]:
-    fixed = tuple(int(x) for x in spec['fixed'])
-    variable = tuple(int(x) for x in spec['variable'])
-    need = 5 - len(fixed)
-    if need < 0:
-        return []
-    if need == 0:
-        return [tuple(sorted(fixed))]
-    return [tuple(sorted(fixed + choice)) for choice in combinations(variable, need)]
-
-
 def _state_signature(state: dict[tuple[int, int, int], tuple[int, ...]]) -> tuple:
     return tuple(sorted((key, tuple(value)) for key, value in state.items()))
+
+
+def _repair_choices(state: dict[tuple[int, int, int], tuple[int, ...]]) -> list[dict]:
+    return [
+        {'game_id': k[0], 'period': k[1], 'team_id': k[2], 'starters': list(starters)}
+        for k, starters in sorted(state.items())
+    ]
 
 
 def _with_repairs_reconstruct(legacy_game: pd.DataFrame, v3_game: pd.DataFrame, state: dict):
@@ -87,6 +68,12 @@ def _parse_list(error: str, label: str) -> list[int] | None:
 
 
 def _next_ambiguity(error: str, legacy_game: pd.DataFrame, v3_game: pd.DataFrame):
+    """Reproduce the *current* engine ambiguity and enumerate legal five-man starts.
+
+    No game-specific starter candidates are stored here.  The only candidate
+    universe is the one exposed by the current reconstruction failure itself,
+    so later engine repairs cannot silently leave this diagnostic search stale.
+    """
     m = re.search(r'non-unique v3/team-local starter solution game=(\d+) period=(\d+) team=(\d+):', error)
     if not m:
         return None
@@ -99,43 +86,58 @@ def _next_ambiguity(error: str, legacy_game: pd.DataFrame, v3_game: pd.DataFrame
     prepared, _ = v3engine.legacy.prepare_nba_game(legacy_game)
     prepared = prepared.copy()
     prepared['DESCRIPTION_NORM'] = v3engine.core.nba_description(prepared)
-    prepared['ELAPSED'] = [v3engine.core.elapsed_seconds(int(p), c) for p, c in zip(prepared.PERIOD, prepared.PCTIMESTRING)]
+    prepared['ELAPSED'] = [
+        v3engine.core.elapsed_seconds(int(p), c)
+        for p, c in zip(prepared.PERIOD, prepared.PCTIMESTRING)
+    ]
     order_map = v3engine._v3_action_map(v3_game)
-    prepared['V3_ORDER'] = [order_map.get((int(p), int(ev)), 10_000_000 + int(ev)) for p, ev in zip(prepared.PERIOD, prepared.EVENTNUM)]
-    period = prepared[prepared.PERIOD.eq(period_number)].sort_values(['ELAPSED', 'V3_ORDER', 'EVENTNUM'], kind='stable')
+    prepared['V3_ORDER'] = [
+        order_map.get((int(p), int(ev)), 10_000_000 + int(ev))
+        for p, ev in zip(prepared.PERIOD, prepared.EVENTNUM)
+    ]
+    period = prepared[prepared.PERIOD.eq(period_number)].sort_values(
+        ['ELAPSED', 'V3_ORDER', 'EVENTNUM'], kind='stable'
+    )
     player_team = v3engine.core._player_team(prepared)
 
     pool = set(candidates) | set(prior)
     if len(pool) < 5:
         return None
     if len(candidates) < 5:
-        combos = [set(c) for c in combinations(sorted(pool), 5) if set(candidates).issubset(c)]
+        combos = [
+            set(c) for c in combinations(sorted(pool), 5)
+            if set(candidates).issubset(c)
+        ]
     else:
         combos = [set(c) for c in combinations(sorted(candidates), 5)]
-    evaluated = []
+
+    solutions = []
     for combo in combos:
         legal, violations = v3engine._simulate_team(period, team_id, combo, player_team)
-        if legal:
-            evaluated.append((len(violations), tuple(sorted(combo))))
-    if not evaluated:
-        return None
-    best_score = min(x[0] for x in evaluated)
-    solutions = sorted({x[1] for x in evaluated if x[0] == best_score})
-    if best_score != 0:
+        if legal and not violations:
+            solutions.append(tuple(sorted(combo)))
+    solutions = sorted(set(solutions))
+    if not solutions:
         return None
     return (game_id, period_number, team_id), solutions
 
 
-def search_full_game_repairs(legacy_game: pd.DataFrame, v3_game: pd.DataFrame, gid: int) -> dict | None:
-    spec = AMBIGUOUS_TRIALS.get(int(gid))
-    if spec is None:
-        return None
-    first_key = (int(gid), int(spec['period']), int(spec['team_id']))
-    queue = [{first_key: combo} for combo in trial_combos(spec)]
+def search_full_game_repairs(legacy_game: pd.DataFrame, v3_game: pd.DataFrame, gid: int) -> dict:
+    """Explore only source-driven ambiguous period starts until the whole game is legal.
+
+    The search begins with zero overrides. Each reconstruction failure either:
+    - exposes a current non-unique period-opening state, which is expanded into
+      only the legal five-man solutions for that exact period/team; or
+    - is a non-starter structural defect (missing transition, malformed sub,
+      missing source, etc.), which is recorded as a terminal blocker.
+    """
+    queue: list[dict[tuple[int, int, int], tuple[int, ...]]] = [{}]
     seen = set()
     successes = []
     terminal_failures = []
     explored = 0
+    first_error = None
+    ambiguity_nodes = 0
 
     while queue and explored < MAX_SEARCH_STATES:
         state = queue.pop(0)
@@ -144,42 +146,49 @@ def search_full_game_repairs(legacy_game: pd.DataFrame, v3_game: pd.DataFrame, g
             continue
         seen.add(sig)
         explored += 1
+
         try:
             lu = _with_repairs_reconstruct(legacy_game, v3_game, state)
             successes.append({
-                'repair_choices': [
-                    {'game_id': k[0], 'period': k[1], 'team_id': k[2], 'starters': list(starters)}
-                    for k, starters in sorted(state.items())
-                ],
+                'repair_choices': _repair_choices(state),
                 'player_seconds': {str(pid): int(sec) for pid, sec in sorted(lu.seconds.items())},
                 'players_with_seconds': int(len(lu.seconds)),
             })
             continue
         except Exception as exc:
             error = str(exc)
+            if first_error is None:
+                first_error = error
+
         nxt = _next_ambiguity(error, legacy_game, v3_game)
-        if nxt is not None:
-            key, solutions = nxt
-            if key in state:
-                terminal_failures.append({'repair_choices': [list(x) for x in sig], 'error': error})
-                continue
-            for solution in solutions:
-                branch = dict(state)
-                branch[key] = tuple(solution)
-                queue.append(branch)
-        else:
+        if nxt is None:
             terminal_failures.append({
-                'repair_choices': [
-                    {'game_id': k[0], 'period': k[1], 'team_id': k[2], 'starters': list(starters)}
-                    for k, starters in sorted(state.items())
-                ],
+                'repair_choices': _repair_choices(state),
                 'error': error,
             })
+            continue
+
+        key, solutions = nxt
+        ambiguity_nodes += 1
+        if key in state:
+            terminal_failures.append({
+                'repair_choices': _repair_choices(state),
+                'error': error,
+                'diagnostic': 'same ambiguity key reappeared after explicit override',
+            })
+            continue
+
+        for solution in solutions:
+            branch = dict(state)
+            branch[key] = tuple(solution)
+            queue.append(branch)
 
     return {
-        'initial_period': int(spec['period']),
-        'initial_team_id': int(spec['team_id']),
+        'method': 'dynamic_current_engine_ambiguity_search',
+        'game_id': int(gid),
+        'first_error': first_error,
         'states_explored': explored,
+        'ambiguity_nodes_expanded': ambiguity_nodes,
         'state_limit': MAX_SEARCH_STATES,
         'queue_remaining_at_stop': len(queue),
         'full_game_solution_count': len(successes),
@@ -215,14 +224,19 @@ def main() -> int:
                 try:
                     lu = modern.reconstruct_game_lineups(g)
                     row.update({
-                        'status': 'PASS_CDN', 'source': 'cdnnba',
-                        'players_with_seconds': len(lu.seconds), 'repairs': lu.repairs,
-                        'player_seconds': {str(pid): int(round(sec)) for pid, sec in sorted(lu.seconds.items())},
+                        'status': 'PASS_CDN',
+                        'source': 'cdnnba',
+                        'players_with_seconds': len(lu.seconds),
+                        'repairs': lu.repairs,
+                        'player_seconds': {
+                            str(pid): int(round(sec)) for pid, sec in sorted(lu.seconds.items())
+                        },
                     })
                     result['games'].append(row)
                     continue
                 except Exception as exc:
                     row['cdn_error'] = str(exc)
+
         legacy_game = nba[nba.GAME_ID.eq(gid)] if not nba.empty else pd.DataFrame()
         v3_game = v3[v3.gameId.eq(gid)] if not v3.empty else pd.DataFrame()
         row['legacy_rows'] = int(len(legacy_game))
@@ -231,24 +245,19 @@ def main() -> int:
             row.update({'status': 'V3_ONLY_REQUIRED' if not v3_game.empty else 'SOURCE_MISSING'})
             result['games'].append(row)
             continue
+
         try:
             lu = v3engine.reconstruct_game_lineups(legacy_game, v3_game)
             row.update({
-                'status': 'PASS_V3_TEAM_LOCAL', 'source': 'nbastats+nbastatsv3',
-                'players_with_seconds': len(lu.seconds), 'repairs': lu.repairs,
+                'status': 'PASS_V3_TEAM_LOCAL',
+                'source': 'nbastats+nbastatsv3',
+                'players_with_seconds': len(lu.seconds),
+                'repairs': lu.repairs,
                 'player_seconds': {str(pid): int(sec) for pid, sec in sorted(lu.seconds.items())},
             })
         except Exception as exc:
             row.update({'status': 'FAIL', 'error': str(exc)})
-            if gid == MISSING_TRANSITION_GAME:
-                row['repair_search'] = {
-                    'status': 'MISSING_IN_PERIOD_TRANSITION_BLOCKER',
-                    'reason': 'Explicit starter override would hide the participant violation and is therefore not a valid repair.',
-                }
-            else:
-                search = search_full_game_repairs(legacy_game, v3_game, gid)
-                if search is not None:
-                    row['repair_search'] = search
+            row['repair_search'] = search_full_game_repairs(legacy_game, v3_game, gid)
         result['games'].append(row)
 
     counts = {}
@@ -257,7 +266,21 @@ def main() -> int:
     result['status_counts'] = counts
     a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_text(json.dumps(result, indent=2, default=str) + '\n', encoding='utf-8')
-    print(json.dumps({'year': a.year, 'status_counts': counts, 'games': [(r['game_id'], r['status']) for r in result['games']]}, indent=2))
+    print(json.dumps({
+        'year': a.year,
+        'status_counts': counts,
+        'games': [
+            (
+                r['game_id'],
+                r['status'],
+                r.get('repair_search', {}).get('full_game_solution_count')
+                if isinstance(r.get('repair_search'), dict) else None,
+                r.get('repair_search', {}).get('search_complete')
+                if isinstance(r.get('repair_search'), dict) else None,
+            )
+            for r in result['games']
+        ],
+    }, indent=2))
     return 0
 
 
