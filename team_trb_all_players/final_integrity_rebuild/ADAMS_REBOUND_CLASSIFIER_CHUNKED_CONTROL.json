@@ -1,0 +1,6 @@
+{
+  "launched_at": "2026-08-12T08:20:00Z",
+  "purpose": "Replace monolithic 82-game Adams rebound classifier audit with 9 durable chunks of at most 10 games each. Each chunk uploads its own artifact; aggregate records missing/failed chunks without discarding completed work.",
+  "chunk_size": 10,
+  "expected_chunks": 9
+}
