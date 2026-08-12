@@ -70,10 +70,12 @@ def main() -> int:
             names = _player_names(game)
             real = rebounds.IS_REAL_REBOUND.astype(bool) if not rebounds.empty else pd.Series(dtype=bool)
             oreb = rebounds.IS_OREB.astype(bool) if not rebounds.empty else pd.Series(dtype=bool)
+            game_team_rows = []
+            game_player_rows = []
 
             for tid in lineup.teams:
                 own = rebounds.REBOUND_TEAM_ID.astype("int64").eq(int(tid)) if not rebounds.empty else pd.Series(dtype=bool)
-                team_rows.append({
+                game_team_rows.append({
                     "game_id": int(gid), "game_date": dates[gid], "team_id": int(tid),
                     "team_abbr": abbr.get(int(tid), ""), "game_seconds": int(duration),
                     "team_oreb": _count(own & oreb) if not rebounds.empty else 0,
@@ -95,7 +97,7 @@ def main() -> int:
                 else:
                     on = rebounds.LINEUP.map(lambda x: pid in x)
                     own = rebounds.REBOUND_TEAM_ID.astype("int64").eq(tid)
-                player_rows.append({
+                game_player_rows.append({
                     "game_id": int(gid), "game_date": dates[gid], "team_id": tid,
                     "team_abbr": abbr.get(tid, ""), "player_id": pid, "player": names.get(pid, ""),
                     "seconds_on": sec,
@@ -106,10 +108,12 @@ def main() -> int:
                 })
 
             for tid in lineup.teams:
-                observed = sum(r["seconds_on"] for r in player_rows if r["game_id"] == gid and r["team_id"] == int(tid))
+                observed = sum(r["seconds_on"] for r in game_player_rows if r["team_id"] == int(tid))
                 expected = duration * 5
                 if observed != expected:
                     raise ValueError(f"team player-seconds mismatch game={gid} team={tid}: {observed} != {expected}")
+            team_rows.extend(game_team_rows)
+            player_rows.extend(game_player_rows)
             audits.append({"game_id": int(gid), "repairs": lineup.repairs, "duration_seconds": int(duration)})
         except Exception as exc:
             failures.append({"game_id": int(gid), "error": f"{type(exc).__name__}: {exc}"})
