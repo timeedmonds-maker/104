@@ -1,0 +1,104 @@
+name: TREB V5 direct team regression
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/rebound_forensics/DIRECT_TEAM_REBOUND_REPAIRS.json
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs: {matrix: '${{ steps.p.outputs.matrix }}'}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text());assert len(m['chunks'])==24
+          x={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(x,separators=(',',':'))+'\n')
+          PY
+  regress:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_v5_regression.py \
+            --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/V5_REG_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v5-reg-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/V5_REG_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan,regress]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-v5-reg-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Gate regression
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          ps=sorted(Path('/tmp/results').rglob('V5_REG_*.json'));assert len(ps)==24,[str(x) for x in ps]
+          xs=[json.loads(p.read_text()) for p in ps]
+          total=lambda k:sum(int(x[k]) for x in xs)
+          games=total('games');before=total('v4_unmatched');after=total('v5_unmatched');added=total('added_rows');changed=total('changed_existing_rows');rep=total('v5_direct_team_repairs')
+          assert games==58,(games,);assert before==77,(before,);assert added==50 and rep==50,(added,rep);assert after==27,(after,);assert changed==0,(changed,)
+          remaining=[]
+          for x in xs:
+            for g in x['game_records']:
+              for r in g['remaining']:remaining.append(r)
+          assert len(remaining)==27
+          out={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'games':games,'v4_unmatched':before,'v5_unmatched':after,'exact_repairs_added':added,'changed_existing_rows':changed,'remaining_rows':remaining}
+          Path('/tmp/V5_DIRECT_TEAM_REGRESSION_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n');print(json.dumps({k:v for k,v in out.items() if k!='remaining_rows'},indent=2))
+          PY
+      - name: Persist with branch-race retry
+        run: |
+          set -euo pipefail;D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812;git reset --hard origin/agent/treb-batched-game-facts-20260812
+            cp /tmp/V5_DIRECT_TEAM_REGRESSION_SUMMARY.json "$D/";git add -f "$D/V5_DIRECT_TEAM_REGRESSION_SUMMARY.json"
+            if git diff --cached --quiet;then exit 0;fi
+            git commit -m 'Persist V5 direct-team repair regression'
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812;then exit 0;fi;sleep $((attempt*2))
+          done;exit 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v5-direct-team-regression-summary-${{ github.run_id }}
+          path: /tmp/V5_DIRECT_TEAM_REGRESSION_SUMMARY.json
+          retention-days: 90
