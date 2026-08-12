@@ -1,0 +1,105 @@
+name: TREB V6 source-only regression
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-v6-source-only-regression.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs: {matrix: '${{ steps.p.outputs.matrix }}'}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text()); assert len(m['chunks'])==24 and m['target_games']==58
+          x={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(x,separators=(',',':'))+'\n')
+          PY
+  audit:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_v6_source_only_regression.py \
+            --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/V6_REG_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v6-reg-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/V6_REG_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan,audit]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-v6-reg-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Gate V6 regression
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          ps=sorted(Path('/tmp/results').rglob('V6_REG_*.json')); assert len(ps)==24,[str(p) for p in ps]
+          xs=[json.loads(p.read_text()) for p in ps]
+          def agg(section,name):return {k:sum(int(x[section][name][k]) for x in xs) for k in ('applicable','correct','wrong')}
+          interval=agg('lineup_controls','interval_invariant'); named=agg('live_controls','resolved_named_player'); counter=agg('live_controls','counter_credited_player')
+          assert interval=={'applicable':4682,'correct':4682,'wrong':0},interval
+          assert named=={'applicable':5034,'correct':5034,'wrong':0},named
+          assert counter=={'applicable':5163,'correct':5163,'wrong':0},counter
+          residual=[r for x in xs for r in x['residual_rows']]; assert len(residual)==20,len(residual)
+          rep=json.loads(Path('team_trb_all_players/final_integrity_rebuild/rebound_forensics/V6_SOURCE_ONLY_PLAYER_REPAIRS.json').read_text()); assert rep['status']=='PROMOTED' and rep['repair_rows']==7 and len(rep['repairs'])==7
+          assert len(residual)+len(rep['repairs'])==27
+          repaired={(int(r['game_id']),int(r['period']),str(r['start_time']),str(r['end_time']),str(r['pbp_description'])) for r in rep['repairs']}
+          rem={(int(r['game_id']),int(r['period']),str(r['start_time']),str(r['end_time']),str(r['description'])) for r in residual}
+          assert repaired.isdisjoint(rem)
+          out={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'engine':'production_rebound_v6','prior_v5_residual_rows':27,'promoted_source_only_rows':7,'v6_residual_rows':20,'lineup_interval_invariant_controls':interval,'named_player_live_controls':named,'counter_credited_player_live_controls':counter,'existing_control_regressions':0,'residual_rows':residual}
+          Path('/tmp/V6_SOURCE_ONLY_REGRESSION.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:v for k,v in out.items() if k!='residual_rows'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v6-source-only-regression-${{ github.run_id }}
+          path: /tmp/V6_SOURCE_ONLY_REGRESSION.json
+          retention-days: 90
+      - name: Persist durable regression result
+        run: |
+          set -euo pipefail;D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5;do
+            git fetch origin agent/treb-batched-game-facts-20260812;git reset --hard origin/agent/treb-batched-game-facts-20260812
+            cp /tmp/V6_SOURCE_ONLY_REGRESSION.json "$D/";git add -f "$D/V6_SOURCE_ONLY_REGRESSION.json"
+            if git diff --cached --quiet;then exit 0;fi
+            git commit -m 'Persist V6 source-only regression proof';if git push origin HEAD:agent/treb-batched-game-facts-20260812;then exit 0;fi;sleep $((attempt*2))
+          done;exit 1
