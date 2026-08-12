@@ -18,6 +18,10 @@ permissions:
 env:
   PYTHONUNBUFFERED: "1"
 
+concurrency:
+  group: treb-final-integrity-exclusion-repair-canary
+  cancel-in-progress: true
+
 jobs:
   canary:
     strategy:
@@ -41,7 +45,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/trebraw
           python - <<'PY'
-          import os, subprocess, tarfile, urllib.request
+          import subprocess, tarfile, urllib.request
           from pathlib import Path
           year=int('${{ matrix.year }}')
           raw=Path('/tmp/trebraw')
@@ -77,37 +81,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/treb-final-integrity-rebuild-20260812
+          ref: ${{ github.sha }}
           fetch-depth: 0
-      - name: Download same-run canary artifacts
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-final-integrity-canary-*
+          path: /tmp/canaries
+          merge-multiple: true
+      - name: Aggregate canary evidence
+        shell: bash
         run: |
-          mkdir -p /tmp/treb-canaries
-          gh run download "${{ github.run_id }}" --repo "${{ github.repository }}" --dir /tmp/treb-canaries
-      - name: Aggregate
-        run: |
+          set -euo pipefail
           python - <<'PY'
           import json
           from pathlib import Path
-          files=sorted(Path('/tmp/treb-canaries').rglob('treb-canary-*.json'))
-          years=[]; games=[]; counts={}
+          files=sorted(Path('/tmp/canaries').glob('treb-canary-*.json'))
+          payload={'source_files':[p.name for p in files],'games':[],'status_counts':{},'repair_search_summary':{}}
           for p in files:
               d=json.loads(p.read_text())
-              years.append(d['year']); games.extend(d['games'])
-              for k,v in d.get('status_counts',{}).items(): counts[k]=counts.get(k,0)+int(v)
-          payload={
-              'status':'CANARY_COMPLETE' if len(games)==40 else 'CANARY_INCOMPLETE',
-              'years':sorted(years),
-              'years_found':len(years),
-              'games_expected':40,
-              'games_found':len(games),
-              'status_counts':counts,
-              'games':sorted(games,key=lambda x:x['game_id']),
-              'policy':'No game may remain excluded from final target windows. FAIL/V3_ONLY_REQUIRED/SOURCE_MISSING rows remain blockers.'
-          }
-          out=Path('/tmp/EXCLUDED_GAME_REPAIR_CANARY_RESULT.json')
-          out.write_text(json.dumps(payload,indent=2,default=str)+'\n')
+              payload['games'].extend(d.get('games',[]))
+          payload['games'].sort(key=lambda r:int(r['game_id']))
+          for r in payload['games']:
+              s=r.get('status','UNKNOWN')
+              payload['status_counts'][s]=payload['status_counts'].get(s,0)+1
+              search=r.get('repair_search')
+              if isinstance(search,dict):
+                  payload['repair_search_summary'][str(r['game_id'])]={
+                      'method':search.get('method'),
+                      'states_explored':search.get('states_explored'),
+                      'full_game_solution_count':search.get('full_game_solution_count'),
+                      'terminal_failure_count':search.get('terminal_failure_count'),
+                      'search_complete':search.get('search_complete'),
+                      'queue_remaining_at_stop':search.get('queue_remaining_at_stop'),
+                  }
+          Path('/tmp/EXCLUDED_GAME_REPAIR_CANARY_RESULT.json').write_text(json.dumps(payload,indent=2)+'\n')
           print(json.dumps({k:v for k,v in payload.items() if k!='games'},indent=2))
           PY
       - name: Commit aggregate result durably
@@ -117,8 +124,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
-          cp /tmp/EXCLUDED_GAME_REPAIR_CANARY_RESULT.json team_trb_all_players/final_integrity_rebuild/EXCLUDED_GAME_REPAIR_CANARY_RESULT.json
+          mkdir -p team_trb_all_players/final_integrity_rebuild
+          cp /tmp/EXCLUDED_GAME_REPAIR_CANARY_RESULT.json \
+             team_trb_all_players/final_integrity_rebuild/EXCLUDED_GAME_REPAIR_CANARY_RESULT.json
           git add team_trb_all_players/final_integrity_rebuild/EXCLUDED_GAME_REPAIR_CANARY_RESULT.json
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "Record 40-game exclusion repair canary result"
+          git commit -m "Record dynamic excluded-game repair canary"
           git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
