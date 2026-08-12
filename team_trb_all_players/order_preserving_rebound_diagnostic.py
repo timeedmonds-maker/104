@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Prove exact rebound-event identity by unique chronological assignment.
 
-Diagnostic only. Starting from the corrected time-scoped production v2 join,
-all still-unmatched PBP rebounds in a period are considered jointly. Already-used
+Diagnostic only. Starting from the CURRENT production v3 rebound join, all
+still-unmatched PBP rebounds in a period are considered jointly. Already-used
 NBA rebound rows are reserved. An assignment is legal only when every unmatched
 PBP row maps to a distinct unused NBA EVENTMSGTYPE=4 row inside its existing
 ±5-second legal window and NBA event order is strictly increasing with PBP order.
 A period is repairable only when exactly one complete assignment exists.
+
+Synthetic rows already resolved by production v3 remain resolved and are never
+used as leave-one-out NBA-event truth anchors because they have no NBA_INDEX.
 """
 from __future__ import annotations
 import argparse,json
@@ -14,7 +17,7 @@ from collections import Counter
 from pathlib import Path
 import pandas as pd
 import local_treb_rebuild as core
-import production_rebound_v2 as rebound
+import production_rebound_v3 as rebound
 import production_treb_engine_v3 as lineup_engine
 import run_local_treb_production as io
 
@@ -53,7 +56,8 @@ def main():
             games.append({'game_id':gid,'status':'LINEUP_OR_JOIN_ERROR','error':f'{type(exc).__name__}: {exc}'}); continue
         if int(audit.get('unmatched_rebound_bearing_rows',0))==0:
             games.append({'game_id':gid,'status':'NO_UNMATCHED','unmatched_rows':0}); continue
-        counts=Counter(int(x) for x in joined.NBA_INDEX.dropna().astype(int)); used=set(counts)
+        numeric_idx=pd.to_numeric(joined.NBA_INDEX,errors='coerce').dropna().astype(int)
+        counts=Counter(int(x) for x in numeric_idx); used=set(counts)
         period_results=[]; all_periods_unique=True; total_unmatched=0; total_assigned=0
         for period,prows in rows.groupby('PERIOD',sort=False):
             pidx=list(prows.index); unmatched=[idx for idx in pidx if idx not in joined.index]
@@ -78,8 +82,9 @@ def main():
             period_results.append({'period':int(period),'unmatched_rows':len(unmatched),'solution_count_capped':len(sols),'unique_complete_assignment':unique,'candidate_detail':candidate_detail,'assignments':assignments})
         games.append({'game_id':gid,'status':'OK','unmatched_rows':total_unmatched,'assigned_rows':total_assigned,'all_unmatched_uniquely_assigned':bool(total_unmatched and all_periods_unique and total_assigned==total_unmatched),'periods':period_results,'join_audit':audit})
 
-        # Leave-one-out control: only one-to-one matched NBA rows can be truth anchors.
+        # Leave-one-out control: only one-to-one, real NBA-indexed matched rows are truth anchors.
         for idx,jrow in joined.iterrows():
+            if pd.isna(jrow.NBA_INDEX): continue
             actual=int(jrow.NBA_INDEX)
             if counts[actual]!=1: continue
             row=rows.loc[idx]; c=nba_ev[nba_ev.PERIOD.eq(row.PERIOD)&nba_ev.EVENTMSGTYPE.eq(4)&nba_ev.ELAPSED.gt(int(row.START_ELAPSED)-5)&nba_ev.ELAPSED.lt(int(row.END_ELAPSED)+5)&~nba_ev.index.isin(used-{actual})]
@@ -88,6 +93,6 @@ def main():
             if forced==actual: control_correct+=1
             else: control_wrong+=1
     ok=[g for g in games if g.get('status')=='OK']
-    out={'year':args.year,'targets':len(ids),'games_analyzed':len(ok),'games_all_unmatched_uniquely_assigned':sum(g.get('all_unmatched_uniquely_assigned',False) for g in ok),'unmatched_rows':sum(g.get('unmatched_rows',0) for g in ok),'uniquely_assigned_rows_in_fully_unique_periods':sum(g.get('assigned_rows',0) for g in ok),'control_applicable':control_applicable,'control_correct':control_correct,'control_wrong':control_wrong,'games':games}
+    out={'diagnostic_engine':'production_rebound_v3','year':args.year,'targets':len(ids),'games_analyzed':len(ok),'games_all_unmatched_uniquely_assigned':sum(g.get('all_unmatched_uniquely_assigned',False) for g in ok),'unmatched_rows':sum(g.get('unmatched_rows',0) for g in ok),'uniquely_assigned_rows_in_fully_unique_periods':sum(g.get('assigned_rows',0) for g in ok),'control_applicable':control_applicable,'control_correct':control_correct,'control_wrong':control_wrong,'games':games}
     args.output.write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2)); return 0
 if __name__=='__main__': raise SystemExit(main())
