@@ -1,0 +1,1491 @@
+{
+  "status": "COMPLETE",
+  "input_counts": {
+    "cdn_rebounds": 129577,
+    "nba_rebounds": 129571,
+    "shared_action_identity": 129565,
+    "cdn_only_actions": 12,
+    "nba_only_actions": 6,
+    "shared_same_team": 129562,
+    "shared_team_conflicts": 3,
+    "shared_player_attribution_differences": 16,
+    "shared_clock_differences_gt_0_011s": 6,
+    "shared_clock_delta_max_abs": 12.0
+  },
+  "target_rows": 21,
+  "cdn_target_rows": 15,
+  "cdn_kind_checkable": 15,
+  "cdn_kind_consistent": 14,
+  "cdn_kind_inconsistent": 1,
+  "cdn_unique_crossmatches": 5,
+  "nba_only_rows": 6,
+  "nba_only_unique_crossmatches_into_cdn": 2,
+  "results": [
+    {
+      "kind": "shared_team_conflict",
+      "game_id": 22500128,
+      "action_number": 643,
+      "cdn": {
+        "row": {
+          "gameId": 22500128,
+          "actionNumber": 643,
+          "orderNumber": 6230000,
+          "period": 4,
+          "clock": "PT05M25.00S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "TEAM offensive REBOUND",
+          "personId": 0,
+          "playerName": null,
+          "teamId": 1610612739.0,
+          "teamTricode": "CLE",
+          "reboundOffensiveTotal": null,
+          "reboundDefensiveTotal": null,
+          "effective_team_id": 1610612739,
+          "player_id": null,
+          "counters": [
+            null,
+            null
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612739,
+          "prior_miss_team": 1610612739,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500128,
+            "actionNumber": 642,
+            "orderNumber": 6220000,
+            "period": 4,
+            "clock": "PT05M27.00S",
+            "actionType": "3pt",
+            "subType": "Jump Shot",
+            "description": "MISS E. Mobley 25' running pullup 3PT",
+            "personId": 1630596,
+            "playerName": "Mobley",
+            "teamId": 1610612739.0,
+            "teamTricode": "CLE",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612739,
+            "player_id": 1630596,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": {
+        "row": {
+          "gameId": 22500128,
+          "actionNumber": 643,
+          "period": 4,
+          "clock": "PT05M25.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "Minott REBOUND (Off:3 Def:10)",
+          "personId": 1631169,
+          "playerName": "Minott",
+          "teamId": 1610612738,
+          "teamTricode": "BOS",
+          "effective_team_id": 1610612738,
+          "player_id": 1631169,
+          "counters": [
+            3,
+            10
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false
+      }
+    },
+    {
+      "kind": "shared_team_conflict",
+      "game_id": 22500338,
+      "action_number": 572,
+      "cdn": {
+        "row": {
+          "gameId": 22500338,
+          "actionNumber": 572,
+          "orderNumber": 5610000,
+          "period": 4,
+          "clock": "PT05M36.00S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "J. Minott REBOUND (Off:1 Def:2)",
+          "personId": 1631169,
+          "playerName": "Minott",
+          "teamId": 1610612738.0,
+          "teamTricode": "BOS",
+          "reboundOffensiveTotal": 1.0,
+          "reboundDefensiveTotal": 2.0,
+          "effective_team_id": 1610612738,
+          "player_id": 1631169,
+          "counters": [
+            1,
+            2
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612738,
+          "prior_miss_team": 1610612738,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500338,
+            "actionNumber": 571,
+            "orderNumber": 5600000,
+            "period": 4,
+            "clock": "PT05M37.00S",
+            "actionType": "3pt",
+            "subType": "Jump Shot",
+            "description": "MISS J. Brown 30' 3PT",
+            "personId": 1627759,
+            "playerName": "Brown",
+            "teamId": 1610612738.0,
+            "teamTricode": "BOS",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612738,
+            "player_id": 1627759,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": {
+        "row": {
+          "gameId": 22500338,
+          "actionNumber": 572,
+          "period": 4,
+          "clock": "PT05M34.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "Kleber REBOUND (Off:0 Def:1)",
+          "personId": 1628467,
+          "playerName": "Kleber",
+          "teamId": 1610612747,
+          "teamTricode": "LAL",
+          "effective_team_id": 1610612747,
+          "player_id": 1628467,
+          "counters": [
+            0,
+            1
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500338,
+            "actionNumber": 574,
+            "orderNumber": 5630000,
+            "period": 4,
+            "clock": "PT05M34.00S",
+            "actionType": "rebound",
+            "subType": "defensive",
+            "description": "M. Kleber REBOUND (Off:0 Def:1)",
+            "personId": 1628467,
+            "playerName": "Kleber",
+            "teamId": 1610612747.0,
+            "teamTricode": "LAL",
+            "reboundOffensiveTotal": 0.0,
+            "reboundDefensiveTotal": 1.0,
+            "effective_team_id": 1610612747,
+            "player_id": 1628467,
+            "counters": [
+              0,
+              1
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": -2
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true
+      }
+    },
+    {
+      "kind": "shared_team_conflict",
+      "game_id": 22500490,
+      "action_number": 636,
+      "cdn": {
+        "row": {
+          "gameId": 22500490,
+          "actionNumber": 636,
+          "orderNumber": 6270000,
+          "period": 4,
+          "clock": "PT04M19.00S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "D. Avdija REBOUND (Off:3 Def:7)",
+          "personId": 1630166,
+          "playerName": "Avdija",
+          "teamId": 1610612757.0,
+          "teamTricode": "POR",
+          "reboundOffensiveTotal": 3.0,
+          "reboundDefensiveTotal": 7.0,
+          "effective_team_id": 1610612757,
+          "player_id": 1630166,
+          "counters": [
+            3,
+            7
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500490,
+            "actionNumber": 680,
+            "period": 4,
+            "clock": "PT01M18.00S",
+            "actionType": "Rebound",
+            "subType": "Unknown",
+            "description": "Avdija REBOUND (Off:3 Def:7)",
+            "personId": 1630166,
+            "playerName": "Avdija",
+            "teamId": 1610612757,
+            "teamTricode": "POR",
+            "effective_team_id": 1610612757,
+            "player_id": 1630166,
+            "counters": [
+              3,
+              7
+            ],
+            "clock_delta_seconds": 181.0,
+            "action_delta": -44
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612757,
+          "prior_miss_team": 1610612757,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500490,
+            "actionNumber": 635,
+            "orderNumber": 6260000,
+            "period": 4,
+            "clock": "PT04M21.00S",
+            "actionType": "2pt",
+            "subType": "Jump Shot",
+            "description": "MISS D. Avdija 11' driving floating Shot",
+            "personId": 1630166,
+            "playerName": "Avdija",
+            "teamId": 1610612757.0,
+            "teamTricode": "POR",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612757,
+            "player_id": 1630166,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": {
+        "row": {
+          "gameId": 22500490,
+          "actionNumber": 636,
+          "period": 4,
+          "clock": "PT04M19.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "SPURS Rebound",
+          "personId": 1610612759,
+          "playerName": null,
+          "teamId": 0,
+          "teamTricode": null,
+          "effective_team_id": 1610612759,
+          "player_id": null,
+          "counters": [
+            null,
+            null
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500490,
+            "actionNumber": 638,
+            "orderNumber": 6290000,
+            "period": 4,
+            "clock": "PT04M19.00S",
+            "actionType": "rebound",
+            "subType": "defensive",
+            "description": "TEAM defensive REBOUND",
+            "personId": 0,
+            "playerName": null,
+            "teamId": 1610612759.0,
+            "teamTricode": "SAS",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612759,
+            "player_id": null,
+            "counters": [
+              null,
+              null
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": -2
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true
+      }
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500029,
+      "action_number": 250,
+      "cdn": {
+        "row": {
+          "gameId": 22500029,
+          "actionNumber": 250,
+          "orderNumber": 2220000,
+          "period": 2,
+          "clock": "PT08M15.00S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "TEAM offensive REBOUND",
+          "personId": 0,
+          "playerName": null,
+          "teamId": 1610612764.0,
+          "teamTricode": "WAS",
+          "reboundOffensiveTotal": null,
+          "reboundDefensiveTotal": null,
+          "effective_team_id": 1610612764,
+          "player_id": null,
+          "counters": [
+            null,
+            null
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612764,
+          "prior_miss_team": 1610612764,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500029,
+            "actionNumber": 249,
+            "orderNumber": 2210000,
+            "period": 2,
+            "clock": "PT08M15.00S",
+            "actionType": "freethrow",
+            "subType": "1 of 2",
+            "description": "MISS T. Johnson Free Throw 1 of 2",
+            "personId": 1642848,
+            "playerName": "Johnson",
+            "teamId": 1610612764.0,
+            "teamTricode": "WAS",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612764,
+            "player_id": 1642848,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500090,
+      "action_number": 526,
+      "cdn": {
+        "row": {
+          "gameId": 22500090,
+          "actionNumber": 526,
+          "orderNumber": 5110000,
+          "period": 3,
+          "clock": "PT01M34.00S",
+          "actionType": "rebound",
+          "subType": "defensive",
+          "description": "L. Kennard REBOUND (Off:2 Def:1)",
+          "personId": 1628379,
+          "playerName": "Kennard",
+          "teamId": 1610612737.0,
+          "teamTricode": "ATL",
+          "reboundOffensiveTotal": 2.0,
+          "reboundDefensiveTotal": 1.0,
+          "effective_team_id": 1610612737,
+          "player_id": 1628379,
+          "counters": [
+            2,
+            1
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "defensive",
+          "rebound_team": 1610612737,
+          "prior_miss_team": 1610612753,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500090,
+            "actionNumber": 524,
+            "orderNumber": 5090000,
+            "period": 3,
+            "clock": "PT01M38.00S",
+            "actionType": "2pt",
+            "subType": "Jump Shot",
+            "description": "MISS T. Jones 7' running pullup Shot - blocked",
+            "personId": 1626145,
+            "playerName": "Jones",
+            "teamId": 1610612753.0,
+            "teamTricode": "ORL",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612753,
+            "player_id": 1626145,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500106,
+      "action_number": 776,
+      "cdn": {
+        "row": {
+          "gameId": 22500106,
+          "actionNumber": 776,
+          "orderNumber": 4568750,
+          "period": 3,
+          "clock": "PT07M09.00S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "J. Duren REBOUND (Off:6 Def:7)",
+          "personId": 1631105,
+          "playerName": "Duren",
+          "teamId": 1610612765.0,
+          "teamTricode": "DET",
+          "reboundOffensiveTotal": 6.0,
+          "reboundDefensiveTotal": 7.0,
+          "effective_team_id": 1610612765,
+          "player_id": 1631105,
+          "counters": [
+            6,
+            7
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500106,
+            "actionNumber": 779,
+            "period": 3,
+            "clock": "PT07M09.00S",
+            "actionType": "Rebound",
+            "subType": "Unknown",
+            "description": "Duren REBOUND (Off:6 Def:7)",
+            "personId": 1631105,
+            "playerName": "Duren",
+            "teamId": 1610612765,
+            "teamTricode": "DET",
+            "effective_team_id": 1610612765,
+            "player_id": 1631105,
+            "counters": [
+              6,
+              7
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": -3
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612765,
+          "prior_miss_team": 1610612765,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500106,
+            "actionNumber": 774,
+            "orderNumber": 4565000,
+            "period": 3,
+            "clock": "PT07M11.00S",
+            "actionType": "2pt",
+            "subType": "Layup",
+            "description": "MISS A. Thompson driving Layup - blocked",
+            "personId": 1641709,
+            "playerName": "Thompson",
+            "teamId": 1610612765.0,
+            "teamTricode": "DET",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612765,
+            "player_id": 1641709,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500185,
+      "action_number": 605,
+      "cdn": {
+        "row": {
+          "gameId": 22500185,
+          "actionNumber": 605,
+          "orderNumber": 5930000,
+          "period": 4,
+          "clock": "PT00M59.30S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "J. Toppin REBOUND (Off:1 Def:0)",
+          "personId": 1631210,
+          "playerName": "Toppin",
+          "teamId": 1610612737.0,
+          "teamTricode": "ATL",
+          "reboundOffensiveTotal": 1.0,
+          "reboundDefensiveTotal": 0.0,
+          "effective_team_id": 1610612737,
+          "player_id": 1631210,
+          "counters": [
+            1,
+            0
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612737,
+          "prior_miss_team": 1610612737,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500185,
+            "actionNumber": 604,
+            "orderNumber": 5920000,
+            "period": 4,
+            "clock": "PT01M01.00S",
+            "actionType": "2pt",
+            "subType": "Jump Shot",
+            "description": "MISS V. Krej\u010d\u00ed 10' driving floating Shot",
+            "personId": 1630249,
+            "playerName": "Krej\u010d\u00ed",
+            "teamId": 1610612737.0,
+            "teamTricode": "ATL",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612737,
+            "player_id": 1630249,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500338,
+      "action_number": 574,
+      "cdn": {
+        "row": {
+          "gameId": 22500338,
+          "actionNumber": 574,
+          "orderNumber": 5630000,
+          "period": 4,
+          "clock": "PT05M34.00S",
+          "actionType": "rebound",
+          "subType": "defensive",
+          "description": "M. Kleber REBOUND (Off:0 Def:1)",
+          "personId": 1628467,
+          "playerName": "Kleber",
+          "teamId": 1610612747.0,
+          "teamTricode": "LAL",
+          "reboundOffensiveTotal": 0.0,
+          "reboundDefensiveTotal": 1.0,
+          "effective_team_id": 1610612747,
+          "player_id": 1628467,
+          "counters": [
+            0,
+            1
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500338,
+            "actionNumber": 572,
+            "period": 4,
+            "clock": "PT05M34.00S",
+            "actionType": "Rebound",
+            "subType": "Unknown",
+            "description": "Kleber REBOUND (Off:0 Def:1)",
+            "personId": 1628467,
+            "playerName": "Kleber",
+            "teamId": 1610612747,
+            "teamTricode": "LAL",
+            "effective_team_id": 1610612747,
+            "player_id": 1628467,
+            "counters": [
+              0,
+              1
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": 2
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true,
+        "cdn_kind_check": {
+          "subtype": "defensive",
+          "rebound_team": 1610612747,
+          "prior_miss_team": 1610612738,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500338,
+            "actionNumber": 573,
+            "orderNumber": 5620000,
+            "period": 4,
+            "clock": "PT05M36.00S",
+            "actionType": "2pt",
+            "subType": "Layup",
+            "description": "MISS J. Minott tip Layup",
+            "personId": 1631169,
+            "playerName": "Minott",
+            "teamId": 1610612738.0,
+            "teamTricode": "BOS",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612738,
+            "player_id": 1631169,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500366,
+      "action_number": 18,
+      "cdn": {
+        "row": {
+          "gameId": 22500366,
+          "actionNumber": 18,
+          "orderNumber": 180000,
+          "period": 1,
+          "clock": "PT11M11.00S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "L. Kornet REBOUND (Off:1 Def:1)",
+          "personId": 1628436,
+          "playerName": "Kornet",
+          "teamId": 1610612759.0,
+          "teamTricode": "SAS",
+          "reboundOffensiveTotal": 1.0,
+          "reboundDefensiveTotal": 1.0,
+          "effective_team_id": 1610612759,
+          "player_id": 1628436,
+          "counters": [
+            1,
+            1
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612759,
+          "prior_miss_team": 1610612759,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500366,
+            "actionNumber": 16,
+            "orderNumber": 160000,
+            "period": 1,
+            "clock": "PT11M12.00S",
+            "actionType": "2pt",
+            "subType": "Layup",
+            "description": "MISS L. Kornet Layup - blocked",
+            "personId": 1628436,
+            "playerName": "Kornet",
+            "teamId": 1610612759.0,
+            "teamTricode": "SAS",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612759,
+            "player_id": 1628436,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500490,
+      "action_number": 638,
+      "cdn": {
+        "row": {
+          "gameId": 22500490,
+          "actionNumber": 638,
+          "orderNumber": 6290000,
+          "period": 4,
+          "clock": "PT04M19.00S",
+          "actionType": "rebound",
+          "subType": "defensive",
+          "description": "TEAM defensive REBOUND",
+          "personId": 0,
+          "playerName": null,
+          "teamId": 1610612759.0,
+          "teamTricode": "SAS",
+          "reboundOffensiveTotal": null,
+          "reboundDefensiveTotal": null,
+          "effective_team_id": 1610612759,
+          "player_id": null,
+          "counters": [
+            null,
+            null
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500490,
+            "actionNumber": 636,
+            "period": 4,
+            "clock": "PT04M19.00S",
+            "actionType": "Rebound",
+            "subType": "Unknown",
+            "description": "SPURS Rebound",
+            "personId": 1610612759,
+            "playerName": null,
+            "teamId": 0,
+            "teamTricode": null,
+            "effective_team_id": 1610612759,
+            "player_id": null,
+            "counters": [
+              null,
+              null
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": 2
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true,
+        "cdn_kind_check": {
+          "subtype": "defensive",
+          "rebound_team": 1610612759,
+          "prior_miss_team": 1610612757,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500490,
+            "actionNumber": 637,
+            "orderNumber": 6280000,
+            "period": 4,
+            "clock": "PT04M19.00S",
+            "actionType": "2pt",
+            "subType": "Layup",
+            "description": "MISS D. Avdija tip Layup",
+            "personId": 1630166,
+            "playerName": "Avdija",
+            "teamId": 1610612757.0,
+            "teamTricode": "POR",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612757,
+            "player_id": 1630166,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500497,
+      "action_number": 674,
+      "cdn": {
+        "row": {
+          "gameId": 22500497,
+          "actionNumber": 674,
+          "orderNumber": 6520000,
+          "period": 4,
+          "clock": "PT02M42.00S",
+          "actionType": "rebound",
+          "subType": "defensive",
+          "description": "K. Matkovi\u0107 REBOUND (Off:2 Def:4)",
+          "personId": 1631255,
+          "playerName": "Matkovi\u0107",
+          "teamId": 1610612740.0,
+          "teamTricode": "NOP",
+          "reboundOffensiveTotal": 2.0,
+          "reboundDefensiveTotal": 4.0,
+          "effective_team_id": 1610612740,
+          "player_id": 1631255,
+          "counters": [
+            2,
+            4
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "defensive",
+          "rebound_team": 1610612740,
+          "prior_miss_team": 1610612748,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500497,
+            "actionNumber": 672,
+            "orderNumber": 6500000,
+            "period": 4,
+            "clock": "PT02M46.00S",
+            "actionType": "2pt",
+            "subType": "Layup",
+            "description": "MISS D. Mitchell driving Layup - blocked",
+            "personId": 1630558,
+            "playerName": "Mitchell",
+            "teamId": 1610612748.0,
+            "teamTricode": "MIA",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612748,
+            "player_id": 1630558,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500685,
+      "action_number": 162,
+      "cdn": {
+        "row": {
+          "gameId": 22500685,
+          "actionNumber": 162,
+          "orderNumber": 1587500,
+          "period": 1,
+          "clock": "PT00M00.10S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "TEAM offensive REBOUND",
+          "personId": 0,
+          "playerName": null,
+          "teamId": 1610612765.0,
+          "teamTricode": "DET",
+          "reboundOffensiveTotal": null,
+          "reboundDefensiveTotal": null,
+          "effective_team_id": 1610612765,
+          "player_id": null,
+          "counters": [
+            null,
+            null
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612765,
+          "prior_miss_team": 1610612756,
+          "consistent": false,
+          "prior_miss": {
+            "gameId": 22500685,
+            "actionNumber": 158,
+            "orderNumber": 1570000,
+            "period": 1,
+            "clock": "PT00M02.70S",
+            "actionType": "3pt",
+            "subType": "Jump Shot",
+            "description": "MISS G. Allen 29' pullup 3PT",
+            "personId": 1628960,
+            "playerName": "Allen",
+            "teamId": 1610612756.0,
+            "teamTricode": "PHX",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612756,
+            "player_id": 1628960,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500974,
+      "action_number": 746,
+      "cdn": {
+        "row": {
+          "gameId": 22500974,
+          "actionNumber": 746,
+          "orderNumber": 7350000,
+          "period": 5,
+          "clock": "PT02M59.00S",
+          "actionType": "rebound",
+          "subType": "defensive",
+          "description": "A. Reaves REBOUND (Off:1 Def:5)",
+          "personId": 1630559,
+          "playerName": "Reaves",
+          "teamId": 1610612747.0,
+          "teamTricode": "LAL",
+          "reboundOffensiveTotal": 1.0,
+          "reboundDefensiveTotal": 5.0,
+          "effective_team_id": 1610612747,
+          "player_id": 1630559,
+          "counters": [
+            1,
+            5
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500974,
+            "actionNumber": 809,
+            "period": 5,
+            "clock": "PT02M59.00S",
+            "actionType": "Rebound",
+            "subType": "Unknown",
+            "description": "Reaves REBOUND (Off:1 Def:5)",
+            "personId": 1630559,
+            "playerName": "Reaves",
+            "teamId": 1610612747,
+            "teamTricode": "LAL",
+            "effective_team_id": 1610612747,
+            "player_id": 1630559,
+            "counters": [
+              1,
+              5
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": -63
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true,
+        "cdn_kind_check": {
+          "subtype": "defensive",
+          "rebound_team": 1610612747,
+          "prior_miss_team": 1610612743,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500974,
+            "actionNumber": 745,
+            "orderNumber": 7340000,
+            "period": 5,
+            "clock": "PT03M01.00S",
+            "actionType": "3pt",
+            "subType": "Jump Shot",
+            "description": "MISS A. Gordon 25' 3PT",
+            "personId": 203932,
+            "playerName": "Gordon",
+            "teamId": 1610612743.0,
+            "teamTricode": "DEN",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612743,
+            "player_id": 203932,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22500974,
+      "action_number": 749,
+      "cdn": {
+        "row": {
+          "gameId": 22500974,
+          "actionNumber": 749,
+          "orderNumber": 7380000,
+          "period": 5,
+          "clock": "PT02M49.00S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "TEAM offensive REBOUND",
+          "personId": 0,
+          "playerName": null,
+          "teamId": 1610612747.0,
+          "teamTricode": "LAL",
+          "reboundOffensiveTotal": null,
+          "reboundDefensiveTotal": null,
+          "effective_team_id": 1610612747,
+          "player_id": null,
+          "counters": [
+            null,
+            null
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500974,
+            "actionNumber": 748,
+            "period": 5,
+            "clock": "PT02M49.00S",
+            "actionType": "Rebound",
+            "subType": "Unknown",
+            "description": "LAKERS Rebound",
+            "personId": 1610612747,
+            "playerName": null,
+            "teamId": 0,
+            "teamTricode": null,
+            "effective_team_id": 1610612747,
+            "player_id": null,
+            "counters": [
+              null,
+              null
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": 1
+          },
+          {
+            "gameId": 22500974,
+            "actionNumber": 812,
+            "period": 5,
+            "clock": "PT02M49.00S",
+            "actionType": "Rebound",
+            "subType": "Unknown",
+            "description": "LAKERS Rebound",
+            "personId": 1610612747,
+            "playerName": null,
+            "teamId": 0,
+            "teamTricode": null,
+            "effective_team_id": 1610612747,
+            "player_id": null,
+            "counters": [
+              null,
+              null
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": -63
+          }
+        ],
+        "candidate_count": 2,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612747,
+          "prior_miss_team": 1610612747,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22500974,
+            "actionNumber": 747,
+            "orderNumber": 7360000,
+            "period": 5,
+            "clock": "PT02M49.00S",
+            "actionType": "2pt",
+            "subType": "Jump Shot",
+            "description": "MISS L. Don\u010di\u0107 9' fadeaway Shot",
+            "personId": 1629029,
+            "playerName": "Don\u010di\u0107",
+            "teamId": 1610612747.0,
+            "teamTricode": "LAL",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612747,
+            "player_id": 1629029,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "cdn_only",
+      "game_id": 22501146,
+      "action_number": 551,
+      "cdn": {
+        "row": {
+          "gameId": 22501146,
+          "actionNumber": 551,
+          "orderNumber": 5207500,
+          "period": 3,
+          "clock": "PT00M00.10S",
+          "actionType": "rebound",
+          "subType": "offensive",
+          "description": "TEAM offensive REBOUND",
+          "personId": 0,
+          "playerName": null,
+          "teamId": 1610612755.0,
+          "teamTricode": "PHI",
+          "reboundOffensiveTotal": null,
+          "reboundDefensiveTotal": null,
+          "effective_team_id": 1610612755,
+          "player_id": null,
+          "counters": [
+            null,
+            null
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false,
+        "cdn_kind_check": {
+          "subtype": "offensive",
+          "rebound_team": 1610612755,
+          "prior_miss_team": 1610612755,
+          "consistent": true,
+          "prior_miss": {
+            "gameId": 22501146,
+            "actionNumber": 550,
+            "orderNumber": 5205000,
+            "period": 3,
+            "clock": "PT00M00.10S",
+            "actionType": "3pt",
+            "subType": "Jump Shot",
+            "description": "MISS D. Barlow 33' pullup 3PT",
+            "personId": 1631230,
+            "playerName": "Barlow",
+            "teamId": 1610612755.0,
+            "teamTricode": "PHI",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612755,
+            "player_id": 1631230,
+            "counters": [
+              null,
+              null
+            ]
+          }
+        }
+      },
+      "nba": null
+    },
+    {
+      "kind": "nba_only",
+      "game_id": 22500106,
+      "action_number": 779,
+      "cdn": null,
+      "nba": {
+        "row": {
+          "gameId": 22500106,
+          "actionNumber": 779,
+          "period": 3,
+          "clock": "PT07M09.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "Duren REBOUND (Off:6 Def:7)",
+          "personId": 1631105,
+          "playerName": "Duren",
+          "teamId": 1610612765,
+          "teamTricode": "DET",
+          "effective_team_id": 1610612765,
+          "player_id": 1631105,
+          "counters": [
+            6,
+            7
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500106,
+            "actionNumber": 776,
+            "orderNumber": 4568750,
+            "period": 3,
+            "clock": "PT07M09.00S",
+            "actionType": "rebound",
+            "subType": "offensive",
+            "description": "J. Duren REBOUND (Off:6 Def:7)",
+            "personId": 1631105,
+            "playerName": "Duren",
+            "teamId": 1610612765.0,
+            "teamTricode": "DET",
+            "reboundOffensiveTotal": 6.0,
+            "reboundDefensiveTotal": 7.0,
+            "effective_team_id": 1610612765,
+            "player_id": 1631105,
+            "counters": [
+              6,
+              7
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": 3
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true
+      }
+    },
+    {
+      "kind": "nba_only",
+      "game_id": 22500132,
+      "action_number": 664,
+      "cdn": null,
+      "nba": {
+        "row": {
+          "gameId": 22500132,
+          "actionNumber": 664,
+          "period": 2,
+          "clock": "PT08M51.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "DeRozan REBOUND (Off:1 Def:3)",
+          "personId": 201942,
+          "playerName": "DeRozan",
+          "teamId": 1610612758,
+          "teamTricode": "SAC",
+          "effective_team_id": 1610612758,
+          "player_id": 201942,
+          "counters": [
+            1,
+            3
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false
+      }
+    },
+    {
+      "kind": "nba_only",
+      "game_id": 22500794,
+      "action_number": 784,
+      "cdn": null,
+      "nba": {
+        "row": {
+          "gameId": 22500794,
+          "actionNumber": 784,
+          "period": 2,
+          "clock": "PT00M21.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "Okongwu REBOUND (Off:3 Def:2)",
+          "personId": 1630168,
+          "playerName": "Okongwu",
+          "teamId": 1610612737,
+          "teamTricode": "ATL",
+          "effective_team_id": 1610612737,
+          "player_id": 1630168,
+          "counters": [
+            3,
+            2
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false
+      }
+    },
+    {
+      "kind": "nba_only",
+      "game_id": 22500974,
+      "action_number": 809,
+      "cdn": null,
+      "nba": {
+        "row": {
+          "gameId": 22500974,
+          "actionNumber": 809,
+          "period": 5,
+          "clock": "PT02M59.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "Reaves REBOUND (Off:1 Def:5)",
+          "personId": 1630559,
+          "playerName": "Reaves",
+          "teamId": 1610612747,
+          "teamTricode": "LAL",
+          "effective_team_id": 1610612747,
+          "player_id": 1630559,
+          "counters": [
+            1,
+            5
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500974,
+            "actionNumber": 746,
+            "orderNumber": 7350000,
+            "period": 5,
+            "clock": "PT02M59.00S",
+            "actionType": "rebound",
+            "subType": "defensive",
+            "description": "A. Reaves REBOUND (Off:1 Def:5)",
+            "personId": 1630559,
+            "playerName": "Reaves",
+            "teamId": 1610612747.0,
+            "teamTricode": "LAL",
+            "reboundOffensiveTotal": 1.0,
+            "reboundDefensiveTotal": 5.0,
+            "effective_team_id": 1610612747,
+            "player_id": 1630559,
+            "counters": [
+              1,
+              5
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": 63
+          }
+        ],
+        "candidate_count": 1,
+        "unique_semantic_crossmatch": true
+      }
+    },
+    {
+      "kind": "nba_only",
+      "game_id": 22500974,
+      "action_number": 812,
+      "cdn": null,
+      "nba": {
+        "row": {
+          "gameId": 22500974,
+          "actionNumber": 812,
+          "period": 5,
+          "clock": "PT02M49.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "LAKERS Rebound",
+          "personId": 1610612747,
+          "playerName": null,
+          "teamId": 0,
+          "teamTricode": null,
+          "effective_team_id": 1610612747,
+          "player_id": null,
+          "counters": [
+            null,
+            null
+          ]
+        },
+        "cross_feed_candidates": [
+          {
+            "gameId": 22500974,
+            "actionNumber": 749,
+            "orderNumber": 7380000,
+            "period": 5,
+            "clock": "PT02M49.00S",
+            "actionType": "rebound",
+            "subType": "offensive",
+            "description": "TEAM offensive REBOUND",
+            "personId": 0,
+            "playerName": null,
+            "teamId": 1610612747.0,
+            "teamTricode": "LAL",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612747,
+            "player_id": null,
+            "counters": [
+              null,
+              null
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": 63
+          },
+          {
+            "gameId": 22500974,
+            "actionNumber": 748,
+            "orderNumber": 7370000,
+            "period": 5,
+            "clock": "PT02M49.00S",
+            "actionType": "rebound",
+            "subType": "offensive",
+            "description": "TEAM offensive REBOUND",
+            "personId": 0,
+            "playerName": null,
+            "teamId": 1610612747.0,
+            "teamTricode": "LAL",
+            "reboundOffensiveTotal": null,
+            "reboundDefensiveTotal": null,
+            "effective_team_id": 1610612747,
+            "player_id": null,
+            "counters": [
+              null,
+              null
+            ],
+            "clock_delta_seconds": 0.0,
+            "action_delta": 64
+          }
+        ],
+        "candidate_count": 2,
+        "unique_semantic_crossmatch": false
+      }
+    },
+    {
+      "kind": "nba_only",
+      "game_id": 22501209,
+      "action_number": 687,
+      "cdn": null,
+      "nba": {
+        "row": {
+          "gameId": 22501209,
+          "actionNumber": 687,
+          "period": 4,
+          "clock": "PT09M15.00S",
+          "actionType": "Rebound",
+          "subType": "Unknown",
+          "description": "Simpson REBOUND (Off:1 Def:4)",
+          "personId": 1642354,
+          "playerName": "Simpson",
+          "teamId": 1610612766,
+          "teamTricode": "CHA",
+          "effective_team_id": 1610612766,
+          "player_id": 1642354,
+          "counters": [
+            1,
+            4
+          ]
+        },
+        "cross_feed_candidates": [],
+        "candidate_count": 0,
+        "unique_semantic_crossmatch": false
+      }
+    }
+  ]
+}
