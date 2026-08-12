@@ -1,0 +1,130 @@
+name: TREB rebound attribution invariance
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-rebound-attribution-invariance.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  V3: team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_FORENSICS_V3_SUMMARY.json
+  V4TAIL: team_trb_all_players/final_integrity_rebuild/rebound_forensics/V4_REBOUND_TAIL_SUMMARY.json
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Prove lineup/real-status invariance across every legal full assignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          v3=json.loads(Path(os.environ['V3']).read_text())
+          tail=json.loads(Path(os.environ['V4TAIL']).read_text())
+          assert v3['status']=='COMPLETE' and v3['diagnostic_engine']=='production_rebound_v3'
+          assert v3['target_games']==58 and v3['unmatched_rows_observed']==110 and v3['control_wrong']==0
+          assert tail['status']=='COMPLETE' and tail['residual_rebound_failure_games']==25
+          residual_ids={int(r['game_id']) for r in tail['residual_records']}
+          assert len(residual_ids)==25
+
+          def feasible_candidates(period):
+              details=period.get('candidate_detail',[])
+              n=len(details)
+              if not n: return []
+              orders=[]; by_order=[]
+              for d in details:
+                  m={int(c['order']):c for c in d.get('candidates',[])}
+                  orders.append(sorted(m)); by_order.append(m)
+              if any(not x for x in orders):
+                  return [[] for _ in range(n)]
+              forward=[set() for _ in range(n)]
+              forward[0]=set(orders[0])
+              for i in range(1,n):
+                  forward[i]={o for o in orders[i] if any(p<o for p in forward[i-1])}
+              backward=[set() for _ in range(n)]
+              backward[-1]=set(orders[-1])
+              for i in range(n-2,-1,-1):
+                  backward[i]={o for o in orders[i] if any(o<q for q in backward[i+1])}
+              feasible=[]
+              for i in range(n):
+                  both=sorted(forward[i]&backward[i])
+                  feasible.append([by_order[i][o] for o in both])
+              return feasible
+
+          games=[]; prior_unique=set(v3['solvable_games']); invariant_all=set(); invariant_residual=[]
+          for g in v3['games']:
+              gid=int(g['game_id'])
+              if g.get('status')!='OK': continue
+              periods=[]; total_rows=0; invariant_rows=0; game_exact=True
+              for p in g.get('periods',[]):
+                  if not p.get('unmatched_rows'): continue
+                  feas=feasible_candidates(p)
+                  row_results=[]
+                  if len(feas)!=int(p['unmatched_rows']): game_exact=False
+                  for d,cands in zip(p.get('candidate_detail',[]),feas):
+                      total_rows+=1
+                      sigs={ (tuple(int(x) for x in c['lineup']), bool(c['real'])) for c in cands }
+                      invariant=(len(cands)>0 and len(sigs)==1)
+                      if invariant: invariant_rows+=1
+                      else: game_exact=False
+                      row_results.append({
+                        'pbp_index':int(d['pbp_index']),'description':str(d['description']),
+                        'feasible_candidate_count':len(cands),'attribution_signature_count':len(sigs),
+                        'attribution_invariant':invariant,
+                        'lineup':list(next(iter(sigs))[0]) if invariant else None,
+                        'real':next(iter(sigs))[1] if invariant else None,
+                        'feasible_eventnums':[int(c['eventnum']) for c in cands],
+                        'feasible_elapsed':[int(c['elapsed']) for c in cands]
+                      })
+                  periods.append({'period':int(p['period']),'unmatched_rows':int(p['unmatched_rows']),'all_rows_attribution_invariant':all(r['attribution_invariant'] for r in row_results),'rows':row_results})
+              exact=bool(total_rows and game_exact and invariant_rows==total_rows)
+              if exact: invariant_all.add(gid)
+              if gid in residual_ids and exact: invariant_residual.append(gid)
+              games.append({'game_id':gid,'was_unique_event_assignment':gid in prior_unique,'is_v4_residual':gid in residual_ids,'unmatched_rows':total_rows,'attribution_invariant_rows':invariant_rows,'all_unmatched_attribution_invariant':exact,'periods':periods})
+
+          # Every previously unique full assignment must be a special case of attribution invariance.
+          assert prior_unique <= invariant_all, {'missing_prior_unique':sorted(prior_unique-invariant_all)}
+          # The v4 recovered set should be exactly the 33 prior unique games; only look for NEW exact games in its 25 residuals.
+          assert len(prior_unique)==33
+          extra=sorted(set(invariant_residual))
+          out={
+            'status':'COMPLETE','source_v3_workflow_run_id':v3.get('workflow_run_id'),
+            'source_v4_patch_sha':tail['patch_sha'],'source_v4_residual_games':25,
+            'source_v4_residual_rows':sum(int(r['error'].rsplit(':',1)[1].strip()) for r in tail['residual_records']),
+            'prior_unique_games_validated_as_invariant':len(prior_unique),
+            'new_attribution_invariant_residual_games':len(extra),
+            'new_attribution_invariant_residual_game_ids':extra,
+            'new_attribution_invariant_residual_rows':sum(g['unmatched_rows'] for g in games if g['game_id'] in set(extra)),
+            'games':games
+          }
+          assert out['source_v4_residual_rows']==77
+          Path('/tmp/ATTRIBUTION_INVARIANCE_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2))
+          PY
+      - name: Persist durable checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          cp /tmp/ATTRIBUTION_INVARIANCE_SUMMARY.json "$D/"
+          git add -f "$D/ATTRIBUTION_INVARIANCE_SUMMARY.json"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist exact rebound attribution-invariance diagnostic'
+            git push origin HEAD:agent/treb-batched-game-facts-20260812
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-rebound-attribution-invariance-${{ github.run_id }}
+          path: /tmp/ATTRIBUTION_INVARIANCE_SUMMARY.json
+          retention-days: 90
