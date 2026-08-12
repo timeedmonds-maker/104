@@ -1,0 +1,22 @@
+[
+  {
+    "game_id": 21000025,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21000025 period=2 team=1610612753: starters=[2554, 2768, 101138, 101162, 200755] violations=[{'kind': 'participant', 'event_num': 149, 'player_id': 2730, 'event_type': 6}]"
+  },
+  {
+    "game_id": 21000048,
+    "error": "ValueError: non-unique v3/team-local starter solution game=21000048 period=5 team=1610612764: candidates=[2550, 101154, 201146, 201154, 201580, 202322, 202344] prior=[2550, 101154, 201156, 201858, 202322] best_score=0 solutions=[[2550, 101154, 201154, 201580, 202322], [101154, 201146, 201154, 201580, 202322], [101154, 201154, 201580, 202322, 202344]]"
+  },
+  {
+    "game_id": 21000075,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21000075 period=4 team=1610612748: starters=[980, 2067, 2544, 2592, 2617] violations=[{'kind': 'participant', 'event_num': 406, 'player_id': 2544, 'event_type': 5}]"
+  },
+  {
+    "game_id": 21000076,
+    "error": "ValueError: non-unique v3/team-local starter solution game=21000076 period=5 team=1610612763: candidates=[2216, 2754, 200752, 201144, 201151, 201188, 201564, 201934, 201970] prior=[2216, 200752, 201144, 201188, 201564] best_score=0 solutions=[[2216, 200752, 201144, 201188, 201564], [2754, 200752, 201144, 201188, 201564], [200752, 201144, 201151, 201188, 201564], [200752, 201144, 201188, 201564, 201934], [200752, 201144, 201188, 201564, 201970]]"
+  },
+  {
+    "game_id": 21000086,
+    "error": "ValueError: non-unique v3/team-local starter solution game=21000086 period=5 team=1610612762: candidates=[1905, 1922, 1952, 2744, 101114, 101139, 101179, 200794, 201178, 202330] prior=[1905, 1952, 2744, 101114, 200794] best_score=0 solutions=[[1905, 2744, 101114, 101139, 200794], [1922, 2744, 101114, 101139, 200794], [1952, 2744, 101114, 101139, 200794], [2744, 101114, 101139, 101179, 200794], [2744, 101114, 101139, 200794, 201178], [2744, 101114, 101139, 200794, 202330]]"
+  }
+]
