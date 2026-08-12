@@ -1,0 +1,50 @@
+name: TREB 2025 rebound discrepancy context
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-2025-rebound-discrepancy-context.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+env:
+  PYTHONUNBUFFERED: '1'
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas
+      - name: Download static 2025 source pair once
+        run: |
+          set -euo pipefail;mkdir -p /tmp/treb2025
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess,tarfile,urllib.request
+          raw=Path('/tmp/treb2025');text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode();urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in ('nbastatsv3_2025','cdnnba_2025'):
+            url=urls[key];arc=raw/url.rsplit('/',1)[-1];subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),url],check=True)
+            with tarfile.open(arc,'r:xz') as tf:tf.extractall(raw)
+          PY
+      - run: |
+          python -u team_trb_all_players/audit_2025_rebound_discrepancy_context.py \
+            --cdn /tmp/treb2025/cdnnba_2025.csv --nba /tmp/treb2025/nbastatsv3_2025.csv \
+            --identity team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_ACTION_IDENTITY_2025.json \
+            --output /tmp/treb2025/REBOUND_DISCREPANCY_CONTEXT_2025.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-2025-rebound-discrepancy-context-${{ github.run_id }}
+          path: /tmp/treb2025/REBOUND_DISCREPANCY_CONTEXT_2025.json
+          retention-days: 90
+      - name: Persist with branch-race retry
+        run: |
+          set -euo pipefail;D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5;do
+            git fetch origin agent/treb-batched-game-facts-20260812;git reset --hard origin/agent/treb-batched-game-facts-20260812
+            cp /tmp/treb2025/REBOUND_DISCREPANCY_CONTEXT_2025.json "$D/";git add -f "$D/REBOUND_DISCREPANCY_CONTEXT_2025.json"
+            if git diff --cached --quiet;then exit 0;fi
+            git commit -m 'Persist finite 2025 rebound discrepancy context';if git push origin HEAD:agent/treb-batched-game-facts-20260812;then exit 0;fi;sleep $((attempt*2))
+          done;exit 1
