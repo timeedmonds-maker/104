@@ -15,11 +15,15 @@ def norm(v): return re.sub(r'\s+',' ','' if pd.isna(v) else str(v)).strip().lowe
 def make_rows(p):
     x=p.copy(); x['PREV_PBP_DESCRIPTION']=x.groupby(core.POSSESSION_ID,dropna=False).DESCRIPTION.shift(1)
     r=x[x.DESCRIPTION.fillna('').str.contains('rebound',case=False)].copy()
+    r['START_ELAPSED']=[core.elapsed_seconds(int(period),clock) for period,clock in zip(r.PERIOD,r.STARTTIME)]
     r['END_ELAPSED']=[core.elapsed_seconds(int(period),clock) for period,clock in zip(r.PERIOD,r.ENDTIME)]
     return r
 def rebound_kind_map(rows):
     prev={}; out={}
-    for idx,row in rows.sort_index().iterrows():
+    # Dataframe row index is not chronological. Rebound counters are game-cumulative,
+    # so derive deltas only in true game elapsed order; retain stable source index for ties.
+    ordered=rows.assign(_SOURCE_INDEX=rows.index).sort_values(['START_ELAPSED','END_ELAPSED','_SOURCE_INDEX'],kind='stable')
+    for idx,row in ordered.iterrows():
         m=COUNTER_RE.search(str(row.DESCRIPTION))
         if not m: continue
         key=norm(m.group(1)); off=int(m.group(2)); de=int(m.group(3)); po,pd=prev.get(key,(0,0)); kind=None
