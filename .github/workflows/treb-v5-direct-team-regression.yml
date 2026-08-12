@@ -4,6 +4,7 @@ on:
     branches: [agent/treb-batched-game-facts-20260812]
     paths:
       - team_trb_all_players/final_integrity_rebuild/rebound_forensics/DIRECT_TEAM_REBOUND_REPAIRS.json
+      - .github/workflows/treb-v5-direct-team-regression.yml
   workflow_dispatch:
 permissions:
   contents: write
