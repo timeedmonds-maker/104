@@ -1,0 +1,18 @@
+{
+  "version": "roster_repair_v3_hybrid",
+  "validated_player_team_season_rows": 14524,
+  "full_core_reuse_rows": 9535,
+  "partial_player_team_season_rows": 4989,
+  "wowy_game_bearing_segments": 5309,
+  "tenure_game_count_failures": 114,
+  "empty_played_tenures": 1,
+  "impossible_minute_rows": 19,
+  "cross_team_overlap_pairs": 0,
+  "status": "REPAIR_REQUIRED",
+  "changes_from_v2": [
+    "same-day departures processed before acquisitions",
+    "re-sign/multi-year/rest-of-season acquisitions can reopen inactive tenure",
+    "V2 full/partial/segment counts no longer asserted"
+  ],
+  "hard_universe_pts": 14524
+}
