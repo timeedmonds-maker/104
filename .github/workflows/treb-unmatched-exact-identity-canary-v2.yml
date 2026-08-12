@@ -1,0 +1,196 @@
+name: TREB exact-identity rebound join canary v2
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/UNMATCHED_EXACT_IDENTITY_CANARY_V2_CONTROL.json
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  canary:
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        year: [2008,2009,2010,2011,2015,2017,2018,2019,2021,2022,2023,2024]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Fetch durable target evidence and Wave-1 residuals
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin treb-unmatched-exact-identity-diagnostics treb-game-fact-repair-wave1
+          git show origin/treb-unmatched-exact-identity-diagnostics:team_trb_all_players/final_integrity_rebuild/unmatched_exact_identity_diagnostics/seasons/UNMATCHED_EXACT_IDENTITY_${{ matrix.year }}.json > /tmp/exact.json
+          git show origin/treb-game-fact-repair-wave1:team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1/${{ matrix.year }}/residual_failures.json > /tmp/residual.json
+      - name: Download season sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{y}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}',f'pbpstats_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Test two-pass exact identity fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"
+          NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
+          V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
+          PBP=$(find "$RAW" -name "pbpstats_${YEAR}.csv" -print -quit)
+          NBA="$NBA" V3="$V3" PBP="$PBP" YEAR="$YEAR" python - <<'PY'
+          import json,os,re,sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine as rebound
+          import production_treb_engine_v3 as lineup
+          import local_treb_rebuild as core
+          import build_exact_game_fact_layer as base
+
+          year=int(os.environ['YEAR'])
+          evidence=json.loads(Path('/tmp/exact.json').read_text())
+          target_ids=sorted(int(g['game_id']) for g in evidence.get('games',[]) if g.get('all_unmatched_uniquely_identified'))
+          residual={int(r['game_id']) for r in json.loads(Path('/tmp/residual.json').read_text())}
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False)); v3=lineup.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False)); pbp=io.normalize_pbp(pd.read_csv(os.environ['PBP'],low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}; pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          controls=[]
+          for gid in sorted(set(ng)&set(vg)&set(pg)):
+              if gid in residual: continue
+              try: tr,pr,a=base.build_game(gid,ng[gid],vg[gid],pg[gid])
+              except Exception: continue
+              controls.append((gid,tr,pr,a))
+              if len(controls)>=3: break
+
+          counter_re=re.compile(r'\(off:(\d+) def:(\d+)\)',re.I)
+          def namekey(text): return core.normalize_description(text).split(' rebound',1)[0].strip()
+          def patched_join(lineups,pbp_game,alpha=5):
+              ordered=pbp_game.copy(); ordered['PREV_PBP_DESCRIPTION']=ordered.groupby(core.POSSESSION_ID,dropna=False).DESCRIPTION.shift(1)
+              rb=ordered[ordered.DESCRIPTION.fillna('').str.contains('rebound',case=False)].copy()
+              rb['DESCRIPTION_NORM']=rb.DESCRIPTION.map(rebound._norm)
+              rb['START_ELAPSED']=[core.elapsed_seconds(int(p),c) for p,c in zip(rb.PERIOD,rb.STARTTIME)]
+              rb['END_ELAPSED']=[core.elapsed_seconds(int(p),c) for p,c in zip(rb.PERIOD,rb.ENDTIME)]
+              rows=list(rb.iterrows()); nbaev=lineups.events; game_id=int(pbp_game.GAMEID.iloc[0]) if not pbp_game.empty else 0
+              matches=[]; ambiguous=0; manual=0; exact_repairs=0
+              # Pass 1: preserve every existing fuzzy/manual match exactly.
+              for _,row in rows:
+                  cand=nbaev[(nbaev.PERIOD.eq(row.PERIOD))&(nbaev.ELAPSED.gt(row.START_ELAPSED-alpha))&(nbaev.ELAPSED.lt(row.END_ELAPSED+alpha))]
+                  scored=[(core._distance(row.DESCRIPTION_NORM,d),int(ev),int(pos)) for pos,(ev,d) in zip(cand.index,zip(cand.EVENTNUM,cand.DESCRIPTION_NORM))]
+                  acceptable=[x for x in scored if x[0]<.2]
+                  if len(acceptable)>1: ambiguous+=1
+                  if acceptable:
+                      matches.append(min(acceptable)[2]); continue
+                  repair_event=rebound.JOIN_REPAIRS.get((game_id,int(row.PERIOD),row.DESCRIPTION_NORM))
+                  if repair_event is not None:
+                      hit=nbaev[(nbaev.PERIOD.eq(row.PERIOD))&nbaev.EVENTNUM.eq(repair_event)]
+                      if len(hit)==1:
+                          matches.append(int(hit.index[0])); manual+=1; continue
+                  matches.append(None)
+              # Pass 2: only now may an unmatched row use an EVENTMSGTYPE=4 event that no baseline row claimed.
+              used={int(x) for x in matches if x is not None}
+              for j,(_,row) in enumerate(rows):
+                  if matches[j] is not None: continue
+                  eligible=nbaev[(nbaev.PERIOD.eq(row.PERIOD))&nbaev.EVENTMSGTYPE.eq(4)&~nbaev.index.isin(used)]
+                  chosen=None
+                  exact=eligible[eligible.DESCRIPTION_NORM.eq(row.DESCRIPTION_NORM)]
+                  if len(exact)==1:
+                      chosen=int(exact.index[0])
+                  else:
+                      m=counter_re.search(row.DESCRIPTION_NORM)
+                      if m:
+                          key=f'(off:{m.group(1)} def:{m.group(2)})'; nk=namekey(row.DESCRIPTION_NORM)
+                          hits=eligible[eligible.DESCRIPTION_NORM.str.contains(re.escape(key),regex=True)&eligible.DESCRIPTION_NORM.map(namekey).eq(nk)]
+                          if len(hits)==1: chosen=int(hits.index[0])
+                  if chosen is not None:
+                      matches[j]=chosen; used.add(chosen); exact_repairs+=1
+              unmatched=[]
+              for j,(_,row) in enumerate(rows):
+                  if matches[j] is None:
+                      unmatched.append({'game_id':game_id,'period':int(row.PERIOD),'start_time':str(row.STARTTIME),'end_time':str(row.ENDTIME),'description':str(row.DESCRIPTION)})
+              rb['NBA_INDEX']=matches; matched=rb[rb.NBA_INDEX.notna()].copy()
+              matched['LINEUP']=[nbaev.loc[int(i),'LINEUP'] for i in matched.NBA_INDEX]
+              for c in ('EVENTMSGTYPE','EVENTMSGACTIONTYPE','PLAYER1_ID','ELAPSED','EVENTNUM'):
+                  matched['NBA_'+c]=[nbaev.loc[int(i),c] for i in matched.NBA_INDEX]
+              matched['NBA_IS_REAL_REBOUND']=[core._nba_real_rebound(nbaev,int(i)) for i in matched.NBA_INDEX]
+              audit={'total_pbp_rows':int(len(pbp_game)),'rebound_bearing_rows':int(len(rb)),'matched_rebound_bearing_rows':int(len(matched)),'unmatched_rebound_bearing_rows':int(len(unmatched)),'ambiguous_matches':int(ambiguous),'manual_join_repairs':int(manual),'exact_identity_join_repairs':int(exact_repairs),'unmatched_rows':unmatched}
+              return matched,audit
+
+          rebound.join_pbp_rebounds=patched_join
+          targets=[]
+          for gid in target_ids:
+              try:
+                  tr,pr,a=base.build_game(gid,ng[gid],vg[gid],pg[gid])
+                  targets.append({'game_id':gid,'success':True,'unmatched':int(a['join_audit'].get('unmatched_rebound_bearing_rows',0)),'exact_identity_repairs':int(a['join_audit'].get('exact_identity_join_repairs',0))})
+              except Exception as exc: targets.append({'game_id':gid,'success':False,'error':f'{type(exc).__name__}: {exc}'})
+          regress=[]
+          for gid,btr,bpr,ba in controls:
+              atr,apr,aa=base.build_game(gid,ng[gid],vg[gid],pg[gid])
+              if atr!=btr or apr!=bpr: regress.append({'game_id':gid,'kind':'derived_rows_changed'})
+              for k,v in ba['join_audit'].items():
+                  if aa['join_audit'].get(k)!=v: regress.append({'game_id':gid,'kind':f'audit_changed:{k}'})
+          out={'year':year,'target_games':len(target_ids),'target_successes':sum(x.get('success',False) for x in targets),'target_zero_unmatched':sum(x.get('success') and x.get('unmatched')==0 for x in targets),'exact_identity_rows_applied':sum(x.get('exact_identity_repairs',0) for x in targets),'controls':len(controls),'control_regressions':regress,'targets':targets}
+          out['status']='PASS' if out['target_successes']==out['target_games'] and out['target_zero_unmatched']==out['target_games'] and not regress else 'FAIL'
+          Path(f'/tmp/EXACT_IDENTITY_CANARY_V2_{year}.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:v for k,v in out.items() if k not in {'targets','control_regressions'}},indent=2))
+          if out['status']!='PASS': raise SystemExit(2)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-exact-identity-canary-v2-${{ matrix.year }}
+          path: /tmp/EXACT_IDENTITY_CANARY_V2_${{ matrix.year }}.json
+          retention-days: 90
+          if-no-files-found: error
+
+  aggregate:
+    needs: canary
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-exact-identity-canary-v2-*
+          path: /tmp/canary
+          merge-multiple: true
+      - name: Aggregate canary v2
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(p.read_text()) for p in sorted(Path('/tmp/canary').glob('EXACT_IDENTITY_CANARY_V2_*.json'))]
+          out={'seasons_found':len(rows),'target_games':sum(x['target_games'] for x in rows),'target_successes':sum(x['target_successes'] for x in rows),'target_zero_unmatched':sum(x['target_zero_unmatched'] for x in rows),'exact_identity_rows_applied':sum(x['exact_identity_rows_applied'] for x in rows),'controls':sum(x['controls'] for x in rows),'control_regressions':sum(len(x['control_regressions']) for x in rows),'season_status':{str(x['year']):x['status'] for x in rows}}
+          out['status']='PASS' if len(rows)==12 and out['target_games']==37 and out['target_successes']==37 and out['target_zero_unmatched']==37 and out['control_regressions']==0 else 'FAIL'
+          Path('/tmp/EXACT_IDENTITY_CANARY_V2_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps(out,indent=2))
+          if out['status']!='PASS': raise SystemExit(3)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-exact-identity-canary-v2-summary
+          path: /tmp/EXACT_IDENTITY_CANARY_V2_SUMMARY.json
+          retention-days: 90
