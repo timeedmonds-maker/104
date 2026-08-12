@@ -1,0 +1,113 @@
+name: TREB team kind anchor audit
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-team-kind-anchor-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text()); assert len(m['chunks'])==24 and m['target_games']==58
+          x={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(x,separators=(',',':'))+'\n')
+          PY
+  audit:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_team_kind_anchor_diagnostic.py \
+            --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/TEAMKIND_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-teamkind-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/TEAMKIND_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan,audit]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-teamkind-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Strict controls and finite repair candidates
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          chunks=[json.loads(p.read_text()) for p in sorted(Path('/tmp/results').rglob('TEAMKIND_*.json'))]; assert len(chunks)==24,len(chunks)
+          keys=list(chunks[0]['controls']); c={k:sum(int(x['controls'][k]) for x in chunks) for k in keys}; residual=[r for x in chunks for r in x['residual_rows']]; assert len(residual)==77,len(residual)
+          safe={
+            'resolver':c['resolver_applicable']>0 and c['resolver_wrong']==0,
+            'player_real':c['player_real_applicable']>0 and c['player_real_wrong']==0,
+            'dreb_endpoint':c['dreb_endpoint_applicable']>0 and c['dreb_endpoint_wrong']==0,
+            'dreb_miss':c['dreb_miss_applicable']>0 and c['dreb_miss_wrong']==0,
+            'dreb_both':c['dreb_both_applicable']>0 and c['dreb_both_wrong']==0,
+            'oreb_endpoint':c['oreb_endpoint_applicable']>0 and c['oreb_endpoint_wrong']==0,
+            'oreb_miss':c['oreb_miss_applicable']>0 and c['oreb_miss_wrong']==0,
+            'oreb_both':c['oreb_both_applicable']>0 and c['oreb_both_wrong']==0,
+          }
+          candidates=[]
+          for r in residual:
+              kind=r['team_kind']; both=bool(r['anchors_agree'])
+              if not (safe['resolver'] and safe['player_real'] and r['resolved_player_id'] is not None and kind in {'DREB','OREB'}): continue
+              # Strongest evidence first: two independent lineup anchors agree. If a kind-specific both-anchor control is perfect, promote.
+              if both and safe[kind.lower()+'_both']:
+                  x=dict(r); x['lineup']=x['endpoint_lineup']; x['real']=True; x['is_oreb']=kind=='OREB'; x['method']='unique_player_team_kind_plus_agreeing_endpoint_and_exact_prior_miss_lineups'; candidates.append(x)
+          bygame={}
+          for r in residual:bygame.setdefault(int(r['game_id']),[]).append(r)
+          ck={(int(r['game_id']),int(r['pbp_index'])) for r in candidates}; full=sorted(g for g,rs in bygame.items() if all((g,int(r['pbp_index'])) in ck for r in rs))
+          out={'status':'COMPLETE','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'controls':c,'safe_rules':safe,'current_residual_rows':77,'repairable_rows':len(candidates),'fully_repairable_games':len(full),'fully_repairable_game_ids':full,'repair_candidates':candidates,'residual_rows':residual}
+          Path('/tmp/TEAM_KIND_ANCHOR_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:v for k,v in out.items() if k not in {'repair_candidates','residual_rows'}},indent=2))
+          PY
+      - name: Persist checkpoint
+        run: |
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics; cp /tmp/TEAM_KIND_ANCHOR_SUMMARY.json "$D/"
+          git add -f "$D/TEAM_KIND_ANCHOR_SUMMARY.json"
+          if ! git diff --cached --quiet; then git commit -m 'Persist direct player-team rebound anchor audit'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-team-kind-anchor-summary-${{ github.run_id }}
+          path: /tmp/TEAM_KIND_ANCHOR_SUMMARY.json
+          retention-days: 90
