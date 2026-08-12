@@ -1,0 +1,17 @@
+BATCH_PROGRESS season=2021-22 batch=10 processed=20/100 success=17 failures=3
+BATCH_PROGRESS season=2021-22 batch=10 processed=40/100 success=33 failures=7
+BATCH_PROGRESS season=2021-22 batch=10 processed=60/100 success=52 failures=8
+BATCH_PROGRESS season=2021-22 batch=10 processed=80/100 success=70 failures=10
+BATCH_PROGRESS season=2021-22 batch=10 processed=100/100 success=87 failures=13
+{
+  "season": "2021-22",
+  "batch_index": 10,
+  "batch_size": 100,
+  "total_common_games": 1230,
+  "start_index": 1000,
+  "stop_index": 1100,
+  "games_requested": 100,
+  "successful_games": 87,
+  "failed_games": 13,
+  "status": "REPAIR_REQUIRED"
+}
