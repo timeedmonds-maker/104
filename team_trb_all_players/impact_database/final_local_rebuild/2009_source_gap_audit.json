@@ -1,0 +1,3287 @@
+{
+  "game_id": 20900212,
+  "status": "filled_from_legacy_plus_nbastatsv3",
+  "synthetic_pbp_rows": 99,
+  "v3_rebound_rows": 99,
+  "legacy_rebound_rows": 99,
+  "legacy_event_matches": 99,
+  "live_rebounds": 89,
+  "dead_rebounds": 10,
+  "player_counter_audits": 78,
+  "teams": [
+    1610612765,
+    1610612739
+  ],
+  "team_map": {
+    "1610612765": "DET",
+    "1610612739": "CLE"
+  },
+  "mapping": [
+    {
+      "action_number": 5,
+      "period": 1,
+      "clock": "11:09",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 4,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 28' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "wallace rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 8,
+      "period": 1,
+      "clock": "10:43",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 7,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss ilgauskas 20' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 101111,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "villanueva rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 10,
+      "period": 1,
+      "clock": "10:25",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 9,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss wallace reverse layup"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "james rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 15,
+      "period": 1,
+      "clock": "9:25",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 14,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss stuckey 16' pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 980,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "ilgauskas rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 18,
+      "period": 1,
+      "clock": "8:49",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 17,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva 17' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201973,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          1,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "jerebko rebound (off:1 def:0)"
+    },
+    {
+      "action_number": 21,
+      "period": 1,
+      "clock": "8:28",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 20,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss ilgauskas 18' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201155,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "stuckey rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 23,
+      "period": 1,
+      "clock": "8:10",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 22,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss wallace layup"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 30,
+      "period": 1,
+      "clock": "6:48",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 29,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss williams 27' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 101111,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "villanueva rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 37,
+      "period": 1,
+      "clock": "5:38",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 36,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss gordon 22' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2590,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "williams rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 40,
+      "period": 1,
+      "clock": "5:03",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 39,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss stuckey 16' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 980,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "ilgauskas rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 45,
+      "period": 1,
+      "clock": "4:31",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 44,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "villanueva block (1 blk) miss hickson layup"
+      },
+      "counter_audit": {
+        "player_id": 201581,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          1,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "hickson rebound (off:1 def:0)"
+    },
+    {
+      "action_number": 52,
+      "period": 1,
+      "clock": "4:29",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 50,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss hickson free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 101111,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "villanueva rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 57,
+      "period": 1,
+      "clock": "3:16",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 56,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 22' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "wallace rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 59,
+      "period": 1,
+      "clock": "3:08",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 58,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss gordon layup"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 71,
+      "period": 1,
+      "clock": "2:19",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 70,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva layup hickson block (1 blk)"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          1,
+          2
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "wallace rebound (off:1 def:2)"
+    },
+    {
+      "action_number": 73,
+      "period": 1,
+      "clock": "2:17",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 72,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss wallace dunk"
+      },
+      "counter_audit": {
+        "player_id": 201581,
+        "previous_off_def": [
+          1,
+          0
+        ],
+        "current_off_def": [
+          1,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "hickson rebound (off:1 def:1)"
+    },
+    {
+      "action_number": 83,
+      "period": 1,
+      "clock": "1:31",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 82,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "james rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 94,
+      "period": 1,
+      "clock": "0:04",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 93,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss varejao layup"
+      },
+      "counter_audit": {
+        "player_id": 2732,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "gordon rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 96,
+      "period": 1,
+      "clock": "0:00",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 98,
+      "period": 1,
+      "clock": "0:26",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 95,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum 6' running jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2760,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "varejao rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 105,
+      "period": 2,
+      "clock": "10:48",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 104,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss gordon 17' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 101131,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          1,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "maxiell rebound (off:1 def:0)"
+    },
+    {
+      "action_number": 115,
+      "period": 2,
+      "clock": "9:10",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 114,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss williams 21' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2760,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          1,
+          1
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "varejao rebound (off:1 def:1)"
+    },
+    {
+      "action_number": 133,
+      "period": 2,
+      "clock": "8:02",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 131,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss moon free throw 3 of 3"
+      },
+      "counter_audit": {
+        "player_id": 201948,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "daye rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 137,
+      "period": 2,
+      "clock": "7:13",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 136,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss maxiell 20' jump shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 139,
+      "period": 2,
+      "clock": "7:05",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 138,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss brown layup"
+      },
+      "counter_audit": {
+        "player_id": 101131,
+        "previous_off_def": [
+          1,
+          0
+        ],
+        "current_off_def": [
+          2,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "maxiell rebound (off:2 def:0)"
+    },
+    {
+      "action_number": 147,
+      "period": 2,
+      "clock": "6:24",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 146,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss stuckey layup ilgauskas block (1 blk)"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 151,
+      "period": 2,
+      "clock": "6:02",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 150,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "daye block (1 blk) miss james 11' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 200081,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          1,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "moon rebound (off:1 def:0)"
+    },
+    {
+      "action_number": 165,
+      "period": 2,
+      "clock": "4:49",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 164,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss daye 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          1,
+          2
+        ],
+        "current_off_def": [
+          2,
+          2
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "wallace rebound (off:2 def:2)"
+    },
+    {
+      "action_number": 168,
+      "period": 2,
+      "clock": "4:29",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 167,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 10' hook bank shot"
+      },
+      "counter_audit": {
+        "player_id": 2760,
+        "previous_off_def": [
+          1,
+          1
+        ],
+        "current_off_def": [
+          2,
+          1
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "varejao rebound (off:2 def:1)"
+    },
+    {
+      "action_number": 170,
+      "period": 2,
+      "clock": "4:03",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 169,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss gibson 20' jump shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 183,
+      "period": 2,
+      "clock": "3:13",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 186,
+      "period": 2,
+      "clock": "3:12",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 184,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss gordon free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 2760,
+        "previous_off_def": [
+          2,
+          1
+        ],
+        "current_off_def": [
+          2,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "varejao rebound (off:2 def:2)"
+    },
+    {
+      "action_number": 201,
+      "period": 2,
+      "clock": "2:34",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 200,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss stuckey 20' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201581,
+        "previous_off_def": [
+          1,
+          1
+        ],
+        "current_off_def": [
+          1,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "hickson rebound (off:1 def:2)"
+    },
+    {
+      "action_number": 207,
+      "period": 2,
+      "clock": "1:48",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 210,
+      "period": 2,
+      "clock": "1:47",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 208,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 201581,
+        "previous_off_def": [
+          1,
+          2
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "hickson rebound (off:1 def:3)"
+    },
+    {
+      "action_number": 212,
+      "period": 2,
+      "clock": "1:29",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 211,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss williams 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 200081,
+        "previous_off_def": [
+          1,
+          0
+        ],
+        "current_off_def": [
+          2,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "moon rebound (off:2 def:0)"
+    },
+    {
+      "action_number": 215,
+      "period": 2,
+      "clock": "1:04",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 214,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum layup"
+      },
+      "counter_audit": {
+        "player_id": 2760,
+        "previous_off_def": [
+          2,
+          2
+        ],
+        "current_off_def": [
+          2,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "varejao rebound (off:2 def:3)"
+    },
+    {
+      "action_number": 217,
+      "period": 2,
+      "clock": "0:55",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 216,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 17' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 101111,
+        "previous_off_def": [
+          0,
+          3
+        ],
+        "current_off_def": [
+          0,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "villanueva rebound (off:0 def:4)"
+    },
+    {
+      "action_number": 220,
+      "period": 2,
+      "clock": "0:34",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 219,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss williams 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          2,
+          2
+        ],
+        "current_off_def": [
+          2,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "wallace rebound (off:2 def:3)"
+    },
+    {
+      "action_number": 224,
+      "period": 2,
+      "clock": "0:00",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 229,
+      "period": 3,
+      "clock": "11:44",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 228,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss williams 25' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 101111,
+        "previous_off_def": [
+          0,
+          4
+        ],
+        "current_off_def": [
+          0,
+          5
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "villanueva rebound (off:0 def:5)"
+    },
+    {
+      "action_number": 231,
+      "period": 3,
+      "clock": "11:22",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 230,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss stuckey 18' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201973,
+        "previous_off_def": [
+          1,
+          0
+        ],
+        "current_off_def": [
+          2,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "jerebko rebound (off:2 def:0)"
+    },
+    {
+      "action_number": 242,
+      "period": 3,
+      "clock": "10:09",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 241,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva 9' hook shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 245,
+      "period": 3,
+      "clock": "9:51",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 244,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss wallace layup"
+      },
+      "counter_audit": {
+        "player_id": 201973,
+        "previous_off_def": [
+          2,
+          0
+        ],
+        "current_off_def": [
+          3,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "jerebko rebound (off:3 def:0)"
+    },
+    {
+      "action_number": 249,
+      "period": 3,
+      "clock": "9:08",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 248,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss daye 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "james rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 252,
+      "period": 3,
+      "clock": "8:49",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 251,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss stuckey layup"
+      },
+      "counter_audit": {
+        "player_id": 201973,
+        "previous_off_def": [
+          3,
+          0
+        ],
+        "current_off_def": [
+          4,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "jerebko rebound (off:4 def:0)"
+    },
+    {
+      "action_number": 256,
+      "period": 3,
+      "clock": "8:27",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 255,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201581,
+        "previous_off_def": [
+          1,
+          3
+        ],
+        "current_off_def": [
+          2,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "hickson rebound (off:2 def:3)"
+    },
+    {
+      "action_number": 259,
+      "period": 3,
+      "clock": "8:27",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_id": 1610612739,
+        "v3_person_id": 1610612739
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "CLE",
+      "description": "cavaliers rebound"
+    },
+    {
+      "action_number": 264,
+      "period": 3,
+      "clock": "8:03",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 263,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss williams 22' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          2,
+          3
+        ],
+        "current_off_def": [
+          2,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "wallace rebound (off:2 def:4)"
+    },
+    {
+      "action_number": 266,
+      "period": 3,
+      "clock": "7:52",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 265,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva 27' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          3
+        ],
+        "current_off_def": [
+          0,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "james rebound (off:0 def:4)"
+    },
+    {
+      "action_number": 268,
+      "period": 3,
+      "clock": "7:45",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 267,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "villanueva block (2 blk) miss hickson layup"
+      },
+      "counter_audit": {
+        "player_id": 201155,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "stuckey rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 270,
+      "period": 3,
+      "clock": "7:37",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 269,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva layup"
+      },
+      "counter_audit": {
+        "player_id": 101111,
+        "previous_off_def": [
+          0,
+          5
+        ],
+        "current_off_def": [
+          1,
+          5
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "villanueva rebound (off:1 def:5)"
+    },
+    {
+      "action_number": 273,
+      "period": 3,
+      "clock": "7:14",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 272,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss parker 19' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201155,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "stuckey rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 280,
+      "period": 3,
+      "clock": "6:36",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 279,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss hickson 20' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201969,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "summers rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 282,
+      "period": 3,
+      "clock": "6:11",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 281,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss summers 14' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          4
+        ],
+        "current_off_def": [
+          0,
+          5
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "james rebound (off:0 def:5)"
+    },
+    {
+      "action_number": 284,
+      "period": 3,
+      "clock": "5:57",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 283,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss ilgauskas layup"
+      },
+      "counter_audit": {
+        "player_id": 980,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          1,
+          2
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "ilgauskas rebound (off:1 def:2)"
+    },
+    {
+      "action_number": 289,
+      "period": 3,
+      "clock": "5:34",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 288,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss summers 17' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          5
+        ],
+        "current_off_def": [
+          0,
+          6
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "james rebound (off:0 def:6)"
+    },
+    {
+      "action_number": 293,
+      "period": 3,
+      "clock": "5:05",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 292,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum 18' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1515,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "parker rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 298,
+      "period": 3,
+      "clock": "4:52",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 300,
+      "period": 3,
+      "clock": "4:46",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 299,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 2760,
+        "previous_off_def": [
+          2,
+          3
+        ],
+        "current_off_def": [
+          2,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "varejao rebound (off:2 def:4)"
+    },
+    {
+      "action_number": 306,
+      "period": 3,
+      "clock": "3:39",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 305,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss jerebko 24' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1515,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "parker rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 308,
+      "period": 3,
+      "clock": "3:24",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 307,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss williams 28' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201581,
+        "previous_off_def": [
+          2,
+          3
+        ],
+        "current_off_def": [
+          3,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "hickson rebound (off:3 def:3)"
+    },
+    {
+      "action_number": 310,
+      "period": 3,
+      "clock": "3:21",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 309,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss hickson tip shot"
+      },
+      "counter_audit": {
+        "player_id": 201581,
+        "previous_off_def": [
+          3,
+          3
+        ],
+        "current_off_def": [
+          4,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "hickson rebound (off:4 def:3)"
+    },
+    {
+      "action_number": 312,
+      "period": 3,
+      "clock": "2:58",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 311,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "wallace block (1 blk) miss hickson 10' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 101111,
+        "previous_off_def": [
+          1,
+          5
+        ],
+        "current_off_def": [
+          1,
+          6
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "villanueva rebound (off:1 def:6)"
+    },
+    {
+      "action_number": 324,
+      "period": 3,
+      "clock": "2:27",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 322,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss varejao free throw 1 of 1"
+      },
+      "counter_audit": {
+        "player_id": 201973,
+        "previous_off_def": [
+          4,
+          0
+        ],
+        "current_off_def": [
+          4,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "jerebko rebound (off:4 def:1)"
+    },
+    {
+      "action_number": 328,
+      "period": 3,
+      "clock": "1:53",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_id": 1610612739,
+        "v3_person_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 326,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum 26' 3pt jump shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "cavaliers rebound"
+    },
+    {
+      "action_number": 337,
+      "period": 3,
+      "clock": "1:40",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 334,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 2198,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "brown rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 347,
+      "period": 3,
+      "clock": "0:25",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_id": 1610612739,
+        "v3_person_id": 1610612739
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "CLE",
+      "description": "cavaliers rebound"
+    },
+    {
+      "action_number": 361,
+      "period": 4,
+      "clock": "11:45",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 360,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum 17' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2198,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          1,
+          1
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "brown rebound (off:1 def:1)"
+    },
+    {
+      "action_number": 363,
+      "period": 4,
+      "clock": "11:29",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 362,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum 11' floating jump shot"
+      },
+      "counter_audit": {
+        "player_id": 101131,
+        "previous_off_def": [
+          2,
+          0
+        ],
+        "current_off_def": [
+          3,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "maxiell rebound (off:3 def:0)"
+    },
+    {
+      "action_number": 366,
+      "period": 4,
+      "clock": "11:29",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 369,
+      "period": 4,
+      "clock": "11:28",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 367,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss maxiell free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 2198,
+        "previous_off_def": [
+          1,
+          1
+        ],
+        "current_off_def": [
+          2,
+          1
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "brown rebound (off:2 def:1)"
+    },
+    {
+      "action_number": 371,
+      "period": 4,
+      "clock": "11:14",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 370,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum 16' pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 980,
+        "previous_off_def": [
+          1,
+          2
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "ilgauskas rebound (off:1 def:3)"
+    },
+    {
+      "action_number": 374,
+      "period": 4,
+      "clock": "10:41",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_id": 1610612739,
+        "v3_person_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 373,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss summers 27' 3pt jump shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "cavaliers rebound"
+    },
+    {
+      "action_number": 376,
+      "period": 4,
+      "clock": "10:28",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 375,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss moon 16' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2198,
+        "previous_off_def": [
+          2,
+          1
+        ],
+        "current_off_def": [
+          2,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "brown rebound (off:2 def:2)"
+    },
+    {
+      "action_number": 380,
+      "period": 4,
+      "clock": "9:52",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 379,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum layup"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 383,
+      "period": 4,
+      "clock": "9:35",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 382,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss daye layup"
+      },
+      "counter_audit": {
+        "player_id": 101131,
+        "previous_off_def": [
+          3,
+          0
+        ],
+        "current_off_def": [
+          4,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "maxiell rebound (off:4 def:0)"
+    },
+    {
+      "action_number": 390,
+      "period": 4,
+      "clock": "9:14",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 389,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss gibson 18' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201948,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "daye rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 392,
+      "period": 4,
+      "clock": "9:06",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 391,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss daye layup varejao block (1 blk)"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 404,
+      "period": 4,
+      "clock": "8:34",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 403,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "brown block (1 blk) miss varejao layup"
+      },
+      "counter_audit": {
+        "player_id": 2198,
+        "previous_off_def": [
+          2,
+          2
+        ],
+        "current_off_def": [
+          2,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "brown rebound (off:2 def:3)"
+    },
+    {
+      "action_number": 410,
+      "period": 4,
+      "clock": "7:40",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 409,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 19' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201948,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "daye rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 412,
+      "period": 4,
+      "clock": "7:27",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 411,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss brown 6' hook shot"
+      },
+      "counter_audit": {
+        "player_id": 2760,
+        "previous_off_def": [
+          2,
+          4
+        ],
+        "current_off_def": [
+          2,
+          5
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "varejao rebound (off:2 def:5)"
+    },
+    {
+      "action_number": 417,
+      "period": 4,
+      "clock": "7:00",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 416,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum layup moon block (2 blk)"
+      },
+      "counter_audit": {
+        "player_id": 201973,
+        "previous_off_def": [
+          4,
+          1
+        ],
+        "current_off_def": [
+          5,
+          1
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "jerebko rebound (off:5 def:1)"
+    },
+    {
+      "action_number": 419,
+      "period": 4,
+      "clock": "6:58",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 418,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss jerebko layup"
+      },
+      "counter_audit": {
+        "player_id": 201155,
+        "previous_off_def": [
+          0,
+          3
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "stuckey rebound (off:1 def:3)"
+    },
+    {
+      "action_number": 448,
+      "period": 4,
+      "clock": "4:38",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 447,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          2,
+          4
+        ],
+        "current_off_def": [
+          2,
+          5
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "wallace rebound (off:2 def:5)"
+    },
+    {
+      "action_number": 450,
+      "period": 4,
+      "clock": "4:32",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 449,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva layup"
+      },
+      "counter_audit": {
+        "player_id": 200081,
+        "previous_off_def": [
+          2,
+          0
+        ],
+        "current_off_def": [
+          2,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "moon rebound (off:2 def:1)"
+    },
+    {
+      "action_number": 452,
+      "period": 4,
+      "clock": "4:15",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 451,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 18' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          2,
+          5
+        ],
+        "current_off_def": [
+          2,
+          6
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "wallace rebound (off:2 def:6)"
+    },
+    {
+      "action_number": 455,
+      "period": 4,
+      "clock": "4:15",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 460,
+      "period": 4,
+      "clock": "3:53",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 459,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss williams 18' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201155,
+        "previous_off_def": [
+          1,
+          3
+        ],
+        "current_off_def": [
+          1,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "stuckey rebound (off:1 def:4)"
+    },
+    {
+      "action_number": 462,
+      "period": 4,
+      "clock": "3:37",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 461,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss villanueva 9' hook shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          6
+        ],
+        "current_off_def": [
+          0,
+          7
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "james rebound (off:0 def:7)"
+    },
+    {
+      "action_number": 474,
+      "period": 4,
+      "clock": "2:07",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 473,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 19' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 201155,
+        "previous_off_def": [
+          1,
+          4
+        ],
+        "current_off_def": [
+          1,
+          5
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "stuckey rebound (off:1 def:5)"
+    },
+    {
+      "action_number": 483,
+      "period": 4,
+      "clock": "1:33",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 482,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "wallace block (2 blk) miss james layup"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          7
+        ],
+        "current_off_def": [
+          1,
+          7
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "james rebound (off:1 def:7)"
+    },
+    {
+      "action_number": 485,
+      "period": 4,
+      "clock": "1:28",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 484,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james 17' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 101111,
+        "previous_off_def": [
+          1,
+          6
+        ],
+        "current_off_def": [
+          1,
+          7
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "villanueva rebound (off:1 def:7)"
+    },
+    {
+      "action_number": 487,
+      "period": 4,
+      "clock": "1:24",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 486,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss stuckey layup williams block (1 blk)"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 489,
+      "period": 4,
+      "clock": "1:13",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_team": 1610612765,
+        "v3_team_id": 1610612765
+      },
+      "shot_evidence": {
+        "shot_event": 488,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum layup varejao block (2 blk)"
+      },
+      "counter_audit": {
+        "player_id": 1112,
+        "previous_off_def": [
+          2,
+          6
+        ],
+        "current_off_def": [
+          3,
+          6
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "wallace rebound (off:3 def:6)"
+    },
+    {
+      "action_number": 492,
+      "period": 4,
+      "clock": "1:13",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612765,
+      "rebound_team": "DET",
+      "team_evidence": {
+        "legacy_player1_id": 1610612765,
+        "v3_person_id": 1610612765
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "DET",
+      "description": "pistons rebound"
+    },
+    {
+      "action_number": 502,
+      "period": 4,
+      "clock": "0:41",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 501,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum 23' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2760,
+        "previous_off_def": [
+          2,
+          5
+        ],
+        "current_off_def": [
+          2,
+          6
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "varejao rebound (off:2 def:6)"
+    },
+    {
+      "action_number": 515,
+      "period": 4,
+      "clock": "0:22",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 513,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612739,
+        "shot_description": "miss james free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 1515,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          1,
+          2
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "DET",
+      "description": "parker rebound (off:1 def:2)"
+    },
+    {
+      "action_number": 522,
+      "period": 4,
+      "clock": "0:09",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612739,
+      "rebound_team": "CLE",
+      "team_evidence": {
+        "legacy_player1_team": 1610612739,
+        "v3_team_id": 1610612739
+      },
+      "shot_evidence": {
+        "shot_event": 521,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612765,
+        "shot_description": "miss bynum 24' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2590,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "CLE",
+      "description": "williams rebound (off:0 def:2)"
+    }
+  ],
+  "classification_source": "legacy live/dead rule + rebound-team versus prior missed-shot team",
+  "independent_event_source": "nbastatsv3 actionNumber/team evidence",
+  "player_classification_audit": "legacy cumulative Off/Def counters where increment is unambiguous",
+  "lineup_source": "legacy nbastats_2009 through normal production engine"
+}
