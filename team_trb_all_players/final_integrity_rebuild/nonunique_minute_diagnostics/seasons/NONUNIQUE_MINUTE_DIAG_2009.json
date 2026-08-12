@@ -1,0 +1,5351 @@
+{
+  "year": 2009,
+  "target_count": 12,
+  "status_counts": {
+    "UNIQUE_FLOOR_MINUTE_FIT": 11,
+    "NO_FLOOR_MINUTE_FIT": 1
+  },
+  "unique_repair_count": 11,
+  "games": [
+    {
+      "game_id": 20900067,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 7,
+      "full_game_solution_count": 6,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900067,
+          "period": 5,
+          "team_id": 1610612740,
+          "starters": [
+            978,
+            2561,
+            2731,
+            101108,
+            201628
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 19,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 467,
+            "player": "Jason Kidd",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 43.0,
+            "engine_seconds": 2633.0,
+            "engine_minutes": 43.883333,
+            "engine_completed_minutes": 43,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 956,
+            "player": "Erick Dampier",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 2026.0,
+            "engine_minutes": 33.766667,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 978,
+            "player": "Peja Stojakovic",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 28.0,
+            "engine_seconds": 1732.0,
+            "engine_minutes": 28.866667,
+            "engine_completed_minutes": 28,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1717,
+            "player": "Dirk Nowitzki",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 37.0,
+            "engine_seconds": 2237.0,
+            "engine_minutes": 37.283333,
+            "engine_completed_minutes": 37,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1890,
+            "player": "Shawn Marion",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 38.0,
+            "engine_seconds": 2322.0,
+            "engine_minutes": 38.7,
+            "engine_completed_minutes": 38,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1891,
+            "player": "Jason Terry",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 39.0,
+            "engine_seconds": 2369.0,
+            "engine_minutes": 39.483333,
+            "engine_completed_minutes": 39,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1899,
+            "player": "James Posey",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 7.0,
+            "engine_seconds": 456.0,
+            "engine_minutes": 7.6,
+            "engine_completed_minutes": 7,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2050,
+            "player": "Morris Peterson",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 29.0,
+            "engine_seconds": 1747.0,
+            "engine_minutes": 29.116667,
+            "engine_completed_minutes": 29,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2400,
+            "player": "Drew Gooden",
+            "team_id": 1610612742,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2443,
+            "player": "Darius Songaila",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 16.0,
+            "engine_seconds": 971.0,
+            "engine_minutes": 16.183333,
+            "engine_completed_minutes": 16,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2484,
+            "player": "Devin Brown",
+            "team_id": 1610612740,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2561,
+            "player": "David West",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2555.0,
+            "engine_minutes": 42.583333,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2624,
+            "player": "Quinton Ross",
+            "team_id": 1610612742,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2679,
+            "player": "Matt Carroll",
+            "team_id": 1610612742,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2731,
+            "player": "Emeka Okafor",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 40.0,
+            "engine_seconds": 2439.0,
+            "engine_minutes": 40.65,
+            "engine_completed_minutes": 40,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2743,
+            "player": "Kris Humphries",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 19.0,
+            "engine_seconds": 1160.0,
+            "engine_minutes": 19.333333,
+            "engine_completed_minutes": 19,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101108,
+            "player": "Chris Paul",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 45.0,
+            "engine_seconds": 2722.0,
+            "engine_minutes": 45.366667,
+            "engine_completed_minutes": 45,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101189,
+            "player": "James Singleton",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 10.0,
+            "engine_seconds": 634.0,
+            "engine_minutes": 10.566667,
+            "engine_completed_minutes": 10,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200756,
+            "player": "Hilton Armstrong",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 395.0,
+            "engine_minutes": 6.583333,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200826,
+            "player": "J.J. Barea",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 28.0,
+            "engine_seconds": 1708.0,
+            "engine_minutes": 28.466667,
+            "engine_completed_minutes": 28,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201153,
+            "player": "Julian Wright",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 17.0,
+            "engine_seconds": 1065.0,
+            "engine_minutes": 17.75,
+            "engine_completed_minutes": 17,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201628,
+            "player": "Bobby Brown",
+            "team_id": 1610612740,
+            "source_blank_dnp": false,
+            "source_minutes": 30.0,
+            "engine_seconds": 1818.0,
+            "engine_minutes": 30.3,
+            "engine_completed_minutes": 30,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201954,
+            "player": "Darren Collison",
+            "team_id": 1610612740,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201958,
+            "player": "Rodrigue Beaubois",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 13.0,
+            "engine_seconds": 811.0,
+            "engine_minutes": 13.516667,
+            "engine_completed_minutes": 13,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900067,
+              "period": 5,
+              "team_id": 1610612740,
+              "starters": [
+                978,
+                2561,
+                2731,
+                101108,
+                201628
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900067,
+              "period": 5,
+              "team_id": 1610612740,
+              "starters": [
+                1899,
+                2561,
+                2731,
+                101108,
+                201628
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900067,
+              "period": 5,
+              "team_id": 1610612740,
+              "starters": [
+                2050,
+                2561,
+                2731,
+                101108,
+                201628
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900067,
+              "period": 5,
+              "team_id": 1610612740,
+              "starters": [
+                2443,
+                2561,
+                2731,
+                101108,
+                201628
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 5,
+          "repair_choices": [
+            {
+              "game_id": 20900067,
+              "period": 5,
+              "team_id": 1610612740,
+              "starters": [
+                2561,
+                2731,
+                101108,
+                200756,
+                201628
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 6,
+          "repair_choices": [
+            {
+              "game_id": 20900067,
+              "period": 5,
+              "team_id": 1610612740,
+              "starters": [
+                2561,
+                2731,
+                101108,
+                201153,
+                201628
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20900363,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 5,
+      "full_game_solution_count": 4,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900363,
+          "period": 5,
+          "team_id": 1610612747,
+          "starters": [
+            965,
+            977,
+            1897,
+            2200,
+            101115
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 19,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 703,
+            "player": "Kurt Thomas",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 368.0,
+            "engine_minutes": 6.133333,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 965,
+            "player": "Derek Fisher",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2142.0,
+            "engine_minutes": 35.7,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 977,
+            "player": "Kobe Bryant",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 49.0,
+            "engine_seconds": 2999.0,
+            "engine_minutes": 49.983333,
+            "engine_completed_minutes": 49,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1885,
+            "player": "Lamar Odom",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 2001.0,
+            "engine_minutes": 33.35,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1897,
+            "player": "Metta World Peace",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 40.0,
+            "engine_seconds": 2451.0,
+            "engine_minutes": 40.85,
+            "engine_completed_minutes": 40,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2072,
+            "player": "Michael Redd",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2140.0,
+            "engine_minutes": 35.666667,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2200,
+            "player": "Pau Gasol",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 48.0,
+            "engine_seconds": 2926.0,
+            "engine_minutes": 48.766667,
+            "engine_completed_minutes": 48,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2294,
+            "player": "Charlie Bell",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 27.0,
+            "engine_seconds": 1626.0,
+            "engine_minutes": 27.1,
+            "engine_completed_minutes": 27,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2429,
+            "player": "Dan Gadzuric",
+            "team_id": 1610612749,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2557,
+            "player": "Luke Ridnour",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 23.0,
+            "engine_seconds": 1421.0,
+            "engine_minutes": 23.683333,
+            "engine_completed_minutes": 23,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2568,
+            "player": "Carlos Delfino",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 17.0,
+            "engine_seconds": 1053.0,
+            "engine_minutes": 17.55,
+            "engine_completed_minutes": 17,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2694,
+            "player": "Josh Powell",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2756,
+            "player": "Sasha Vujacic",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 2.0,
+            "engine_seconds": 153.0,
+            "engine_minutes": 2.55,
+            "engine_completed_minutes": 2,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2788,
+            "player": "DJ Mbenga",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 101106,
+            "player": "Andrew Bogut",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 39.0,
+            "engine_seconds": 2358.0,
+            "engine_minutes": 39.3,
+            "engine_completed_minutes": 39,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101115,
+            "player": "Andrew Bynum",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 23.0,
+            "engine_seconds": 1433.0,
+            "engine_minutes": 23.883333,
+            "engine_completed_minutes": 23,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101124,
+            "player": "Hakim Warrick",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 17.0,
+            "engine_seconds": 1036.0,
+            "engine_minutes": 17.266667,
+            "engine_completed_minutes": 17,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101141,
+            "player": "Ersan Ilyasova",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 43.0,
+            "engine_seconds": 2583.0,
+            "engine_minutes": 43.05,
+            "engine_completed_minutes": 43,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200747,
+            "player": "Adam Morrison",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 200769,
+            "player": "Shannon Brown",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 12.0,
+            "engine_seconds": 757.0,
+            "engine_minutes": 12.616667,
+            "engine_completed_minutes": 12,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200770,
+            "player": "Jordan Farmar",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 17.0,
+            "engine_seconds": 1038.0,
+            "engine_minutes": 17.3,
+            "engine_completed_minutes": 17,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201601,
+            "player": "Luc Mbah a Moute",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 25.0,
+            "engine_seconds": 1545.0,
+            "engine_minutes": 25.75,
+            "engine_completed_minutes": 25,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201943,
+            "player": "Brandon Jennings",
+            "team_id": 1610612749,
+            "source_blank_dnp": false,
+            "source_minutes": 29.0,
+            "engine_seconds": 1770.0,
+            "engine_minutes": 29.5,
+            "engine_completed_minutes": 29,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201975,
+            "player": "Jodie Meeks",
+            "team_id": 1610612749,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900363,
+              "period": 5,
+              "team_id": 1610612747,
+              "starters": [
+                965,
+                977,
+                1897,
+                2200,
+                101115
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900363,
+              "period": 5,
+              "team_id": 1610612747,
+              "starters": [
+                977,
+                1897,
+                2200,
+                2756,
+                101115
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900363,
+              "period": 5,
+              "team_id": 1610612747,
+              "starters": [
+                977,
+                1897,
+                2200,
+                101115,
+                200769
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900363,
+              "period": 5,
+              "team_id": 1610612747,
+              "starters": [
+                977,
+                1897,
+                2200,
+                101115,
+                200770
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20900382,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 5,
+      "full_game_solution_count": 4,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900382,
+          "period": 5,
+          "team_id": 1610612745,
+          "starters": [
+            2203,
+            2449,
+            2772,
+            200768,
+            201166
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 20,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 467,
+            "player": "Jason Kidd",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 43.0,
+            "engine_seconds": 2608.0,
+            "engine_minutes": 43.466667,
+            "engine_completed_minutes": 43,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 956,
+            "player": "Erick Dampier",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 31.0,
+            "engine_seconds": 1903.0,
+            "engine_minutes": 31.716667,
+            "engine_completed_minutes": 31,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1501,
+            "player": "Tim Thomas",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 12.0,
+            "engine_seconds": 727.0,
+            "engine_minutes": 12.116667,
+            "engine_completed_minutes": 12,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1503,
+            "player": "Tracy McGrady",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 7.0,
+            "engine_seconds": 443.0,
+            "engine_minutes": 7.383333,
+            "engine_completed_minutes": 7,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1717,
+            "player": "Dirk Nowitzki",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 10.0,
+            "engine_seconds": 615.0,
+            "engine_minutes": 10.25,
+            "engine_completed_minutes": 10,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1890,
+            "player": "Shawn Marion",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2128.0,
+            "engine_minutes": 35.466667,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1891,
+            "player": "Jason Terry",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 1986.0,
+            "engine_minutes": 33.1,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2203,
+            "player": "Shane Battier",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 32.0,
+            "engine_seconds": 1960.0,
+            "engine_minutes": 32.666667,
+            "engine_completed_minutes": 32,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2400,
+            "player": "Drew Gooden",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 20.0,
+            "engine_seconds": 1207.0,
+            "engine_minutes": 20.116667,
+            "engine_completed_minutes": 20,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2431,
+            "player": "David Andersen",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 24.0,
+            "engine_seconds": 1481.0,
+            "engine_minutes": 24.683333,
+            "engine_completed_minutes": 24,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2449,
+            "player": "Luis Scola",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 43.0,
+            "engine_seconds": 2632.0,
+            "engine_minutes": 43.866667,
+            "engine_completed_minutes": 43,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2567,
+            "player": "Brian Cook",
+            "team_id": 1610612745,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2572,
+            "player": "Josh Howard",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 40.0,
+            "engine_seconds": 2408.0,
+            "engine_minutes": 40.133333,
+            "engine_completed_minutes": 40,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2624,
+            "player": "Quinton Ross",
+            "team_id": 1610612742,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2743,
+            "player": "Kris Humphries",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 4.0,
+            "engine_seconds": 242.0,
+            "engine_minutes": 4.033333,
+            "engine_completed_minutes": 4,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2772,
+            "player": "Trevor Ariza",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 44.0,
+            "engine_seconds": 2666.0,
+            "engine_minutes": 44.433333,
+            "engine_completed_minutes": 44,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101236,
+            "player": "Chuck Hayes",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 15.0,
+            "engine_seconds": 953.0,
+            "engine_minutes": 15.883333,
+            "engine_completed_minutes": 15,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200768,
+            "player": "Kyle Lowry",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 38.0,
+            "engine_seconds": 2334.0,
+            "engine_minutes": 38.9,
+            "engine_completed_minutes": 38,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200826,
+            "player": "J.J. Barea",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 34.0,
+            "engine_seconds": 2076.0,
+            "engine_minutes": 34.6,
+            "engine_completed_minutes": 34,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201166,
+            "player": "Aaron Brooks",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 37.0,
+            "engine_seconds": 2275.0,
+            "engine_minutes": 37.916667,
+            "engine_completed_minutes": 37,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201171,
+            "player": "Carl Landry",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 384.0,
+            "engine_minutes": 6.4,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201958,
+            "player": "Rodrigue Beaubois",
+            "team_id": 1610612742,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201966,
+            "player": "Jermaine Taylor",
+            "team_id": 1610612745,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201978,
+            "player": "Chase Budinger",
+            "team_id": 1610612745,
+            "source_blank_dnp": false,
+            "source_minutes": 12.0,
+            "engine_seconds": 772.0,
+            "engine_minutes": 12.866667,
+            "engine_completed_minutes": 12,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900382,
+              "period": 5,
+              "team_id": 1610612745,
+              "starters": [
+                1503,
+                2203,
+                2449,
+                200768,
+                201166
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900382,
+              "period": 5,
+              "team_id": 1610612745,
+              "starters": [
+                2203,
+                2431,
+                2449,
+                200768,
+                201166
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900382,
+              "period": 5,
+              "team_id": 1610612745,
+              "starters": [
+                2203,
+                2449,
+                2772,
+                200768,
+                201166
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900382,
+              "period": 5,
+              "team_id": 1610612745,
+              "starters": [
+                2203,
+                2449,
+                200768,
+                201166,
+                201171
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20900386,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 5,
+      "full_game_solution_count": 4,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900386,
+          "period": 5,
+          "team_id": 1610612755,
+          "starters": [
+            1882,
+            2584,
+            2738,
+            201152,
+            201578
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 17,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 948,
+            "player": "Marcus Camby",
+            "team_id": 1610612746,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2573.0,
+            "engine_minutes": 42.883333,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1730,
+            "player": "Brian Skinner",
+            "team_id": 1610612746,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 1882,
+            "player": "Elton Brand",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2130.0,
+            "engine_minutes": 35.5,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1884,
+            "player": "Baron Davis",
+            "team_id": 1610612746,
+            "source_blank_dnp": false,
+            "source_minutes": 39.0,
+            "engine_seconds": 2363.0,
+            "engine_minutes": 39.383333,
+            "engine_completed_minutes": 39,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2223,
+            "player": "Samuel Dalembert",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 10.0,
+            "engine_seconds": 637.0,
+            "engine_minutes": 10.616667,
+            "engine_completed_minutes": 10,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2446,
+            "player": "Rasual Butler",
+            "team_id": 1610612746,
+            "source_blank_dnp": false,
+            "source_minutes": 28.0,
+            "engine_seconds": 1705.0,
+            "engine_minutes": 28.416667,
+            "engine_completed_minutes": 28,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2549,
+            "player": "Chris Kaman",
+            "team_id": 1610612746,
+            "source_blank_dnp": false,
+            "source_minutes": 36.0,
+            "engine_seconds": 2182.0,
+            "engine_minutes": 36.366667,
+            "engine_completed_minutes": 36,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2574,
+            "player": "Jason Kapono",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 410.0,
+            "engine_minutes": 6.833333,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2584,
+            "player": "Willie Green",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2136.0,
+            "engine_minutes": 35.6,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2738,
+            "player": "Andre Iguodala",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 50.0,
+            "engine_seconds": 3022.0,
+            "engine_minutes": 50.366667,
+            "engine_completed_minutes": 50,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2742,
+            "player": "Sebastian Telfair",
+            "team_id": 1610612746,
+            "source_blank_dnp": false,
+            "source_minutes": 11.0,
+            "engine_seconds": 679.0,
+            "engine_minutes": 11.316667,
+            "engine_completed_minutes": 11,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2767,
+            "player": "Royal Ivey",
+            "team_id": 1610612755,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 101150,
+            "player": "Lou Williams",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 23.0,
+            "engine_seconds": 1421.0,
+            "engine_minutes": 23.683333,
+            "engine_completed_minutes": 23,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200760,
+            "player": "Rodney Carney",
+            "team_id": 1610612755,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 200776,
+            "player": "Mardy Collins",
+            "team_id": 1610612746,
+            "source_blank_dnp": false,
+            "source_minutes": 25.0,
+            "engine_seconds": 1543.0,
+            "engine_minutes": 25.716667,
+            "engine_completed_minutes": 25,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200779,
+            "player": "Steve Novak",
+            "team_id": 1610612746,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 200783,
+            "player": "Craig Smith",
+            "team_id": 1610612746,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201152,
+            "player": "Thaddeus Young",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 44.0,
+            "engine_seconds": 2685.0,
+            "engine_minutes": 44.75,
+            "engine_completed_minutes": 44,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201154,
+            "player": "Al Thornton",
+            "team_id": 1610612746,
+            "source_blank_dnp": false,
+            "source_minutes": 39.0,
+            "engine_seconds": 2366.0,
+            "engine_minutes": 39.433333,
+            "engine_completed_minutes": 39,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201160,
+            "player": "Jason Smith",
+            "team_id": 1610612755,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201569,
+            "player": "Eric Gordon",
+            "team_id": 1610612746,
+            "source_blank_dnp": false,
+            "source_minutes": 41.0,
+            "engine_seconds": 2489.0,
+            "engine_minutes": 41.483333,
+            "engine_completed_minutes": 41,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201578,
+            "player": "Marreese Speights",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2107.0,
+            "engine_minutes": 35.116667,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201599,
+            "player": "DeAndre Jordan",
+            "team_id": 1610612746,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201950,
+            "player": "Jrue Holiday",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 22.0,
+            "engine_seconds": 1352.0,
+            "engine_minutes": 22.533333,
+            "engine_completed_minutes": 22,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900386,
+              "period": 5,
+              "team_id": 1610612755,
+              "starters": [
+                1882,
+                2223,
+                2738,
+                201152,
+                201578
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900386,
+              "period": 5,
+              "team_id": 1610612755,
+              "starters": [
+                1882,
+                2574,
+                2738,
+                201152,
+                201578
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900386,
+              "period": 5,
+              "team_id": 1610612755,
+              "starters": [
+                1882,
+                2584,
+                2738,
+                201152,
+                201578
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900386,
+              "period": 5,
+              "team_id": 1610612755,
+              "starters": [
+                1882,
+                2738,
+                201152,
+                201578,
+                201950
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20900387,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 5,
+      "full_game_solution_count": 4,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900387,
+          "period": 5,
+          "team_id": 1610612741,
+          "starters": [
+            2422,
+            2550,
+            2736,
+            201149,
+            201565
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 17,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 283,
+            "player": "Lindsey Hunter",
+            "team_id": 1610612741,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 1710,
+            "player": "Mike Bibby",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 2004.0,
+            "engine_minutes": 33.4,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1802,
+            "player": "Brad Miller",
+            "team_id": 1610612741,
+            "source_blank_dnp": false,
+            "source_minutes": 22.0,
+            "engine_seconds": 1349.0,
+            "engine_minutes": 22.483333,
+            "engine_completed_minutes": 22,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2037,
+            "player": "Jamal Crawford",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 37.0,
+            "engine_seconds": 2233.0,
+            "engine_minutes": 37.216667,
+            "engine_completed_minutes": 37,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2207,
+            "player": "Joe Johnson",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 48.0,
+            "engine_seconds": 2896.0,
+            "engine_minutes": 48.266667,
+            "engine_completed_minutes": 48,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2215,
+            "player": "Jason Collins",
+            "team_id": 1610612737,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2230,
+            "player": "Maurice Evans",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 13.0,
+            "engine_seconds": 803.0,
+            "engine_minutes": 13.383333,
+            "engine_completed_minutes": 13,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2422,
+            "player": "John Salmons",
+            "team_id": 1610612741,
+            "source_blank_dnp": false,
+            "source_minutes": 45.0,
+            "engine_seconds": 2731.0,
+            "engine_minutes": 45.516667,
+            "engine_completed_minutes": 45,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2457,
+            "player": "Jannero Pargo",
+            "team_id": 1610612741,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2550,
+            "player": "Kirk Hinrich",
+            "team_id": 1610612741,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2101.0,
+            "engine_minutes": 35.016667,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2585,
+            "player": "Zaza Pachulia",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 18.0,
+            "engine_seconds": 1130.0,
+            "engine_minutes": 18.833333,
+            "engine_completed_minutes": 18,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2736,
+            "player": "Luol Deng",
+            "team_id": 1610612741,
+            "source_blank_dnp": false,
+            "source_minutes": 44.0,
+            "engine_seconds": 2694.0,
+            "engine_minutes": 44.9,
+            "engine_completed_minutes": 44,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2746,
+            "player": "Josh Smith",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 28.0,
+            "engine_seconds": 1711.0,
+            "engine_minutes": 28.516667,
+            "engine_completed_minutes": 28,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101107,
+            "player": "Marvin Williams",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 31.0,
+            "engine_seconds": 1881.0,
+            "engine_minutes": 31.35,
+            "engine_completed_minutes": 31,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200748,
+            "player": "Tyrus Thomas",
+            "team_id": 1610612741,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201043,
+            "player": "Randolph Morris",
+            "team_id": 1610612737,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201143,
+            "player": "Al Horford",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 47.0,
+            "engine_seconds": 2872.0,
+            "engine_minutes": 47.866667,
+            "engine_completed_minutes": 47,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201149,
+            "player": "Joakim Noah",
+            "team_id": 1610612741,
+            "source_blank_dnp": false,
+            "source_minutes": 44.0,
+            "engine_seconds": 2666.0,
+            "engine_minutes": 44.433333,
+            "engine_completed_minutes": 44,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201189,
+            "player": "Aaron Gray",
+            "team_id": 1610612741,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201565,
+            "player": "Derrick Rose",
+            "team_id": 1610612741,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2564.0,
+            "engine_minutes": 42.733333,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201629,
+            "player": "Othello Hunter",
+            "team_id": 1610612737,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201949,
+            "player": "James Johnson",
+            "team_id": 1610612741,
+            "source_blank_dnp": false,
+            "source_minutes": 4.0,
+            "engine_seconds": 276.0,
+            "engine_minutes": 4.6,
+            "engine_completed_minutes": 4,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201952,
+            "player": "Jeff Teague",
+            "team_id": 1610612737,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 370.0,
+            "engine_minutes": 6.166667,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201959,
+            "player": "Taj Gibson",
+            "team_id": 1610612741,
+            "source_blank_dnp": false,
+            "source_minutes": 25.0,
+            "engine_seconds": 1519.0,
+            "engine_minutes": 25.316667,
+            "engine_completed_minutes": 25,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900387,
+              "period": 5,
+              "team_id": 1610612741,
+              "starters": [
+                1802,
+                2422,
+                2736,
+                201149,
+                201565
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900387,
+              "period": 5,
+              "team_id": 1610612741,
+              "starters": [
+                2422,
+                2550,
+                2736,
+                201149,
+                201565
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900387,
+              "period": 5,
+              "team_id": 1610612741,
+              "starters": [
+                2422,
+                2736,
+                201149,
+                201565,
+                201949
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900387,
+              "period": 5,
+              "team_id": 1610612741,
+              "starters": [
+                2422,
+                2736,
+                201149,
+                201565,
+                201959
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20900423,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 7,
+      "full_game_solution_count": 6,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900423,
+          "period": 5,
+          "team_id": 1610612758,
+          "starters": [
+            2757,
+            201150,
+            201574,
+            201936,
+            201956
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 20,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 406,
+            "player": "Shaquille O'Neal",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 21.0,
+            "engine_seconds": 1318.0,
+            "engine_minutes": 21.966667,
+            "engine_completed_minutes": 21,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 980,
+            "player": "Zydrunas Ilgauskas",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 26.0,
+            "engine_seconds": 1566.0,
+            "engine_minutes": 26.1,
+            "engine_completed_minutes": 26,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1515,
+            "player": "Anthony Parker",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 34.0,
+            "engine_seconds": 2043.0,
+            "engine_minutes": 34.05,
+            "engine_completed_minutes": 34,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1903,
+            "player": "Kenny Thomas",
+            "team_id": 1610612758,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2137,
+            "player": "Ime Udoka",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 8.0,
+            "engine_seconds": 524.0,
+            "engine_minutes": 8.733333,
+            "engine_completed_minutes": 8,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2544,
+            "player": "LeBron James",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 43.0,
+            "engine_seconds": 2621.0,
+            "engine_minutes": 43.683333,
+            "engine_completed_minutes": 43,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2590,
+            "player": "Mo Williams",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 39.0,
+            "engine_seconds": 2369.0,
+            "engine_minutes": 39.483333,
+            "engine_completed_minutes": 39,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2753,
+            "player": "Delonte West",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 24.0,
+            "engine_seconds": 1468.0,
+            "engine_minutes": 24.466667,
+            "engine_completed_minutes": 24,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2757,
+            "player": "Beno Udrih",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 32.0,
+            "engine_seconds": 1975.0,
+            "engine_minutes": 32.916667,
+            "engine_completed_minutes": 32,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2760,
+            "player": "Anderson Varejao",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 39.0,
+            "engine_seconds": 2399.0,
+            "engine_minutes": 39.983333,
+            "engine_completed_minutes": 39,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2804,
+            "player": "Andres Nocioni",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 7.0,
+            "engine_seconds": 438.0,
+            "engine_minutes": 7.3,
+            "engine_completed_minutes": 7,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101118,
+            "player": "Sean May",
+            "team_id": 1610612758,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 101214,
+            "player": "Jawad Williams",
+            "team_id": 1610612739,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 200081,
+            "player": "Jamario Moon",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 5.0,
+            "engine_seconds": 328.0,
+            "engine_minutes": 5.466667,
+            "engine_completed_minutes": 5,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200771,
+            "player": "Sergio Rodriguez",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 402.0,
+            "engine_minutes": 6.7,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200789,
+            "player": "Daniel Gibson",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 12.0,
+            "engine_seconds": 724.0,
+            "engine_minutes": 12.066667,
+            "engine_completed_minutes": 12,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201150,
+            "player": "Spencer Hawes",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 41.0,
+            "engine_seconds": 2483.0,
+            "engine_minutes": 41.383333,
+            "engine_completed_minutes": 41,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201574,
+            "player": "Jason Thompson",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 49.0,
+            "engine_seconds": 2984.0,
+            "engine_minutes": 49.733333,
+            "engine_completed_minutes": 49,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201581,
+            "player": "JJ Hickson",
+            "team_id": 1610612739,
+            "source_blank_dnp": false,
+            "source_minutes": 17.0,
+            "engine_seconds": 1064.0,
+            "engine_minutes": 17.733333,
+            "engine_completed_minutes": 17,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201590,
+            "player": "Donte Greene",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 23.0,
+            "engine_seconds": 1387.0,
+            "engine_minutes": 23.116667,
+            "engine_completed_minutes": 23,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201616,
+            "player": "Darnell Jackson",
+            "team_id": 1610612739,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201936,
+            "player": "Tyreke Evans",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 43.0,
+            "engine_seconds": 2611.0,
+            "engine_minutes": 43.516667,
+            "engine_completed_minutes": 43,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201956,
+            "player": "Omri Casspi",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 44.0,
+            "engine_seconds": 2641.0,
+            "engine_minutes": 44.016667,
+            "engine_completed_minutes": 44,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201972,
+            "player": "Jon Brockman",
+            "team_id": 1610612758,
+            "source_blank_dnp": false,
+            "source_minutes": 7.0,
+            "engine_seconds": 455.0,
+            "engine_minutes": 7.583333,
+            "engine_completed_minutes": 7,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900423,
+              "period": 5,
+              "team_id": 1610612758,
+              "starters": [
+                2137,
+                2757,
+                201150,
+                201936,
+                201956
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900423,
+              "period": 5,
+              "team_id": 1610612758,
+              "starters": [
+                2757,
+                2804,
+                201150,
+                201936,
+                201956
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900423,
+              "period": 5,
+              "team_id": 1610612758,
+              "starters": [
+                2757,
+                200771,
+                201150,
+                201936,
+                201956
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900423,
+              "period": 5,
+              "team_id": 1610612758,
+              "starters": [
+                2757,
+                201150,
+                201574,
+                201936,
+                201956
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 5,
+          "repair_choices": [
+            {
+              "game_id": 20900423,
+              "period": 5,
+              "team_id": 1610612758,
+              "starters": [
+                2757,
+                201150,
+                201590,
+                201936,
+                201956
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 6,
+          "repair_choices": [
+            {
+              "game_id": 20900423,
+              "period": 5,
+              "team_id": 1610612758,
+              "starters": [
+                2757,
+                201150,
+                201936,
+                201956,
+                201972
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20900692,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 6,
+      "full_game_solution_count": 5,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900692,
+          "period": 5,
+          "team_id": 1610612742,
+          "starters": [
+            467,
+            1717,
+            1890,
+            1891,
+            2400
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 20,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 436,
+            "player": "Juwan Howard",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 28.0,
+            "engine_seconds": 1732.0,
+            "engine_minutes": 28.866667,
+            "engine_completed_minutes": 28,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 467,
+            "player": "Jason Kidd",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 40.0,
+            "engine_seconds": 2414.0,
+            "engine_minutes": 40.233333,
+            "engine_completed_minutes": 40,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 956,
+            "player": "Erick Dampier",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 24.0,
+            "engine_seconds": 1493.0,
+            "engine_minutes": 24.883333,
+            "engine_completed_minutes": 24,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1717,
+            "player": "Dirk Nowitzki",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 45.0,
+            "engine_seconds": 2714.0,
+            "engine_minutes": 45.233333,
+            "engine_completed_minutes": 45,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1889,
+            "player": "Andre Miller",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2534.0,
+            "engine_minutes": 42.233333,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1890,
+            "player": "Shawn Marion",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 27.0,
+            "engine_seconds": 1646.0,
+            "engine_minutes": 27.433333,
+            "engine_completed_minutes": 27,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1891,
+            "player": "Jason Terry",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 39.0,
+            "engine_seconds": 2389.0,
+            "engine_minutes": 39.816667,
+            "engine_completed_minutes": 39,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2059,
+            "player": "Eduardo Najera",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 2.0,
+            "engine_seconds": 122.0,
+            "engine_minutes": 2.033333,
+            "engine_completed_minutes": 2,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2400,
+            "player": "Drew Gooden",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 27.0,
+            "engine_seconds": 1665.0,
+            "engine_minutes": 27.75,
+            "engine_completed_minutes": 27,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2572,
+            "player": "Josh Howard",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 25.0,
+            "engine_seconds": 1530.0,
+            "engine_minutes": 25.5,
+            "engine_completed_minutes": 25,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2581,
+            "player": "Steve Blake",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 24.0,
+            "engine_seconds": 1495.0,
+            "engine_minutes": 24.916667,
+            "engine_completed_minutes": 24,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2624,
+            "player": "Quinton Ross",
+            "team_id": 1610612742,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 101110,
+            "player": "Martell Webster",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 23.0,
+            "engine_seconds": 1420.0,
+            "engine_minutes": 23.666667,
+            "engine_completed_minutes": 23,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101189,
+            "player": "James Singleton",
+            "team_id": 1610612742,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 200746,
+            "player": "LaMarcus Aldridge",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 47.0,
+            "engine_seconds": 2836.0,
+            "engine_minutes": 47.266667,
+            "engine_completed_minutes": 47,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200750,
+            "player": "Brandon Roy",
+            "team_id": 1610612757,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 200826,
+            "player": "J.J. Barea",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 26.0,
+            "engine_seconds": 1562.0,
+            "engine_minutes": 26.033333,
+            "engine_completed_minutes": 26,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201164,
+            "player": "Rudy Fernandez",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 17.0,
+            "engine_seconds": 1030.0,
+            "engine_minutes": 17.166667,
+            "engine_completed_minutes": 17,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201573,
+            "player": "Jerryd Bayless",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 28.0,
+            "engine_seconds": 1730.0,
+            "engine_minutes": 28.833333,
+            "engine_completed_minutes": 28,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201587,
+            "player": "Nicolas Batum",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 26.0,
+            "engine_seconds": 1584.0,
+            "engine_minutes": 26.4,
+            "engine_completed_minutes": 26,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201958,
+            "player": "Rodrigue Beaubois",
+            "team_id": 1610612742,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 365.0,
+            "engine_minutes": 6.083333,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201965,
+            "player": "Jeff Ayres",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 12.0,
+            "engine_seconds": 730.0,
+            "engine_minutes": 12.166667,
+            "engine_completed_minutes": 12,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201967,
+            "player": "Dante Cunningham",
+            "team_id": 1610612757,
+            "source_blank_dnp": false,
+            "source_minutes": 13.0,
+            "engine_seconds": 809.0,
+            "engine_minutes": 13.483333,
+            "engine_completed_minutes": 13,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201988,
+            "player": "Patty Mills",
+            "team_id": 1610612757,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900692,
+              "period": 5,
+              "team_id": 1610612742,
+              "starters": [
+                467,
+                956,
+                1717,
+                1891,
+                2400
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900692,
+              "period": 5,
+              "team_id": 1610612742,
+              "starters": [
+                467,
+                1717,
+                1890,
+                1891,
+                2400
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900692,
+              "period": 5,
+              "team_id": 1610612742,
+              "starters": [
+                467,
+                1717,
+                1891,
+                2059,
+                2400
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900692,
+              "period": 5,
+              "team_id": 1610612742,
+              "starters": [
+                467,
+                1717,
+                1891,
+                2400,
+                2572
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 5,
+          "repair_choices": [
+            {
+              "game_id": 20900692,
+              "period": 5,
+              "team_id": 1610612742,
+              "starters": [
+                467,
+                1717,
+                1891,
+                2400,
+                201958
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20900808,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 6,
+      "full_game_solution_count": 5,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900808,
+          "period": 6,
+          "team_id": 1610612763,
+          "starters": [
+            2216,
+            200752,
+            201144,
+            201188,
+            201564
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 22,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 979,
+            "player": "Jermaine O'Neal",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2105.0,
+            "engine_minutes": 35.083333,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2047,
+            "player": "Quentin Richardson",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 41.0,
+            "engine_seconds": 2487.0,
+            "engine_minutes": 41.45,
+            "engine_completed_minutes": 41,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2048,
+            "player": "Jamaal Magloire",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 362.0,
+            "engine_minutes": 6.033333,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2216,
+            "player": "Zach Randolph",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 50.0,
+            "engine_seconds": 3010.0,
+            "engine_minutes": 50.166667,
+            "engine_completed_minutes": 50,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2224,
+            "player": "Jamaal Tinsley",
+            "team_id": 1610612763,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2306,
+            "player": "Carlos Arroyo",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 43.0,
+            "engine_seconds": 2605.0,
+            "engine_minutes": 43.416667,
+            "engine_completed_minutes": 43,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2592,
+            "player": "James Jones",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 362.0,
+            "engine_minutes": 6.033333,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2617,
+            "player": "Udonis Haslem",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 23.0,
+            "engine_seconds": 1431.0,
+            "engine_minutes": 23.85,
+            "engine_completed_minutes": 23,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2748,
+            "player": "Dorell Wright",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 16.0,
+            "engine_seconds": 993.0,
+            "engine_minutes": 16.55,
+            "engine_completed_minutes": 16,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200752,
+            "player": "Rudy Gay",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 51.0,
+            "engine_seconds": 3068.0,
+            "engine_minutes": 51.133333,
+            "engine_completed_minutes": 51,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200758,
+            "player": "Ronnie Brewer",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 11.0,
+            "engine_seconds": 701.0,
+            "engine_minutes": 11.683333,
+            "engine_completed_minutes": 11,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200766,
+            "player": "Marcus Williams",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 13.0,
+            "engine_seconds": 785.0,
+            "engine_minutes": 13.083333,
+            "engine_completed_minutes": 13,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200821,
+            "player": "Yakhouba Diawara",
+            "team_id": 1610612748,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201144,
+            "player": "Mike Conley",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 44.0,
+            "engine_seconds": 2695.0,
+            "engine_minutes": 44.916667,
+            "engine_completed_minutes": 44,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201161,
+            "player": "Daequan Cook",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 24.0,
+            "engine_seconds": 1493.0,
+            "engine_minutes": 24.883333,
+            "engine_completed_minutes": 24,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201188,
+            "player": "Marc Gasol",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 50.0,
+            "engine_seconds": 3035.0,
+            "engine_minutes": 50.583333,
+            "engine_completed_minutes": 50,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201202,
+            "player": "Joel Anthony",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 11.0,
+            "engine_seconds": 667.0,
+            "engine_minutes": 11.116667,
+            "engine_completed_minutes": 11,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201563,
+            "player": "Michael Beasley",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 39.0,
+            "engine_seconds": 2395.0,
+            "engine_minutes": 39.916667,
+            "engine_completed_minutes": 39,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201564,
+            "player": "O.J. Mayo",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 50.0,
+            "engine_seconds": 3010.0,
+            "engine_minutes": 50.166667,
+            "engine_completed_minutes": 50,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201589,
+            "player": "Darrell Arthur",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 7.0,
+            "engine_seconds": 427.0,
+            "engine_minutes": 7.116667,
+            "engine_completed_minutes": 7,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201596,
+            "player": "Mario Chalmers",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 41.0,
+            "engine_seconds": 2500.0,
+            "engine_minutes": 41.666667,
+            "engine_completed_minutes": 41,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201934,
+            "player": "Hasheem Thabeet",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 7.0,
+            "engine_seconds": 443.0,
+            "engine_minutes": 7.383333,
+            "engine_completed_minutes": 7,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201960,
+            "player": "DeMarre Carroll",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 0.0,
+            "engine_seconds": 40.0,
+            "engine_minutes": 0.666667,
+            "engine_completed_minutes": 0,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201970,
+            "player": "Sam Young",
+            "team_id": 1610612763,
+            "source_blank_dnp": false,
+            "source_minutes": 3.0,
+            "engine_seconds": 186.0,
+            "engine_minutes": 3.1,
+            "engine_completed_minutes": 3,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900808,
+              "period": 6,
+              "team_id": 1610612763,
+              "starters": [
+                2216,
+                200752,
+                201144,
+                201188,
+                201564
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900808,
+              "period": 6,
+              "team_id": 1610612763,
+              "starters": [
+                200752,
+                200758,
+                201144,
+                201188,
+                201564
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900808,
+              "period": 6,
+              "team_id": 1610612763,
+              "starters": [
+                200752,
+                201144,
+                201188,
+                201564,
+                201589
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900808,
+              "period": 6,
+              "team_id": 1610612763,
+              "starters": [
+                200752,
+                201144,
+                201188,
+                201564,
+                201934
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 5,
+          "repair_choices": [
+            {
+              "game_id": 20900808,
+              "period": 6,
+              "team_id": 1610612763,
+              "starters": [
+                200752,
+                201144,
+                201188,
+                201564,
+                201960
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20900869,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 3,
+      "full_game_solution_count": 2,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900869,
+          "period": 3,
+          "team_id": 1610612747,
+          "starters": [
+            965,
+            977,
+            1897,
+            2200,
+            101115
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 17,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 965,
+            "player": "Derek Fisher",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 28.0,
+            "engine_seconds": 1695.0,
+            "engine_minutes": 28.25,
+            "engine_completed_minutes": 28,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 977,
+            "player": "Kobe Bryant",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2534.0,
+            "engine_minutes": 42.233333,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1882,
+            "player": "Elton Brand",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 30.0,
+            "engine_seconds": 1837.0,
+            "engine_minutes": 30.616667,
+            "engine_completed_minutes": 30,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1885,
+            "player": "Lamar Odom",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 25.0,
+            "engine_seconds": 1546.0,
+            "engine_minutes": 25.766667,
+            "engine_completed_minutes": 25,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1897,
+            "player": "Metta World Peace",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 36.0,
+            "engine_seconds": 2173.0,
+            "engine_minutes": 36.216667,
+            "engine_completed_minutes": 36,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2200,
+            "player": "Pau Gasol",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 41.0,
+            "engine_seconds": 2464.0,
+            "engine_minutes": 41.066667,
+            "engine_completed_minutes": 41,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2223,
+            "player": "Samuel Dalembert",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 2032.0,
+            "engine_minutes": 33.866667,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2574,
+            "player": "Jason Kapono",
+            "team_id": 1610612755,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2575,
+            "player": "Luke Walton",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2584,
+            "player": "Willie Green",
+            "team_id": 1610612755,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2694,
+            "player": "Josh Powell",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 0.0,
+            "engine_seconds": 2.0,
+            "engine_minutes": 0.033333,
+            "engine_completed_minutes": 0,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2738,
+            "player": "Andre Iguodala",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 44.0,
+            "engine_seconds": 2677.0,
+            "engine_minutes": 44.616667,
+            "engine_completed_minutes": 44,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2788,
+            "player": "DJ Mbenga",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 101115,
+            "player": "Andrew Bynum",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 29.0,
+            "engine_seconds": 1748.0,
+            "engine_minutes": 29.133333,
+            "engine_completed_minutes": 29,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101150,
+            "player": "Lou Williams",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 36.0,
+            "engine_seconds": 2203.0,
+            "engine_minutes": 36.716667,
+            "engine_completed_minutes": 36,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200747,
+            "player": "Adam Morrison",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 200760,
+            "player": "Rodney Carney",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 24.0,
+            "engine_seconds": 1469.0,
+            "engine_minutes": 24.483333,
+            "engine_completed_minutes": 24,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200769,
+            "player": "Shannon Brown",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 17.0,
+            "engine_seconds": 1053.0,
+            "engine_minutes": 17.55,
+            "engine_completed_minutes": 17,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200770,
+            "player": "Jordan Farmar",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 19.0,
+            "engine_seconds": 1185.0,
+            "engine_minutes": 19.75,
+            "engine_completed_minutes": 19,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201152,
+            "player": "Thaddeus Young",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 26.0,
+            "engine_seconds": 1586.0,
+            "engine_minutes": 26.433333,
+            "engine_completed_minutes": 26,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201160,
+            "player": "Jason Smith",
+            "team_id": 1610612755,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201578,
+            "player": "Marreese Speights",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 14.0,
+            "engine_seconds": 848.0,
+            "engine_minutes": 14.133333,
+            "engine_completed_minutes": 14,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201950,
+            "player": "Jrue Holiday",
+            "team_id": 1610612755,
+            "source_blank_dnp": false,
+            "source_minutes": 29.0,
+            "engine_seconds": 1748.0,
+            "engine_minutes": 29.133333,
+            "engine_completed_minutes": 29,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201975,
+            "player": "Jodie Meeks",
+            "team_id": 1610612755,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900869,
+              "period": 3,
+              "team_id": 1610612747,
+              "starters": [
+                965,
+                977,
+                1897,
+                2200,
+                101115
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900869,
+              "period": 3,
+              "team_id": 1610612747,
+              "starters": [
+                965,
+                977,
+                2200,
+                2694,
+                101115
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 24
+        }
+      ]
+    },
+    {
+      "game_id": 20900912,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 7,
+      "full_game_solution_count": 6,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20900912,
+          "period": 5,
+          "team_id": 1610612748,
+          "starters": [
+            979,
+            2047,
+            2306,
+            2548,
+            2617
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 19,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 965,
+            "player": "Derek Fisher",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 2034.0,
+            "engine_minutes": 33.9,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 977,
+            "player": "Kobe Bryant",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 45.0,
+            "engine_seconds": 2746.0,
+            "engine_minutes": 45.766667,
+            "engine_completed_minutes": 45,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 979,
+            "player": "Jermaine O'Neal",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 41.0,
+            "engine_seconds": 2467.0,
+            "engine_minutes": 41.116667,
+            "engine_completed_minutes": 41,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1747,
+            "player": "Rafer Alston",
+            "team_id": 1610612748,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 1885,
+            "player": "Lamar Odom",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 35.0,
+            "engine_seconds": 2151.0,
+            "engine_minutes": 35.85,
+            "engine_completed_minutes": 35,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 1897,
+            "player": "Metta World Peace",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 44.0,
+            "engine_seconds": 2692.0,
+            "engine_minutes": 44.866667,
+            "engine_completed_minutes": 44,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2047,
+            "player": "Quentin Richardson",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 36.0,
+            "engine_seconds": 2218.0,
+            "engine_minutes": 36.966667,
+            "engine_completed_minutes": 36,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2048,
+            "player": "Jamaal Magloire",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 5.0,
+            "engine_seconds": 348.0,
+            "engine_minutes": 5.8,
+            "engine_completed_minutes": 5,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2200,
+            "player": "Pau Gasol",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 34.0,
+            "engine_seconds": 2057.0,
+            "engine_minutes": 34.283333,
+            "engine_completed_minutes": 34,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2306,
+            "player": "Carlos Arroyo",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2522.0,
+            "engine_minutes": 42.033333,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2548,
+            "player": "Dwyane Wade",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2541.0,
+            "engine_minutes": 42.35,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2575,
+            "player": "Luke Walton",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2617,
+            "player": "Udonis Haslem",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 30.0,
+            "engine_seconds": 1836.0,
+            "engine_minutes": 30.6,
+            "engine_completed_minutes": 30,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2694,
+            "player": "Josh Powell",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 2.0,
+            "engine_seconds": 174.0,
+            "engine_minutes": 2.9,
+            "engine_completed_minutes": 2,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2748,
+            "player": "Dorell Wright",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 19.0,
+            "engine_seconds": 1162.0,
+            "engine_minutes": 19.366667,
+            "engine_completed_minutes": 19,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2788,
+            "player": "DJ Mbenga",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 101115,
+            "player": "Andrew Bynum",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 32.0,
+            "engine_seconds": 1978.0,
+            "engine_minutes": 32.966667,
+            "engine_completed_minutes": 32,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200747,
+            "player": "Adam Morrison",
+            "team_id": 1610612747,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 200769,
+            "player": "Shannon Brown",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 16.0,
+            "engine_seconds": 963.0,
+            "engine_minutes": 16.05,
+            "engine_completed_minutes": 16,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200770,
+            "player": "Jordan Farmar",
+            "team_id": 1610612747,
+            "source_blank_dnp": false,
+            "source_minutes": 18.0,
+            "engine_seconds": 1105.0,
+            "engine_minutes": 18.416667,
+            "engine_completed_minutes": 18,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201161,
+            "player": "Daequan Cook",
+            "team_id": 1610612748,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201202,
+            "player": "Joel Anthony",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 6.0,
+            "engine_seconds": 365.0,
+            "engine_minutes": 6.083333,
+            "engine_completed_minutes": 6,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201563,
+            "player": "Michael Beasley",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 22.0,
+            "engine_seconds": 1344.0,
+            "engine_minutes": 22.4,
+            "engine_completed_minutes": 22,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201596,
+            "player": "Mario Chalmers",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 18.0,
+            "engine_seconds": 1097.0,
+            "engine_minutes": 18.283333,
+            "engine_completed_minutes": 18,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20900912,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                979,
+                2047,
+                2306,
+                2548,
+                2617
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20900912,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                979,
+                2048,
+                2306,
+                2548,
+                2617
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20900912,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                979,
+                2306,
+                2548,
+                2617,
+                2748
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20900912,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                979,
+                2306,
+                2548,
+                2617,
+                201202
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 5,
+          "repair_choices": [
+            {
+              "game_id": 20900912,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                979,
+                2306,
+                2548,
+                2617,
+                201563
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 6,
+          "repair_choices": [
+            {
+              "game_id": 20900912,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                979,
+                2306,
+                2548,
+                2617,
+                201596
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        }
+      ]
+    },
+    {
+      "game_id": 20901027,
+      "status": "NO_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 7,
+      "full_game_solution_count": 6,
+      "passing_solution_count": 0,
+      "recommended_repair_choices": null,
+      "unique_passing_score": null,
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20901027,
+              "period": 6,
+              "team_id": 1610612758,
+              "starters": [
+                2137,
+                2757,
+                101128,
+                201150,
+                201171
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 11
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20901027,
+              "period": 6,
+              "team_id": 1610612758,
+              "starters": [
+                2137,
+                2757,
+                101128,
+                201150,
+                201187
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 3,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 11
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20901027,
+              "period": 6,
+              "team_id": 1610612758,
+              "starters": [
+                2137,
+                2757,
+                101128,
+                201150,
+                201574
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 1,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 1
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20901027,
+              "period": 6,
+              "team_id": 1610612758,
+              "starters": [
+                2137,
+                2757,
+                101128,
+                201150,
+                201590
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 3,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 11
+        },
+        {
+          "solution_index": 5,
+          "repair_choices": [
+            {
+              "game_id": 20901027,
+              "period": 6,
+              "team_id": 1610612758,
+              "starters": [
+                2137,
+                2757,
+                101128,
+                201150,
+                201936
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 3,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 11
+        },
+        {
+          "solution_index": 6,
+          "repair_choices": [
+            {
+              "game_id": 20901027,
+              "period": 6,
+              "team_id": 1610612758,
+              "starters": [
+                2137,
+                2757,
+                101128,
+                201150,
+                201956
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 3,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 11
+        }
+      ]
+    },
+    {
+      "game_id": 20901222,
+      "status": "UNIQUE_FLOOR_MINUTE_FIT",
+      "search_complete": true,
+      "states_explored": 26,
+      "full_game_solution_count": 20,
+      "passing_solution_count": 1,
+      "recommended_repair_choices": [
+        {
+          "game_id": 20901222,
+          "period": 5,
+          "team_id": 1610612748,
+          "starters": [
+            2306,
+            2748,
+            201202,
+            201563,
+            201596
+          ]
+        },
+        {
+          "game_id": 20901222,
+          "period": 5,
+          "team_id": 1610612751,
+          "starters": [
+            200809,
+            201146,
+            201572,
+            201584,
+            201604
+          ]
+        }
+      ],
+      "unique_passing_score": {
+        "gate_pass": true,
+        "source_roster_rows": 24,
+        "engine_active_players": 18,
+        "minute_rule_violations": 0,
+        "missing_source_active_players": 0,
+        "floor_distance_minutes": 0,
+        "violations": [],
+        "missing_source_active": [],
+        "comparisons": [
+          {
+            "player_id": 1499,
+            "player": "Tony Battie",
+            "team_id": 1610612751,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2047,
+            "player": "Quentin Richardson",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 24.0,
+            "engine_seconds": 1442.0,
+            "engine_minutes": 24.033333,
+            "engine_completed_minutes": 24,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2048,
+            "player": "Jamaal Magloire",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 19.0,
+            "engine_seconds": 1144.0,
+            "engine_minutes": 19.066667,
+            "engine_completed_minutes": 19,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2239,
+            "player": "Trenton Hassell",
+            "team_id": 1610612751,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2250,
+            "player": "Bobby Simmons",
+            "team_id": 1610612751,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2306,
+            "player": "Carlos Arroyo",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 1986.0,
+            "engine_minutes": 33.1,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2592,
+            "player": "James Jones",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 36.0,
+            "engine_seconds": 2179.0,
+            "engine_minutes": 36.316667,
+            "engine_completed_minutes": 36,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2734,
+            "player": "Devin Harris",
+            "team_id": 1610612751,
+            "source_blank_dnp": false,
+            "source_minutes": 31.0,
+            "engine_seconds": 1916.0,
+            "engine_minutes": 31.933333,
+            "engine_completed_minutes": 31,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 2743,
+            "player": "Kris Humphries",
+            "team_id": 1610612751,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 2748,
+            "player": "Dorell Wright",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 2005.0,
+            "engine_minutes": 33.416667,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 101183,
+            "player": "Shavlik Randolph",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 23.0,
+            "engine_seconds": 1398.0,
+            "engine_minutes": 23.3,
+            "engine_completed_minutes": 23,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200767,
+            "player": "Josh Boone",
+            "team_id": 1610612751,
+            "source_blank_dnp": false,
+            "source_minutes": 23.0,
+            "engine_seconds": 1425.0,
+            "engine_minutes": 23.75,
+            "engine_completed_minutes": 23,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200809,
+            "player": "Chris Quinn",
+            "team_id": 1610612751,
+            "source_blank_dnp": false,
+            "source_minutes": 29.0,
+            "engine_seconds": 1779.0,
+            "engine_minutes": 29.65,
+            "engine_completed_minutes": 29,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 200821,
+            "player": "Yakhouba Diawara",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 5.0,
+            "engine_seconds": 300.0,
+            "engine_minutes": 5.0,
+            "engine_completed_minutes": 5,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201146,
+            "player": "Jianlian Yi",
+            "team_id": 1610612751,
+            "source_blank_dnp": false,
+            "source_minutes": 49.0,
+            "engine_seconds": 2974.0,
+            "engine_minutes": 49.566667,
+            "engine_completed_minutes": 49,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201161,
+            "player": "Daequan Cook",
+            "team_id": 1610612748,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          },
+          {
+            "player_id": 201202,
+            "player": "Joel Anthony",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 38.0,
+            "engine_seconds": 2336.0,
+            "engine_minutes": 38.933333,
+            "engine_completed_minutes": 38,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201563,
+            "player": "Michael Beasley",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 34.0,
+            "engine_seconds": 2082.0,
+            "engine_minutes": 34.7,
+            "engine_completed_minutes": 34,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201572,
+            "player": "Brook Lopez",
+            "team_id": 1610612751,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2561.0,
+            "engine_minutes": 42.683333,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201584,
+            "player": "Courtney Lee",
+            "team_id": 1610612751,
+            "source_blank_dnp": false,
+            "source_minutes": 51.0,
+            "engine_seconds": 3083.0,
+            "engine_minutes": 51.383333,
+            "engine_completed_minutes": 51,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201596,
+            "player": "Mario Chalmers",
+            "team_id": 1610612748,
+            "source_blank_dnp": false,
+            "source_minutes": 42.0,
+            "engine_seconds": 2528.0,
+            "engine_minutes": 42.133333,
+            "engine_completed_minutes": 42,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201604,
+            "player": "Chris Douglas-Roberts",
+            "team_id": 1610612751,
+            "source_blank_dnp": false,
+            "source_minutes": 33.0,
+            "engine_seconds": 2003.0,
+            "engine_minutes": 33.383333,
+            "engine_completed_minutes": 33,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 201944,
+            "player": "Terrence Williams",
+            "team_id": 1610612751,
+            "source_blank_dnp": false,
+            "source_minutes": 27.0,
+            "engine_seconds": 1659.0,
+            "engine_minutes": 27.65,
+            "engine_completed_minutes": 27,
+            "rule": "completed_minute_floor_match",
+            "consistent": true
+          },
+          {
+            "player_id": 202238,
+            "player": "Kenny Hasbrouck",
+            "team_id": 1610612748,
+            "source_blank_dnp": true,
+            "source_minutes": 0.0,
+            "engine_seconds": 0.0,
+            "engine_minutes": 0.0,
+            "engine_completed_minutes": 0,
+            "rule": "blank_dnp_requires_zero_seconds",
+            "consistent": true
+          }
+        ]
+      },
+      "solution_scores": [
+        {
+          "solution_index": 1,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2047,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                2734,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 2,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2047,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200767,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 3,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2047,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201584,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 4,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2047,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201604,
+                201944
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 5,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2048,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                2734,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 6,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2048,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200767,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 7,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2048,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201584,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 8,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2048,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201604,
+                201944
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 9,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2306,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                2734,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 10,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2306,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200767,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 11,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2306,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201584,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": true,
+          "minute_rule_violations": 0,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 0
+        },
+        {
+          "solution_index": 12,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2306,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201604,
+                201944
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 13,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2592,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                2734,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 14,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2592,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200767,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 15,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2592,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201584,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 16,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2592,
+                2748,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201604,
+                201944
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 17,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2748,
+                200821,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                2734,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 18,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2748,
+                200821,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200767,
+                200809,
+                201146,
+                201572,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        },
+        {
+          "solution_index": 19,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2748,
+                200821,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201584,
+                201604
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 2,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 10
+        },
+        {
+          "solution_index": 20,
+          "repair_choices": [
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612748,
+              "starters": [
+                2748,
+                200821,
+                201202,
+                201563,
+                201596
+              ]
+            },
+            {
+              "game_id": 20901222,
+              "period": 5,
+              "team_id": 1610612751,
+              "starters": [
+                200809,
+                201146,
+                201572,
+                201604,
+                201944
+              ]
+            }
+          ],
+          "gate_pass": false,
+          "minute_rule_violations": 4,
+          "missing_source_active_players": 0,
+          "floor_distance_minutes": 20
+        }
+      ]
+    }
+  ]
+}
