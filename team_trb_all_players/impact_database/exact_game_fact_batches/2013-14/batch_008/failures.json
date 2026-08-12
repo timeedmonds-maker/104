@@ -1,0 +1,18 @@
+[
+  {
+    "game_id": 21300803,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21300803 period=1 team=1610612761: starters=[200768, 201942, 202335, 202685, 203082] violations=[{'kind': 'participant', 'event_num': 117, 'player_id': 200768, 'event_type': 6}]"
+  },
+  {
+    "game_id": 21300816,
+    "error": "ValueError: non-unique v3/team-local starter solution game=21300816 period=5 team=1610612753: candidates=[2749, 201167, 202696, 202699, 202734, 203090, 203094, 203117, 203124, 203506] prior=[201167, 202696, 202699, 202734, 203506] best_score=0 solutions=[[2749, 201167, 202696, 202699, 203506], [201167, 202696, 202699, 202734, 203506], [201167, 202696, 202699, 203090, 203506], [201167, 202696, 202699, 203094, 203506], [201167, 202696, 202699, 203117, 203506], [201167, 202696, 202699, 203124, 203506]]"
+  },
+  {
+    "game_id": 21300864,
+    "error": "ValueError: non-unique v3/team-local starter solution game=21300864 period=7 team=1610612761: candidates=[2422, 101161, 101236, 200768, 201942, 201946, 202335, 202349, 202685, 203082] prior=[2422, 200768, 201942, 201946, 202349] best_score=0 solutions=[[2422, 200768, 201942, 201946, 202349], [101161, 200768, 201942, 201946, 202349], [101236, 200768, 201942, 201946, 202349], [200768, 201942, 201946, 202335, 202349], [200768, 201942, 201946, 202349, 202685], [200768, 201942, 201946, 202349, 203082]]"
+  },
+  {
+    "game_id": 21300882,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21300882 period=3 team=1610612740: starters=[201569, 201582, 201936, 203076, 203148] violations=[{'kind': 'participant', 'event_num': 318, 'player_id': 203076, 'event_type': 6}]"
+  }
+]
