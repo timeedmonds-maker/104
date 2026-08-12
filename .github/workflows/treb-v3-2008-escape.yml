@@ -1,0 +1,48 @@
+name: TREB v3 2008 escape chunk
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-v3-2008-escape.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+env:
+  PYTHONUNBUFFERED: '1'
+jobs:
+  analyze-2008:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-2008-31634201123
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: 31634201123
+      - shell: bash
+        run: |
+          echo '[{"game_id":20801111}]' > /tmp/residual.json
+          python -u team_trb_all_players/order_preserving_rebound_diagnostic.py \
+            --nba /tmp/source/nbastats_2008.csv --v3 /tmp/source/nbastatsv3_2008.csv --pbp /tmp/source/pbpstats_2008.csv \
+            --residual /tmp/residual.json --year 2008 --output /tmp/V3_2008-L01.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp/V3_2008-L01.json'); d=json.loads(p.read_text())
+          assert d.get('diagnostic_engine')=='production_rebound_v3'
+          assert d.get('targets')==1
+          assert d.get('unmatched_rows')==1, d
+          d['chunk_id']='2008-L01'; d['chunk_kind']='light'; d['estimated_unmatched_rows']=1
+          p.write_text(json.dumps(d,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in d.items() if k!='games'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v3-forensic-2008-L01-escape-${{ github.run_id }}
+          path: /tmp/V3_2008-L01.json
+          retention-days: 90
