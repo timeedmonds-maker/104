@@ -1,0 +1,3557 @@
+[
+  {
+    "game_id": 21400004,
+    "game_date": "2014-10-29",
+    "teams": [
+      1610612749,
+      1610612766
+    ],
+    "duration_seconds": 3180,
+    "players_with_seconds": 21,
+    "lineup_repairs": [
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 1,
+        "candidates": [
+          201162,
+          201573,
+          202336,
+          202688,
+          203114,
+          203953
+        ],
+        "prior": [],
+        "starters": [
+          201162,
+          202336,
+          202688,
+          203114,
+          203953
+        ]
+      },
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612766,
+        "period": 1,
+        "candidates": [
+          2744,
+          101107,
+          202362,
+          202689,
+          203077,
+          203148
+        ],
+        "prior": [],
+        "starters": [
+          2744,
+          101107,
+          202362,
+          202689,
+          203077
+        ]
+      },
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 2,
+        "candidates": [
+          101141,
+          201564,
+          201573,
+          203089,
+          203507
+        ],
+        "prior": [
+          101141,
+          201564,
+          202688,
+          203089,
+          203507
+        ],
+        "starters": [
+          101141,
+          201564,
+          201573,
+          203089,
+          203507
+        ]
+      },
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612766,
+        "period": 2,
+        "candidates": [
+          101131,
+          201945,
+          202390,
+          203148,
+          203469
+        ],
+        "prior": [
+          101131,
+          201945,
+          202390,
+          202689,
+          203469
+        ],
+        "starters": [
+          101131,
+          201945,
+          202390,
+          203148,
+          203469
+        ]
+      },
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 3,
+        "candidates": [
+          201162,
+          202336,
+          202688,
+          203089,
+          203114,
+          203953
+        ],
+        "prior": [
+          2585,
+          201162,
+          202688,
+          203114,
+          203953
+        ],
+        "starters": [
+          201162,
+          202336,
+          202688,
+          203114,
+          203953
+        ]
+      },
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612766,
+        "period": 3,
+        "candidates": [
+          2744,
+          101107,
+          201945,
+          202362,
+          202689,
+          203077,
+          203148
+        ],
+        "prior": [
+          2744,
+          101107,
+          201945,
+          202390,
+          202689
+        ],
+        "starters": [
+          2744,
+          101107,
+          202362,
+          202689,
+          203077
+        ]
+      },
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 4,
+        "candidates": [
+          2585,
+          101141,
+          201564,
+          201573,
+          203507
+        ],
+        "prior": [
+          2585,
+          101141,
+          201564,
+          201573,
+          203507
+        ],
+        "starters": [
+          2585,
+          101141,
+          201564,
+          201573,
+          203507
+        ]
+      },
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612766,
+        "period": 4,
+        "candidates": [
+          101131,
+          202362,
+          202390,
+          203148,
+          203469
+        ],
+        "prior": [
+          101131,
+          202362,
+          202390,
+          202689,
+          203469
+        ],
+        "starters": [
+          101131,
+          202362,
+          202390,
+          203148,
+          203469
+        ]
+      },
+      {
+        "game_id": 21400004,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612749,
+        "period": 5,
+        "starters": [
+          201162,
+          202336,
+          202688,
+          203114,
+          203953
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      },
+      {
+        "game_id": 21400004,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612766,
+        "period": 5,
+        "candidates": [
+          2744,
+          101107,
+          101131,
+          202362,
+          202689,
+          203077,
+          203148,
+          203469
+        ],
+        "prior": [
+          2744,
+          101107,
+          201945,
+          202689,
+          203077
+        ],
+        "starters": [
+          2744,
+          101107,
+          202362,
+          202689,
+          203077
+        ]
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 419,
+      "rebound_bearing_rows": 112,
+      "matched_rebound_bearing_rows": 112,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 5,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400257,
+    "game_date": "2014-12-02",
+    "teams": [
+      1610612741,
+      1610612742
+    ],
+    "duration_seconds": 3480,
+    "players_with_seconds": 20,
+    "lineup_repairs": [
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612741,
+        "period": 1,
+        "candidates": [
+          2200,
+          2399,
+          201149,
+          201565,
+          202710,
+          203503
+        ],
+        "prior": [],
+        "starters": [
+          2200,
+          2399,
+          201149,
+          201565,
+          202710
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 1,
+        "candidates": [
+          1717,
+          2199,
+          2749,
+          101145,
+          202718,
+          203109
+        ],
+        "prior": [],
+        "starters": [
+          1717,
+          2199,
+          2749,
+          101145,
+          202718
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612741,
+        "period": 2,
+        "candidates": [
+          2550,
+          201149,
+          201166,
+          202703,
+          203503
+        ],
+        "prior": [
+          2200,
+          2399,
+          2550,
+          201166,
+          202703
+        ],
+        "starters": [
+          2550,
+          201149,
+          201166,
+          202703,
+          203503
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 2,
+        "candidates": [
+          1717,
+          2210,
+          2734,
+          200826,
+          201148,
+          202329,
+          203109
+        ],
+        "prior": [
+          2210,
+          2734,
+          200826,
+          201148,
+          202718
+        ],
+        "starters": [
+          1717,
+          2210,
+          2734,
+          200826,
+          201148
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612741,
+        "period": 3,
+        "candidates": [
+          2200,
+          2399,
+          201149,
+          201565,
+          202710,
+          203503
+        ],
+        "prior": [
+          2200,
+          2550,
+          201565,
+          202710,
+          203503
+        ],
+        "starters": [
+          2200,
+          2399,
+          201149,
+          201565,
+          202710
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 3,
+        "candidates": [
+          1717,
+          2199,
+          2749,
+          101145,
+          200826,
+          202718,
+          203109
+        ],
+        "prior": [
+          2199,
+          2734,
+          2749,
+          101145,
+          202718
+        ],
+        "starters": [
+          1717,
+          2199,
+          2749,
+          101145,
+          202718
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612741,
+        "period": 4,
+        "candidates": [
+          2399,
+          2550,
+          201149,
+          201166,
+          202703,
+          203503
+        ],
+        "prior": [
+          2399,
+          2550,
+          201149,
+          201166,
+          202703
+        ],
+        "starters": [
+          2399,
+          2550,
+          201149,
+          201166,
+          202703
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 4,
+        "candidates": [
+          1717,
+          2210,
+          2734,
+          2749,
+          200826,
+          201148,
+          203109
+        ],
+        "prior": [
+          1717,
+          2210,
+          2734,
+          101145,
+          201148
+        ],
+        "starters": [
+          1717,
+          2210,
+          2734,
+          200826,
+          201148
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612741,
+        "period": 5,
+        "candidates": [
+          2200,
+          2399,
+          2550,
+          201149,
+          201166,
+          201565,
+          202703,
+          202710,
+          203503
+        ],
+        "prior": [
+          2200,
+          2399,
+          201149,
+          201565,
+          202710
+        ],
+        "starters": [
+          2200,
+          2399,
+          201149,
+          201565,
+          202710
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 5,
+        "candidates": [
+          1717,
+          2199,
+          2734,
+          2749,
+          101145,
+          200826,
+          202329,
+          202718,
+          203109
+        ],
+        "prior": [
+          2210,
+          2734,
+          101145,
+          201148,
+          202329
+        ],
+        "starters": [
+          1717,
+          2199,
+          2734,
+          101145,
+          202718
+        ]
+      },
+      {
+        "game_id": 21400257,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612741,
+        "period": 6,
+        "starters": [
+          2200,
+          2399,
+          201149,
+          201565,
+          202710
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      },
+      {
+        "game_id": 21400257,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 6,
+        "candidates": [
+          1717,
+          2199,
+          2734,
+          2749,
+          101145,
+          201148,
+          202329,
+          202718
+        ],
+        "prior": [
+          2210,
+          2734,
+          101145,
+          201148,
+          202718
+        ],
+        "starters": [
+          1717,
+          2199,
+          2734,
+          101145,
+          202718
+        ]
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 466,
+      "rebound_bearing_rows": 120,
+      "matched_rebound_bearing_rows": 120,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 11,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400302,
+    "game_date": "2014-12-08",
+    "teams": [
+      1610612738,
+      1610612764
+    ],
+    "duration_seconds": 3480,
+    "players_with_seconds": 21,
+    "lineup_repairs": [
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612738,
+        "period": 1,
+        "candidates": [
+          200765,
+          201145,
+          201977,
+          202340,
+          203092,
+          203096
+        ],
+        "prior": [],
+        "starters": [
+          200765,
+          201145,
+          202340,
+          203092,
+          203096
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612764,
+        "period": 1,
+        "candidates": [
+          1718,
+          1889,
+          2400,
+          2743,
+          101162,
+          202066,
+          202322,
+          202338,
+          203078
+        ],
+        "prior": [],
+        "starters": [
+          1718,
+          2743,
+          101162,
+          202322,
+          203078
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612738,
+        "period": 2,
+        "candidates": [
+          101138,
+          201977,
+          202323,
+          203482,
+          203935
+        ],
+        "prior": [
+          101138,
+          201145,
+          202323,
+          203482,
+          203935
+        ],
+        "starters": [
+          101138,
+          201977,
+          202323,
+          203482,
+          203935
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612764,
+        "period": 2,
+        "candidates": [
+          1889,
+          2400,
+          2446,
+          202066,
+          202338,
+          203490
+        ],
+        "prior": [
+          2446,
+          2743,
+          101162,
+          202322,
+          203490
+        ],
+        "starters": [
+          1889,
+          2400,
+          2446,
+          202338,
+          203490
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612738,
+        "period": 3,
+        "candidates": [
+          200765,
+          201145,
+          202340,
+          203092,
+          203096
+        ],
+        "prior": [
+          200765,
+          201145,
+          202340,
+          203092,
+          203482
+        ],
+        "starters": [
+          200765,
+          201145,
+          202340,
+          203092,
+          203096
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612764,
+        "period": 3,
+        "candidates": [
+          1718,
+          1889,
+          2743,
+          101162,
+          202066,
+          202322,
+          202338,
+          203078,
+          203490
+        ],
+        "prior": [
+          1718,
+          2446,
+          2743,
+          101162,
+          202322
+        ],
+        "starters": [
+          1718,
+          2743,
+          101162,
+          202322,
+          203078
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612738,
+        "period": 4,
+        "candidates": [
+          101138,
+          200765,
+          201977,
+          202323,
+          202340,
+          203096,
+          203482,
+          203935
+        ],
+        "prior": [
+          101138,
+          201977,
+          202323,
+          203482,
+          203935
+        ],
+        "starters": [
+          101138,
+          201977,
+          202323,
+          203482,
+          203935
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612764,
+        "period": 4,
+        "candidates": [
+          1889,
+          2400,
+          2446,
+          202066,
+          202338,
+          203078
+        ],
+        "prior": [
+          2400,
+          2446,
+          101162,
+          202322,
+          203078
+        ],
+        "starters": [
+          1889,
+          2400,
+          2446,
+          202338,
+          203078
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612738,
+        "period": 5,
+        "candidates": [
+          101138,
+          200765,
+          201145,
+          202323,
+          202340,
+          203096,
+          203482,
+          203935
+        ],
+        "prior": [
+          101138,
+          201145,
+          202323,
+          203092,
+          203935
+        ],
+        "starters": [
+          101138,
+          201145,
+          202323,
+          203482,
+          203935
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612764,
+        "period": 5,
+        "starters": [
+          1718,
+          2743,
+          101162,
+          202322,
+          203078
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612738,
+        "period": 6,
+        "candidates": [
+          101138,
+          200765,
+          201145,
+          202323,
+          203092,
+          203482,
+          203935
+        ],
+        "prior": [
+          101138,
+          201145,
+          202323,
+          203482,
+          203935
+        ],
+        "starters": [
+          101138,
+          201145,
+          202323,
+          203482,
+          203935
+        ]
+      },
+      {
+        "game_id": 21400302,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612764,
+        "period": 6,
+        "candidates": [
+          1718,
+          1889,
+          2400,
+          2743,
+          101162,
+          202322,
+          202338,
+          203078,
+          203490
+        ],
+        "prior": [
+          1718,
+          2446,
+          2743,
+          202322,
+          203078
+        ],
+        "starters": [
+          1718,
+          2743,
+          101162,
+          202322,
+          203078
+        ]
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 465,
+      "rebound_bearing_rows": 108,
+      "matched_rebound_bearing_rows": 108,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 10,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400424,
+    "game_date": "2014-12-23",
+    "teams": [
+      1610612757,
+      1610612760
+    ],
+    "duration_seconds": 3180,
+    "players_with_seconds": 21,
+    "lineup_repairs": [
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612757,
+        "period": 1,
+        "candidates": [
+          2748,
+          200746,
+          200777,
+          202083,
+          203081,
+          203459
+        ],
+        "prior": [],
+        "starters": [
+          200746,
+          200777,
+          202083,
+          203081,
+          203459
+        ]
+      },
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 1,
+        "candidates": [
+          201566,
+          201586,
+          203087,
+          203103,
+          203460,
+          203500
+        ],
+        "prior": [],
+        "starters": [
+          201566,
+          201586,
+          203103,
+          203460,
+          203500
+        ]
+      },
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612757,
+        "period": 2,
+        "candidates": [
+          2581,
+          2748,
+          200777,
+          202083,
+          203080,
+          203081,
+          203468
+        ],
+        "prior": [
+          2581,
+          200777,
+          202083,
+          203080,
+          203468
+        ],
+        "starters": [
+          2581,
+          200777,
+          202083,
+          203080,
+          203081
+        ]
+      },
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 2,
+        "candidates": [
+          2555,
+          2570,
+          201627,
+          202397,
+          202704,
+          203087
+        ],
+        "prior": [
+          2555,
+          2570,
+          201627,
+          202397,
+          202704
+        ],
+        "starters": [
+          2555,
+          2570,
+          201627,
+          202397,
+          202704
+        ]
+      },
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612757,
+        "period": 3,
+        "candidates": [
+          2748,
+          200746,
+          200777,
+          202083,
+          203080,
+          203081,
+          203459
+        ],
+        "prior": [
+          2581,
+          200746,
+          202083,
+          203081,
+          203459
+        ],
+        "starters": [
+          200746,
+          200777,
+          202083,
+          203081,
+          203459
+        ]
+      },
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 3,
+        "candidates": [
+          201566,
+          201586,
+          203087,
+          203103,
+          203460,
+          203500
+        ],
+        "prior": [
+          2570,
+          201566,
+          201586,
+          203103,
+          203460
+        ],
+        "starters": [
+          201566,
+          201586,
+          203103,
+          203460,
+          203500
+        ]
+      },
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612757,
+        "period": 4,
+        "candidates": [
+          2581,
+          200777,
+          202083,
+          203080,
+          203468
+        ],
+        "prior": [
+          2549,
+          2581,
+          200746,
+          202083,
+          203468
+        ],
+        "starters": [
+          2581,
+          200777,
+          202083,
+          203080,
+          203468
+        ]
+      },
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 4,
+        "candidates": [
+          2555,
+          2570,
+          201627,
+          202397,
+          202704,
+          203500
+        ],
+        "prior": [
+          2555,
+          2570,
+          201627,
+          202397,
+          202704
+        ],
+        "starters": [
+          2555,
+          2570,
+          201627,
+          202397,
+          202704
+        ]
+      },
+      {
+        "game_id": 21400424,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612757,
+        "period": 5,
+        "starters": [
+          2581,
+          2748,
+          200746,
+          202083,
+          203081
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      },
+      {
+        "game_id": 21400424,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 5,
+        "candidates": [
+          2555,
+          2570,
+          201566,
+          201586,
+          202704,
+          203103,
+          203460,
+          203500
+        ],
+        "prior": [
+          201566,
+          201586,
+          201627,
+          202704,
+          203460
+        ],
+        "starters": [
+          201566,
+          201586,
+          202704,
+          203103,
+          203460
+        ]
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 417,
+      "rebound_bearing_rows": 111,
+      "matched_rebound_bearing_rows": 111,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 11,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400436,
+    "game_date": "2014-12-26",
+    "teams": [
+      1610612745,
+      1610612763
+    ],
+    "duration_seconds": 3180,
+    "players_with_seconds": 20,
+    "lineup_repairs": [
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 1,
+        "candidates": [
+          2730,
+          2772,
+          201935,
+          201976,
+          202700
+        ],
+        "prior": [],
+        "starters": [
+          2730,
+          2772,
+          201935,
+          201976,
+          202700
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612763,
+        "period": 1,
+        "candidates": [
+          2754,
+          201144,
+          201188,
+          201584,
+          202720
+        ],
+        "prior": [],
+        "starters": [
+          2754,
+          201144,
+          201188,
+          201584,
+          202720
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 2,
+        "candidates": [
+          1891,
+          2730,
+          201147,
+          201595,
+          202700,
+          203144
+        ],
+        "prior": [
+          1891,
+          2746,
+          201147,
+          201595,
+          203144
+        ],
+        "starters": [
+          1891,
+          2730,
+          201147,
+          202700,
+          203144
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612763,
+        "period": 2,
+        "candidates": [
+          1713,
+          2419,
+          2757,
+          201585,
+          202347
+        ],
+        "prior": [
+          1713,
+          2419,
+          2757,
+          201585,
+          202347
+        ],
+        "starters": [
+          1713,
+          2419,
+          2757,
+          201585,
+          202347
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 3,
+        "candidates": [
+          2730,
+          2772,
+          201935,
+          201976,
+          202700,
+          203144
+        ],
+        "prior": [
+          2730,
+          2746,
+          2772,
+          201935,
+          201976
+        ],
+        "starters": [
+          2730,
+          2772,
+          201935,
+          201976,
+          202700
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612763,
+        "period": 3,
+        "candidates": [
+          1713,
+          2754,
+          201144,
+          201188,
+          201584,
+          201585,
+          202720
+        ],
+        "prior": [
+          201144,
+          201188,
+          201584,
+          202347,
+          202720
+        ],
+        "starters": [
+          2754,
+          201144,
+          201188,
+          201584,
+          202720
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 4,
+        "candidates": [
+          1891,
+          2746,
+          2772,
+          201147,
+          201595,
+          202700,
+          203144
+        ],
+        "prior": [
+          1891,
+          2746,
+          201147,
+          201595,
+          201935
+        ],
+        "starters": [
+          1891,
+          2746,
+          2772,
+          201147,
+          202700
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612763,
+        "period": 4,
+        "candidates": [
+          1713,
+          2419,
+          2757,
+          201585,
+          202347,
+          202720
+        ],
+        "prior": [
+          2419,
+          2757,
+          201188,
+          201584,
+          202347
+        ],
+        "starters": [
+          1713,
+          2419,
+          2757,
+          201585,
+          202347
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 5,
+        "candidates": [
+          1891,
+          2730,
+          2746,
+          2772,
+          201147,
+          201595,
+          201935,
+          201976,
+          202700,
+          203144
+        ],
+        "prior": [
+          2730,
+          2772,
+          201147,
+          201935,
+          201976
+        ],
+        "starters": [
+          2730,
+          2746,
+          2772,
+          201935,
+          201976
+        ]
+      },
+      {
+        "game_id": 21400436,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612763,
+        "period": 5,
+        "starters": [
+          1713,
+          2754,
+          201144,
+          201188,
+          201584
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 436,
+      "rebound_bearing_rows": 122,
+      "matched_rebound_bearing_rows": 122,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 21,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400762,
+    "game_date": "2015-02-07",
+    "teams": [
+      1610612742,
+      1610612757
+    ],
+    "duration_seconds": 3180,
+    "players_with_seconds": 18,
+    "lineup_repairs": [
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 1,
+        "candidates": [
+          1717,
+          2199,
+          2210,
+          101145,
+          200826,
+          202718
+        ],
+        "prior": [],
+        "starters": [
+          1717,
+          2199,
+          101145,
+          200826,
+          202718
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612757,
+        "period": 1,
+        "candidates": [
+          200746,
+          201577,
+          201587,
+          202083,
+          203081,
+          203086
+        ],
+        "prior": [],
+        "starters": [
+          200746,
+          201577,
+          201587,
+          202083,
+          203081
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 2,
+        "candidates": [
+          1717,
+          2210,
+          2734,
+          101111,
+          200826,
+          202329
+        ],
+        "prior": [
+          1717,
+          2199,
+          2734,
+          200826,
+          202329
+        ],
+        "starters": [
+          1717,
+          2734,
+          101111,
+          200826,
+          202329
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612757,
+        "period": 2,
+        "candidates": [
+          2549,
+          2581,
+          202083,
+          203086,
+          203468
+        ],
+        "prior": [
+          2549,
+          2581,
+          200746,
+          202083,
+          203468
+        ],
+        "starters": [
+          2549,
+          2581,
+          202083,
+          203086,
+          203468
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 3,
+        "candidates": [
+          1717,
+          2199,
+          101111,
+          101145,
+          200826,
+          202718
+        ],
+        "prior": [
+          1717,
+          2199,
+          2734,
+          101145,
+          202718
+        ],
+        "starters": [
+          1717,
+          2199,
+          101145,
+          200826,
+          202718
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612757,
+        "period": 3,
+        "candidates": [
+          200746,
+          201577,
+          201587,
+          202083,
+          203081,
+          203086
+        ],
+        "prior": [
+          200746,
+          201587,
+          202083,
+          203081,
+          203086
+        ],
+        "starters": [
+          200746,
+          201577,
+          201587,
+          202083,
+          203081
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 4,
+        "candidates": [
+          1717,
+          2210,
+          2734,
+          101111,
+          200826,
+          202329,
+          202718
+        ],
+        "prior": [
+          1717,
+          2210,
+          2734,
+          101145,
+          202329
+        ],
+        "starters": [
+          1717,
+          2734,
+          200826,
+          202329,
+          202718
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612757,
+        "period": 4,
+        "candidates": [
+          2549,
+          2581,
+          202083,
+          203086,
+          203468
+        ],
+        "prior": [
+          2549,
+          2581,
+          201587,
+          202083,
+          203468
+        ],
+        "starters": [
+          2549,
+          2581,
+          202083,
+          203086,
+          203468
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612742,
+        "period": 5,
+        "candidates": [
+          1717,
+          2199,
+          2210,
+          2734,
+          101111,
+          101145,
+          202718
+        ],
+        "prior": [
+          2199,
+          2734,
+          101145,
+          202329,
+          202718
+        ],
+        "starters": [
+          1717,
+          2199,
+          2734,
+          101145,
+          202718
+        ]
+      },
+      {
+        "game_id": 21400762,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612757,
+        "period": 5,
+        "starters": [
+          200746,
+          201577,
+          201587,
+          202083,
+          203081
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 443,
+      "rebound_bearing_rows": 126,
+      "matched_rebound_bearing_rows": 126,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 16,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400855,
+    "game_date": "2015-02-26",
+    "teams": [
+      1610612756,
+      1610612760
+    ],
+    "duration_seconds": 3180,
+    "players_with_seconds": 19,
+    "lineup_repairs": [
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612756,
+        "period": 1,
+        "candidates": [
+          200782,
+          202339,
+          202688,
+          202693,
+          203458
+        ],
+        "prior": [],
+        "starters": [
+          200782,
+          202339,
+          202688,
+          202693,
+          203458
+        ]
+      },
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 1,
+        "candidates": [
+          201566,
+          201586,
+          202683,
+          202713,
+          203460
+        ],
+        "prior": [],
+        "starters": [
+          201566,
+          201586,
+          202683,
+          202713,
+          203460
+        ]
+      },
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612756,
+        "period": 2,
+        "candidates": [
+          2853,
+          101123,
+          201148,
+          202688,
+          202694
+        ],
+        "prior": [
+          2853,
+          101123,
+          201148,
+          202688,
+          202694
+        ],
+        "starters": [
+          2853,
+          101123,
+          201148,
+          202688,
+          202694
+        ]
+      },
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 2,
+        "candidates": [
+          2555,
+          201571,
+          201627,
+          203460,
+          203956
+        ],
+        "prior": [
+          2555,
+          201571,
+          201627,
+          203460,
+          203956
+        ],
+        "starters": [
+          2555,
+          201571,
+          201627,
+          203460,
+          203956
+        ]
+      },
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612756,
+        "period": 3,
+        "candidates": [
+          2853,
+          200782,
+          202339,
+          202688,
+          202693,
+          203458
+        ],
+        "prior": [
+          200782,
+          201148,
+          202339,
+          202688,
+          202693
+        ],
+        "starters": [
+          200782,
+          202339,
+          202688,
+          202693,
+          203458
+        ]
+      },
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 3,
+        "candidates": [
+          201566,
+          201586,
+          202683,
+          202713,
+          203460
+        ],
+        "prior": [
+          201571,
+          201586,
+          202683,
+          202713,
+          203460
+        ],
+        "starters": [
+          201566,
+          201586,
+          202683,
+          202713,
+          203460
+        ]
+      },
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612756,
+        "period": 4,
+        "candidates": [
+          2853,
+          101123,
+          201148,
+          202688,
+          202693,
+          202694,
+          203458
+        ],
+        "prior": [
+          101123,
+          201148,
+          202688,
+          202693,
+          202694
+        ],
+        "starters": [
+          101123,
+          202688,
+          202693,
+          202694,
+          203458
+        ]
+      },
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 4,
+        "candidates": [
+          2555,
+          201571,
+          201627,
+          203079,
+          203956
+        ],
+        "prior": [
+          2555,
+          201571,
+          201627,
+          203079,
+          203956
+        ],
+        "starters": [
+          2555,
+          201571,
+          201627,
+          203079,
+          203956
+        ]
+      },
+      {
+        "game_id": 21400855,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612756,
+        "period": 5,
+        "starters": [
+          200782,
+          202339,
+          202688,
+          202693,
+          203458
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      },
+      {
+        "game_id": 21400855,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612760,
+        "period": 5,
+        "candidates": [
+          2555,
+          201566,
+          201571,
+          201586,
+          202683,
+          202713,
+          203079,
+          203956
+        ],
+        "prior": [
+          201566,
+          201586,
+          202713,
+          203079,
+          203460
+        ],
+        "starters": [
+          201566,
+          201571,
+          201586,
+          202683,
+          203079
+        ]
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 447,
+      "rebound_bearing_rows": 122,
+      "matched_rebound_bearing_rows": 122,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 7,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400883,
+    "game_date": "2015-03-01",
+    "teams": [
+      1610612739,
+      1610612745
+    ],
+    "duration_seconds": 3180,
+    "players_with_seconds": 17,
+    "lineup_repairs": [
+      {
+        "game_id": 21400883,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612739,
+        "period": 1,
+        "candidates": [
+          2544,
+          2747,
+          201567,
+          202389,
+          203521
+        ],
+        "prior": [],
+        "starters": [
+          2544,
+          2747,
+          201567,
+          202389,
+          203521
+        ]
+      },
+      {
+        "game_id": 21400883,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 1,
+        "candidates": [
+          2772,
+          201935,
+          201976,
+          202700,
+          203093,
+          203143
+        ],
+        "prior": [],
+        "starters": [
+          2772,
+          201935,
+          201976,
+          202700,
+          203093
+        ]
+      },
+      {
+        "game_id": 21400883,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612739,
+        "period": 2,
+        "candidates": [
+          2544,
+          2592,
+          2747,
+          202684,
+          202697
+        ],
+        "prior": [
+          2544,
+          2592,
+          2747,
+          202684,
+          202697
+        ],
+        "starters": [
+          2544,
+          2592,
+          2747,
+          202684,
+          202697
+        ]
+      },
+      {
+        "game_id": 21400883,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 2,
+        "candidates": [
+          1891,
+          2746,
+          201147,
+          203093,
+          203143
+        ],
+        "prior": [
+          1891,
+          2746,
+          201147,
+          201935,
+          203093
+        ],
+        "starters": [
+          1891,
+          2746,
+          201147,
+          203093,
+          203143
+        ]
+      },
+      {
+        "game_id": 21400883,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612739,
+        "period": 3,
+        "candidates": [
+          2544,
+          2747,
+          201567,
+          202389,
+          203521
+        ],
+        "prior": [
+          2544,
+          2592,
+          2747,
+          202389,
+          203521
+        ],
+        "starters": [
+          2544,
+          2747,
+          201567,
+          202389,
+          203521
+        ]
+      },
+      {
+        "game_id": 21400883,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 3,
+        "candidates": [
+          2772,
+          201935,
+          201976,
+          202700,
+          203093,
+          203143
+        ],
+        "prior": [
+          2772,
+          201147,
+          201935,
+          203093,
+          203143
+        ],
+        "starters": [
+          2772,
+          201935,
+          201976,
+          202700,
+          203093
+        ]
+      },
+      {
+        "game_id": 21400883,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612739,
+        "period": 4,
+        "candidates": [
+          2592,
+          2747,
+          202389,
+          202684,
+          202697,
+          203521
+        ],
+        "prior": [
+          2592,
+          2747,
+          202684,
+          202697,
+          203521
+        ],
+        "starters": [
+          2592,
+          2747,
+          202684,
+          202697,
+          203521
+        ]
+      },
+      {
+        "game_id": 21400883,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 4,
+        "candidates": [
+          1891,
+          2746,
+          2772,
+          201147,
+          202700,
+          203143
+        ],
+        "prior": [
+          1891,
+          2746,
+          201147,
+          201935,
+          203093
+        ],
+        "starters": [
+          1891,
+          2746,
+          2772,
+          201147,
+          202700
+        ]
+      },
+      {
+        "game_id": 21400883,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612739,
+        "period": 5,
+        "starters": [
+          2544,
+          2747,
+          201567,
+          202684,
+          203521
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      },
+      {
+        "game_id": 21400883,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612745,
+        "period": 5,
+        "starters": [
+          2746,
+          2772,
+          201935,
+          201976,
+          203093
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 429,
+      "rebound_bearing_rows": 114,
+      "matched_rebound_bearing_rows": 114,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 17,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400892,
+    "game_date": "2015-03-03",
+    "teams": [
+      1610612737,
+      1610612745
+    ],
+    "duration_seconds": 2880,
+    "players_with_seconds": 17,
+    "lineup_repairs": [
+      {
+        "game_id": 21400892,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612737,
+        "period": 1,
+        "candidates": [
+          2594,
+          200794,
+          201143,
+          201952,
+          201960,
+          203118
+        ],
+        "prior": [],
+        "starters": [
+          2594,
+          200794,
+          201143,
+          201952,
+          201960
+        ]
+      },
+      {
+        "game_id": 21400892,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 1,
+        "candidates": [
+          2772,
+          201147,
+          201976,
+          202700,
+          203093
+        ],
+        "prior": [],
+        "starters": [
+          2772,
+          201147,
+          201976,
+          202700,
+          203093
+        ]
+      },
+      {
+        "game_id": 21400892,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612737,
+        "period": 2,
+        "candidates": [
+          2594,
+          201143,
+          203145,
+          203471,
+          203544
+        ],
+        "prior": [
+          2594,
+          201143,
+          203145,
+          203471,
+          203544
+        ],
+        "starters": [
+          2594,
+          201143,
+          203145,
+          203471,
+          203544
+        ]
+      },
+      {
+        "game_id": 21400892,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 2,
+        "candidates": [
+          1891,
+          2746,
+          201147,
+          203093,
+          203143
+        ],
+        "prior": [
+          1891,
+          2746,
+          201147,
+          203093,
+          203143
+        ],
+        "starters": [
+          1891,
+          2746,
+          201147,
+          203093,
+          203143
+        ]
+      },
+      {
+        "game_id": 21400892,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612737,
+        "period": 3,
+        "candidates": [
+          2594,
+          200794,
+          201143,
+          201952,
+          201960,
+          203118
+        ],
+        "prior": [
+          2594,
+          200794,
+          201143,
+          201952,
+          201960
+        ],
+        "starters": [
+          2594,
+          200794,
+          201143,
+          201952,
+          201960
+        ]
+      },
+      {
+        "game_id": 21400892,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 3,
+        "candidates": [
+          2772,
+          201147,
+          201976,
+          202700,
+          203093
+        ],
+        "prior": [
+          1891,
+          2772,
+          201976,
+          202700,
+          203093
+        ],
+        "starters": [
+          2772,
+          201147,
+          201976,
+          202700,
+          203093
+        ]
+      },
+      {
+        "game_id": 21400892,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612737,
+        "period": 4,
+        "candidates": [
+          2594,
+          201143,
+          203145,
+          203471,
+          203544
+        ],
+        "prior": [
+          2594,
+          201143,
+          203145,
+          203471,
+          203544
+        ],
+        "starters": [
+          2594,
+          201143,
+          203145,
+          203471,
+          203544
+        ]
+      },
+      {
+        "game_id": 21400892,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612745,
+        "period": 4,
+        "candidates": [
+          1891,
+          2746,
+          2772,
+          203093,
+          203143
+        ],
+        "prior": [
+          1891,
+          2746,
+          2772,
+          203093,
+          203143
+        ],
+        "starters": [
+          1891,
+          2746,
+          2772,
+          203093,
+          203143
+        ]
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 376,
+      "rebound_bearing_rows": 105,
+      "matched_rebound_bearing_rows": 105,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 7,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400916,
+    "game_date": "2015-03-06",
+    "teams": [
+      1610612751,
+      1610612756
+    ],
+    "duration_seconds": 3180,
+    "players_with_seconds": 20,
+    "lineup_repairs": [
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 1,
+        "candidates": [
+          2207,
+          101114,
+          101187,
+          203486,
+          203900,
+          203928
+        ],
+        "prior": [],
+        "starters": [
+          2207,
+          101114,
+          101187,
+          203486,
+          203900
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612756,
+        "period": 1,
+        "candidates": [
+          201977,
+          202339,
+          202688,
+          202693,
+          202694,
+          203458,
+          203462
+        ],
+        "prior": [],
+        "starters": [
+          202339,
+          202688,
+          202693,
+          202694,
+          203458
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 2,
+        "candidates": [
+          101127,
+          101187,
+          201152,
+          201572,
+          202711,
+          203928
+        ],
+        "prior": [
+          101127,
+          101187,
+          201152,
+          201572,
+          202711
+        ],
+        "starters": [
+          101127,
+          101187,
+          201152,
+          201572,
+          202711
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612756,
+        "period": 2,
+        "candidates": [
+          101123,
+          200782,
+          201148,
+          201977,
+          202688,
+          202694,
+          203462
+        ],
+        "prior": [
+          101123,
+          200782,
+          201148,
+          202688,
+          202693
+        ],
+        "starters": [
+          200782,
+          201148,
+          201977,
+          202688,
+          202694
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 3,
+        "candidates": [
+          2207,
+          101114,
+          101187,
+          201152,
+          203486
+        ],
+        "prior": [
+          2207,
+          101114,
+          101127,
+          101187,
+          201572
+        ],
+        "starters": [
+          2207,
+          101114,
+          101187,
+          201152,
+          203486
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612756,
+        "period": 3,
+        "candidates": [
+          101123,
+          201977,
+          202339,
+          202688,
+          202693,
+          202694,
+          203458
+        ],
+        "prior": [
+          201148,
+          202339,
+          202688,
+          202693,
+          202694
+        ],
+        "starters": [
+          202339,
+          202688,
+          202693,
+          202694,
+          203458
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 4,
+        "candidates": [
+          101114,
+          101127,
+          201572,
+          202711,
+          203486,
+          203900,
+          203928
+        ],
+        "prior": [
+          101114,
+          101127,
+          202711,
+          203900,
+          203928
+        ],
+        "starters": [
+          101114,
+          101127,
+          201572,
+          202711,
+          203928
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612756,
+        "period": 4,
+        "candidates": [
+          101123,
+          200782,
+          201148,
+          201977,
+          202339,
+          203458,
+          203462
+        ],
+        "prior": [
+          201148,
+          202339,
+          202688,
+          202693,
+          203462
+        ],
+        "starters": [
+          200782,
+          201148,
+          201977,
+          202339,
+          203458
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 5,
+        "candidates": [
+          2207,
+          101114,
+          101127,
+          201152,
+          201572,
+          202711,
+          203486,
+          203900
+        ],
+        "prior": [
+          101114,
+          101127,
+          101187,
+          201152,
+          202711
+        ],
+        "starters": [
+          2207,
+          101114,
+          101127,
+          201572,
+          202711
+        ]
+      },
+      {
+        "game_id": 21400916,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612756,
+        "period": 5,
+        "starters": [
+          200782,
+          202339,
+          202688,
+          202693,
+          202694
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 468,
+      "rebound_bearing_rows": 128,
+      "matched_rebound_bearing_rows": 128,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 16,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21400947,
+    "game_date": "2015-03-10",
+    "teams": [
+      1610612740,
+      1610612751
+    ],
+    "duration_seconds": 2880,
+    "players_with_seconds": 24,
+    "lineup_repairs": [
+      {
+        "game_id": 21400947,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612740,
+        "period": 1,
+        "candidates": [
+          201569,
+          201600,
+          202337,
+          202347,
+          202690,
+          202708,
+          203076,
+          203481
+        ],
+        "prior": [],
+        "starters": [
+          201569,
+          201600,
+          202347,
+          202708,
+          203076
+        ]
+      },
+      {
+        "game_id": 21400947,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 1,
+        "candidates": [
+          2207,
+          101114,
+          201152,
+          201572,
+          202366,
+          202721,
+          203486,
+          203508,
+          203900,
+          203928
+        ],
+        "prior": [],
+        "starters": [
+          2207,
+          101114,
+          201152,
+          201572,
+          203900
+        ]
+      },
+      {
+        "game_id": 21400947,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612740,
+        "period": 2,
+        "candidates": [
+          201569,
+          201582,
+          201967,
+          202343,
+          203076,
+          203481
+        ],
+        "prior": [
+          201569,
+          201582,
+          201967,
+          202343,
+          203076
+        ],
+        "starters": [
+          201569,
+          201582,
+          201967,
+          202343,
+          203076
+        ]
+      },
+      {
+        "game_id": 21400947,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 2,
+        "candidates": [
+          101127,
+          101187,
+          202366,
+          202711,
+          202721,
+          203486,
+          203508,
+          203900,
+          203928
+        ],
+        "prior": [
+          2207,
+          101127,
+          101187,
+          201152,
+          201572
+        ],
+        "starters": [
+          101127,
+          101187,
+          203486,
+          203900,
+          203928
+        ]
+      },
+      {
+        "game_id": 21400947,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612740,
+        "period": 3,
+        "candidates": [
+          201569,
+          201600,
+          202337,
+          202347,
+          202690,
+          202708,
+          203076,
+          203481
+        ],
+        "prior": [
+          201569,
+          201600,
+          202347,
+          202708,
+          203076
+        ],
+        "starters": [
+          201569,
+          201600,
+          202347,
+          202708,
+          203076
+        ]
+      },
+      {
+        "game_id": 21400947,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 3,
+        "candidates": [
+          2207,
+          101114,
+          101187,
+          201152,
+          201572,
+          202721,
+          203486,
+          203508,
+          203900
+        ],
+        "prior": [
+          2207,
+          101114,
+          201572,
+          203900,
+          203928
+        ],
+        "starters": [
+          2207,
+          101114,
+          201152,
+          201572,
+          203900
+        ]
+      },
+      {
+        "game_id": 21400947,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612740,
+        "period": 4,
+        "starters": [
+          201582,
+          201967,
+          202343,
+          202347,
+          202690
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      },
+      {
+        "game_id": 21400947,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 4,
+        "candidates": [
+          101114,
+          101127,
+          101187,
+          201572,
+          202366,
+          202711,
+          203486,
+          203508,
+          203900,
+          203928
+        ],
+        "prior": [
+          101114,
+          101127,
+          202366,
+          202711,
+          203928
+        ],
+        "starters": [
+          101127,
+          202711,
+          203486,
+          203508,
+          203928
+        ]
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 361,
+      "rebound_bearing_rows": 101,
+      "matched_rebound_bearing_rows": 101,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 12,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  },
+  {
+    "game_id": 21401022,
+    "game_date": "2015-03-20",
+    "teams": [
+      1610612749,
+      1610612751
+    ],
+    "duration_seconds": 3780,
+    "players_with_seconds": 19,
+    "lineup_repairs": [
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 1,
+        "candidates": [
+          2585,
+          101141,
+          203101,
+          203114,
+          203487,
+          203507
+        ],
+        "prior": [],
+        "starters": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 1,
+        "candidates": [
+          2207,
+          101114,
+          201152,
+          201572,
+          203900
+        ],
+        "prior": [],
+        "starters": [
+          2207,
+          101114,
+          201152,
+          201572,
+          203900
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 2,
+        "candidates": [
+          201573,
+          203089,
+          203101,
+          203114,
+          203898
+        ],
+        "prior": [
+          201573,
+          203089,
+          203114,
+          203507,
+          203898
+        ],
+        "starters": [
+          201573,
+          203089,
+          203101,
+          203114,
+          203898
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 2,
+        "candidates": [
+          2207,
+          101127,
+          101187,
+          203486,
+          203900,
+          203928
+        ],
+        "prior": [
+          101127,
+          101187,
+          202711,
+          203486,
+          203928
+        ],
+        "starters": [
+          2207,
+          101127,
+          101187,
+          203486,
+          203928
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 3,
+        "candidates": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ],
+        "prior": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ],
+        "starters": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 3,
+        "candidates": [
+          2207,
+          101114,
+          201152,
+          201572,
+          203900
+        ],
+        "prior": [
+          101114,
+          101187,
+          201152,
+          201572,
+          202711
+        ],
+        "starters": [
+          2207,
+          101114,
+          201152,
+          201572,
+          203900
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 4,
+        "candidates": [
+          201573,
+          203089,
+          203101,
+          203114,
+          203898
+        ],
+        "prior": [
+          201573,
+          203089,
+          203101,
+          203114,
+          203898
+        ],
+        "starters": [
+          201573,
+          203089,
+          203101,
+          203114,
+          203898
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 4,
+        "candidates": [
+          101114,
+          101127,
+          101187,
+          202711,
+          203486,
+          203900,
+          203928
+        ],
+        "prior": [
+          101127,
+          101187,
+          202711,
+          203486,
+          203928
+        ],
+        "starters": [
+          101127,
+          101187,
+          202711,
+          203486,
+          203928
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 5,
+        "candidates": [
+          2585,
+          101141,
+          201573,
+          203089,
+          203101,
+          203114,
+          203487,
+          203507,
+          203898
+        ],
+        "prior": [
+          2585,
+          201573,
+          203114,
+          203487,
+          203507
+        ],
+        "starters": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 5,
+        "candidates": [
+          2207,
+          101114,
+          101127,
+          101187,
+          201152,
+          201572,
+          203486,
+          203900,
+          203928
+        ],
+        "prior": [
+          2207,
+          101127,
+          201152,
+          201572,
+          202711
+        ],
+        "starters": [
+          2207,
+          101127,
+          101187,
+          201152,
+          201572
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 6,
+        "candidates": [
+          2585,
+          101141,
+          201573,
+          203089,
+          203101,
+          203114,
+          203487,
+          203507,
+          203898
+        ],
+        "prior": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ],
+        "starters": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "evidence_starter_repair",
+        "team_id": 1610612751,
+        "period": 6,
+        "starters": [
+          2207,
+          101114,
+          201152,
+          201572,
+          202711
+        ],
+        "evidence_file": "final_integrity_rebuild/legacy_starter_repair_evidence.json"
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612749,
+        "period": 7,
+        "candidates": [
+          2585,
+          101141,
+          203101,
+          203114,
+          203487,
+          203507,
+          203898
+        ],
+        "prior": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ],
+        "starters": [
+          2585,
+          101141,
+          203114,
+          203487,
+          203507
+        ]
+      },
+      {
+        "game_id": 21401022,
+        "type": "v3_team_local_starter_solution",
+        "team_id": 1610612751,
+        "period": 7,
+        "candidates": [
+          2207,
+          101114,
+          101127,
+          201152,
+          201572,
+          202711,
+          203486,
+          203900,
+          203928
+        ],
+        "prior": [
+          2207,
+          101127,
+          201152,
+          201572,
+          202711
+        ],
+        "starters": [
+          2207,
+          101127,
+          201152,
+          201572,
+          202711
+        ]
+      }
+    ],
+    "join_audit": {
+      "total_pbp_rows": 548,
+      "rebound_bearing_rows": 157,
+      "matched_rebound_bearing_rows": 157,
+      "unmatched_rebound_bearing_rows": 0,
+      "ambiguous_matches": 24,
+      "manual_join_repairs": 0,
+      "exact_identity_join_repairs": 0,
+      "exact_description_repairs": 0,
+      "exact_player_counter_repairs": 0,
+      "exact_identity_records": [],
+      "invariant_semantic_join_repairs": 0,
+      "invariant_semantic_player_repairs": 0,
+      "invariant_semantic_generic_repairs": 0,
+      "invariant_semantic_records": [],
+      "unmatched_rows": []
+    }
+  }
+]
