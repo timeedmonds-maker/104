@@ -1,0 +1,338 @@
+name: TREB fast final repair wave
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/FAST_FINAL_REPAIR_CONTROL.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      patch_sha: ${{ steps.commit.outputs.patch_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Merge 171 independently minute-validated starter games
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/minute.zip \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9134787369/zip"
+          mkdir -p /tmp/minute && unzip -q /tmp/minute.zip -d /tmp/minute
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          src=json.loads(next(Path('/tmp/minute').rglob('NONUNIQUE_MINUTE_DIAGNOSTIC_SUMMARY.json')).read_text())
+          assert src['target_games']==196, src['target_games']
+          assert src['unique_minute_validated_repairs']==171, src['unique_minute_validated_repairs']
+          assert src['status_counts']=={'UNIQUE_FLOOR_MINUTE_FIT':171,'NO_FLOOR_MINUTE_FIT':24,'SEARCH_INCOMPLETE':1}, src['status_counts']
+          p=Path('team_trb_all_players/final_integrity_rebuild/legacy_starter_repair_evidence.json')
+          dst=json.loads(p.read_text())
+          existing={(int(r['game_id']),int(r['period']),int(r['team_id'])):r for r in dst.get('repairs',[])}
+          added=0
+          games=set()
+          for g in src['recommended_repairs']:
+              games.add(int(g['game_id']))
+              for r in g['repair_choices']:
+                  key=(int(r['game_id']),int(r['period']),int(r['team_id']))
+                  rec={
+                      'game_id':key[0],'period':key[1],'team_id':key[2],
+                      'starters':[int(x) for x in r['starters']],
+                      'source':'CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain',
+                      'source_run_id':31577229398,
+                      'validation_status':'UNIQUE_FLOOR_MINUTE_FIT',
+                  }
+                  if key in existing and [int(x) for x in existing[key]['starters']] != rec['starters']:
+                      raise SystemExit(f'conflicting starter repair {key}: {existing[key]} vs {rec}')
+                  if key not in existing:
+                      existing[key]=rec; added+=1
+          assert len(games)==171, len(games)
+          batch_keys={(int(r['game_id']),int(r['period']),int(r['team_id'])) for g in src['recommended_repairs'] for r in g['repair_choices']}
+          assert len(batch_keys)==180, len(batch_keys)
+          old_order=[(int(r['game_id']),int(r['period']),int(r['team_id'])) for r in dst.get('repairs',[])]
+          new_keys=[k for k in sorted(existing) if k not in old_order]
+          dst['repairs']=[existing[k] for k in old_order+new_keys]
+          dst['minute_validated_batch']={
+              'source_run_id':31577229398,'target_games':196,'unique_games':171,'repair_states':180,
+              'excluded_no_fit':24,'excluded_incomplete':1,
+              'rule':'unique legal full-game substitution chain fitting independent CC0 completed-minute floors'
+          }
+          dst['policy']='Only source-specific or independently unique evidence-backed starter states are permitted. No no-fit, incomplete, or ambiguous case is promoted.'
+          p.write_text(json.dumps(dst,indent=2)+'\n')
+          print(f'STARTER_PROMOTION unique_games=171 repair_states=180 newly_added={added} total_evidence_repairs={len(dst["repairs"])}')
+          PY
+      - name: Promote bounded chronology and rebound fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('team_trb_all_players/production_treb_engine_v3.py')
+          text=p.read_text()
+          anchor='PLAYER_MAX = core.PLAYER_MAX\n'
+          block='''PLAYER_MAX = core.PLAYER_MAX\n\n# Source-proven legacy participant rows that are stale/corrective evidence at a\n# substitution boundary. These exact rows do not change the lineup; treating\n# them as proof that the named player is still on court creates a false missing\n# transition. Keep this finite and keyed by game/event.\nPARTICIPANT_EVIDENCE_IGNORE_KEYS = {\n    (21800388, 103), (21800920, 474), (20600437, 64),\n    (21400892, 74), (21700298, 442), (22100764, 601),\n    (20900104, 86), (21300034, 172), (21000075, 406),\n    (21000546, 354), (21200293, 365), (21200806, 475),\n}\n'''
+          if 'PARTICIPANT_EVIDENCE_IGNORE_KEYS' not in text:
+              assert text.count(anchor)==1, text.count(anchor)
+              text=text.replace(anchor,block)
+          old='''def _ignore_participant_constraint(row: pd.Series) -> bool:\n    typ = int(row.EVENTMSGTYPE)\n    if typ in {8, 9, 11, 12, 13, 18}:\n        return True\n    text = _description(row)\n    return "technical" in text or "t.foul" in text or "non-unsportsmanlike" in text or "eject" in text\n'''
+          new='''def _ignore_participant_constraint(row: pd.Series) -> bool:\n    game_id = int(row.get("GAME_ID", 0) or 0)\n    event_num = int(row.get("EVENTNUM", 0) or 0)\n    if (game_id, event_num) in PARTICIPANT_EVIDENCE_IGNORE_KEYS:\n        return True\n    typ = int(row.EVENTMSGTYPE)\n    if typ in {8, 9, 11, 12, 13, 18}:\n        return True\n    text = _description(row)\n    return ("technical" in text or "t.foul" in text or "tech.foul" in text or\n            "non-unsportsmanlike" in text or "eject" in text)\n'''
+          if old in text:
+              text=text.replace(old,new)
+          elif new not in text:
+              raise SystemExit('participant guard target not found')
+          old_alias='join_pbp_rebounds = legacy.join_pbp_rebounds\nclassify_rebounds = legacy.classify_rebounds\n'
+          new_alias='from production_rebound_v2 import join_pbp_rebounds, classify_rebounds\n'
+          if old_alias in text:
+              text=text.replace(old_alias,new_alias)
+          elif new_alias not in text:
+              raise SystemExit('rebound alias target not found')
+          p.write_text(text)
+          PY
+      - id: commit
+        name: Commit promoted fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/production_treb_engine_v3.py \
+                  team_trb_all_players/production_rebound_v2.py \
+                  team_trb_all_players/final_integrity_rebuild/legacy_starter_repair_evidence.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Promote evidence-backed final TREB repair rules'
+            git push origin HEAD:agent/treb-batched-game-facts-20260812
+          fi
+          echo "patch_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  repair:
+    needs: promote
+    strategy:
+      fail-fast: false
+      max-parallel: 19
+      matrix:
+        year: [2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.promote.outputs.patch_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Fetch Wave-1 residual targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin treb-game-fact-repair-wave1
+          git show origin/treb-game-fact-repair-wave1:team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1/${{ matrix.year }}/residual_failures.json > /tmp/residual.json
+      - name: Download season sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{y}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}',f'pbpstats_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Rebuild only the 357 Wave-1 residual targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; OUT="/tmp/final-repair-${YEAR}"; mkdir -p "$OUT"
+          NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
+          V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
+          PBP=$(find "$RAW" -name "pbpstats_${YEAR}.csv" -print -quit)
+          NBA="$NBA" V3="$V3" PBP="$PBP" YEAR="$YEAR" OUT="$OUT" PATCH_SHA='${{ needs.promote.outputs.patch_sha }}' python - <<'PY'
+          import json,os,sys
+          from collections import Counter
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as engine
+          import build_exact_game_fact_layer as base
+          y=int(os.environ['YEAR']); out=Path(os.environ['OUT'])
+          residual0=json.loads(Path('/tmp/residual.json').read_text())
+          ids=sorted({int(r['game_id']) for r in residual0})
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False)); v3=engine.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False)); pbp=io.normalize_pbp(pd.read_csv(os.environ['PBP'],low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}; pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          tr_all=[]; pr_all=[]; audits=[]; residual=[]
+          for i,gid in enumerate(ids,1):
+              try:
+                  tr,pr,a=base.build_game(gid,ng[gid],vg[gid],pg[gid]); tr_all.extend(tr); pr_all.extend(pr); audits.append(a)
+              except Exception as exc:
+                  residual.append({'game_id':gid,'error':f'{type(exc).__name__}: {exc}'})
+              if i%10==0 or i==len(ids): print(f'FAST_REPAIR year={y} {i}/{len(ids)} recovered={len(audits)} residual={len(residual)}',flush=True)
+          def cls(e):
+              x=e.lower()
+              if 'unmatched pbp rebound rows' in x:return 'unmatched_rebound'
+              if 'non-unique v3/team-local starter solution' in x:return 'nonunique_starter'
+              if 'no legal v3/team-local starter solution' in x:return 'no_legal_starter'
+              if 'missing in-period lineup transition' in x or 'starter solution requires missing' in x:return 'missing_transition'
+              return 'other'
+          classes=Counter(cls(r['error']) for r in residual)
+          pd.DataFrame(tr_all).to_csv(out/'team_game_treb.csv.gz',index=False,compression='gzip'); pd.DataFrame(pr_all).to_csv(out/'player_game_treb_on.csv.gz',index=False,compression='gzip')
+          (out/'game_audit.json').write_text(json.dumps(audits,indent=2)+'\n'); (out/'residual_failures.json').write_text(json.dumps(residual,indent=2)+'\n')
+          qa={'year':y,'patch_sha':os.environ['PATCH_SHA'],'targets':len(ids),'recovered':len(audits),'residual':len(residual),'residual_classes':dict(classes)}
+          (out/'qa.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-fast-final-repair-${{ matrix.year }}
+          path: /tmp/final-repair-${{ matrix.year }}
+          retention-days: 90
+          if-no-files-found: error
+
+  adams-gate:
+    needs: promote
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.promote.outputs.patch_sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Download 2016-17 sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/raw
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=2016; raw=Path('/tmp/raw')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode(); urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}',f'pbpstats_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]; subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Exact locked Adams production regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          NBA=$(find /tmp/raw -name 'nbastats_2016.csv' -print -quit); V3=$(find /tmp/raw -name 'nbastatsv3_2016.csv' -print -quit); PBP=$(find /tmp/raw -name 'pbpstats_2016.csv' -print -quit)
+          NBA="$NBA" V3="$V3" PBP="$PBP" python - <<'PY'
+          import json,os,sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as eng
+          TEAM=1610612760; ADAMS=203500
+          locked={'seconds_on':143368,'team_oreb_on':816,'team_dreb_on':1846,'opponent_oreb_on':643,'opponent_dreb_on':1632}
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False)); v3=eng.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False)); pbp=io.normalize_pbp(pd.read_csv(os.environ['PBP'],low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}; pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          ids=sorted(int(g) for g in pbp.loc[pbp.OPPONENT.astype(str).eq('OKC'),'GAMEID'].unique())
+          out={k:0 for k in locked}; games=0
+          for gid in ids:
+              lu=eng.reconstruct_game_lineups(ng[gid],vg[gid]); joined,a=eng.join_pbp_rebounds(lu,pg[gid])
+              if a['unmatched_rebound_bearing_rows']: raise RuntimeError(f'Adams gate unmatched gid={gid}: {a["unmatched_rebound_bearing_rows"]}')
+              j=eng.classify_rebounds(joined); real=j.IS_REAL_REBOUND.astype(bool); off=j.IS_OREB.astype(bool); on=j.LINEUP.map(lambda x: ADAMS in x); okc_off=~j.OPPONENT.astype(str).eq('OKC'); okc_def=~okc_off
+              out['seconds_on']+=int(lu.seconds.get(ADAMS,0)); out['team_oreb_on']+=int((on&okc_off&real&off).sum()); out['team_dreb_on']+=int((on&okc_def&real&~off).sum()); out['opponent_oreb_on']+=int((on&okc_def&real&off).sum()); out['opponent_dreb_on']+=int((on&okc_off&real&~off).sum()); games+=int(lu.seconds.get(ADAMS,0)>0)
+          diffs={k:out[k]-locked[k] for k in locked}; payload={'status':'PASS' if games==80 and all(v==0 for v in diffs.values()) else 'FAIL','games':games,'observed':out,'locked':locked,'diffs':diffs}
+          Path('/tmp/ADAMS_FAST_FINAL_GATE.json').write_text(json.dumps(payload,indent=2)+'\n'); print(json.dumps(payload,indent=2)); assert payload['status']=='PASS'
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-adams-fast-final-gate
+          path: /tmp/ADAMS_FAST_FINAL_GATE.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: [promote, repair, adams-gate]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.promote.outputs.patch_sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-fast-final-repair-*
+          path: /tmp/results
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-adams-fast-final-gate
+          path: /tmp/adams
+        continue-on-error: true
+      - name: Aggregate new residual set
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATCH_SHA='${{ needs.promote.outputs.patch_sha }}' python - <<'PY'
+          import json,os,re
+          from collections import Counter
+          from pathlib import Path
+          qas=[json.loads(p.read_text()) for p in Path('/tmp/results').rglob('qa.json')]
+          residual=[r for p in Path('/tmp/results').rglob('residual_failures.json') for r in json.loads(p.read_text())]
+          classes=Counter()
+          one_rebound=0; unmatched_rows=0
+          for r in residual:
+              x=r['error'].lower()
+              if 'unmatched pbp rebound rows' in x:
+                  c='unmatched_rebound'; m=re.search(r'unmatched pbp rebound rows game=\d+: (\d+)',x); n=int(m.group(1)) if m else 0; unmatched_rows+=n; one_rebound+=int(n==1)
+              elif 'non-unique v3/team-local starter solution' in x:c='nonunique_starter'
+              elif 'no legal v3/team-local starter solution' in x:c='no_legal_starter'
+              elif 'missing in-period lineup transition' in x or 'starter solution requires missing' in x:c='missing_transition'
+              else:c='other'
+              classes[c]+=1
+          adams=None
+          ap=Path('/tmp/adams/ADAMS_FAST_FINAL_GATE.json')
+          if ap.exists(): adams=json.loads(ap.read_text())
+          out={'patch_sha':os.environ['PATCH_SHA'],'seasons_found':len(qas),'targets':sum(q['targets'] for q in qas),'recovered':sum(q['recovered'] for q in qas),'residual':len(residual),'residual_classes':dict(classes),'one_unmatched_rebound_games':one_rebound,'unmatched_rebound_rows':unmatched_rows,'adams_gate':adams,'status':'PASS' if len(qas)==19 and adams and adams.get('status')=='PASS' else 'INCOMPLETE_OR_ADAMS_FAIL','residual_failures':residual,'season_qa':qas}
+          Path('/tmp/FAST_FINAL_REPAIR_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:v for k,v in out.items() if k not in {'residual_failures','season_qa'}},indent=2))
+          PY
+      - name: Persist durable wave outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          BR=treb-fast-final-repair-wave
+          git checkout -B "$BR" '${{ needs.promote.outputs.patch_sha }}'
+          DEST=team_trb_all_players/final_integrity_rebuild/fast_final_repair_wave; rm -rf "$DEST"; mkdir -p "$DEST"
+          cp /tmp/FAST_FINAL_REPAIR_SUMMARY.json "$DEST"/
+          for d in /tmp/results/treb-fast-final-repair-*; do [ -d "$d" ] || continue; y="${d##*-}"; mkdir -p "$DEST/$y"; cp -a "$d"/. "$DEST/$y"/; done
+          [ -f /tmp/adams/ADAMS_FAST_FINAL_GATE.json ] && cp /tmp/adams/ADAMS_FAST_FINAL_GATE.json "$DEST"/ || true
+          git add -f "$DEST"; git commit -m 'Persist fast final TREB repair wave'; git push --force origin HEAD:"$BR"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-fast-final-repair-summary
+          path: /tmp/FAST_FINAL_REPAIR_SUMMARY.json
+          retention-days: 90
