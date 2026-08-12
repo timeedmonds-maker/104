@@ -1,0 +1,28 @@
+{
+  "partial_segment_rows": 5199,
+  "partial_unique_pts": 4877,
+  "duplicate_segment_keys": 0,
+  "negative_seconds_rows": 0,
+  "games_processed_less_than_team_games_rows": 202,
+  "segment_count_distribution": {
+    "1": 4595,
+    "2": 249,
+    "3": 26,
+    "4": 7
+  },
+  "pts_mixed_lock_engine": 0,
+  "team_rebound_arithmetic_mismatches_on": 0,
+  "opponent_rebound_arithmetic_mismatches_on": 0,
+  "team_rebound_arithmetic_mismatches_off": 0,
+  "opponent_rebound_arithmetic_mismatches_off": 0,
+  "status": "NOT_CERTIFIED_REPAIR_REQUIRED",
+  "source_segment_csv_sha256": "637168e08baf9650618930e958456784e85347a8e7d41917b68e7960d831cb46",
+  "accepted_exclusions_csv_sha256": "6efc460f7e39a0c65ff56eb1e34d8d04f412fd964167ceb29b0a36fdb8131e52",
+  "aggregated_partial_pts_csv_sha256": "3e3d6e9c76a479616fccf6aceec36cbe16c7333192f93898ec7984a8b199a271",
+  "accepted_exclusion_games": 40,
+  "accepted_exclusion_games_with_partial_target_impact": 40,
+  "accepted_exclusion_impact_rows": 220,
+  "accepted_exclusion_unique_impacted_segments": 202,
+  "accepted_exclusion_unique_impacted_pts": 202,
+  "certification_blocker": "All 40 accepted game exclusions intersect final V2 partial target windows; 202 unique segments/PTS are missing at least one team game. Repair or independently reconstruct those game contributions before certifying the 4,877 partial PTS layer."
+}
