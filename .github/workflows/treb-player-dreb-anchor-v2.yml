@@ -1,0 +1,105 @@
+name: TREB player DREB anchor v2
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-player-dreb-anchor-v2.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  PYTHONUNBUFFERED: '1'
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text()); assert len(m['chunks'])==24 and m['target_games']==58
+          x={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(x,separators=(',',':'))+'\n')
+          PY
+  diagnose:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - name: Chronological DREB anchor diagnostic
+        run: |
+          python -u team_trb_all_players/player_dreb_anchor_diagnostic.py \
+            --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' \
+            --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' \
+            --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/DREB_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-dreb-v2-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/DREB_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan,diagnose]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-dreb-v2-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Strict control and coverage gate
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          chunks=[json.loads(p.read_text()) for p in sorted(Path('/tmp/results').rglob('DREB_*.json'))]; assert len(chunks)==24,len(chunks)
+          keys=['kind_applicable','kind_correct','kind_wrong','endpoint_applicable','endpoint_correct','endpoint_wrong','miss_applicable','miss_correct','miss_wrong','both_applicable','both_correct','both_wrong']
+          c={k:sum(int(x['controls'][k]) for x in chunks) for k in keys}; residual=[r for x in chunks for r in x['residual_rows']]; assert len(residual)==77,len(residual)
+          kind_safe=c['kind_applicable']>0 and c['kind_wrong']==0; endpoint_safe=c['endpoint_applicable']>0 and c['endpoint_wrong']==0; miss_safe=c['miss_applicable']>0 and c['miss_wrong']==0; both_safe=c['both_applicable']>0 and c['both_wrong']==0
+          candidates=[]
+          for r in residual:
+              if kind_safe and both_safe and r['is_counter_dreb'] and r['anchors_agree']:
+                  x=dict(r); x['lineup']=x['endpoint_lineup']; x['real']=True; x['method']='chronological_counter_dreb_plus_agreeing_endpoint_and_exact_prior_miss_lineups'; candidates.append(x)
+          bygame={}
+          for r in residual:bygame.setdefault(int(r['game_id']),[]).append(r)
+          ck={(int(r['game_id']),int(r['pbp_index'])) for r in candidates}; full=sorted(g for g,rs in bygame.items() if all((g,int(r['pbp_index'])) in ck for r in rs))
+          out={'status':'COMPLETE','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'controls':c,'counter_kind_rule_safe':kind_safe,'dreb_endpoint_rule_safe':endpoint_safe,'dreb_prior_miss_rule_safe':miss_safe,'dreb_agreeing_anchors_rule_safe':both_safe,'current_residual_rows':77,'repairable_rows':len(candidates),'fully_repairable_games':len(full),'fully_repairable_game_ids':full,'repair_candidates':candidates,'residual_rows':residual}
+          Path('/tmp/PLAYER_DREB_ANCHOR_V2_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:v for k,v in out.items() if k not in {'repair_candidates','residual_rows'}},indent=2))
+          PY
+      - name: Persist checkpoint
+        run: |
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics; cp /tmp/PLAYER_DREB_ANCHOR_V2_SUMMARY.json "$D/"
+          git add -f "$D/PLAYER_DREB_ANCHOR_V2_SUMMARY.json"
+          if ! git diff --cached --quiet; then git commit -m 'Persist chronological DREB anchor diagnostic'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-player-dreb-v2-summary-${{ github.run_id }}
+          path: /tmp/PLAYER_DREB_ANCHOR_V2_SUMMARY.json
+          retention-days: 90
