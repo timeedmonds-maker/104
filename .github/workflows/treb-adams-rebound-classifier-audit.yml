@@ -1,0 +1,186 @@
+name: TREB Adams rebound classifier audit
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/ADAMS_REBOUND_CLASSIFIER_AUDIT_CONTROL.json
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz requests urllib3
+      - name: Download 2016-17 local sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          RAW=/tmp/trebraw-2016; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=2016; raw=Path('/tmp/trebraw-2016')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}',f'pbpstats_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Compare local rebound classifiers with PBP Stats lineup truth
+        shell: bash
+        run: |
+          set -euo pipefail
+          NBA=$(find /tmp/trebraw-2016 -name 'nbastats_2016.csv' -print -quit)
+          V3=$(find /tmp/trebraw-2016 -name 'nbastatsv3_2016.csv' -print -quit)
+          PBP=$(find /tmp/trebraw-2016 -name 'pbpstats_2016.csv' -print -quit)
+          NBA="$NBA" V3="$V3" PBP="$PBP" python - <<'PY'
+          import gzip,json,os,re,sys,time
+          from pathlib import Path
+          import pandas as pd
+          import requests
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine as rebound_engine
+          import production_treb_engine_v3 as lineup_engine
+          import local_treb_rebuild as core
+
+          TEAM=1610612760; ADAMS=203500; API='https://api.pbpstats.com/get-game-stats'
+          LOCK={'seconds_on':143368,'team_oreb_on':816,'team_dreb_on':1846,'opponent_oreb_on':643,'opponent_dreb_on':1632}
+          repair_key=(21600270,5,TEAM); repair=[201566,201627,203460,203506,203924]
+          previous_repair=core.STARTER_REPAIRS.get(repair_key); core.STARTER_REPAIRS[repair_key]=repair
+
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False))
+          v3=lineup_engine.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False))
+          pbp=io.normalize_pbp(pd.read_csv(os.environ['PBP'],low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          # All regular-season OKC games directly from PBP Stats derived possession source.
+          okc_ids=sorted(int(g) for g in pbp.loc[pbp.OPPONENT.astype(str).eq('OKC'),'GAMEID'].unique())
+
+          sess=requests.Session(); retry=Retry(total=6,connect=6,read=6,status=6,backoff_factor=1.0,status_forcelist=[429,500,502,503,504],allowed_methods=['GET'])
+          sess.mount('https://',HTTPAdapter(max_retries=retry))
+          def fetch(gid,typ):
+              r=sess.get(API,params={'GameId':f'{gid:010d}','Type':typ},timeout=90); r.raise_for_status(); return r.json()
+          def side(d):
+              if int(d['home_team_id'])==TEAM:return 'Home'
+              if int(d['away_team_id'])==TEAM:return 'Away'
+              raise RuntimeError(f'OKC missing API game {d.get("home_team_id")} {d.get("away_team_id")}')
+          def rowmap(d,s): return {str(r['EntityId']):r for r in d['stats'][s]['FullGame']}
+          def n(r,k): return int(round(float(r.get(k,0) or 0)))
+          def secs(v):
+              s=str(v or '0:00');
+              if ':' in s:
+                  a,b=s.split(':',1); return int(a)*60+int(round(float(b)))
+              return int(round(float(s)*60))
+
+          def aggregate(joined, mode):
+              j=joined.copy()
+              real=j.IS_REAL_REBOUND.astype(bool)
+              if mode=='current':
+                  off=j.IS_OREB.astype(bool)
+              elif mode=='real_first':
+                  # Consume authoritative possession OREB counts only on rows already deemed real.
+                  real_num=real.astype(int).groupby([j[c] for c in core.POSSESSION_ID],dropna=False).cumsum()
+                  poss_oreb=j.groupby(core.POSSESSION_ID,dropna=False).OFFENSIVEREBOUNDS.transform('first')
+                  off=real & real_num.le(poss_oreb)
+              elif mode=='description_counter':
+                  off=pd.Series(False,index=j.index); resolved=pd.Series(False,index=j.index)
+                  last={}
+                  for idx,row in j.iterrows():
+                      if not bool(real.loc[idx]): continue
+                      m=re.search(r'\(Off:(\d+) Def:(\d+)\)',str(row.DESCRIPTION),re.I)
+                      pid=int(row.NBA_PLAYER1_ID) if pd.notna(row.NBA_PLAYER1_ID) else 0
+                      if not m or pid<=0: continue
+                      o,d=map(int,m.groups()); po,pd_=last.get(pid,(0,0))
+                      do=o-po; dd=d-pd_
+                      if do==1 and dd==0: off.loc[idx]=True; resolved.loc[idx]=True
+                      elif dd==1 and do==0: off.loc[idx]=False; resolved.loc[idx]=True
+                      last[pid]=(o,d)
+                  j['_DESC_RESOLVED']=resolved
+              else: raise ValueError(mode)
+              on=j.LINEUP.map(lambda x:ADAMS in x)
+              okc_off=~j.OPPONENT.astype(str).eq('OKC'); okc_def=~okc_off
+              out={
+                'team_oreb_on':int((on&okc_off&real&off).sum()),
+                'team_dreb_on':int((on&okc_def&real&~off).sum()),
+                'opponent_oreb_on':int((on&okc_def&real&off).sum()),
+                'opponent_dreb_on':int((on&okc_off&real&~off).sum()),
+              }
+              if mode=='description_counter': out['description_unresolved_real_on']=int((on&real&~j['_DESC_RESOLVED']).sum())
+              return out
+
+          totals={m:{'seconds_on':0,'team_oreb_on':0,'team_dreb_on':0,'opponent_oreb_on':0,'opponent_dreb_on':0} for m in ['current','real_first','description_counter']}
+          truth={k:0 for k in totals['current']}; per_game=[]; failures=[]
+          universe=0
+          for i,gid in enumerate(okc_ids,1):
+              if gid not in ng or gid not in vg or gid not in pg:
+                  failures.append({'game_id':gid,'error':'missing local source'}); continue
+              try:
+                  lu=lineup_engine.reconstruct_game_lineups(ng[gid],vg[gid])
+                  joined,audit=rebound_engine.join_pbp_rebounds(lu,pg[gid])
+                  if audit.get('unmatched_rebound_bearing_rows',0): raise RuntimeError(f'unmatched={audit["unmatched_rebound_bearing_rows"]}')
+                  joined=rebound_engine.classify_rebounds(joined)
+                  poss=pg[gid].drop_duplicates(core.POSSESSION_ID)
+                  universe+=int(poss.loc[~poss.OPPONENT.astype(str).eq('OKC'),'OFFENSIVEREBOUNDS'].sum())
+                  local={}
+                  for mode in totals:
+                      vals=aggregate(joined,mode); vals['seconds_on']=int(lu.seconds.get(ADAMS,0)); local[mode]=vals
+                      for k in totals[mode]: totals[mode][k]+=int(vals.get(k,0))
+
+                  line=fetch(gid,'Lineup'); opp=fetch(gid,'LineupOpponent'); s=side(line)
+                  lm=rowmap(line,s); om=rowmap(opp,s)
+                  if set(lm)!=set(om): raise RuntimeError('Lineup/LineupOpponent entity mismatch')
+                  t={'seconds_on':0,'team_oreb_on':0,'team_dreb_on':0,'opponent_oreb_on':0,'opponent_dreb_on':0}
+                  for eid,r in lm.items():
+                      if str(ADAMS) not in eid.split('-'): continue
+                      o=om[eid]; t['seconds_on']+=secs(r.get('Minutes')); t['team_oreb_on']+=n(r,'OffRebounds'); t['team_dreb_on']+=n(r,'DefRebounds'); t['opponent_oreb_on']+=n(o,'OffRebounds'); t['opponent_dreb_on']+=n(o,'DefRebounds')
+                  for k in truth: truth[k]+=t[k]
+                  per_game.append({'game_id':gid,'truth':t,'local':local,'join_audit':audit})
+                  print(f'ADAMS_CLASSIFIER {i}/{len(okc_ids)} game={gid} seconds={t["seconds_on"]}',flush=True)
+                  time.sleep(.12)
+              except Exception as exc:
+                  failures.append({'game_id':gid,'error':f'{type(exc).__name__}: {exc}'})
+
+          def diffs(obs,ref): return {k:int(obs[k]-ref[k]) for k in ref}
+          method_summary={m:{'observed':v,'diff_vs_api_truth':diffs(v,truth)} for m,v in totals.items()}
+          # Per-game absolute error identifies whether a candidate fixes the systemic split rather than only aggregate totals.
+          for mode in totals:
+              mae={k:0 for k in truth}
+              exact=0
+              for g in per_game:
+                  ds=diffs(g['local'][mode],g['truth'])
+                  if all(x==0 for x in ds.values()): exact+=1
+                  for k,v in ds.items(): mae[k]+=abs(v)
+              method_summary[mode]['exact_games']=exact; method_summary[mode]['sum_abs_game_error']=mae
+          payload={'season':'2016-17','okc_games_expected':82,'okc_games_found':len(okc_ids),'games_compared':len(per_game),'failures':failures,'okc_oreb_universe':universe,'api_truth':truth,'locked':LOCK,'api_truth_diff_vs_locked':diffs(truth,LOCK),'methods':method_summary,'per_game':per_game,'explicit_test_repair':{'game_id':21600270,'period':5,'team_id':TEAM,'starters':repair}}
+          payload['status']='COMPLETE' if len(per_game)==82 and not failures else 'INCOMPLETE'
+          Path('/tmp/ADAMS_REBOUND_CLASSIFIER_AUDIT.json').write_text(json.dumps(payload,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in payload.items() if k!='per_game'},indent=2))
+          if previous_repair is None: core.STARTER_REPAIRS.pop(repair_key,None)
+          else: core.STARTER_REPAIRS[repair_key]=previous_repair
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-adams-rebound-classifier-audit
+          path: /tmp/ADAMS_REBOUND_CLASSIFIER_AUDIT.json
+          retention-days: 90
+          if-no-files-found: error
