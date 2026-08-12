@@ -3,9 +3,9 @@
 
 One deliberately narrow production extension over production_treb_engine:
 after the baseline fuzzy join fails, allow an unused NBA EVENTMSGTYPE=4 row
-only when its normalized description is an exact match (or exact player +
-cumulative rebound counter identity). Rebound classification remains the locked
-legacy production classifier.
+only when it is inside the same PBP possession-time window and its normalized
+description is an exact match (or exact player + cumulative rebound counter
+identity). Rebound classification remains the locked legacy production classifier.
 """
 from __future__ import annotations
 
@@ -70,7 +70,16 @@ def join_pbp_rebounds(lineups: core.GameLineups, pbp_game: pd.DataFrame, alpha: 
     for position, (_, row) in enumerate(rows):
         if matches[position] is not None:
             continue
-        eligible = nba[(nba.PERIOD.eq(row.PERIOD)) & nba.EVENTMSGTYPE.eq(4) & ~nba.index.isin(used)]
+        # Exact identity is still required to obey the same possession-time
+        # window as the baseline join. Same-period text alone is not event
+        # identity (team-rebound descriptions repeat throughout a quarter).
+        eligible = nba[
+            nba.PERIOD.eq(row.PERIOD)
+            & nba.EVENTMSGTYPE.eq(4)
+            & nba.ELAPSED.gt(row.START_ELAPSED - alpha)
+            & nba.ELAPSED.lt(row.END_ELAPSED + alpha)
+            & ~nba.index.isin(used)
+        ]
         chosen: int | None = None
         method: str | None = None
         exact = eligible[eligible.DESCRIPTION_NORM.eq(row.DESCRIPTION_NORM)]
@@ -83,8 +92,8 @@ def join_pbp_rebounds(lineups: core.GameLineups, pbp_game: pd.DataFrame, alpha: 
                 counter_key = f"(off:{counter.group(1)} def:{counter.group(2)})"
                 player_key = name_key(row.DESCRIPTION_NORM)
                 hits = eligible[
-                    eligible.DESCRIPTION_NORM.str.contains(re.escape(counter_key), regex=True) &
-                    eligible.DESCRIPTION_NORM.map(name_key).eq(player_key)
+                    eligible.DESCRIPTION_NORM.str.contains(re.escape(counter_key), regex=True)
+                    & eligible.DESCRIPTION_NORM.map(name_key).eq(player_key)
                 ]
                 if len(hits) == 1:
                     chosen = int(hits.index[0])
@@ -97,8 +106,11 @@ def join_pbp_rebounds(lineups: core.GameLineups, pbp_game: pd.DataFrame, alpha: 
             exact_player_counter += int(method == "exact_player_counter")
             records.append({
                 "period": int(row.PERIOD),
+                "start_time": str(row.STARTTIME),
+                "end_time": str(row.ENDTIME),
                 "pbp_description": str(row.DESCRIPTION),
                 "nba_eventnum": int(nba.loc[chosen, "EVENTNUM"]),
+                "nba_elapsed": int(nba.loc[chosen, "ELAPSED"]),
                 "nba_description_norm": str(nba.loc[chosen, "DESCRIPTION_NORM"]),
                 "method": method,
             })
