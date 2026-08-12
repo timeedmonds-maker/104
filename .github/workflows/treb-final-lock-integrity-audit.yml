@@ -1,0 +1,105 @@
+name: TREB final lock integrity audit
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - .github/workflows/treb-final-lock-integrity-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Fetch all durable final safe-lock branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb-lock-audit && mkdir -p /tmp/treb-lock-audit
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            git fetch --quiet origin "refs/heads/${b}:refs/remotes/origin/${b}"
+            mkdir -p "/tmp/treb-lock-audit/${y}"
+            git ls-tree -r --name-only "origin/${b}" > "/tmp/treb-lock-audit/${y}/paths.txt"
+            grep -E 'locked_seasons/.*\.json$|2025.*\.json$|modern.*\.json$|final.*status.*\.json$' "/tmp/treb-lock-audit/${y}/paths.txt" > "/tmp/treb-lock-audit/${y}/candidate_paths.txt" || true
+            while IFS= read -r p; do
+              [ -n "$p" ] || continue
+              safe=$(printf '%s' "$p" | tr '/ ' '__')
+              git show "origin/${b}:${p}" > "/tmp/treb-lock-audit/${y}/${safe}" 2>/dev/null || true
+            done < "/tmp/treb-lock-audit/${y}/candidate_paths.txt"
+          done
+      - name: Validate strict lock semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          root=Path('/tmp/treb-lock-audit')
+          rows=[]
+          violations=[]
+          for y in range(2000,2026):
+              d=root/str(y)
+              paths=(d/'candidate_paths.txt').read_text().splitlines() if (d/'candidate_paths.txt').exists() else []
+              parsed=[]
+              for p in paths:
+                  f=d/p.replace('/','_').replace(' ','_')
+                  if not f.exists() or f.stat().st_size==0: continue
+                  try:
+                      obj=json.loads(f.read_text())
+                  except Exception:
+                      continue
+                  parsed.append((p,obj))
+              lock_candidates=[]
+              for p,obj in parsed:
+                  if isinstance(obj,dict) and ('status' in obj or 'target_count' in obj or 'accepted_excluded_games' in obj or 'unmatched_rebound_rows' in obj):
+                      lock_candidates.append((p,obj))
+              row={'year':y,'candidate_json_paths':[p for p,_ in parsed]}
+              if y <= 2024:
+                  season=f'{y}-{(y+1)%100:02d}'
+                  expected=f'team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/{season}.json'
+                  match=[(p,o) for p,o in lock_candidates if p==expected]
+                  if not match:
+                      violations.append({'year':y,'type':'missing_expected_lock','expected_path':expected})
+                  else:
+                      p,o=match[0]
+                      exclusions=o.get('accepted_excluded_games') or []
+                      exceptions=o.get('exceptions') or []
+                      unmatched=o.get('unmatched_rebound_rows') or []
+                      row.update({'lock_path':p,'status':o.get('status'),'target_count':o.get('target_count'),'accepted_excluded_games':len(exclusions),'exceptions':len(exceptions),'unmatched_rebound_rows':len(unmatched),'code_commit':o.get('code_commit')})
+                      if o.get('status')!='COMPLETE': violations.append({'year':y,'type':'status_not_complete','value':o.get('status')})
+                      if exclusions: violations.append({'year':y,'type':'game_exclusions_not_allowed','details':exclusions})
+                      if exceptions: violations.append({'year':y,'type':'exceptions_nonzero','details':exceptions})
+                      if unmatched: violations.append({'year':y,'type':'unmatched_rebound_rows_nonzero','details':unmatched})
+              else:
+                  # Modern adapter layout is intentionally discovered rather than assumed.
+                  row['modern_candidates']=[p for p,_ in lock_candidates]
+                  for p,o in lock_candidates:
+                      row.setdefault('modern_objects',[]).append({'path':p,'keys':sorted(o)[:80],'status':o.get('status'),'target_count':o.get('target_count'),'accepted_excluded_games':len(o.get('accepted_excluded_games') or []),'exceptions':len(o.get('exceptions') or []),'unmatched_rebound_rows':len(o.get('unmatched_rebound_rows') or [])})
+              rows.append(row)
+          payload={'years':26,'rows':rows,'strict_violations':violations,'strict_violation_count':len(violations)}
+          Path('treb_final_lock_integrity_audit.json').write_text(json.dumps(payload,indent=2)+'\n')
+          print(json.dumps(payload,indent=2))
+          if violations:
+              raise SystemExit(f'STRICT_LOCK_GATE=FAIL violations={len(violations)}')
+          print('STRICT_LOCK_GATE=PASS')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-final-lock-integrity-audit-${{ github.sha }}
+          path: treb_final_lock_integrity_audit.json
+          retention-days: 90
+          if-no-files-found: warn
