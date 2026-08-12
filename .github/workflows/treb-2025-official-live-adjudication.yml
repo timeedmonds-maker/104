@@ -2,7 +2,9 @@ name: TREB 2025 official live adjudication
 on:
   push:
     branches: [agent/treb-batched-game-facts-20260812]
-    paths: [.github/workflows/treb-2025-official-live-adjudication.yml]
+    paths:
+      - .github/workflows/treb-2025-official-live-adjudication.yml
+      - team_trb_all_players/adjudicate_2025_rebounds_official_live.py
   workflow_dispatch:
 permissions:
   contents: write
