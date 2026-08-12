@@ -1,5 +1,5 @@
 {
-  "policy": "Use external boxscore starter evidence only where period-1 PBP cannot contain enough information to identify a silent fifth starter. All other repairs must be derived from offline NBA/PBP event evidence.",
+  "policy": "Only source-specific or independently unique evidence-backed starter states are permitted. No no-fit, incomplete, or ambiguous case is promoted.",
   "repairs": [
     {
       "game_id": 20400736,
@@ -7,8 +7,20 @@
       "period": 1,
       "team_id": 1610612739,
       "team": "CLE",
-      "starters": [976, 980, 1956, 2400, 2544],
-      "starter_names": ["Jeff McInnis", "Zydrunas Ilgauskas", "Ira Newble", "Drew Gooden", "LeBron James"],
+      "starters": [
+        976,
+        980,
+        1956,
+        2400,
+        2544
+      ],
+      "starter_names": [
+        "Jeff McInnis",
+        "Zydrunas Ilgauskas",
+        "Ira Newble",
+        "Drew Gooden",
+        "LeBron James"
+      ],
       "source": "Basketball-Reference historical box score, Denver Nuggets at Cleveland Cavaliers, February 11 2005",
       "source_url": "https://www.basketball-reference.com/boxscores/200502110CLE.html",
       "reason": "NBA legacy/v3 PBP period has only four opening candidates because Ira Newble generates no identifiable period event before a missing substitution; boxscore identifies the actual starting five."
@@ -19,11 +31,2732 @@
       "period": 1,
       "team_id": 1610612748,
       "team": "MIA",
-      "starters": [297, 1715, 1899, 2548, 2617],
-      "starter_names": ["Alonzo Mourning", "Jason Williams", "James Posey", "Dwyane Wade", "Udonis Haslem"],
+      "starters": [
+        297,
+        1715,
+        1899,
+        2548,
+        2617
+      ],
+      "starter_names": [
+        "Alonzo Mourning",
+        "Jason Williams",
+        "James Posey",
+        "Dwyane Wade",
+        "Udonis Haslem"
+      ],
       "source": "Basketball-Reference historical box score, New Orleans/Oklahoma City Hornets at Miami Heat, November 15 2005",
       "source_url": "https://www.basketball-reference.com/boxscores/200511150MIA.html",
       "reason": "NBA legacy/v3 PBP period has only four opening candidates because James Posey is silent in the opening event evidence; boxscore identifies the actual starting five."
+    },
+    {
+      "game_id": 20600271,
+      "period": 5,
+      "team_id": 1610612751,
+      "starters": [
+        467,
+        1630,
+        2067,
+        2210,
+        200766
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600340,
+      "period": 5,
+      "team_id": 1610612747,
+      "starters": [
+        977,
+        2198,
+        2470,
+        2567,
+        2575
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600340,
+      "period": 6,
+      "team_id": 1610612745,
+      "starters": [
+        436,
+        1747,
+        2203,
+        2397,
+        101129
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600431,
+      "period": 5,
+      "team_id": 1610612766,
+      "starters": [
+        1507,
+        2222,
+        2679,
+        2731,
+        101109
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600431,
+      "period": 6,
+      "team_id": 1610612766,
+      "starters": [
+        1507,
+        2679,
+        2731,
+        2774,
+        101109
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600600,
+      "period": 5,
+      "team_id": 1610612743,
+      "starters": [
+        947,
+        948,
+        2581,
+        2747,
+        200821
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600628,
+      "period": 5,
+      "team_id": 1610612763,
+      "starters": [
+        224,
+        1088,
+        2034,
+        2200,
+        101124
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600803,
+      "period": 6,
+      "team_id": 1610612749,
+      "starters": [
+        1739,
+        1863,
+        2072,
+        2294,
+        2876
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600887,
+      "period": 5,
+      "team_id": 1610612750,
+      "starters": [
+        708,
+        1548,
+        1607,
+        1729,
+        101119
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20600887,
+      "period": 6,
+      "team_id": 1610612750,
+      "starters": [
+        708,
+        1607,
+        1729,
+        101119,
+        200783
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20601025,
+      "period": 5,
+      "team_id": 1610612757,
+      "starters": [
+        2048,
+        2137,
+        101127,
+        200746,
+        200750
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20601040,
+      "period": 4,
+      "team_id": 1610612750,
+      "starters": [
+        1548,
+        1729,
+        101119,
+        200751,
+        200783
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20601061,
+      "period": 5,
+      "team_id": 1610612738,
+      "starters": [
+        1718,
+        2570,
+        2744,
+        2753,
+        200765
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20601081,
+      "period": 5,
+      "team_id": 1610612745,
+      "starters": [
+        1503,
+        1747,
+        2203,
+        2397,
+        101236
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20601081,
+      "period": 5,
+      "team_id": 1610612747,
+      "starters": [
+        977,
+        1885,
+        2198,
+        2470,
+        2575
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20700107,
+      "period": 5,
+      "team_id": 1610612739,
+      "starters": [
+        980,
+        2400,
+        2544,
+        2562,
+        200789
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20700204,
+      "period": 5,
+      "team_id": 1610612739,
+      "starters": [
+        980,
+        2400,
+        2544,
+        2562,
+        200789
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20700319,
+      "period": 4,
+      "team_id": 1610612752,
+      "starters": [
+        2037,
+        2216,
+        2407,
+        2410,
+        101135
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20700449,
+      "period": 5,
+      "team_id": 1610612766,
+      "starters": [
+        976,
+        2202,
+        2222,
+        2731,
+        101109
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20700527,
+      "period": 5,
+      "team_id": 1610612739,
+      "starters": [
+        1716,
+        2400,
+        2544,
+        2760,
+        200789
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20700541,
+      "period": 6,
+      "team_id": 1610612761,
+      "starters": [
+        1515,
+        2547,
+        2568,
+        101181,
+        200081
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20700599,
+      "period": 5,
+      "team_id": 1610612757,
+      "starters": [
+        2566,
+        2592,
+        101112,
+        101127,
+        200750
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20700876,
+      "period": 5,
+      "team_id": 1610612747,
+      "starters": [
+        977,
+        1885,
+        2200,
+        2756,
+        200770
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20701047,
+      "period": 5,
+      "team_id": 1610612765,
+      "starters": [
+        686,
+        739,
+        1497,
+        2419,
+        201155
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20701051,
+      "period": 5,
+      "team_id": 1610612744,
+      "starters": [
+        1536,
+        1884,
+        101145,
+        101235,
+        201148
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20701224,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        2046,
+        2072,
+        101106,
+        101111,
+        201196
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800065,
+      "period": 5,
+      "team_id": 1610612745,
+      "starters": [
+        1503,
+        1897,
+        2397,
+        101236,
+        201166
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800142,
+      "period": 5,
+      "team_id": 1610612752,
+      "starters": [
+        2037,
+        2047,
+        2216,
+        2768,
+        201163
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800254,
+      "period": 5,
+      "team_id": 1610612744,
+      "starters": [
+        1536,
+        1894,
+        2037,
+        101142,
+        201228
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800373,
+      "period": 5,
+      "team_id": 1610612746,
+      "starters": [
+        948,
+        1884,
+        2216,
+        201154,
+        201569
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800440,
+      "period": 6,
+      "team_id": 1610612745,
+      "starters": [
+        1747,
+        1897,
+        2203,
+        2397,
+        2449
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800491,
+      "period": 5,
+      "team_id": 1610612748,
+      "starters": [
+        2548,
+        2617,
+        200821,
+        201161,
+        201563
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800666,
+      "period": 5,
+      "team_id": 1610612747,
+      "starters": [
+        965,
+        977,
+        1885,
+        2756,
+        101115
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800705,
+      "period": 5,
+      "team_id": 1610612760,
+      "starters": [
+        2248,
+        2555,
+        201142,
+        201145,
+        201566
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20800792,
+      "period": 5,
+      "team_id": 1610612752,
+      "starters": [
+        1501,
+        2407,
+        2768,
+        101126,
+        201163
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20801017,
+      "period": 6,
+      "team_id": 1610612765,
+      "starters": [
+        686,
+        2198,
+        2419,
+        201155,
+        201167
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20801120,
+      "period": 5,
+      "team_id": 1610612744,
+      "starters": [
+        2037,
+        101142,
+        101145,
+        101235,
+        201228
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20801223,
+      "period": 5,
+      "team_id": 1610612765,
+      "starters": [
+        2198,
+        101131,
+        101198,
+        200835,
+        201167
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20801227,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        978,
+        1899,
+        2446,
+        2561,
+        101108
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900067,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        978,
+        2561,
+        2731,
+        101108,
+        201628
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900363,
+      "period": 5,
+      "team_id": 1610612747,
+      "starters": [
+        965,
+        977,
+        1897,
+        2200,
+        101115
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900382,
+      "period": 5,
+      "team_id": 1610612745,
+      "starters": [
+        2203,
+        2449,
+        2772,
+        200768,
+        201166
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900386,
+      "period": 5,
+      "team_id": 1610612755,
+      "starters": [
+        1882,
+        2584,
+        2738,
+        201152,
+        201578
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900387,
+      "period": 5,
+      "team_id": 1610612741,
+      "starters": [
+        2422,
+        2550,
+        2736,
+        201149,
+        201565
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900423,
+      "period": 5,
+      "team_id": 1610612758,
+      "starters": [
+        2757,
+        201150,
+        201574,
+        201936,
+        201956
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900692,
+      "period": 5,
+      "team_id": 1610612742,
+      "starters": [
+        467,
+        1717,
+        1890,
+        1891,
+        2400
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900808,
+      "period": 6,
+      "team_id": 1610612763,
+      "starters": [
+        2216,
+        200752,
+        201144,
+        201188,
+        201564
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900869,
+      "period": 3,
+      "team_id": 1610612747,
+      "starters": [
+        965,
+        977,
+        1897,
+        2200,
+        101115
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20900912,
+      "period": 5,
+      "team_id": 1610612748,
+      "starters": [
+        979,
+        2047,
+        2306,
+        2548,
+        2617
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20901222,
+      "period": 5,
+      "team_id": 1610612748,
+      "starters": [
+        2306,
+        2748,
+        201202,
+        201563,
+        201596
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 20901222,
+      "period": 5,
+      "team_id": 1610612751,
+      "starters": [
+        200809,
+        201146,
+        201572,
+        201584,
+        201604
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000048,
+      "period": 5,
+      "team_id": 1610612764,
+      "starters": [
+        2550,
+        101154,
+        201154,
+        201580,
+        202322
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000076,
+      "period": 5,
+      "team_id": 1610612763,
+      "starters": [
+        2216,
+        200752,
+        201144,
+        201188,
+        201564
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000086,
+      "period": 5,
+      "team_id": 1610612762,
+      "starters": [
+        1905,
+        2744,
+        101114,
+        101139,
+        200794
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000290,
+      "period": 5,
+      "team_id": 1610612745,
+      "starters": [
+        1802,
+        2203,
+        2449,
+        200768,
+        201584
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000394,
+      "period": 5,
+      "team_id": 1610612739,
+      "starters": [
+        1515,
+        1712,
+        2590,
+        2760,
+        200081
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000440,
+      "period": 5,
+      "team_id": 1610612765,
+      "starters": [
+        1503,
+        1888,
+        2419,
+        101131,
+        201155
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000688,
+      "period": 5,
+      "team_id": 1610612760,
+      "starters": [
+        2555,
+        201142,
+        201145,
+        201566,
+        201935
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000791,
+      "period": 5,
+      "team_id": 1610612746,
+      "starters": [
+        1884,
+        101155,
+        200751,
+        201933,
+        202339
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21000968,
+      "period": 5,
+      "team_id": 1610612746,
+      "starters": [
+        2590,
+        101155,
+        200751,
+        201599,
+        201933
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21001007,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        2422,
+        2568,
+        201601,
+        201943,
+        201972
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21001007,
+      "period": 5,
+      "team_id": 1610612753,
+      "starters": [
+        2045,
+        2202,
+        2730,
+        2749,
+        201583
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100094,
+      "period": 6,
+      "team_id": 1610612748,
+      "starters": [
+        2203,
+        2547,
+        2617,
+        201596,
+        202227
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100214,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        2549,
+        2772,
+        101127,
+        201158,
+        201160
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100266,
+      "period": 5,
+      "team_id": 1610612762,
+      "starters": [
+        1952,
+        2734,
+        200794,
+        202324,
+        202330
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100468,
+      "period": 5,
+      "team_id": 1610612743,
+      "starters": [
+        1733,
+        1889,
+        2365,
+        201167,
+        201951
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100565,
+      "period": 5,
+      "team_id": 1610612745,
+      "starters": [
+        2223,
+        2449,
+        200768,
+        201584,
+        201609
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100641,
+      "period": 5,
+      "team_id": 1610612762,
+      "starters": [
+        2734,
+        2744,
+        200794,
+        202330,
+        202692
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100706,
+      "period": 5,
+      "team_id": 1610612750,
+      "starters": [
+        2557,
+        200826,
+        201229,
+        201567,
+        201961
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100722,
+      "period": 7,
+      "team_id": 1610612762,
+      "starters": [
+        2734,
+        2744,
+        101139,
+        200794,
+        202330
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100821,
+      "period": 5,
+      "team_id": 1610612757,
+      "starters": [
+        2037,
+        101109,
+        200746,
+        201587,
+        202083
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100842,
+      "period": 3,
+      "team_id": 1610612766,
+      "starters": [
+        201945,
+        201957,
+        201974,
+        202687,
+        202689
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100894,
+      "period": 5,
+      "team_id": 1610612742,
+      "starters": [
+        467,
+        1717,
+        1891,
+        2217,
+        2753
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21100952,
+      "period": 5,
+      "team_id": 1610612747,
+      "starters": [
+        977,
+        2200,
+        2581,
+        201941,
+        202365
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21200234,
+      "period": 6,
+      "team_id": 1610612739,
+      "starters": [
+        2760,
+        200789,
+        202087,
+        202951,
+        203092
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21200650,
+      "period": 5,
+      "team_id": 1610612754,
+      "starters": [
+        2561,
+        201571,
+        201579,
+        201588,
+        202331
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21200652,
+      "period": 5,
+      "team_id": 1610612738,
+      "starters": [
+        708,
+        1718,
+        1891,
+        201145,
+        202340
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21200714,
+      "period": 5,
+      "team_id": 1610612762,
+      "starters": [
+        2744,
+        101107,
+        200751,
+        200794,
+        202692
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21200754,
+      "period": 7,
+      "team_id": 1610612738,
+      "starters": [
+        708,
+        1718,
+        1891,
+        201145,
+        202340
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21200845,
+      "period": 5,
+      "team_id": 1610612748,
+      "starters": [
+        951,
+        2544,
+        2547,
+        2548,
+        201596
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21201166,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        2399,
+        2605,
+        101145,
+        200755,
+        203089
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300138,
+      "period": 5,
+      "team_id": 1610612739,
+      "starters": [
+        2760,
+        101127,
+        202681,
+        202684,
+        203521
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300240,
+      "period": 5,
+      "team_id": 1610612746,
+      "starters": [
+        2037,
+        201162,
+        201599,
+        201933,
+        201954
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300257,
+      "period": 7,
+      "team_id": 1610612741,
+      "starters": [
+        2399,
+        2550,
+        2736,
+        201149,
+        201959
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300371,
+      "period": 5,
+      "team_id": 1610612766,
+      "starters": [
+        2744,
+        201177,
+        201196,
+        201945,
+        202689
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300375,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        101141,
+        202688,
+        203089,
+        203114,
+        203507
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300406,
+      "period": 5,
+      "team_id": 1610612750,
+      "starters": [
+        2755,
+        200826,
+        201567,
+        201593,
+        201937
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300423,
+      "period": 6,
+      "team_id": 1610612739,
+      "starters": [
+        2760,
+        101127,
+        202681,
+        202684,
+        203079
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300613,
+      "period": 5,
+      "team_id": 1610612741,
+      "starters": [
+        2399,
+        201149,
+        201571,
+        201959,
+        202710
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21300816,
+      "period": 5,
+      "team_id": 1610612753,
+      "starters": [
+        201167,
+        202696,
+        202699,
+        202734,
+        203506
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21301014,
+      "period": 5,
+      "team_id": 1610612750,
+      "starters": [
+        2755,
+        201147,
+        201567,
+        201937,
+        203133
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21301052,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        201627,
+        201936,
+        203076,
+        203085,
+        203148
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21301061,
+      "period": 5,
+      "team_id": 1610612766,
+      "starters": [
+        2744,
+        201177,
+        201604,
+        201945,
+        202689
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400004,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        201162,
+        202336,
+        202688,
+        203114,
+        203953
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400257,
+      "period": 6,
+      "team_id": 1610612741,
+      "starters": [
+        2200,
+        2399,
+        201149,
+        201565,
+        202710
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400302,
+      "period": 5,
+      "team_id": 1610612764,
+      "starters": [
+        1718,
+        2743,
+        101162,
+        202322,
+        203078
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400424,
+      "period": 5,
+      "team_id": 1610612757,
+      "starters": [
+        2581,
+        2748,
+        200746,
+        202083,
+        203081
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400436,
+      "period": 5,
+      "team_id": 1610612763,
+      "starters": [
+        1713,
+        2754,
+        201144,
+        201188,
+        201584
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400762,
+      "period": 5,
+      "team_id": 1610612757,
+      "starters": [
+        200746,
+        201577,
+        201587,
+        202083,
+        203081
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400855,
+      "period": 5,
+      "team_id": 1610612756,
+      "starters": [
+        200782,
+        202339,
+        202688,
+        202693,
+        203458
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400883,
+      "period": 5,
+      "team_id": 1610612739,
+      "starters": [
+        2544,
+        2747,
+        201567,
+        202684,
+        203521
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400883,
+      "period": 5,
+      "team_id": 1610612745,
+      "starters": [
+        2746,
+        2772,
+        201935,
+        201976,
+        203093
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400916,
+      "period": 5,
+      "team_id": 1610612756,
+      "starters": [
+        200782,
+        202339,
+        202688,
+        202693,
+        202694
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21400947,
+      "period": 4,
+      "team_id": 1610612740,
+      "starters": [
+        201582,
+        201967,
+        202343,
+        202347,
+        202690
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21401022,
+      "period": 6,
+      "team_id": 1610612751,
+      "starters": [
+        2207,
+        101114,
+        201152,
+        201572,
+        202711
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21500025,
+      "period": 5,
+      "team_id": 1610612765,
+      "starters": [
+        201229,
+        202694,
+        202704,
+        203083,
+        203484
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21500359,
+      "period": 5,
+      "team_id": 1610612765,
+      "starters": [
+        201229,
+        202694,
+        202704,
+        203083,
+        203484
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21500515,
+      "period": 5,
+      "team_id": 1610612748,
+      "starters": [
+        2547,
+        2548,
+        201609,
+        204020,
+        1626159
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21500523,
+      "period": 6,
+      "team_id": 1610612742,
+      "starters": [
+        1717,
+        101109,
+        101114,
+        201580,
+        202083
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21500587,
+      "period": 5,
+      "team_id": 1610612755,
+      "starters": [
+        202397,
+        203138,
+        203457,
+        203917,
+        203960
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21500624,
+      "period": 5,
+      "team_id": 1610612746,
+      "starters": [
+        1718,
+        2037,
+        101108,
+        200755,
+        201599
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21500674,
+      "period": 5,
+      "team_id": 1610612758,
+      "starters": [
+        200752,
+        200765,
+        201954,
+        202326,
+        1626161
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21501197,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        203101,
+        203114,
+        203507,
+        203898,
+        203953
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21600253,
+      "period": 4,
+      "team_id": 1610612758,
+      "starters": [
+        2440,
+        201951,
+        201956,
+        202066,
+        202326
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21600270,
+      "period": 5,
+      "team_id": 1610612760,
+      "starters": [
+        201566,
+        201627,
+        203460,
+        203506,
+        203924
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21600359,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        201950,
+        202734,
+        203076,
+        204025,
+        204038
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21600559,
+      "period": 6,
+      "team_id": 1610612757,
+      "starters": [
+        202329,
+        203081,
+        203459,
+        203468,
+        203486
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21600976,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        201950,
+        201967,
+        202348,
+        203076,
+        203524
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21700064,
+      "period": 5,
+      "team_id": 1610612764,
+      "starters": [
+        101162,
+        202322,
+        203078,
+        203490,
+        1626162
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21700482,
+      "period": 5,
+      "team_id": 1610612751,
+      "starters": [
+        201960,
+        203459,
+        203915,
+        1627747,
+        1628386
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21700584,
+      "period": 2,
+      "team_id": 1610612740,
+      "starters": [
+        2749,
+        201967,
+        202326,
+        202734,
+        203121
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21700607,
+      "period": 5,
+      "team_id": 1610612752,
+      "starters": [
+        101127,
+        201563,
+        201584,
+        203124,
+        204001
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21700635,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        201950,
+        202326,
+        202734,
+        203076,
+        203546
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21700692,
+      "period": 6,
+      "team_id": 1610612740,
+      "starters": [
+        201950,
+        201967,
+        202326,
+        202734,
+        203121
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21700893,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        202339,
+        203089,
+        203114,
+        203503,
+        203507
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21700966,
+      "period": 5,
+      "team_id": 1610612761,
+      "starters": [
+        200768,
+        201942,
+        202685,
+        1627783,
+        1627832
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21701103,
+      "period": 5,
+      "team_id": 1610612752,
+      "starters": [
+        201563,
+        201584,
+        203501,
+        203504,
+        1628436
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21701103,
+      "period": 5,
+      "team_id": 1610612766,
+      "starters": [
+        2730,
+        101107,
+        202689,
+        203087,
+        1628407
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21701136,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        1891,
+        202339,
+        203114,
+        203503,
+        203507
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21800216,
+      "period": 5,
+      "team_id": 1610612738,
+      "starters": [
+        201143,
+        202330,
+        202681,
+        202694,
+        1628369
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21800276,
+      "period": 3,
+      "team_id": 1610612743,
+      "starters": [
+        200794,
+        203914,
+        203999,
+        1627750,
+        1627823
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21800371,
+      "period": 5,
+      "team_id": 1610612751,
+      "starters": [
+        203915,
+        203925,
+        1626156,
+        1626178,
+        1628386
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21800565,
+      "period": 5,
+      "team_id": 1610612745,
+      "starters": [
+        200782,
+        201935,
+        203085,
+        203991,
+        1627863
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21800569,
+      "period": 5,
+      "team_id": 1610612741,
+      "starters": [
+        203897,
+        1627739,
+        1627885,
+        1628374,
+        1628976
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21800619,
+      "period": 5,
+      "team_id": 1610612760,
+      "starters": [
+        201566,
+        202331,
+        203471,
+        203924,
+        1628390
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21800881,
+      "period": 5,
+      "team_id": 1610612762,
+      "starters": [
+        201937,
+        202324,
+        203497,
+        204060,
+        1628378
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21801070,
+      "period": 5,
+      "team_id": 1610612763,
+      "starters": [
+        201144,
+        202685,
+        202718,
+        203998,
+        1626153
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21801132,
+      "period": 5,
+      "team_id": 1610612744,
+      "starters": [
+        2738,
+        201142,
+        201939,
+        202691,
+        203110
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21801229,
+      "period": 5,
+      "team_id": 1610612762,
+      "starters": [
+        1627777,
+        1628396,
+        1628463,
+        1628513,
+        1628960
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21900023,
+      "period": 5,
+      "team_id": 1610612743,
+      "starters": [
+        203914,
+        203924,
+        203999,
+        1627736,
+        1627750
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21900120,
+      "period": 5,
+      "team_id": 1610612750,
+      "starters": [
+        203496,
+        203952,
+        1626157,
+        1626203,
+        1629006
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21900272,
+      "period": 5,
+      "team_id": 1610612737,
+      "starters": [
+        203458,
+        203953,
+        1627761,
+        1629027,
+        1629631
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21900502,
+      "period": 5,
+      "team_id": 1610612744,
+      "starters": [
+        202692,
+        203110,
+        203922,
+        1627737,
+        1627814
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21900550,
+      "period": 5,
+      "team_id": 1610612760,
+      "starters": [
+        101108,
+        203471,
+        203500,
+        1628390,
+        1628983
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21900787,
+      "period": 5,
+      "team_id": 1610612737,
+      "starters": [
+        203473,
+        1628381,
+        1628989,
+        1629027,
+        1629631
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21900892,
+      "period": 5,
+      "team_id": 1610612745,
+      "starters": [
+        200782,
+        201566,
+        201569,
+        201935,
+        203496
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 21901281,
+      "period": 6,
+      "team_id": 1610612743,
+      "starters": [
+        203924,
+        203999,
+        1627750,
+        1628420,
+        1629008
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22000023,
+      "period": 5,
+      "team_id": 1610612765,
+      "starters": [
+        201565,
+        201933,
+        203486,
+        203924,
+        1626153
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22000100,
+      "period": 5,
+      "team_id": 1610612754,
+      "starters": [
+        203200,
+        203506,
+        203926,
+        1626167,
+        1627763
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22000120,
+      "period": 5,
+      "team_id": 1610612743,
+      "starters": [
+        203115,
+        203914,
+        203999,
+        1627750,
+        1628408
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22000440,
+      "period": 5,
+      "team_id": 1610612750,
+      "starters": [
+        201937,
+        1626157,
+        1627736,
+        1630162,
+        1630183
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22000485,
+      "period": 1,
+      "team_id": 1610612742,
+      "starters": [
+        201949,
+        203939,
+        1626196,
+        1627827,
+        1629029
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22000645,
+      "period": 5,
+      "team_id": 1610612754,
+      "starters": [
+        203200,
+        204456,
+        1627734,
+        1627747,
+        1627763
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22001064,
+      "period": 5,
+      "team_id": 1610612766,
+      "starters": [
+        1626179,
+        1628970,
+        1628984,
+        1629023,
+        1629667
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22100041,
+      "period": 5,
+      "team_id": 1610612766,
+      "starters": [
+        202330,
+        203486,
+        1626162,
+        1628970,
+        1630163
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22100291,
+      "period": 6,
+      "team_id": 1610612747,
+      "starters": [
+        2544,
+        2546,
+        201566,
+        203076,
+        1628370
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22100353,
+      "period": 5,
+      "team_id": 1610612755,
+      "starters": [
+        201980,
+        202699,
+        203552,
+        203954,
+        1629003
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22100413,
+      "period": 5,
+      "team_id": 1610612751,
+      "starters": [
+        201142,
+        201933,
+        201988,
+        1630556,
+        1630561
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22100860,
+      "period": 5,
+      "team_id": 1610612760,
+      "starters": [
+        202324,
+        1629026,
+        1629647,
+        1630544,
+        1630581
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22100967,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        203468,
+        203503,
+        1626195,
+        1627742,
+        1630529
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200025,
+      "period": 5,
+      "team_id": 1610612750,
+      "starters": [
+        203497,
+        1626156,
+        1626157,
+        1630162,
+        1630183
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200039,
+      "period": 5,
+      "team_id": 1610612764,
+      "starters": [
+        203078,
+        203115,
+        204001,
+        1626153,
+        1628398
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200072,
+      "period": 5,
+      "team_id": 1610612738,
+      "starters": [
+        201143,
+        203935,
+        1627759,
+        1628369,
+        1628436
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200117,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        203468,
+        1626204,
+        1629627,
+        1630230,
+        1630530
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200117,
+      "period": 5,
+      "team_id": 1610612747,
+      "starters": [
+        2544,
+        201976,
+        203076,
+        1629022,
+        1630559
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200325,
+      "period": 5,
+      "team_id": 1610612765,
+      "starters": [
+        202711,
+        1628963,
+        1630165,
+        1630191,
+        1631093
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200440,
+      "period": 5,
+      "team_id": 1610612742,
+      "starters": [
+        202689,
+        203493,
+        203501,
+        1626174,
+        1627827
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200519,
+      "period": 5,
+      "team_id": 1610612741,
+      "starters": [
+        201942,
+        202696,
+        203897,
+        1630172,
+        1630245
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200659,
+      "period": 5,
+      "team_id": 1610612761,
+      "starters": [
+        1627783,
+        1627832,
+        1628384,
+        1629018,
+        1630567
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200748,
+      "period": 5,
+      "team_id": 1610612759,
+      "starters": [
+        1626169,
+        1627751,
+        1628966,
+        1629640,
+        1631110
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200758,
+      "period": 5,
+      "team_id": 1610612758,
+      "starters": [
+        203084,
+        1626168,
+        1628368,
+        1628370,
+        1631099
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22200892,
+      "period": 5,
+      "team_id": 1610612760,
+      "starters": [
+        1628983,
+        1629652,
+        1630581,
+        1631114,
+        1631119
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22201007,
+      "period": 5,
+      "team_id": 1610612748,
+      "starters": [
+        200768,
+        202710,
+        1628389,
+        1629216,
+        1629622
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22201194,
+      "period": 5,
+      "team_id": 1610612740,
+      "starters": [
+        203468,
+        1626204,
+        1627742,
+        1630529,
+        1630530
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22201205,
+      "period": 5,
+      "team_id": 1610612737,
+      "starters": [
+        203991,
+        1627749,
+        1628381,
+        1629027,
+        1630180
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22300162,
+      "period": 5,
+      "team_id": 1610612756,
+      "starters": [
+        201142,
+        203994,
+        1628960,
+        1628966,
+        1630692
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22300300,
+      "period": 5,
+      "team_id": 1610612749,
+      "starters": [
+        201572,
+        203081,
+        203114,
+        203507,
+        1627736
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22300517,
+      "period": 5,
+      "team_id": 1610612738,
+      "starters": [
+        201143,
+        201950,
+        1627759,
+        1628369,
+        1628401
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22300893,
+      "period": 5,
+      "team_id": 1610612743,
+      "starters": [
+        203484,
+        203932,
+        203999,
+        1627750,
+        1629008
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
+    },
+    {
+      "game_id": 22301147,
+      "period": 5,
+      "team_id": 1610612748,
+      "starters": [
+        202710,
+        1628389,
+        1629312,
+        1629639,
+        1631107
+      ],
+      "source": "CC0 PlayerStatistics completed-minute evidence + unique legal full-game substitution chain",
+      "source_run_id": 31577229398,
+      "validation_status": "UNIQUE_FLOOR_MINUTE_FIT"
     }
-  ]
+  ],
+  "minute_validated_batch": {
+    "source_run_id": 31577229398,
+    "target_games": 196,
+    "unique_games": 171,
+    "repair_states": 180,
+    "excluded_no_fit": 24,
+    "excluded_incomplete": 1,
+    "rule": "unique legal full-game substitution chain fitting independent CC0 completed-minute floors"
+  }
 }

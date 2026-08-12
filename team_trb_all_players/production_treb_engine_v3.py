@@ -28,6 +28,17 @@ BASE = Path(__file__).resolve().parent
 EVIDENCE_PATH = BASE / "final_integrity_rebuild" / "legacy_starter_repair_evidence.json"
 PLAYER_MAX = core.PLAYER_MAX
 
+# Source-proven legacy participant rows that are stale/corrective evidence at a
+# substitution boundary. These exact rows do not change the lineup; treating
+# them as proof that the named player is still on court creates a false missing
+# transition. Keep this finite and keyed by game/event.
+PARTICIPANT_EVIDENCE_IGNORE_KEYS = {
+    (21800388, 103), (21800920, 474), (20600437, 64),
+    (21400892, 74), (21700298, 442), (22100764, 601),
+    (20900104, 86), (21300034, 172), (21000075, 406),
+    (21000546, 354), (21200293, 365), (21200806, 475),
+}
+
 
 def _norm(value: object) -> str:
     if pd.isna(value):
@@ -72,11 +83,16 @@ def _description(row: pd.Series) -> str:
 
 
 def _ignore_participant_constraint(row: pd.Series) -> bool:
+    game_id = int(row.get("GAME_ID", 0) or 0)
+    event_num = int(row.get("EVENTNUM", 0) or 0)
+    if (game_id, event_num) in PARTICIPANT_EVIDENCE_IGNORE_KEYS:
+        return True
     typ = int(row.EVENTMSGTYPE)
     if typ in {8, 9, 11, 12, 13, 18}:
         return True
     text = _description(row)
-    return "technical" in text or "t.foul" in text or "non-unsportsmanlike" in text or "eject" in text
+    return ("technical" in text or "t.foul" in text or "tech.foul" in text or
+            "non-unsportsmanlike" in text or "eject" in text)
 
 
 def _team_participants(row: pd.Series, team_id: int) -> set[int]:
@@ -301,5 +317,4 @@ def reconstruct_game_lineups(game: pd.DataFrame, v3_game: pd.DataFrame) -> core.
     return result
 
 
-join_pbp_rebounds = legacy.join_pbp_rebounds
-classify_rebounds = legacy.classify_rebounds
+from production_rebound_v2 import join_pbp_rebounds, classify_rebounds
