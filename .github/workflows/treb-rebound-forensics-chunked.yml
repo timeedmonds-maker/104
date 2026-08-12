@@ -1,0 +1,275 @@
+name: TREB rebound forensics chunked
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - .github/workflows/treb-rebound-forensics-chunked.yml
+      - team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: '1'
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      prep_matrix: ${{ steps.plan.outputs.prep_matrix }}
+      chunk_matrix: ${{ steps.plan.outputs.chunk_matrix }}
+      expected_chunks: ${{ steps.plan.outputs.expected_chunks }}
+      expected_games: ${{ steps.plan.outputs.expected_games }}
+      expected_rows: ${{ steps.plan.outputs.expected_rows }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        name: Validate durable manifest and build matrices
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['MANIFEST'])
+          m=json.loads(p.read_text())
+          chunks=m['chunks']
+          ids=[int(g) for c in chunks for g in c['game_ids']]
+          assert len(chunks)==int(m['chunk_count'])==24, (len(chunks),m['chunk_count'])
+          assert len(ids)==int(m['target_games'])==58, (len(ids),m['target_games'])
+          assert len(ids)==len(set(ids)), 'duplicate game IDs in manifest'
+          assert sum(int(c['estimated_unmatched_rows']) for c in chunks)==int(m['target_unmatched_rows'])==110
+          years=sorted({int(c['year']) for c in chunks})
+          assert years==[int(y) for y in m['years']]
+          for c in chunks:
+              if c['kind']=='heavy-isolated': assert len(c['game_ids'])==1
+              else: assert len(c['game_ids'])<=4
+          prep={'include':[{'year':y} for y in years]}
+          matrix={'include':[{
+              'chunk_id':c['chunk_id'],
+              'year':int(c['year']),
+              'games':','.join(str(int(g)) for g in c['game_ids']),
+              'kind':c['kind'],
+              'estimated_rows':int(c['estimated_unmatched_rows'])
+          } for c in chunks]}
+          out=os.environ['GITHUB_OUTPUT']
+          with open(out,'a') as f:
+              f.write('prep_matrix='+json.dumps(prep,separators=(',',':'))+'\n')
+              f.write('chunk_matrix='+json.dumps(matrix,separators=(',',':'))+'\n')
+              f.write('expected_chunks='+str(len(chunks))+'\n')
+              f.write('expected_games='+str(len(ids))+'\n')
+              f.write('expected_rows='+str(m['target_unmatched_rows'])+'\n')
+          print(f'PLAN years={years} chunks={len(chunks)} games={len(ids)} unmatched_rows={m["target_unmatched_rows"]}')
+          PY
+
+  prepare-source:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix: ${{ fromJSON(needs.plan.outputs.prep_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas
+      - name: Download each season once and retain only current residual games
+        shell: bash
+        env:
+          YEAR: ${{ matrix.year }}
+        run: |
+          set -euo pipefail
+          mkdir -p "/tmp/raw-${YEAR}" "/tmp/source-${YEAR}"
+          python - <<'PY'
+          import json, os, subprocess, tarfile, urllib.request
+          from pathlib import Path
+          import pandas as pd
+          y=int(os.environ['YEAR'])
+          manifest=json.loads(Path(os.environ['MANIFEST']).read_text())
+          ids=sorted({int(g) for c in manifest['chunks'] if int(c['year'])==y for g in c['game_ids']})
+          assert ids, y
+          raw=Path(f'/tmp/raw-{y}'); out=Path(f'/tmp/source-{y}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          specs=[(f'nbastats_{y}','GAME_ID'),(f'nbastatsv3_{y}','gameId'),(f'pbpstats_{y}','GAMEID')]
+          for key,col in specs:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+              src=next(raw.rglob(key+'.csv'))
+              df=pd.read_csv(src,low_memory=False)
+              gid=pd.to_numeric(df[col],errors='coerce')
+              keep=df[gid.isin(ids)].copy()
+              found=sorted(set(pd.to_numeric(keep[col],errors='coerce').dropna().astype(int)))
+              assert found==ids, (key,ids,found)
+              keep.to_csv(out/(key+'.csv'),index=False)
+              print(f'SOURCE_SLICE year={y} key={key} rows={len(keep)} games={len(found)}')
+          (out/'source_manifest.json').write_text(json.dumps({'year':y,'game_ids':ids,'source_run_id':manifest['source_run_id'],'source_patch_sha':manifest['source_patch_sha']},indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/source-${{ matrix.year }}
+          retention-days: 7
+          if-no-files-found: error
+
+  diagnose-chunk:
+    needs: [plan, prepare-source]
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.chunk_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/source
+      - name: Analyze only this deterministic game chunk
+        shell: bash
+        env:
+          YEAR: ${{ matrix.year }}
+          CHUNK_ID: ${{ matrix.chunk_id }}
+          GAMES: ${{ matrix.games }}
+          KIND: ${{ matrix.kind }}
+          EST_ROWS: ${{ matrix.estimated_rows }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          ids=[int(x) for x in os.environ['GAMES'].split(',') if x]
+          Path('/tmp/residual.json').write_text(json.dumps([{'game_id':g,'error':'current unmatched rebound residual'} for g in ids],indent=2)+'\n')
+          print(f'CHUNK_START id={os.environ["CHUNK_ID"]} kind={os.environ["KIND"]} games={ids} estimated_rows={os.environ["EST_ROWS"]}')
+          PY
+          python -u team_trb_all_players/order_preserving_rebound_diagnostic.py \
+            --nba "/tmp/source/nbastats_${YEAR}.csv" \
+            --v3 "/tmp/source/nbastatsv3_${YEAR}.csv" \
+            --pbp "/tmp/source/pbpstats_${YEAR}.csv" \
+            --residual /tmp/residual.json \
+            --year "$YEAR" \
+            --output "/tmp/ORDER_${CHUNK_ID}.json"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path('/tmp')/f'ORDER_{os.environ["CHUNK_ID"]}.json'
+          d=json.loads(p.read_text())
+          d['chunk_id']=os.environ['CHUNK_ID']; d['chunk_kind']=os.environ['KIND']; d['estimated_unmatched_rows']=int(os.environ['EST_ROWS'])
+          p.write_text(json.dumps(d,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in d.items() if k!='games'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-forensic-chunk-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/ORDER_${{ matrix.chunk_id }}.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: [plan, diagnose-chunk]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-forensic-chunk-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Verify complete chunk coverage and persist durable result
+        shell: bash
+        env:
+          EXPECTED_CHUNKS: ${{ needs.plan.outputs.expected_chunks }}
+          EXPECTED_GAMES: ${{ needs.plan.outputs.expected_games }}
+          EXPECTED_ROWS: ${{ needs.plan.outputs.expected_rows }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          manifest=json.loads(Path(os.environ['MANIFEST']).read_text())
+          files=sorted(Path('/tmp/results').rglob('ORDER_*.json'))
+          chunks=[]
+          for p in files:
+              try: chunks.append(json.loads(p.read_text()))
+              except Exception as exc: raise SystemExit(f'bad chunk artifact {p}: {exc}')
+          expected_chunks=int(os.environ['EXPECTED_CHUNKS']); expected_games=int(os.environ['EXPECTED_GAMES']); expected_rows=int(os.environ['EXPECTED_ROWS'])
+          games=[g for c in chunks for g in c.get('games',[])]
+          analyzed=[g for g in games if g.get('status')=='OK']
+          target_ids={int(g) for c in manifest['chunks'] for g in c['game_ids']}
+          seen_ids=[int(g['game_id']) for g in games]
+          complete=(len(chunks)==expected_chunks and len(seen_ids)==expected_games and len(set(seen_ids))==expected_games and set(seen_ids)==target_ids)
+          solvable=[g for g in analyzed if g.get('all_unmatched_uniquely_assigned')]
+          out={
+              'status':'COMPLETE' if complete else 'PARTIAL',
+              'source_run_id':manifest['source_run_id'],
+              'source_patch_sha':manifest['source_patch_sha'],
+              'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+              'expected_chunks':expected_chunks,
+              'chunks_found':len(chunks),
+              'target_games':expected_games,
+              'games_seen':len(seen_ids),
+              'games_analyzed':len(analyzed),
+              'target_unmatched_rows':expected_rows,
+              'unmatched_rows_observed':sum(int(g.get('unmatched_rows',0)) for g in analyzed),
+              'games_all_unmatched_uniquely_assigned':len(solvable),
+              'assigned_rows_in_solvable_games':sum(int(g.get('assigned_rows',0)) for g in solvable),
+              'control_applicable':sum(int(c.get('control_applicable',0)) for c in chunks),
+              'control_correct':sum(int(c.get('control_correct',0)) for c in chunks),
+              'control_wrong':sum(int(c.get('control_wrong',0)) for c in chunks),
+              'solvable_games':[int(g['game_id']) for g in solvable],
+              'chunk_summaries':[{
+                  'chunk_id':c.get('chunk_id'),'year':c.get('year'),'targets':c.get('targets'),'games_analyzed':c.get('games_analyzed'),
+                  'solvable_games':c.get('games_all_unmatched_uniquely_assigned'),'unmatched_rows':c.get('unmatched_rows'),
+                  'control_wrong':c.get('control_wrong')
+              } for c in chunks],
+              'games':games,
+          }
+          out['promotion_candidate']=bool(out['status']=='COMPLETE' and out['control_wrong']==0 and out['games_all_unmatched_uniquely_assigned']>0)
+          dest=Path('/tmp/REBOUND_FORENSICS_CHUNKED_SUMMARY.json'); dest.write_text(json.dumps(out,indent=2)+'\n')
+          cand={'status':out['status'],'workflow_run_id':out['workflow_run_id'],'control_wrong':out['control_wrong'],'candidate_games':out['solvable_games']}
+          Path('/tmp/REBOUND_FORENSICS_PROMOTION_CANDIDATES.json').write_text(json.dumps(cand,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k not in {'games','chunk_summaries'}},indent=2))
+          if not complete: raise SystemExit('chunk coverage incomplete; artifacts retained for targeted rerun')
+          PY
+      - name: Commit checkpoint summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f /tmp/REBOUND_FORENSICS_CHUNKED_SUMMARY.json || exit 0
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          mkdir -p "$DEST"
+          cp /tmp/REBOUND_FORENSICS_CHUNKED_SUMMARY.json "$DEST"/
+          cp /tmp/REBOUND_FORENSICS_PROMOTION_CANDIDATES.json "$DEST"/
+          git add -f "$DEST/REBOUND_FORENSICS_CHUNKED_SUMMARY.json" "$DEST/REBOUND_FORENSICS_PROMOTION_CANDIDATES.json"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist chunked rebound forensics checkpoint'
+            git push origin HEAD:agent/treb-batched-game-facts-20260812
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-rebound-forensics-summary-${{ github.run_id }}
+          path: |
+            /tmp/REBOUND_FORENSICS_CHUNKED_SUMMARY.json
+            /tmp/REBOUND_FORENSICS_PROMOTION_CANDIDATES.json
+          retention-days: 90
+          if-no-files-found: warn
