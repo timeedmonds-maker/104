@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "seasons_expected": 26,
+  "seasons_complete": 26,
+  "first_season": "2000-01",
+  "last_season": "2025-26",
+  "tenure_detail_rows": 5199,
+  "career_players": 1824,
+  "duplicate_tenure_keys": 0,
+  "unexpected_exceptions": 0,
+  "unmatched_rebound_rows": 0,
+  "accepted_excluded_games": 40,
+  "accepted_exclusion_ledger_exact_match": true,
+  "modern_2025_engine": "modern_cdn_explicit_substitutions",
+  "modern_2025_policy": "accepted_bounded_modern_bridge_approximation",
+  "outputs": [
+    "career_treb_detail.csv",
+    "career_treb_summary.csv",
+    "accepted_exclusions.csv",
+    "season_lock_manifest.csv",
+    "treb_2000_01_to_2025_26.sqlite"
+  ]
+}
