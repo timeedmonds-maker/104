@@ -1,0 +1,186 @@
+name: TREB 2015 residual starter micro diagnostics
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/NONUNIQUE_2015_MICRO_CONTROL.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas
+      - name: Download independent CC0 PlayerStatistics
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cc0
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/cc0/dataset.zip 'https://www.kaggle.com/api/v1/datasets/download/eoinamoore/historical-nba-data-and-player-box-scores'
+          unzip -j /tmp/cc0/dataset.zip 'PlayerStatistics.csv' -d /tmp/cc0 || unzip -j /tmp/cc0/dataset.zip '*/PlayerStatistics.csv' -d /tmp/cc0
+      - name: Extract 2015 target evidence
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,pandas as pd
+          from pathlib import Path
+          targets=[21500025,21500359,21500515,21500523,21500587,21500624,21500674,21500721,21500916,21501197]
+          df=pd.read_csv('/tmp/cc0/PlayerStatistics.csv',low_memory=False)
+          gid=pd.to_numeric(df.gameId,errors='coerce'); pid=pd.to_numeric(df.personId,errors='coerce'); team=pd.to_numeric(df.playerteamId,errors='coerce'); mins=pd.to_numeric(df.numMinutes,errors='coerce')
+          out={str(g):[] for g in targets}
+          for idx in df.index[gid.isin(targets)&pid.notna()]:
+              g=str(int(gid.loc[idx])); m=mins.loc[idx]
+              out[g].append({'player_id':int(pid.loc[idx]),'team_id':None if pd.isna(team.loc[idx]) else int(team.loc[idx]),'source_minutes':None if pd.isna(m) else float(m),'source_blank_dnp':bool(pd.isna(m)),'player':f"{str(df.at[idx,'firstName'] if not pd.isna(df.at[idx,'firstName']) else '').strip()} {str(df.at[idx,'lastName'] if not pd.isna(df.at[idx,'lastName']) else '').strip()}".strip()})
+          Path('/tmp/EVIDENCE_2015.json').write_text(json.dumps({'targets':targets,'evidence_by_game':out},separators=(',',':'))+'\n')
+          print({g:len(out[str(g)]) for g in targets})
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-2015-nonunique-evidence
+          path: /tmp/EVIDENCE_2015.json
+          retention-days: 90
+
+  diagnose-game:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        game: [21500025,21500359,21500515,21500523,21500587,21500624,21500674,21500721,21500916,21501197]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-2015-nonunique-evidence
+          path: /tmp/evidence
+      - name: Download 2015 lineup sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          RAW=/tmp/trebraw-2015; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=2015; raw=Path('/tmp/trebraw-2015')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Search one legal full-game chain
+        shell: bash
+        run: |
+          set -o pipefail
+          NBA=$(find /tmp/trebraw-2015 -name 'nbastats_2015.csv' -print -quit)
+          V3=$(find /tmp/trebraw-2015 -name 'nbastatsv3_2015.csv' -print -quit)
+          NBA="$NBA" V3="$V3" GID='${{ matrix.game }}' python -u - <<'PY'
+          import json,os,sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as engine
+          import canary_v3_lineup_repair as ambiguity
+          import resolve_ambiguous_lineups_from_minutes as minute_gate
+          gid=int(os.environ['GID'])
+          evidence=json.loads(Path('/tmp/evidence/EVIDENCE_2015.json').read_text())['evidence_by_game'].get(str(gid),[])
+          official={int(r['player_id']):{'source_minutes':0.0 if r['source_blank_dnp'] else float(r['source_minutes']),'source_blank_dnp':bool(r['source_blank_dnp']),'player':r.get('player'),'team_id':r.get('team_id')} for r in evidence}
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False)); v3=engine.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          rec={'game_id':gid}
+          try:
+              search=ambiguity.search_full_game_repairs(ng[gid],vg[gid],gid)
+              scored=[]; passing=[]
+              for idx,sol in enumerate(search.get('full_game_solutions',[]),1):
+                  score=minute_gate.score_seconds(sol.get('player_seconds',{}),official) if official else {'gate_pass':False,'minute_rule_violations':999,'missing_source_active_players':999,'floor_distance_minutes':999}
+                  item={'solution_index':idx,'repair_choices':sol.get('repair_choices',[]),'gate_pass':bool(score['gate_pass']),'minute_rule_violations':int(score['minute_rule_violations']),'missing_source_active_players':int(score['missing_source_active_players']),'floor_distance_minutes':int(score['floor_distance_minutes'])}
+                  scored.append(item)
+                  if score['gate_pass']: passing.append(item)
+              complete=bool(search.get('search_complete'))
+              status='SEARCH_INCOMPLETE' if not complete else ('UNIQUE_FLOOR_MINUTE_FIT' if len(passing)==1 else 'MULTIPLE_FLOOR_MINUTE_FITS' if len(passing)>1 else 'NO_FULL_GAME_LEGAL_SOLUTION' if not scored else 'NO_FLOOR_MINUTE_FIT')
+              rec.update({'status':status,'search_complete':complete,'states_explored':search.get('states_explored'),'full_game_solution_count':len(scored),'passing_solution_count':len(passing),'recommended_repair_choices':passing[0]['repair_choices'] if status=='UNIQUE_FLOOR_MINUTE_FIT' else None,'solution_scores':scored})
+          except Exception as exc:
+              rec.update({'status':'ERROR','error':f'{type(exc).__name__}: {exc}'})
+          Path(f'/tmp/NONUNIQUE_2015_{gid}.json').write_text(json.dumps(rec,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in rec.items() if k!='solution_scores'},indent=2),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2015-nonunique-${{ matrix.game }}
+          path: /tmp/NONUNIQUE_2015_${{ matrix.game }}.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: diagnose-game
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-2015-nonunique-*
+          path: /tmp/results
+      - name: Aggregate available game results
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          expected=[21500025,21500359,21500515,21500523,21500587,21500624,21500674,21500721,21500916,21501197]
+          rows=[]
+          for p in Path('/tmp/results').rglob('NONUNIQUE_2015_*.json'):
+              try: rows.append(json.loads(p.read_text()))
+              except: pass
+          found=sorted(int(r['game_id']) for r in rows); missing=[g for g in expected if g not in found]; counts=Counter(r.get('status','UNKNOWN') for r in rows)
+          out={'status':'COMPLETE' if not missing else 'PARTIAL','expected_games':expected,'found_games':found,'missing_games':missing,'status_counts':dict(counts),'unique_repairs':[{'game_id':r['game_id'],'repair_choices':r.get('recommended_repair_choices')} for r in rows if r.get('status')=='UNIQUE_FLOOR_MINUTE_FIT'],'games':sorted(rows,key=lambda r:int(r['game_id']))}
+          Path('/tmp/NONUNIQUE_2015_MICRO_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2))
+          PY
+      - name: Persist checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/nonunique_2015_micro; mkdir -p "$DEST"; cp /tmp/NONUNIQUE_2015_MICRO_SUMMARY.json "$DEST"/
+          git add -f "$DEST/NONUNIQUE_2015_MICRO_SUMMARY.json"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Persist 2015 starter micro diagnostics'; git push origin HEAD:agent/treb-batched-game-facts-20260812
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2015-nonunique-micro-summary
+          path: /tmp/NONUNIQUE_2015_MICRO_SUMMARY.json
+          retention-days: 90
+          if-no-files-found: warn
