@@ -1,0 +1,14 @@
+[
+  {
+    "game_id": 20500103,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20500103 period=2 team=1610612765: starters=[739, 1497, 2230, 2545, 2568] violations=[{'kind': 'participant', 'event_num': 209, 'player_id': 2230, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20500150,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=20500150 period=1 team=1610612743: starters=[948, 1889, 1922, 2035, 2546] violations=[{'kind': 'participant', 'event_num': 116, 'player_id': 948, 'event_type': 6}]"
+  },
+  {
+    "game_id": 20500182,
+    "error": "ValueError: non-unique v3/team-local starter solution game=20500182 period=5 team=1610612755: candidates=[185, 947, 1563, 2212, 2214, 2223, 2422, 2738] prior=[947, 1563, 2223, 2422, 2738] best_score=0 solutions=[[185, 947, 1563, 2223, 2738], [185, 947, 2212, 2223, 2738], [185, 947, 2214, 2223, 2738], [185, 947, 2223, 2422, 2738]]"
+  }
+]
