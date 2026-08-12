@@ -1,0 +1,26 @@
+{
+  "status": "COMPLETE",
+  "games": [
+    {
+      "game_id": 21901316,
+      "v3_rows": 487,
+      "status": "FAIL_LINEUP",
+      "error": "CDN substitution outgoing absent game=21901316 period=3 action=3860 player=1629134 lineup=[2617, 203086, 203524, 1629130, 1629639]"
+    },
+    {
+      "game_id": 21901317,
+      "v3_rows": 569,
+      "status": "FAIL_LINEUP",
+      "error": "CDN substitution incoming already present game=21901317 period=2 action=1871 player=1628390"
+    },
+    {
+      "game_id": 21901318,
+      "v3_rows": 475,
+      "status": "FAIL_LINEUP",
+      "error": "CDN substitution outgoing absent game=21901318 period=2 action=1950 player=1626178 lineup=[1626169, 1626259, 1628449, 1628778, 1629056]"
+    }
+  ],
+  "status_counts": {
+    "FAIL_LINEUP": 3
+  }
+}
