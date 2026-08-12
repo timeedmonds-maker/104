@@ -1,0 +1,41 @@
+name: TREB DREB 22201018 escape
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-dreb-22201018-escape.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-2022-31634201123
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: 31634201123
+      - name: Run reusable DREB diagnostic on the starved heavy game
+        run: |
+          python -u team_trb_all_players/player_dreb_anchor_diagnostic.py \
+            --year 2022 --games 22201018 --chunk-id 2022-H02 \
+            --nba /tmp/source/nbastats_2022.csv --v3 /tmp/source/nbastatsv3_2022.csv --pbp /tmp/source/pbpstats_2022.csv \
+            --output /tmp/DREB_2022-H02.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('/tmp/DREB_2022-H02.json').read_text())
+          assert d['chunk_id']=='2022-H02' and d['year']==2022 and len(d['residual_rows'])==8,d
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-dreb-anchor-2022-H02-escape-${{ github.run_id }}
+          path: /tmp/DREB_2022-H02.json
+          retention-days: 90
