@@ -1,0 +1,56 @@
+name: TREB live CDN 2019 missing-game probe
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - .github/workflows/treb-live-cdn-2019-probe.yml
+      - team_trb_all_players/probe_live_cdn_2019.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Download static NBA CDN feeds
+        shell: bash
+        run: |
+          set -u
+          mkdir -p /tmp/cdn2019
+          for gid in 21901316 21901317 21901318; do
+            full="00${gid}"
+            curl --location --retry 3 --retry-all-errors --max-time 30 \
+              -o "/tmp/cdn2019/${gid}.json" \
+              "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_${full}.json" || true
+          done
+          ls -lh /tmp/cdn2019
+      - name: Test explicit-substitution reconstruction
+        run: |
+          python -u team_trb_all_players/probe_live_cdn_2019.py --raw /tmp/cdn2019 --output /tmp/LIVE_CDN_2019_PROBE.json
+      - name: Commit probe result durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
+          cp /tmp/LIVE_CDN_2019_PROBE.json team_trb_all_players/final_integrity_rebuild/LIVE_CDN_2019_PROBE.json
+          git add team_trb_all_players/final_integrity_rebuild/LIVE_CDN_2019_PROBE.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record live CDN probe for missing 2019 games"
+          git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
