@@ -1,0 +1,145 @@
+name: TREB game-fact repair diagnostics
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/REPAIR_DIAGNOSTIC_CONTROL.json
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  diagnose:
+    strategy:
+      fail-fast: false
+      max-parallel: 19
+      matrix:
+        year: [2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024]
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Fetch consolidated failure list
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin treb-game-fact-qa-consolidation
+          git show origin/treb-game-fact-qa-consolidation:team_trb_all_players/final_integrity_rebuild/game_fact_qa_consolidated/FAILED_GAMES.csv > /tmp/FAILED_GAMES.csv
+      - name: Download season sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess, tarfile, urllib.request
+          from pathlib import Path
+          year=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{year}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for key in [f'nbastats_{year}',f'nbastatsv3_{year}',f'pbpstats_{year}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Diagnose repair classes
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"
+          NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
+          V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
+          PBP=$(find "$RAW" -name "pbpstats_${YEAR}.csv" -print -quit)
+          python -u team_trb_all_players/diagnose_game_fact_repairs.py --year "$YEAR" --failed /tmp/FAILED_GAMES.csv --nba "$NBA" --v3 "$V3" --pbp "$PBP" --output "/tmp/repair-diag-${YEAR}.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-repair-diag-${{ matrix.year }}
+          path: /tmp/repair-diag-${{ matrix.year }}.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-repair-diag-*
+          path: /tmp/repair-diags
+          merge-multiple: true
+      - name: Aggregate repair diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          records=[]; years=[]
+          for p in sorted(Path('/tmp/repair-diags').glob('repair-diag-*.json')):
+              d=json.loads(p.read_text()); years.append(d['year']); records.extend(d.get('records',[]))
+          classes=Counter(r.get('class','unknown') for r in records)
+          missing=[r for r in records if r.get('class')=='missing_transition']
+          unmatched=[r for r in records if r.get('class')=='unmatched_rebound']
+          nonunique=[r for r in records if r.get('class')=='nonunique_starter']
+          payload={
+            'years_found':years,
+            'records':len(records),
+            'class_counts':dict(classes),
+            'missing_transition':{
+              'records':len(missing),
+              'safe_single_swap_for_rebound_counts':sum(bool(r.get('safe_single_swap_for_rebound_counts')) for r in missing),
+              'unique_legal_outgoing':sum(r.get('legal_outgoing_count')==1 for r in missing),
+              'zero_legal_outgoing':sum(r.get('legal_outgoing_count')==0 for r in missing),
+              'multiple_legal_outgoing':sum((r.get('legal_outgoing_count') or 0)>1 for r in missing),
+              'zero_rebounds_uncertainty_window':sum(r.get('rebound_rows_in_uncertainty_window')==0 for r in missing),
+            },
+            'unmatched_rebound':{
+              'records':len(unmatched),
+              'bounded_match_expansion_resolves':sum(bool(r.get('resolvable_by_bounded_match_expansion')) for r in unmatched),
+            },
+            'nonunique_starter':{
+              'records':len(nonunique),
+              'one_full_game_solution':sum(r.get('full_game_solution_count')==1 for r in nonunique),
+              'multiple_full_game_solutions':sum((r.get('full_game_solution_count') or 0)>1 for r in nonunique),
+              'no_full_game_solution':sum(r.get('full_game_solution_count')==0 for r in nonunique),
+            },
+            'diagnostic_errors':sum('diagnostic_error' in r for r in records),
+            'all_records':records,
+          }
+          out=Path('/tmp/TREB_REPAIR_DIAGNOSTIC_SUMMARY.json'); out.write_text(json.dumps(payload,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in payload.items() if k!='all_records'},indent=2))
+          PY
+      - name: Persist diagnostic summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          BR=treb-game-fact-repair-diagnostics
+          git checkout -B "$BR" "${{ github.sha }}"
+          DEST=team_trb_all_players/final_integrity_rebuild/repair_diagnostics
+          mkdir -p "$DEST"; cp /tmp/TREB_REPAIR_DIAGNOSTIC_SUMMARY.json "$DEST"/
+          git add -f "$DEST"; git commit -m 'Persist TREB repair diagnostics'; git push --force origin HEAD:"$BR"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-repair-diagnostic-summary
+          path: /tmp/TREB_REPAIR_DIAGNOSTIC_SUMMARY.json
+          retention-days: 90
