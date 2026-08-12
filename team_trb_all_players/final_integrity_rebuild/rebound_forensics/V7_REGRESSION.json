@@ -1,0 +1,1254 @@
+{
+  "status": "PASS",
+  "workflow_run_id": 31648276301,
+  "engine": "production_rebound_v7",
+  "prior_v6_residual_rows": 20,
+  "promoted_v7_rows": 1,
+  "v7_residual_rows": 19,
+  "lineup_interval_invariant_controls": {
+    "applicable": 4682,
+    "correct": 4682,
+    "wrong": 0
+  },
+  "named_player_live_controls": {
+    "applicable": 5034,
+    "correct": 5034,
+    "wrong": 0
+  },
+  "counter_credited_player_live_controls": {
+    "applicable": 5163,
+    "correct": 5163,
+    "wrong": 0
+  },
+  "existing_control_regressions": 0,
+  "residual_rows": [
+    {
+      "game_id": 21700032,
+      "pbp_index": 4988,
+      "period": 2,
+      "start_time": "06:45",
+      "end_time": "06:22",
+      "description": "Mavericks Rebound",
+      "pbp_is_oreb": true,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": [
+          2772,
+          201569,
+          201583,
+          201935,
+          202083,
+          203084,
+          203457,
+          203939,
+          203991,
+          1627812
+        ],
+        "endpoint_gap0": [
+          2772,
+          201569,
+          201583,
+          201935,
+          202083,
+          203084,
+          203457,
+          203939,
+          203991,
+          1627812
+        ],
+        "endpoint_gap1": [
+          2772,
+          201569,
+          201583,
+          201935,
+          202083,
+          203084,
+          203457,
+          203939,
+          203991,
+          1627812
+        ],
+        "endpoint_gap2": [
+          2772,
+          201569,
+          201583,
+          201935,
+          202083,
+          203084,
+          203457,
+          203939,
+          203991,
+          1627812
+        ],
+        "endpoint_gap3": [
+          2772,
+          201569,
+          201583,
+          201935,
+          202083,
+          203084,
+          203457,
+          203939,
+          203991,
+          1627812
+        ],
+        "endpoint_gap5": [
+          2772,
+          201569,
+          201583,
+          201935,
+          202083,
+          203084,
+          203457,
+          203939,
+          203991,
+          1627812
+        ],
+        "clock_invariant": [
+          2772,
+          201569,
+          201583,
+          201935,
+          202083,
+          203084,
+          203457,
+          203939,
+          203991,
+          1627812
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": [
+          2772,
+          201569,
+          201583,
+          201935,
+          202083,
+          203084,
+          203457,
+          203939,
+          203991,
+          1627812
+        ]
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": null,
+        "pbp_offensive_rebound": true
+      }
+    },
+    {
+      "game_id": 21700032,
+      "pbp_index": 5033,
+      "period": 1,
+      "start_time": "04:45",
+      "end_time": "04:01",
+      "description": "Harden REBOUND (Off:0 Def:1)",
+      "pbp_is_oreb": false,
+      "resolved_player_id": 201935,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ],
+        "endpoint_gap1": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ],
+        "endpoint_gap2": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ],
+        "endpoint_gap3": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ],
+        "endpoint_gap5": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ],
+        "clock_invariant": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": true,
+        "resolved_named_player": true,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 21700042,
+      "pbp_index": 7322,
+      "period": 2,
+      "start_time": "01:27",
+      "end_time": "01:12",
+      "description": "Johnson REBOUND",
+      "pbp_is_oreb": false,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 21700077,
+      "pbp_index": 8523,
+      "period": 2,
+      "start_time": "04:34",
+      "end_time": "03:59",
+      "description": "Holiday REBOUND (Off:0 Def:3)",
+      "pbp_is_oreb": false,
+      "resolved_player_id": 201950,
+      "lineup_predictions": {
+        "prior_miss_exact": [
+          2544,
+          2548,
+          2747,
+          201567,
+          201950,
+          201967,
+          202684,
+          202734,
+          203076,
+          203546
+        ],
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": true,
+        "resolved_named_player": true,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 21700363,
+      "pbp_index": 6774,
+      "period": 1,
+      "start_time": "05:19",
+      "end_time": "05:15",
+      "description": "Ball REBOUND (Off:0 Def:2)",
+      "pbp_is_oreb": false,
+      "resolved_player_id": 1628366,
+      "lineup_predictions": {
+        "prior_miss_exact": [
+          101161,
+          200755,
+          201572,
+          203484,
+          204456,
+          1627732,
+          1627742,
+          1627789,
+          1628366,
+          1628398
+        ],
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": true,
+        "resolved_named_player": true,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 21700494,
+      "pbp_index": 7412,
+      "period": 4,
+      "start_time": "01:10",
+      "end_time": "00:30",
+      "description": "Cavaliers Rebound",
+      "pbp_is_oreb": false,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": [
+          2544,
+          2548,
+          2738,
+          2747,
+          201142,
+          201145,
+          202691,
+          203109,
+          203110,
+          1628395
+        ],
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 21800689,
+      "pbp_index": 1396,
+      "period": 4,
+      "start_time": "00:00",
+      "end_time": "11:46",
+      "description": "TIMBERWOLVES Rebound",
+      "pbp_is_oreb": false,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "endpoint_gap1": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "endpoint_gap2": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "endpoint_gap3": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "endpoint_gap5": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "clock_invariant": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 21800689,
+      "pbp_index": 1398,
+      "period": 4,
+      "start_time": "00:00",
+      "end_time": "11:46",
+      "description": "Suns Rebound",
+      "pbp_is_oreb": false,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "endpoint_gap1": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "endpoint_gap2": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "endpoint_gap3": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "endpoint_gap5": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "clock_invariant": [
+          2037,
+          201229,
+          201565,
+          201573,
+          203112,
+          203933,
+          203952,
+          203967,
+          1626164,
+          1628969
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": null,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 21900121,
+      "pbp_index": 47,
+      "period": 4,
+      "start_time": "10:36",
+      "end_time": "10:16",
+      "description": "Siakam REBOUND (Off:3 Def:6)",
+      "pbp_is_oreb": false,
+      "resolved_player_id": 1627783,
+      "lineup_predictions": {
+        "prior_miss_exact": [
+          201188,
+          202734,
+          1626259,
+          1627783,
+          1628402,
+          1629026,
+          1629056,
+          1629637,
+          1629638,
+          1629744
+        ],
+        "endpoint_gap0": [
+          201188,
+          202734,
+          1626259,
+          1627783,
+          1628402,
+          1629026,
+          1629056,
+          1629637,
+          1629638,
+          1629744
+        ],
+        "endpoint_gap1": [
+          201188,
+          202734,
+          1626259,
+          1627783,
+          1628402,
+          1629026,
+          1629056,
+          1629637,
+          1629638,
+          1629744
+        ],
+        "endpoint_gap2": [
+          201188,
+          202734,
+          1626259,
+          1627783,
+          1628402,
+          1629026,
+          1629056,
+          1629637,
+          1629638,
+          1629744
+        ],
+        "endpoint_gap3": [
+          201188,
+          202734,
+          1626259,
+          1627783,
+          1628402,
+          1629026,
+          1629056,
+          1629637,
+          1629638,
+          1629744
+        ],
+        "endpoint_gap5": [
+          201188,
+          202734,
+          1626259,
+          1627783,
+          1628402,
+          1629026,
+          1629056,
+          1629637,
+          1629638,
+          1629744
+        ],
+        "clock_invariant": [
+          201188,
+          202734,
+          1626259,
+          1627783,
+          1628402,
+          1629026,
+          1629056,
+          1629637,
+          1629638,
+          1629744
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": [
+          201188,
+          202734,
+          1626259,
+          1627783,
+          1628402,
+          1629026,
+          1629056,
+          1629637,
+          1629638,
+          1629744
+        ]
+      },
+      "live_predictions": {
+        "counter_credited_player": true,
+        "resolved_named_player": true,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 22101023,
+      "pbp_index": 256,
+      "period": 3,
+      "start_time": "02:56",
+      "end_time": "02:51",
+      "description": "THUNDER Rebound",
+      "pbp_is_oreb": false,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 22201076,
+      "pbp_index": 494,
+      "period": 3,
+      "start_time": "06:14",
+      "end_time": "05:53",
+      "description": "[UTA] Agbaji Rebound (Off:1 Def:3)",
+      "pbp_is_oreb": true,
+      "resolved_player_id": 1630534,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": [
+          200752,
+          1626168,
+          1627734,
+          1627739,
+          1628368,
+          1628370,
+          1630534,
+          1630548,
+          1631099,
+          1631117
+        ],
+        "endpoint_gap1": [
+          200752,
+          1626168,
+          1627734,
+          1627739,
+          1628368,
+          1628370,
+          1630534,
+          1630548,
+          1631099,
+          1631117
+        ],
+        "endpoint_gap2": [
+          200752,
+          1626168,
+          1627734,
+          1627739,
+          1628368,
+          1628370,
+          1630534,
+          1630548,
+          1631099,
+          1631117
+        ],
+        "endpoint_gap3": [
+          200752,
+          1626168,
+          1627734,
+          1627739,
+          1628368,
+          1628370,
+          1630534,
+          1630548,
+          1631099,
+          1631117
+        ],
+        "endpoint_gap5": [
+          200752,
+          1626168,
+          1627734,
+          1627739,
+          1628368,
+          1628370,
+          1630534,
+          1630548,
+          1631099,
+          1631117
+        ],
+        "clock_invariant": [
+          200752,
+          1626168,
+          1627734,
+          1627739,
+          1628368,
+          1628370,
+          1630534,
+          1630548,
+          1631099,
+          1631117
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": true,
+        "resolved_named_player": true,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": true
+      }
+    },
+    {
+      "game_id": 22201076,
+      "pbp_index": 529,
+      "period": 2,
+      "start_time": "04:00",
+      "end_time": "03:43",
+      "description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+      "pbp_is_oreb": false,
+      "resolved_player_id": 1627734,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": [
+          203084,
+          203482,
+          1627734,
+          1627739,
+          1630534,
+          1630556,
+          1630558,
+          1631099,
+          1631117,
+          1631323
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": true,
+        "resolved_named_player": true,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 22201187,
+      "pbp_index": 1569,
+      "period": 4,
+      "start_time": "02:47",
+      "end_time": "02:28",
+      "description": "[GSW] Team Rebound",
+      "pbp_is_oreb": true,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "endpoint_gap1": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "endpoint_gap2": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "endpoint_gap3": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "endpoint_gap5": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "clock_invariant": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": null,
+        "pbp_offensive_rebound": true
+      }
+    },
+    {
+      "game_id": 22201187,
+      "pbp_index": 1573,
+      "period": 4,
+      "start_time": "02:47",
+      "end_time": "02:28",
+      "description": "[GSW] Team Rebound",
+      "pbp_is_oreb": false,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "endpoint_gap1": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "endpoint_gap2": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "endpoint_gap3": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "endpoint_gap5": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "clock_invariant": [
+          201939,
+          203110,
+          1626172,
+          1628978,
+          1629673,
+          1630215,
+          1630544,
+          1630598,
+          1630846,
+          1631172
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": null,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 22200322,
+      "pbp_index": 3388,
+      "period": 2,
+      "start_time": "12:00",
+      "end_time": "11:40",
+      "description": "Clippers Rebound",
+      "pbp_is_oreb": false,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": [
+          201587,
+          202322,
+          203496,
+          1627736,
+          1628374,
+          1629012,
+          1629020,
+          1630527,
+          1631217,
+          1631323
+        ],
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": null
+      }
+    },
+    {
+      "game_id": 22200331,
+      "pbp_index": 3717,
+      "period": 3,
+      "start_time": "01:04",
+      "end_time": "01:02",
+      "description": "BUCKS Rebound",
+      "pbp_is_oreb": true,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": [
+          201566,
+          201588,
+          203114,
+          203507,
+          1626171,
+          1626192,
+          1628418,
+          1628972,
+          1629117,
+          1630559
+        ],
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": true
+      }
+    },
+    {
+      "game_id": 22200331,
+      "pbp_index": 3912,
+      "period": 3,
+      "start_time": "02:50",
+      "end_time": "02:32",
+      "description": "Lakers Rebound",
+      "pbp_is_oreb": true,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": true
+      }
+    },
+    {
+      "game_id": 22200733,
+      "pbp_index": 5955,
+      "period": 2,
+      "start_time": "07:03",
+      "end_time": "06:48",
+      "description": "Cavaliers Rebound",
+      "pbp_is_oreb": true,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": [
+          1626224,
+          1627747,
+          1628386,
+          1629636,
+          1629726,
+          1630227,
+          1630578,
+          1630596,
+          1631095,
+          1631102
+        ],
+        "endpoint_gap0": null,
+        "endpoint_gap1": null,
+        "endpoint_gap2": null,
+        "endpoint_gap3": null,
+        "endpoint_gap5": null,
+        "clock_invariant": null,
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": true,
+        "pbp_offensive_rebound": true
+      }
+    },
+    {
+      "game_id": 22400072,
+      "pbp_index": 288,
+      "period": 3,
+      "start_time": "02:04",
+      "end_time": "01:52",
+      "description": "Warriors Rebound",
+      "pbp_is_oreb": true,
+      "resolved_player_id": null,
+      "lineup_predictions": {
+        "prior_miss_exact": null,
+        "endpoint_gap0": [
+          203937,
+          1626172,
+          1629001,
+          1630541,
+          1630625,
+          1630703,
+          1631200,
+          1641712,
+          1641764,
+          1642270
+        ],
+        "endpoint_gap1": [
+          203937,
+          1626172,
+          1629001,
+          1630541,
+          1630625,
+          1630703,
+          1631200,
+          1641712,
+          1641764,
+          1642270
+        ],
+        "endpoint_gap2": [
+          203937,
+          1626172,
+          1629001,
+          1630541,
+          1630625,
+          1630703,
+          1631200,
+          1641712,
+          1641764,
+          1642270
+        ],
+        "endpoint_gap3": [
+          203937,
+          1626172,
+          1629001,
+          1630541,
+          1630625,
+          1630703,
+          1631200,
+          1641712,
+          1641764,
+          1642270
+        ],
+        "endpoint_gap5": [
+          203937,
+          1626172,
+          1629001,
+          1630541,
+          1630625,
+          1630703,
+          1631200,
+          1641712,
+          1641764,
+          1642270
+        ],
+        "clock_invariant": [
+          203937,
+          1626172,
+          1629001,
+          1630541,
+          1630625,
+          1630703,
+          1631200,
+          1641712,
+          1641764,
+          1642270
+        ],
+        "interval_invariant": null,
+        "dual_miss_endpoint": null
+      },
+      "live_predictions": {
+        "counter_credited_player": null,
+        "resolved_named_player": null,
+        "non_team_named_rebound": null,
+        "pbp_offensive_rebound": true
+      }
+    }
+  ]
+}
