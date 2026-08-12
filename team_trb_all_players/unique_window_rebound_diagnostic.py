@@ -106,7 +106,7 @@ def main() -> int:
     v3_groups={int(g):f.copy() for g,f in v3[v3.gameId.isin(targets)].groupby('gameId',sort=False)}
     pbp_groups={int(g):f.copy() for g,f in pbp[pbp.GAMEID.isin(targets)].groupby('GAMEID',sort=False)}
 
-    games=[]; control_applicable=control_correct=control_wrong=0
+    games=[]; control_applicable=control_correct=control_wrong=control_duplicate_skipped=0
     for gid in targets:
         try:
             lineups=lineup_engine.reconstruct_game_lineups(nba_groups[gid], v3_groups[gid])
@@ -117,11 +117,15 @@ def main() -> int:
             joined_idx=set(joined.index)
             used=set(assignment_counts)
 
-            # Back-test: if the proposed uniqueness condition applies to a row that
-            # already has a production match, it must force that same NBA event.
+            # Back-test only independent one-to-one legacy matches. If the legacy
+            # join reused an NBA event, that row cannot serve as ground truth for
+            # a one-to-one uniqueness test and is explicitly excluded.
             for idx,jrow in joined.iterrows():
                 actual=int(jrow.NBA_INDEX)
-                used_other={u for u,c in assignment_counts.items() if u != actual or c > 1}
+                if assignment_counts[actual] != 1:
+                    control_duplicate_skipped += 1
+                    continue
+                used_other=used-{actual}
                 src=rows.loc[idx]
                 cands=window_candidates(nba_ev,src,used_other)
                 if len(cands)==1:
@@ -172,6 +176,7 @@ def main() -> int:
         "control_applicable":control_applicable,
         "control_correct":control_correct,
         "control_wrong":control_wrong,
+        "control_duplicate_skipped":control_duplicate_skipped,
         "games":games,
     }
     args.output.write_text(json.dumps(out,indent=2)+'\n')
