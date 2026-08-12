@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "scope": "Final TREB production database QA only; does not weaken locked regression/canary tests.",
+  "locked_regressions": {
+    "tolerance": "exact",
+    "note": "Steven Adams 2016-17 and other designated gold-standard regressions remain exact on all locked fields."
+  },
+  "production_seconds": {
+    "player_game_absolute_tolerance_seconds": 2,
+    "player_season_relative_tolerance_pct": 0.05,
+    "condition": "A seconds discrepancy is tolerance-eligible only if it does not alter attribution of any rebound event, team identity, tenure boundary, or lineup membership at a rebound timestamp."
+  },
+  "production_rebounds": {
+    "systematic_errors": "must_fix",
+    "irreducible_uncertainty_max_metric_effect_pp": 0.01,
+    "affected_metrics": [
+      "on_reb_pct",
+      "off_reb_pct",
+      "swing_pp"
+    ],
+    "acceptance_rule": "Only accept unresolved rebound uncertainty when the mathematically worst-case assignment of every unresolved rebound cannot change any affected published metric by more than 0.01 percentage points for the relevant aggregate.",
+    "qa_status": "materiality_accepted",
+    "required_audit_fields": [
+      "unresolved_rebounds",
+      "max_possible_metric_error_pp",
+      "affected_game_ids",
+      "evidence_note"
+    ]
+  },
+  "never_tolerated_when_material": [
+    "wrong team",
+    "wrong trade or tenure boundary",
+    "wrong player identity",
+    "lineup error that changes rebound attribution",
+    "known systematic rebound classification error",
+    "silent row dropping or truncation"
+  ]
+}
