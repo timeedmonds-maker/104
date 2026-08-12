@@ -19,14 +19,29 @@ jobs:
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
-      - name: Download all historical fanout artifacts
-        uses: actions/download-artifact@v4
-        with:
-          repository: ${{ github.repository }}
-          run-id: 31569006637
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          pattern: treb-fanout-*
-          path: /tmp/treb-fanout-qa
+      - name: Download all 240 historical fanout artifacts with pagination
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ROOT=/tmp/treb-fanout-qa
+          mkdir -p "$ROOT"
+          gh api --paginate "/repos/${GITHUB_REPOSITORY}/actions/runs/31569006637/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name | startswith("treb-fanout-")) | [.id,.name] | @tsv' > /tmp/artifacts.tsv
+          COUNT=$(wc -l < /tmp/artifacts.tsv)
+          echo "ARTIFACTS_DISCOVERED=$COUNT"
+          [ "$COUNT" -eq 240 ]
+          while IFS=$'\t' read -r ID NAME; do
+            mkdir -p "$ROOT/$NAME"
+            curl --fail --location --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ID}/zip" \
+              -o "/tmp/${NAME}.zip"
+            unzip -q "/tmp/${NAME}.zip" -d "$ROOT/$NAME"
+            rm -f "/tmp/${NAME}.zip"
+          done < /tmp/artifacts.tsv
       - name: Consolidate QA and failures
         shell: bash
         run: |
@@ -34,14 +49,15 @@ jobs:
           OUT=/tmp/treb-qa-consolidated
           mkdir -p "$OUT"
           python - <<'PY'
-          import csv, json
+          import csv, json, re
           from collections import Counter, defaultdict
           from pathlib import Path
 
           root=Path('/tmp/treb-fanout-qa')
           out=Path('/tmp/treb-qa-consolidated')
           qas=[]; failed_games=[]; missing=[]
-          for d in sorted(p for p in root.iterdir() if p.is_dir()):
+          dirs=sorted(p for p in root.iterdir() if p.is_dir())
+          for d in dirs:
               q=d/'qa.json'; f=d/'failures.json'
               if not q.exists():
                   missing.append(d.name); continue
@@ -51,16 +67,24 @@ jobs:
               if f.exists():
                   failures=json.loads(f.read_text())
                   for row in failures:
+                      err=row.get('error') or ''
                       failed_games.append({
                           'season':qa.get('season'),
                           'batch_index':qa.get('batch_index'),
                           'artifact':d.name,
                           'game_id':row.get('game_id'),
-                          'error':row.get('error'),
+                          'error':err,
                       })
           qas.sort(key=lambda x:(x.get('season',''), int(x.get('batch_index',-1))))
           failed_games.sort(key=lambda x:(x.get('season',''), int(x.get('batch_index',-1)), int(x.get('game_id') or 0)))
           status_counts=Counter(q.get('status') for q in qas)
+          error_type_counts=Counter((x['error'].split(':',1)[0] or 'UNKNOWN') for x in failed_games)
+          error_signature_counts=Counter()
+          for x in failed_games:
+              e=x['error']
+              e=re.sub(r'\b\d{6,}\b','<ID>',e)
+              e=re.sub(r'\b\d+(?:\.\d+)?\b','<N>',e)
+              error_signature_counts[e[:220]]+=1
           by_season=defaultdict(lambda:{'batches':0,'pass_batches':0,'repair_batches':0,'games_requested':0,'successful_games':0,'failed_games':0})
           for q in qas:
               s=q.get('season')
@@ -70,6 +94,7 @@ jobs:
           summary={
               'source_run_id':31569006637,
               'expected_artifacts':240,
+              'artifact_directories_found':len(dirs),
               'qa_files_found':len(qas),
               'missing_qa_artifacts':missing,
               'status_counts':dict(status_counts),
@@ -78,9 +103,12 @@ jobs:
               'successful_games':sum(int(q.get('successful_games',0)) for q in qas),
               'failed_games':len(failed_games),
               'unique_failed_game_ids':len({str(x.get('game_id')) for x in failed_games}),
+              'failure_rate_pct':round(100*len(failed_games)/max(1,sum(int(q.get('games_requested',0)) for q in qas)),4),
               'seasons_with_failures':sorted({x['season'] for x in failed_games}),
+              'error_type_counts':dict(error_type_counts.most_common()),
+              'top_error_signatures':dict(error_signature_counts.most_common(30)),
               'season_summary':dict(sorted(by_season.items())),
-              'status':'PASS' if len(qas)==240 and not missing and not failed_games else 'REPAIR_REQUIRED',
+              'status':'PASS' if len(dirs)==240 and len(qas)==240 and not missing and not failed_games else 'REPAIR_REQUIRED',
           }
           (out/'QA_CONSOLIDATED_SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n')
           (out/'FAILED_GAMES.json').write_text(json.dumps(failed_games,indent=2)+'\n')
