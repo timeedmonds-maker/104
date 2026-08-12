@@ -5,85 +5,45 @@
     "LineupOpponent": [
       {
         "attempt": 1,
-        "status_code": 500,
-        "elapsed_s": 14.283
+        "status_code": 502,
+        "elapsed_s": 6.037
       },
       {
         "attempt": 2,
         "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.222
+        "elapsed_s": 30.095
       },
       {
         "attempt": 3,
         "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 35.211
+        "elapsed_s": 30.155
       },
       {
         "attempt": 4,
         "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.208
+        "elapsed_s": 30.093
       },
       {
         "attempt": 5,
-        "status_code": 502,
-        "elapsed_s": 23.529
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.105
       },
       {
         "attempt": 6,
-        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.19
-      },
-      {
-        "attempt": 7,
-        "status_code": 500,
-        "elapsed_s": 4.289
-      },
-      {
-        "attempt": 8,
-        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.243
-      },
-      {
-        "attempt": 9,
-        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.178
-      },
-      {
-        "attempt": 10,
-        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.223
-      },
-      {
-        "attempt": 11,
-        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.285
-      },
-      {
-        "attempt": 12,
         "status_code": 200,
-        "elapsed_s": 9.875
+        "elapsed_s": 24.548
       }
     ],
     "Lineup": [
       {
         "attempt": 1,
-        "status_code": 502,
-        "elapsed_s": 21.281
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.107
       },
       {
         "attempt": 2,
-        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.158
-      },
-      {
-        "attempt": 3,
-        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
-        "elapsed_s": 30.184
-      },
-      {
-        "attempt": 4,
         "status_code": 200,
-        "elapsed_s": 18.591
+        "elapsed_s": 18.784
       }
     ]
   },
