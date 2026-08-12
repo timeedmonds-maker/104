@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import ast
 from itertools import combinations
 import json
 from pathlib import Path
+import re
 
 import pandas as pd
 
@@ -15,13 +17,11 @@ import modern_cdn_lineups as modern
 BASE = Path(__file__).resolve().parent
 TARGETS = BASE / 'final_integrity_rebuild' / 'EXCLUDED_GAME_REPAIR_TARGETS.json'
 
-# Ambiguities remaining after V3 chronology/team-local carry.  Trialing is
-# deliberately explicit and game-period-team keyed.  No generic lineup rule is
-# relaxed.  A trial must survive full-game reconstruction before its seconds are
-# recorded for comparison with independent CC0 player-minute evidence.
+# First ambiguity exposed by the current diagnostic engine for each unresolved
+# game.  These complete pools seed a recursive search.  Once one choice is
+# supplied, later ambiguities are discovered and branched automatically.
 AMBIGUOUS_TRIALS = {
     20201160: {'period': 5, 'team_id': 1610612765, 'fixed': [361, 688, 1497, 2246], 'variable': [1088, 1442, 1888]},
-    20400335: {'period': 2, 'team_id': 1610612740, 'fixed': [1924, 2365, 2424, 2437, 2454], 'variable': []},
     20600887: {'period': 5, 'team_id': 1610612750, 'fixed': [1729, 201147, 201567, 200826], 'variable': [1536, 2033]},
     20700319: {'period': 4, 'team_id': 1610612752, 'fixed': [2446, 2546, 2754, 201163], 'variable': [255, 1897, 2756, 101181]},
     20800142: {'period': 5, 'team_id': 1610612752, 'fixed': [2037, 2047, 2768, 201163], 'variable': [2216, 200776]},
@@ -30,6 +30,8 @@ AMBIGUOUS_TRIALS = {
     21800143: {'period': 6, 'team_id': 1610612741, 'fixed': [201577, 203897, 203953, 1626166], 'variable': [202703, 203487, 203200, 1627885]},
     22000485: {'period': 1, 'team_id': 1610612742, 'fixed': [201599, 202710, 203083, 203939], 'variable': [1628973, 1630179, 201144]},
 }
+MISSING_TRANSITION_GAME = 20400335
+MAX_SEARCH_STATES = 2500
 
 
 def normalize_v3(df: pd.DataFrame) -> pd.DataFrame:
@@ -55,41 +57,136 @@ def trial_combos(spec: dict) -> list[tuple[int, ...]]:
     return [tuple(sorted(fixed + choice)) for choice in combinations(variable, need)]
 
 
-def enumerate_full_game_trials(legacy_game: pd.DataFrame, v3_game: pd.DataFrame, gid: int) -> dict | None:
-    spec = AMBIGUOUS_TRIALS.get(int(gid))
-    if spec is None or legacy_game.empty:
-        return None
-    key = (int(gid), int(spec['period']), int(spec['team_id']))
+def _state_signature(state: dict[tuple[int, int, int], tuple[int, ...]]) -> tuple:
+    return tuple(sorted((key, tuple(value)) for key, value in state.items()))
+
+
+def _with_repairs_reconstruct(legacy_game: pd.DataFrame, v3_game: pd.DataFrame, state: dict):
     repair_map = v3engine.legacy.core.STARTER_REPAIRS
-    previous = repair_map.get(key)
-    candidates_of_interest = sorted(set(int(x) for x in spec['fixed'] + spec['variable']))
-    successful = []
-    failures = []
+    previous = {k: repair_map.get(k) for k in state}
     try:
-        for combo in trial_combos(spec):
-            repair_map[key] = list(combo)
-            try:
-                lu = v3engine.reconstruct_game_lineups(legacy_game, v3_game)
-                successful.append({
-                    'starters': list(combo),
-                    'candidate_seconds': {str(pid): int(lu.seconds.get(pid, 0)) for pid in candidates_of_interest},
-                    'players_with_seconds': int(len(lu.seconds)),
-                })
-            except Exception as exc:
-                failures.append({'starters': list(combo), 'error': str(exc)})
+        for key, starters in state.items():
+            repair_map[key] = list(starters)
+        return v3engine.reconstruct_game_lineups(legacy_game, v3_game)
     finally:
-        if previous is None:
-            repair_map.pop(key, None)
+        for key, value in previous.items():
+            if value is None:
+                repair_map.pop(key, None)
+            else:
+                repair_map[key] = value
+
+
+def _parse_list(error: str, label: str) -> list[int] | None:
+    m = re.search(rf'{re.escape(label)}=(\[[^\]]*\])', error)
+    if not m:
+        return None
+    try:
+        return [int(x) for x in ast.literal_eval(m.group(1))]
+    except Exception:
+        return None
+
+
+def _next_ambiguity(error: str, legacy_game: pd.DataFrame, v3_game: pd.DataFrame):
+    m = re.search(r'non-unique v3/team-local starter solution game=(\d+) period=(\d+) team=(\d+):', error)
+    if not m:
+        return None
+    game_id, period_number, team_id = map(int, m.groups())
+    candidates = _parse_list(error, 'candidates')
+    prior = _parse_list(error, 'prior') or []
+    if candidates is None:
+        return None
+
+    prepared, _ = v3engine.legacy.prepare_nba_game(legacy_game)
+    prepared = prepared.copy()
+    prepared['DESCRIPTION_NORM'] = v3engine.core.nba_description(prepared)
+    prepared['ELAPSED'] = [v3engine.core.elapsed_seconds(int(p), c) for p, c in zip(prepared.PERIOD, prepared.PCTIMESTRING)]
+    order_map = v3engine._v3_action_map(v3_game)
+    prepared['V3_ORDER'] = [order_map.get((int(p), int(ev)), 10_000_000 + int(ev)) for p, ev in zip(prepared.PERIOD, prepared.EVENTNUM)]
+    period = prepared[prepared.PERIOD.eq(period_number)].sort_values(['ELAPSED', 'V3_ORDER', 'EVENTNUM'], kind='stable')
+    player_team = v3engine.core._player_team(prepared)
+
+    pool = set(candidates) | set(prior)
+    if len(pool) < 5:
+        return None
+    if len(candidates) < 5:
+        combos = [set(c) for c in combinations(sorted(pool), 5) if set(candidates).issubset(c)]
+    else:
+        combos = [set(c) for c in combinations(sorted(candidates), 5)]
+    evaluated = []
+    for combo in combos:
+        legal, violations = v3engine._simulate_team(period, team_id, combo, player_team)
+        if legal:
+            evaluated.append((len(violations), tuple(sorted(combo))))
+    if not evaluated:
+        return None
+    best_score = min(x[0] for x in evaluated)
+    solutions = sorted({x[1] for x in evaluated if x[0] == best_score})
+    if best_score != 0:
+        return None
+    return (game_id, period_number, team_id), solutions
+
+
+def search_full_game_repairs(legacy_game: pd.DataFrame, v3_game: pd.DataFrame, gid: int) -> dict | None:
+    spec = AMBIGUOUS_TRIALS.get(int(gid))
+    if spec is None:
+        return None
+    first_key = (int(gid), int(spec['period']), int(spec['team_id']))
+    queue = [{first_key: combo} for combo in trial_combos(spec)]
+    seen = set()
+    successes = []
+    terminal_failures = []
+    explored = 0
+
+    while queue and explored < MAX_SEARCH_STATES:
+        state = queue.pop(0)
+        sig = _state_signature(state)
+        if sig in seen:
+            continue
+        seen.add(sig)
+        explored += 1
+        try:
+            lu = _with_repairs_reconstruct(legacy_game, v3_game, state)
+            successes.append({
+                'repair_choices': [
+                    {'game_id': k[0], 'period': k[1], 'team_id': k[2], 'starters': list(starters)}
+                    for k, starters in sorted(state.items())
+                ],
+                'player_seconds': {str(pid): int(sec) for pid, sec in sorted(lu.seconds.items())},
+                'players_with_seconds': int(len(lu.seconds)),
+            })
+            continue
+        except Exception as exc:
+            error = str(exc)
+        nxt = _next_ambiguity(error, legacy_game, v3_game)
+        if nxt is not None:
+            key, solutions = nxt
+            if key in state:
+                terminal_failures.append({'repair_choices': [list(x) for x in sig], 'error': error})
+                continue
+            for solution in solutions:
+                branch = dict(state)
+                branch[key] = tuple(solution)
+                queue.append(branch)
         else:
-            repair_map[key] = previous
+            terminal_failures.append({
+                'repair_choices': [
+                    {'game_id': k[0], 'period': k[1], 'team_id': k[2], 'starters': list(starters)}
+                    for k, starters in sorted(state.items())
+                ],
+                'error': error,
+            })
+
     return {
-        'period': int(spec['period']),
-        'team_id': int(spec['team_id']),
-        'fixed': [int(x) for x in spec['fixed']],
-        'variable': [int(x) for x in spec['variable']],
-        'trials_attempted': len(successful) + len(failures),
-        'full_game_successes': successful,
-        'full_game_failures': failures,
+        'initial_period': int(spec['period']),
+        'initial_team_id': int(spec['team_id']),
+        'states_explored': explored,
+        'state_limit': MAX_SEARCH_STATES,
+        'queue_remaining_at_stop': len(queue),
+        'full_game_solution_count': len(successes),
+        'full_game_solutions': successes,
+        'terminal_failure_count': len(terminal_failures),
+        'terminal_failures': terminal_failures[:100],
+        'search_complete': not queue,
     }
 
 
@@ -117,7 +214,11 @@ def main() -> int:
             if not g.empty:
                 try:
                     lu = modern.reconstruct_game_lineups(g)
-                    row.update({'status': 'PASS_CDN', 'source': 'cdnnba', 'players_with_seconds': len(lu.seconds), 'repairs': lu.repairs})
+                    row.update({
+                        'status': 'PASS_CDN', 'source': 'cdnnba',
+                        'players_with_seconds': len(lu.seconds), 'repairs': lu.repairs,
+                        'player_seconds': {str(pid): int(round(sec)) for pid, sec in sorted(lu.seconds.items())},
+                    })
                     result['games'].append(row)
                     continue
                 except Exception as exc:
@@ -132,13 +233,24 @@ def main() -> int:
             continue
         try:
             lu = v3engine.reconstruct_game_lineups(legacy_game, v3_game)
-            row.update({'status': 'PASS_V3_TEAM_LOCAL', 'source': 'nbastats+nbastatsv3', 'players_with_seconds': len(lu.seconds), 'repairs': lu.repairs})
+            row.update({
+                'status': 'PASS_V3_TEAM_LOCAL', 'source': 'nbastats+nbastatsv3',
+                'players_with_seconds': len(lu.seconds), 'repairs': lu.repairs,
+                'player_seconds': {str(pid): int(sec) for pid, sec in sorted(lu.seconds.items())},
+            })
         except Exception as exc:
             row.update({'status': 'FAIL', 'error': str(exc)})
-            trials = enumerate_full_game_trials(legacy_game, v3_game, gid)
-            if trials is not None:
-                row['explicit_starter_trials'] = trials
+            if gid == MISSING_TRANSITION_GAME:
+                row['repair_search'] = {
+                    'status': 'MISSING_IN_PERIOD_TRANSITION_BLOCKER',
+                    'reason': 'Explicit starter override would hide the participant violation and is therefore not a valid repair.',
+                }
+            else:
+                search = search_full_game_repairs(legacy_game, v3_game, gid)
+                if search is not None:
+                    row['repair_search'] = search
         result['games'].append(row)
+
     counts = {}
     for r in result['games']:
         counts[r['status']] = counts.get(r['status'], 0) + 1
