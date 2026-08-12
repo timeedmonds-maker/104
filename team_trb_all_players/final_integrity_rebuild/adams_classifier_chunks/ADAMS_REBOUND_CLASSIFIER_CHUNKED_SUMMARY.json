@@ -1,0 +1,216 @@
+{
+  "status": "PARTIAL",
+  "expected_chunks": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "found_chunks": [
+    8
+  ],
+  "missing_chunks": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "chunk_status": {
+    "8": "COMPLETE"
+  },
+  "games_compared": 2,
+  "failures": [],
+  "okc_oreb_universe": 38,
+  "api_truth": {
+    "seconds_on": 2597,
+    "team_oreb_on": 19,
+    "team_dreb_on": 33,
+    "opponent_oreb_on": 11,
+    "opponent_dreb_on": 30
+  },
+  "locked": {
+    "seconds_on": 143368,
+    "team_oreb_on": 816,
+    "team_dreb_on": 1846,
+    "opponent_oreb_on": 643,
+    "opponent_dreb_on": 1632
+  },
+  "api_truth_diff_vs_locked": {
+    "seconds_on": -140771,
+    "team_oreb_on": -797,
+    "team_dreb_on": -1813,
+    "opponent_oreb_on": -632,
+    "opponent_dreb_on": -1602
+  },
+  "methods": {
+    "current": {
+      "observed": {
+        "seconds_on": 2597,
+        "team_oreb_on": 19,
+        "team_dreb_on": 33,
+        "opponent_oreb_on": 11,
+        "opponent_dreb_on": 30
+      },
+      "exact_games": 2,
+      "sum_abs_game_error": {
+        "seconds_on": 0,
+        "team_oreb_on": 0,
+        "team_dreb_on": 0,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 0
+      },
+      "diff_vs_api_truth": {
+        "seconds_on": 0,
+        "team_oreb_on": 0,
+        "team_dreb_on": 0,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 0
+      }
+    },
+    "real_first": {
+      "observed": {
+        "seconds_on": 2597,
+        "team_oreb_on": 19,
+        "team_dreb_on": 33,
+        "opponent_oreb_on": 11,
+        "opponent_dreb_on": 30
+      },
+      "exact_games": 2,
+      "sum_abs_game_error": {
+        "seconds_on": 0,
+        "team_oreb_on": 0,
+        "team_dreb_on": 0,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 0
+      },
+      "diff_vs_api_truth": {
+        "seconds_on": 0,
+        "team_oreb_on": 0,
+        "team_dreb_on": 0,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 0
+      }
+    },
+    "description_counter": {
+      "observed": {
+        "seconds_on": 2597,
+        "team_oreb_on": 4,
+        "team_dreb_on": 43,
+        "opponent_oreb_on": 1,
+        "opponent_dreb_on": 45
+      },
+      "exact_games": 0,
+      "sum_abs_game_error": {
+        "seconds_on": 0,
+        "team_oreb_on": 15,
+        "team_dreb_on": 10,
+        "opponent_oreb_on": 10,
+        "opponent_dreb_on": 15
+      },
+      "diff_vs_api_truth": {
+        "seconds_on": 0,
+        "team_oreb_on": -15,
+        "team_dreb_on": 10,
+        "opponent_oreb_on": -10,
+        "opponent_dreb_on": 15
+      }
+    }
+  },
+  "per_game": [
+    {
+      "game_id": 21601213,
+      "truth": {
+        "seconds_on": 1785,
+        "team_oreb_on": 13,
+        "team_dreb_on": 21,
+        "opponent_oreb_on": 9,
+        "opponent_dreb_on": 17
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 13,
+          "team_dreb_on": 21,
+          "opponent_oreb_on": 9,
+          "opponent_dreb_on": 17,
+          "seconds_on": 1785
+        },
+        "real_first": {
+          "team_oreb_on": 13,
+          "team_dreb_on": 21,
+          "opponent_oreb_on": 9,
+          "opponent_dreb_on": 17,
+          "seconds_on": 1785
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 29,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 29,
+          "description_unresolved_real_on": 58,
+          "seconds_on": 1785
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 400,
+        "rebound_bearing_rows": 111,
+        "matched_rebound_bearing_rows": 111,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 20,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601225,
+      "truth": {
+        "seconds_on": 812,
+        "team_oreb_on": 6,
+        "team_dreb_on": 12,
+        "opponent_oreb_on": 2,
+        "opponent_dreb_on": 13
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 12,
+          "opponent_oreb_on": 2,
+          "opponent_dreb_on": 13,
+          "seconds_on": 812
+        },
+        "real_first": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 12,
+          "opponent_oreb_on": 2,
+          "opponent_dreb_on": 13,
+          "seconds_on": 812
+        },
+        "description_counter": {
+          "team_oreb_on": 3,
+          "team_dreb_on": 14,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 16,
+          "description_unresolved_real_on": 29,
+          "seconds_on": 812
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 422,
+        "rebound_bearing_rows": 116,
+        "matched_rebound_bearing_rows": 116,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 11,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    }
+  ]
+}
