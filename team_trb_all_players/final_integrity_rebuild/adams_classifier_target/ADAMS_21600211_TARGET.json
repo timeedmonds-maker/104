@@ -1,0 +1,166 @@
+{
+  "game_id": 21600211,
+  "status": "COMPLETE",
+  "api_attempts": {
+    "LineupOpponent": [
+      {
+        "attempt": 1,
+        "status_code": 500,
+        "elapsed_s": 14.283
+      },
+      {
+        "attempt": 2,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.222
+      },
+      {
+        "attempt": 3,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 35.211
+      },
+      {
+        "attempt": 4,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.208
+      },
+      {
+        "attempt": 5,
+        "status_code": 502,
+        "elapsed_s": 23.529
+      },
+      {
+        "attempt": 6,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.19
+      },
+      {
+        "attempt": 7,
+        "status_code": 500,
+        "elapsed_s": 4.289
+      },
+      {
+        "attempt": 8,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.243
+      },
+      {
+        "attempt": 9,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.178
+      },
+      {
+        "attempt": 10,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.223
+      },
+      {
+        "attempt": 11,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.285
+      },
+      {
+        "attempt": 12,
+        "status_code": 200,
+        "elapsed_s": 9.875
+      }
+    ],
+    "Lineup": [
+      {
+        "attempt": 1,
+        "status_code": 502,
+        "elapsed_s": 21.281
+      },
+      {
+        "attempt": 2,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.158
+      },
+      {
+        "attempt": 3,
+        "error": "ReadTimeout: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Read timed out. (read timeout=30)",
+        "elapsed_s": 30.184
+      },
+      {
+        "attempt": 4,
+        "status_code": 200,
+        "elapsed_s": 18.591
+      }
+    ]
+  },
+  "local": {
+    "current": {
+      "team_oreb_on": 9,
+      "team_dreb_on": 22,
+      "opponent_oreb_on": 3,
+      "opponent_dreb_on": 23,
+      "seconds_on": 1877
+    },
+    "real_first": {
+      "team_oreb_on": 9,
+      "team_dreb_on": 21,
+      "opponent_oreb_on": 4,
+      "opponent_dreb_on": 23,
+      "seconds_on": 1877
+    },
+    "description_counter": {
+      "team_oreb_on": 3,
+      "team_dreb_on": 25,
+      "opponent_oreb_on": 0,
+      "opponent_dreb_on": 29,
+      "description_unresolved_real_on": 53,
+      "seconds_on": 1877
+    }
+  },
+  "join_audit": {
+    "total_pbp_rows": 360,
+    "rebound_bearing_rows": 94,
+    "matched_rebound_bearing_rows": 94,
+    "unmatched_rebound_bearing_rows": 0,
+    "ambiguous_matches": 14,
+    "manual_join_repairs": 0,
+    "unmatched_rows": []
+  },
+  "local_discriminates_current_vs_real_first": true,
+  "current_minus_real_first": {
+    "seconds_on": 0,
+    "team_oreb_on": 0,
+    "team_dreb_on": 1,
+    "opponent_oreb_on": -1,
+    "opponent_dreb_on": 0
+  },
+  "truth": {
+    "seconds_on": 1877,
+    "team_oreb_on": 9,
+    "team_dreb_on": 21,
+    "opponent_oreb_on": 4,
+    "opponent_dreb_on": 23
+  },
+  "diffs": {
+    "current": {
+      "seconds_on": 0,
+      "team_oreb_on": 0,
+      "team_dreb_on": 1,
+      "opponent_oreb_on": -1,
+      "opponent_dreb_on": 0
+    },
+    "real_first": {
+      "seconds_on": 0,
+      "team_oreb_on": 0,
+      "team_dreb_on": 0,
+      "opponent_oreb_on": 0,
+      "opponent_dreb_on": 0
+    },
+    "description_counter": {
+      "seconds_on": 0,
+      "team_oreb_on": -6,
+      "team_dreb_on": 4,
+      "opponent_oreb_on": -4,
+      "opponent_dreb_on": 6
+    }
+  },
+  "exact": {
+    "current": false,
+    "real_first": true,
+    "description_counter": false
+  }
+}
