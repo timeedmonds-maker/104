@@ -1,0 +1,106 @@
+{
+  "year": 2019,
+  "target_games": 4,
+  "games_all_unmatched_uniquely_identified": 2,
+  "unique_identity_rows": 2,
+  "unmatched_rows": 4,
+  "diagnostic_errors": 0,
+  "games": [
+    {
+      "game_id": 21900029,
+      "reported_unmatched": 1,
+      "diagnosed_unmatched_rows": 1,
+      "unique_identity_rows": 1,
+      "all_unmatched_uniquely_identified": true,
+      "method_counts": {
+        "UNIQUE_EXACT_DESCRIPTION": 1
+      },
+      "rows": [
+        {
+          "pbp_index": 120088,
+          "period": 3,
+          "start_time": "04:57",
+          "end_time": "04:42",
+          "description": "CELTICS Rebound",
+          "method": "UNIQUE_EXACT_DESCRIPTION",
+          "nba_index": 407,
+          "nba_event_num": 597,
+          "nba_description": "celtics rebound",
+          "candidate_count": 1
+        }
+      ]
+    },
+    {
+      "game_id": 21900121,
+      "reported_unmatched": 1,
+      "diagnosed_unmatched_rows": 1,
+      "unique_identity_rows": 1,
+      "all_unmatched_uniquely_identified": true,
+      "method_counts": {
+        "UNIQUE_EXACT_DESCRIPTION": 1
+      },
+      "rows": [
+        {
+          "pbp_index": 10364,
+          "period": 4,
+          "start_time": "10:36",
+          "end_time": "10:16",
+          "description": "Siakam REBOUND (Off:3 Def:6)",
+          "method": "UNIQUE_EXACT_DESCRIPTION",
+          "nba_index": 395,
+          "nba_event_num": 556,
+          "nba_description": "siakam rebound (off:3 def:6)",
+          "candidate_count": 1
+        }
+      ]
+    },
+    {
+      "game_id": 21900148,
+      "reported_unmatched": 1,
+      "diagnosed_unmatched_rows": 1,
+      "unique_identity_rows": 0,
+      "all_unmatched_uniquely_identified": false,
+      "method_counts": {
+        "UNRESOLVED": 1
+      },
+      "rows": [
+        {
+          "pbp_index": 56984,
+          "period": 3,
+          "start_time": "01:19",
+          "end_time": "01:17",
+          "description": "Pistons Rebound",
+          "method": null,
+          "nba_index": null,
+          "nba_event_num": null,
+          "nba_description": null,
+          "candidate_count": 0
+        }
+      ]
+    },
+    {
+      "game_id": 21900343,
+      "reported_unmatched": 1,
+      "diagnosed_unmatched_rows": 1,
+      "unique_identity_rows": 0,
+      "all_unmatched_uniquely_identified": false,
+      "method_counts": {
+        "UNRESOLVED": 1
+      },
+      "rows": [
+        {
+          "pbp_index": 144339,
+          "period": 3,
+          "start_time": "00:45",
+          "end_time": "00:22",
+          "description": "Harrell REBOUND (Off:2 Def:2)",
+          "method": null,
+          "nba_index": null,
+          "nba_event_num": null,
+          "nba_description": null,
+          "candidate_count": 0
+        }
+      ]
+    }
+  ]
+}
