@@ -1,0 +1,228 @@
+{
+  "source_run_id": 31569006637,
+  "expected_artifacts": 240,
+  "artifact_directories_found": 240,
+  "qa_files_found": 240,
+  "missing_qa_artifacts": [],
+  "status_counts": {
+    "REPAIR_REQUIRED": 230,
+    "PASS": 10
+  },
+  "batches_repair_required": 230,
+  "games_requested": 22786,
+  "successful_games": 21650,
+  "failed_games": 1136,
+  "unique_failed_game_ids": 1136,
+  "failure_rate_pct": 4.9855,
+  "seasons_with_failures": [
+    "2006-07",
+    "2007-08",
+    "2008-09",
+    "2009-10",
+    "2010-11",
+    "2011-12",
+    "2012-13",
+    "2013-14",
+    "2014-15",
+    "2015-16",
+    "2016-17",
+    "2017-18",
+    "2018-19",
+    "2019-20",
+    "2020-21",
+    "2021-22",
+    "2022-23",
+    "2023-24",
+    "2024-25"
+  ],
+  "error_type_counts": {
+    "ValueError": 1136
+  },
+  "top_error_signatures": {
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<ID>, <ID>, <ID>, <ID>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <ID>, '": 422,
+    "ValueError: unmatched PBP rebound rows game=<ID>: <N>": 140,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <ID>, <ID>, <ID>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <ID>, 'e": 85,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <N>, <N>, <ID>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <N>, 'even": 61,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <N>, <N>, <N>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <N>, 'event": 60,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <N>, <ID>, <ID>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <ID>, 'ev": 40,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <N>, <N>, <N>, <N>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <N>, 'event_": 39,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <N>, <ID>, <ID>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <N>, 'eve": 33,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <ID>, <ID>, <ID>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <N>, 'ev": 32,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<ID>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<ID>": 29,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<ID>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<ID>, <ID>": 20,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<ID>, <ID>, <ID>, <ID>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <N>, 'e": 16,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<ID>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=": 15,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <N>, <N>, <ID>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <ID>, 'eve": 14,
+    "ValueError: starter solution requires missing in-period lineup transition game=<ID> period=<N> team=<ID>: starters=[<N>, <N>, <N>, <N>, <ID>] violations=[{'kind': 'participant', 'event_num': <N>, 'player_id': <ID>, 'even": 6,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<ID>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<ID>, <ID>, <ID>": 6,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <N>, <N>, <N>, <N>, <N>, <ID>, <ID>] prior=[<N>, <N>, <N>, <N>, <ID>] best_score=<N> solutions=[[<N>, <N>, <N>, ": 5,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<N>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <": 5,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<N>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <ID>, <ID>, <": 4,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <N>, <N>, <N>, <N>, <ID>, <ID>] prior=[<N>, <N>, <N>, <N>, <ID>] best_score=<N> solutions=[[<N>, <N>, <N>, <N>, ": 3,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <N>, <N>, <N>, <ID>, <ID>, <ID>, <ID>] prior=[<N>, <N>, <N>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <N>, <N": 3,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <N>, <N>, <N>, <ID>, <ID>, <ID>, <ID>] prior=[<N>, <N>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <N>, <": 3,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <N>, <N>, <N>, <ID>, <ID>, <ID>] prior=[<N>, <N>, <N>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <N>, <N>, <ID": 3,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<N>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <N": 3,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<N>, <N>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <N>": 3,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<N>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <ID>, <": 3,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>, <ID>] prior=[<ID>, <ID>, <ID>, <ID>, <ID>] best_score=<N> solutions=[[<N>, <ID>, ": 3,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <N>, <N>, <N>, <N>, <N>, <ID>, <ID>, <ID>] prior=[<N>, <N>, <N>, <N>, <ID>] best_score=<N> solutions=[[<N>, <N>,": 2,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <N>, <N>, <N>, <N>, <N>, <ID>, <ID>] prior=[<N>, <N>, <N>, <N>, <N>] best_score=<N> solutions=[[<N>, <N>, <N>, <": 2,
+    "ValueError: non-unique v3/team-local starter solution game=<ID> period=<N> team=<ID>: candidates=[<N>, <N>, <N>, <N>, <N>, <N>, <N>, <ID>, <ID>, <ID>, <ID>] prior=[<N>, <N>, <N>, <N>, <ID>] best_score=<N> solutions=[[<N>": 2
+  },
+  "season_summary": {
+    "2006-07": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1169,
+      "failed_games": 61
+    },
+    "2007-08": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1180,
+      "failed_games": 50
+    },
+    "2008-09": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1169,
+      "failed_games": 61
+    },
+    "2009-10": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1229,
+      "successful_games": 1184,
+      "failed_games": 45
+    },
+    "2010-11": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1185,
+      "failed_games": 45
+    },
+    "2011-12": {
+      "batches": 10,
+      "pass_batches": 1,
+      "repair_batches": 9,
+      "games_requested": 990,
+      "successful_games": 958,
+      "failed_games": 32
+    },
+    "2012-13": {
+      "batches": 13,
+      "pass_batches": 3,
+      "repair_batches": 10,
+      "games_requested": 1213,
+      "successful_games": 1172,
+      "failed_games": 41
+    },
+    "2013-14": {
+      "batches": 13,
+      "pass_batches": 1,
+      "repair_batches": 12,
+      "games_requested": 1230,
+      "successful_games": 1178,
+      "failed_games": 52
+    },
+    "2014-15": {
+      "batches": 13,
+      "pass_batches": 2,
+      "repair_batches": 11,
+      "games_requested": 1230,
+      "successful_games": 1180,
+      "failed_games": 50
+    },
+    "2015-16": {
+      "batches": 13,
+      "pass_batches": 1,
+      "repair_batches": 12,
+      "games_requested": 1230,
+      "successful_games": 1177,
+      "failed_games": 53
+    },
+    "2016-17": {
+      "batches": 13,
+      "pass_batches": 2,
+      "repair_batches": 11,
+      "games_requested": 1230,
+      "successful_games": 1191,
+      "failed_games": 39
+    },
+    "2017-18": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1115,
+      "failed_games": 115
+    },
+    "2018-19": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1147,
+      "failed_games": 83
+    },
+    "2019-20": {
+      "batches": 11,
+      "pass_batches": 0,
+      "repair_batches": 11,
+      "games_requested": 1056,
+      "successful_games": 1005,
+      "failed_games": 51
+    },
+    "2020-21": {
+      "batches": 11,
+      "pass_batches": 0,
+      "repair_batches": 11,
+      "games_requested": 1080,
+      "successful_games": 1028,
+      "failed_games": 52
+    },
+    "2021-22": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1146,
+      "failed_games": 84
+    },
+    "2022-23": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1129,
+      "failed_games": 101
+    },
+    "2023-24": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1228,
+      "successful_games": 1175,
+      "failed_games": 53
+    },
+    "2024-25": {
+      "batches": 13,
+      "pass_batches": 0,
+      "repair_batches": 13,
+      "games_requested": 1230,
+      "successful_games": 1162,
+      "failed_games": 68
+    }
+  },
+  "status": "REPAIR_REQUIRED"
+}
