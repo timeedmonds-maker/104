@@ -1,0 +1,116 @@
+name: TREB join identity census
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-join-identity-census.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text())
+          assert len(m['chunks'])==24 and m['target_games']==58
+          matrix={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('matrix='+json.dumps(matrix,separators=(',',':'))+'\n')
+          PY
+  census:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_join_identity_census.py \
+            --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' \
+            --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' \
+            --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/JOIN_CENSUS_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-join-census-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/JOIN_CENSUS_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan, census]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-join-census-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Aggregate census
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          paths=sorted(Path('/tmp/results').rglob('JOIN_CENSUS_*.json'))
+          assert len(paths)==24, [str(p) for p in paths]
+          chunks=[json.loads(p.read_text()) for p in paths]
+          keys=list(chunks[0]['counts'])
+          counts={k:sum(int(c['counts'][k]) for c in chunks) for k in keys}
+          conflicts=[r for c in chunks for r in c['conflicts']]
+          assert counts['games']==58, counts
+          out={
+              'status':'COMPLETE',
+              'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+              'purpose':'Full forensic-game census of already-accepted PBP-to-NBA rebound joins whose unique PBP rebounder identity conflicts with the matched NBA PLAYER1_ID. Diagnostic only; no repair promoted.',
+              'counts':counts,
+              'conflict_rows':len(conflicts),
+              'conflicts':conflicts,
+          }
+          Path('/tmp/JOIN_IDENTITY_CENSUS_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='conflicts'},indent=2))
+          PY
+      - name: Persist durable checkpoint
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          cp /tmp/JOIN_IDENTITY_CENSUS_SUMMARY.json "$D/"
+          git add -f "$D/JOIN_IDENTITY_CENSUS_SUMMARY.json"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist rebound join identity census'
+            git push origin HEAD:agent/treb-batched-game-facts-20260812
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-join-identity-census-summary-${{ github.run_id }}
+          path: /tmp/JOIN_IDENTITY_CENSUS_SUMMARY.json
+          retention-days: 90
