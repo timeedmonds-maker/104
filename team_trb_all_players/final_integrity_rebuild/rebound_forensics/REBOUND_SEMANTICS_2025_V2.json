@@ -1,0 +1,1146 @@
+{
+  "status": "COMPLETE",
+  "candidate_identity": "hierarchical exact entity -> unique same-team same-clock -> unique reciprocal same-team <=0.11s",
+  "counts": {
+    "cdn_rebounds": 129577,
+    "nba_rebounds": 129571,
+    "layer1_exact_entity_shared": 129550,
+    "after_layer1_cdn": 27,
+    "after_layer1_nba": 21,
+    "layer2_unique_same_team_same_clock": 12,
+    "layer2_attribution_disagreements": 12,
+    "after_layer2_cdn": 15,
+    "after_layer2_nba": 9,
+    "layer3_unique_same_team_near_clock": 1,
+    "final_cdn_only": 14,
+    "final_nba_only": 8
+  },
+  "team_metric_equivalence_pass": true,
+  "attribution_disagreements": [
+    {
+      "cdn": {
+        "gameId": 22500038,
+        "actionNumber": 559,
+        "orderNumber": 5320000,
+        "period": 4,
+        "clock": "PT09M51.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "D. DeRozan REBOUND (Off:1 Def:4)",
+        "personId": 201942,
+        "playerName": "DeRozan",
+        "teamId": 1610612758.0,
+        "teamTricode": "SAC",
+        "reboundTotal": 5.0,
+        "reboundDefensiveTotal": 4.0,
+        "reboundOffensiveTotal": 1.0,
+        "clock_seconds": 591.0,
+        "clock_hundredths": 59100,
+        "entity": [
+          "player",
+          201942
+        ],
+        "effective_team_id": 1610612758
+      },
+      "nba": {
+        "gameId": 22500038,
+        "actionNumber": 559,
+        "period": 4,
+        "clock": "PT09M51.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Westbrook REBOUND (Off:1 Def:6)",
+        "personId": 201566,
+        "playerName": "Westbrook",
+        "teamId": 1610612758,
+        "teamTricode": "SAC",
+        "clock_seconds": 591.0,
+        "clock_hundredths": 59100,
+        "entity": [
+          "player",
+          201566
+        ],
+        "effective_team_id": 1610612758
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500039,
+        "actionNumber": 413,
+        "orderNumber": 4060000,
+        "period": 3,
+        "clock": "PT10M00.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "J. Hart REBOUND (Off:0 Def:6)",
+        "personId": 1628404,
+        "playerName": "Hart",
+        "teamId": 1610612752.0,
+        "teamTricode": "NYK",
+        "reboundTotal": 6.0,
+        "reboundDefensiveTotal": 6.0,
+        "reboundOffensiveTotal": 0.0,
+        "clock_seconds": 600.0,
+        "clock_hundredths": 60000,
+        "entity": [
+          "player",
+          1628404
+        ],
+        "effective_team_id": 1610612752
+      },
+      "nba": {
+        "gameId": 22500039,
+        "actionNumber": 413,
+        "period": 3,
+        "clock": "PT10M00.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "McBride REBOUND (Off:0 Def:3)",
+        "personId": 1630540,
+        "playerName": "McBride",
+        "teamId": 1610612752,
+        "teamTricode": "NYK",
+        "clock_seconds": 600.0,
+        "clock_hundredths": 60000,
+        "entity": [
+          "player",
+          1630540
+        ],
+        "effective_team_id": 1610612752
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500045,
+        "actionNumber": 619,
+        "orderNumber": 6100000,
+        "period": 4,
+        "clock": "PT04M19.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "H. Jones REBOUND (Off:2 Def:4)",
+        "personId": 1630529,
+        "playerName": "Jones",
+        "teamId": 1610612740.0,
+        "teamTricode": "NOP",
+        "reboundTotal": 6.0,
+        "reboundDefensiveTotal": 4.0,
+        "reboundOffensiveTotal": 2.0,
+        "clock_seconds": 259.0,
+        "clock_hundredths": 25900,
+        "entity": [
+          "player",
+          1630529
+        ],
+        "effective_team_id": 1610612740
+      },
+      "nba": {
+        "gameId": 22500045,
+        "actionNumber": 619,
+        "period": 4,
+        "clock": "PT04M19.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Murphy III REBOUND (Off:1 Def:4)",
+        "personId": 1630530,
+        "playerName": "Murphy III",
+        "teamId": 1610612740,
+        "teamTricode": "NOP",
+        "clock_seconds": 259.0,
+        "clock_hundredths": 25900,
+        "entity": [
+          "player",
+          1630530
+        ],
+        "effective_team_id": 1610612740
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500105,
+        "actionNumber": 657,
+        "orderNumber": 6560000,
+        "period": 4,
+        "clock": "PT03M47.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "K. Johnson REBOUND (Off:3 Def:3)",
+        "personId": 1629640,
+        "playerName": "Johnson",
+        "teamId": 1610612759.0,
+        "teamTricode": "SAS",
+        "reboundTotal": 6.0,
+        "reboundDefensiveTotal": 3.0,
+        "reboundOffensiveTotal": 3.0,
+        "clock_seconds": 227.0,
+        "clock_hundredths": 22700,
+        "entity": [
+          "player",
+          1629640
+        ],
+        "effective_team_id": 1610612759
+      },
+      "nba": {
+        "gameId": 22500105,
+        "actionNumber": 657,
+        "period": 4,
+        "clock": "PT03M47.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Vassell REBOUND (Off:0 Def:3)",
+        "personId": 1630170,
+        "playerName": "Vassell",
+        "teamId": 1610612759,
+        "teamTricode": "SAS",
+        "clock_seconds": 227.0,
+        "clock_hundredths": 22700,
+        "entity": [
+          "player",
+          1630170
+        ],
+        "effective_team_id": 1610612759
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500152,
+        "actionNumber": 293,
+        "orderNumber": 2850000,
+        "period": 2,
+        "clock": "PT04M24.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "J. Shead REBOUND (Off:0 Def:1)",
+        "personId": 1642347,
+        "playerName": "Shead",
+        "teamId": 1610612761.0,
+        "teamTricode": "TOR",
+        "reboundTotal": 1.0,
+        "reboundDefensiveTotal": 1.0,
+        "reboundOffensiveTotal": 0.0,
+        "clock_seconds": 264.0,
+        "clock_hundredths": 26400,
+        "entity": [
+          "player",
+          1642347
+        ],
+        "effective_team_id": 1610612761
+      },
+      "nba": {
+        "gameId": 22500152,
+        "actionNumber": 293,
+        "period": 2,
+        "clock": "PT04M24.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Walter REBOUND (Off:0 Def:2)",
+        "personId": 1642266,
+        "playerName": "Walter",
+        "teamId": 1610612761,
+        "teamTricode": "TOR",
+        "clock_seconds": 264.0,
+        "clock_hundredths": 26400,
+        "entity": [
+          "player",
+          1642266
+        ],
+        "effective_team_id": 1610612761
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500153,
+        "actionNumber": 657,
+        "orderNumber": 6180000,
+        "period": 4,
+        "clock": "PT02M29.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "J. Giddey REBOUND (Off:2 Def:10)",
+        "personId": 1630581,
+        "playerName": "Giddey",
+        "teamId": 1610612741.0,
+        "teamTricode": "CHI",
+        "reboundTotal": 12.0,
+        "reboundDefensiveTotal": 10.0,
+        "reboundOffensiveTotal": 2.0,
+        "clock_seconds": 149.0,
+        "clock_hundredths": 14900,
+        "entity": [
+          "player",
+          1630581
+        ],
+        "effective_team_id": 1610612741
+      },
+      "nba": {
+        "gameId": 22500153,
+        "actionNumber": 657,
+        "period": 4,
+        "clock": "PT02M29.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Buzelis REBOUND (Off:1 Def:7)",
+        "personId": 1641824,
+        "playerName": "Buzelis",
+        "teamId": 1610612741,
+        "teamTricode": "CHI",
+        "clock_seconds": 149.0,
+        "clock_hundredths": 14900,
+        "entity": [
+          "player",
+          1641824
+        ],
+        "effective_team_id": 1610612741
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500154,
+        "actionNumber": 169,
+        "orderNumber": 1660000,
+        "period": 2,
+        "clock": "PT10M42.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "J. Champagnie REBOUND (Off:0 Def:2)",
+        "personId": 1630577,
+        "playerName": "Champagnie",
+        "teamId": 1610612759.0,
+        "teamTricode": "SAS",
+        "reboundTotal": 2.0,
+        "reboundDefensiveTotal": 2.0,
+        "reboundOffensiveTotal": 0.0,
+        "clock_seconds": 642.0,
+        "clock_hundredths": 64200,
+        "entity": [
+          "player",
+          1630577
+        ],
+        "effective_team_id": 1610612759
+      },
+      "nba": {
+        "gameId": 22500154,
+        "actionNumber": 169,
+        "period": 2,
+        "clock": "PT10M42.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "McLaughlin REBOUND (Off:1 Def:1)",
+        "personId": 1629162,
+        "playerName": "McLaughlin",
+        "teamId": 1610612759,
+        "teamTricode": "SAS",
+        "clock_seconds": 642.0,
+        "clock_hundredths": 64200,
+        "entity": [
+          "player",
+          1629162
+        ],
+        "effective_team_id": 1610612759
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500169,
+        "actionNumber": 181,
+        "orderNumber": 1790000,
+        "period": 2,
+        "clock": "PT10M55.00S",
+        "actionType": "rebound",
+        "subType": "offensive",
+        "description": "D. Green REBOUND (Off:1 Def:1)",
+        "personId": 203110,
+        "playerName": "Green",
+        "teamId": 1610612744.0,
+        "teamTricode": "GSW",
+        "reboundTotal": 2.0,
+        "reboundDefensiveTotal": 1.0,
+        "reboundOffensiveTotal": 1.0,
+        "clock_seconds": 655.0,
+        "clock_hundredths": 65500,
+        "entity": [
+          "player",
+          203110
+        ],
+        "effective_team_id": 1610612744
+      },
+      "nba": {
+        "gameId": 22500169,
+        "actionNumber": 181,
+        "period": 2,
+        "clock": "PT10M55.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Post REBOUND (Off:1 Def:3)",
+        "personId": 1642366,
+        "playerName": "Post",
+        "teamId": 1610612744,
+        "teamTricode": "GSW",
+        "clock_seconds": 655.0,
+        "clock_hundredths": 65500,
+        "entity": [
+          "player",
+          1642366
+        ],
+        "effective_team_id": 1610612744
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500444,
+        "actionNumber": 619,
+        "orderNumber": 5908750,
+        "period": 4,
+        "clock": "PT07M05.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "D. White REBOUND (Off:0 Def:5)",
+        "personId": 1628401,
+        "playerName": "White",
+        "teamId": 1610612738.0,
+        "teamTricode": "BOS",
+        "reboundTotal": 5.0,
+        "reboundDefensiveTotal": 5.0,
+        "reboundOffensiveTotal": 0.0,
+        "clock_seconds": 425.0,
+        "clock_hundredths": 42500,
+        "entity": [
+          "player",
+          1628401
+        ],
+        "effective_team_id": 1610612738
+      },
+      "nba": {
+        "gameId": 22500444,
+        "actionNumber": 619,
+        "period": 4,
+        "clock": "PT07M05.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Celtics Rebound",
+        "personId": 1610612738,
+        "playerName": null,
+        "teamId": 0,
+        "teamTricode": null,
+        "clock_seconds": 425.0,
+        "clock_hundredths": 42500,
+        "entity": [
+          "team",
+          1610612738
+        ],
+        "effective_team_id": 1610612738
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500698,
+        "actionNumber": 619,
+        "orderNumber": 6130000,
+        "period": 4,
+        "clock": "PT04M44.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "J. Johnson REBOUND (Off:4 Def:8)",
+        "personId": 1630552,
+        "playerName": "Johnson",
+        "teamId": 1610612737.0,
+        "teamTricode": "ATL",
+        "reboundTotal": 12.0,
+        "reboundDefensiveTotal": 8.0,
+        "reboundOffensiveTotal": 4.0,
+        "clock_seconds": 284.0,
+        "clock_hundredths": 28400,
+        "entity": [
+          "player",
+          1630552
+        ],
+        "effective_team_id": 1610612737
+      },
+      "nba": {
+        "gameId": 22500698,
+        "actionNumber": 619,
+        "period": 4,
+        "clock": "PT04M44.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Daniels REBOUND (Off:2 Def:5)",
+        "personId": 1630700,
+        "playerName": "Daniels",
+        "teamId": 1610612737,
+        "teamTricode": "ATL",
+        "clock_seconds": 284.0,
+        "clock_hundredths": 28400,
+        "entity": [
+          "player",
+          1630700
+        ],
+        "effective_team_id": 1610612737
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22500993,
+        "actionNumber": 16,
+        "orderNumber": 160000,
+        "period": 1,
+        "clock": "PT11M00.00S",
+        "actionType": "rebound",
+        "subType": "offensive",
+        "description": "J. Duren REBOUND (Off:1 Def:0)",
+        "personId": 1631105,
+        "playerName": "Duren",
+        "teamId": 1610612765.0,
+        "teamTricode": "DET",
+        "reboundTotal": 1.0,
+        "reboundDefensiveTotal": 0.0,
+        "reboundOffensiveTotal": 1.0,
+        "clock_seconds": 660.0,
+        "clock_hundredths": 66000,
+        "entity": [
+          "player",
+          1631105
+        ],
+        "effective_team_id": 1610612765
+      },
+      "nba": {
+        "gameId": 22500993,
+        "actionNumber": 16,
+        "period": 1,
+        "clock": "PT11M00.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Harris REBOUND (Off:2 Def:0)",
+        "personId": 202699,
+        "playerName": "Harris",
+        "teamId": 1610612765,
+        "teamTricode": "DET",
+        "clock_seconds": 660.0,
+        "clock_hundredths": 66000,
+        "entity": [
+          "player",
+          202699
+        ],
+        "effective_team_id": 1610612765
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    },
+    {
+      "cdn": {
+        "gameId": 22501224,
+        "actionNumber": 425,
+        "orderNumber": 4000000,
+        "period": 3,
+        "clock": "PT09M48.00S",
+        "actionType": "rebound",
+        "subType": "defensive",
+        "description": "R. Nembhard REBOUND (Off:0 Def:2)",
+        "personId": 1642948,
+        "playerName": "Nembhard",
+        "teamId": 1610612742.0,
+        "teamTricode": "DAL",
+        "reboundTotal": 2.0,
+        "reboundDefensiveTotal": 2.0,
+        "reboundOffensiveTotal": 0.0,
+        "clock_seconds": 588.0,
+        "clock_hundredths": 58800,
+        "entity": [
+          "player",
+          1642948
+        ],
+        "effective_team_id": 1610612742
+      },
+      "nba": {
+        "gameId": 22501224,
+        "actionNumber": 425,
+        "period": 3,
+        "clock": "PT09M48.00S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "Washington REBOUND (Off:0 Def:4)",
+        "personId": 1629023,
+        "playerName": "Washington",
+        "teamId": 1610612742,
+        "teamTricode": "DAL",
+        "clock_seconds": 588.0,
+        "clock_hundredths": 58800,
+        "entity": [
+          "player",
+          1629023
+        ],
+        "effective_team_id": 1610612742
+      },
+      "same_team": true,
+      "clock_delta_seconds": 0.0
+    }
+  ],
+  "near_clock_pairs": [
+    {
+      "cdn": {
+        "gameId": 22500004,
+        "actionNumber": 194,
+        "orderNumber": 1940000,
+        "period": 1,
+        "clock": "PT00M00.00S",
+        "actionType": "rebound",
+        "subType": "offensive",
+        "description": "TEAM offensive REBOUND",
+        "personId": 0,
+        "playerName": null,
+        "teamId": 1610612742.0,
+        "teamTricode": "DAL",
+        "reboundTotal": null,
+        "reboundDefensiveTotal": null,
+        "reboundOffensiveTotal": null,
+        "clock_seconds": 0.0,
+        "clock_hundredths": 0,
+        "entity": [
+          "team",
+          1610612742
+        ],
+        "effective_team_id": 1610612742
+      },
+      "nba": {
+        "gameId": 22500004,
+        "actionNumber": 194,
+        "period": 1,
+        "clock": "PT00M00.10S",
+        "actionType": "Rebound",
+        "subType": "Unknown",
+        "description": "MAVERICKS Rebound",
+        "personId": 1610612742,
+        "playerName": null,
+        "teamId": 0,
+        "teamTricode": null,
+        "clock_seconds": 0.1,
+        "clock_hundredths": 10,
+        "entity": [
+          "team",
+          1610612742
+        ],
+        "effective_team_id": 1610612742
+      },
+      "clock_delta_seconds": -0.1
+    }
+  ],
+  "cdn_only_rows": [
+    {
+      "gameId": 22500029,
+      "actionNumber": 250,
+      "orderNumber": 2220000,
+      "period": 2,
+      "clock": "PT08M15.00S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "TEAM offensive REBOUND",
+      "personId": 0,
+      "playerName": null,
+      "teamId": 1610612764.0,
+      "teamTricode": "WAS",
+      "reboundTotal": null,
+      "reboundDefensiveTotal": null,
+      "reboundOffensiveTotal": null,
+      "clock_seconds": 495.0,
+      "clock_hundredths": 49500,
+      "entity": [
+        "team",
+        1610612764
+      ],
+      "effective_team_id": 1610612764
+    },
+    {
+      "gameId": 22500090,
+      "actionNumber": 526,
+      "orderNumber": 5110000,
+      "period": 3,
+      "clock": "PT01M34.00S",
+      "actionType": "rebound",
+      "subType": "defensive",
+      "description": "L. Kennard REBOUND (Off:2 Def:1)",
+      "personId": 1628379,
+      "playerName": "Kennard",
+      "teamId": 1610612737.0,
+      "teamTricode": "ATL",
+      "reboundTotal": 3.0,
+      "reboundDefensiveTotal": 1.0,
+      "reboundOffensiveTotal": 2.0,
+      "clock_seconds": 94.0,
+      "clock_hundredths": 9400,
+      "entity": [
+        "player",
+        1628379
+      ],
+      "effective_team_id": 1610612737
+    },
+    {
+      "gameId": 22500095,
+      "actionNumber": 780,
+      "orderNumber": 7660000,
+      "period": 5,
+      "clock": "PT01M59.00S",
+      "actionType": "rebound",
+      "subType": "defensive",
+      "description": "J. Champagnie REBOUND (Off:1 Def:7)",
+      "personId": 1630577,
+      "playerName": "Champagnie",
+      "teamId": 1610612759.0,
+      "teamTricode": "SAS",
+      "reboundTotal": 8.0,
+      "reboundDefensiveTotal": 7.0,
+      "reboundOffensiveTotal": 1.0,
+      "clock_seconds": 119.0,
+      "clock_hundredths": 11900,
+      "entity": [
+        "player",
+        1630577
+      ],
+      "effective_team_id": 1610612759
+    },
+    {
+      "gameId": 22500128,
+      "actionNumber": 643,
+      "orderNumber": 6230000,
+      "period": 4,
+      "clock": "PT05M25.00S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "TEAM offensive REBOUND",
+      "personId": 0,
+      "playerName": null,
+      "teamId": 1610612739.0,
+      "teamTricode": "CLE",
+      "reboundTotal": null,
+      "reboundDefensiveTotal": null,
+      "reboundOffensiveTotal": null,
+      "clock_seconds": 325.0,
+      "clock_hundredths": 32500,
+      "entity": [
+        "team",
+        1610612739
+      ],
+      "effective_team_id": 1610612739
+    },
+    {
+      "gameId": 22500185,
+      "actionNumber": 605,
+      "orderNumber": 5930000,
+      "period": 4,
+      "clock": "PT00M59.30S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "J. Toppin REBOUND (Off:1 Def:0)",
+      "personId": 1631210,
+      "playerName": "Toppin",
+      "teamId": 1610612737.0,
+      "teamTricode": "ATL",
+      "reboundTotal": 1.0,
+      "reboundDefensiveTotal": 0.0,
+      "reboundOffensiveTotal": 1.0,
+      "clock_seconds": 59.3,
+      "clock_hundredths": 5930,
+      "entity": [
+        "player",
+        1631210
+      ],
+      "effective_team_id": 1610612737
+    },
+    {
+      "gameId": 22500338,
+      "actionNumber": 572,
+      "orderNumber": 5610000,
+      "period": 4,
+      "clock": "PT05M36.00S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "J. Minott REBOUND (Off:1 Def:2)",
+      "personId": 1631169,
+      "playerName": "Minott",
+      "teamId": 1610612738.0,
+      "teamTricode": "BOS",
+      "reboundTotal": 3.0,
+      "reboundDefensiveTotal": 2.0,
+      "reboundOffensiveTotal": 1.0,
+      "clock_seconds": 336.0,
+      "clock_hundredths": 33600,
+      "entity": [
+        "player",
+        1631169
+      ],
+      "effective_team_id": 1610612738
+    },
+    {
+      "gameId": 22500366,
+      "actionNumber": 18,
+      "orderNumber": 180000,
+      "period": 1,
+      "clock": "PT11M11.00S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "L. Kornet REBOUND (Off:1 Def:1)",
+      "personId": 1628436,
+      "playerName": "Kornet",
+      "teamId": 1610612759.0,
+      "teamTricode": "SAS",
+      "reboundTotal": 2.0,
+      "reboundDefensiveTotal": 1.0,
+      "reboundOffensiveTotal": 1.0,
+      "clock_seconds": 671.0,
+      "clock_hundredths": 67100,
+      "entity": [
+        "player",
+        1628436
+      ],
+      "effective_team_id": 1610612759
+    },
+    {
+      "gameId": 22500386,
+      "actionNumber": 666,
+      "orderNumber": 6560000,
+      "period": 4,
+      "clock": "PT01M06.00S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "TEAM offensive REBOUND",
+      "personId": 0,
+      "playerName": null,
+      "teamId": 1610612743.0,
+      "teamTricode": "DEN",
+      "reboundTotal": null,
+      "reboundDefensiveTotal": null,
+      "reboundOffensiveTotal": null,
+      "clock_seconds": 66.0,
+      "clock_hundredths": 6600,
+      "entity": [
+        "team",
+        1610612743
+      ],
+      "effective_team_id": 1610612743
+    },
+    {
+      "gameId": 22500410,
+      "actionNumber": 342,
+      "orderNumber": 3360000,
+      "period": 2,
+      "clock": "PT01M17.00S",
+      "actionType": "rebound",
+      "subType": "defensive",
+      "description": "T. Maxey REBOUND (Off:0 Def:2)",
+      "personId": 1630178,
+      "playerName": "Maxey",
+      "teamId": 1610612755.0,
+      "teamTricode": "PHI",
+      "reboundTotal": 2.0,
+      "reboundDefensiveTotal": 2.0,
+      "reboundOffensiveTotal": 0.0,
+      "clock_seconds": 77.0,
+      "clock_hundredths": 7700,
+      "entity": [
+        "player",
+        1630178
+      ],
+      "effective_team_id": 1610612755
+    },
+    {
+      "gameId": 22500490,
+      "actionNumber": 636,
+      "orderNumber": 6270000,
+      "period": 4,
+      "clock": "PT04M19.00S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "D. Avdija REBOUND (Off:3 Def:7)",
+      "personId": 1630166,
+      "playerName": "Avdija",
+      "teamId": 1610612757.0,
+      "teamTricode": "POR",
+      "reboundTotal": 10.0,
+      "reboundDefensiveTotal": 7.0,
+      "reboundOffensiveTotal": 3.0,
+      "clock_seconds": 259.0,
+      "clock_hundredths": 25900,
+      "entity": [
+        "player",
+        1630166
+      ],
+      "effective_team_id": 1610612757
+    },
+    {
+      "gameId": 22500497,
+      "actionNumber": 674,
+      "orderNumber": 6520000,
+      "period": 4,
+      "clock": "PT02M42.00S",
+      "actionType": "rebound",
+      "subType": "defensive",
+      "description": "K. Matkovi\u0107 REBOUND (Off:2 Def:4)",
+      "personId": 1631255,
+      "playerName": "Matkovi\u0107",
+      "teamId": 1610612740.0,
+      "teamTricode": "NOP",
+      "reboundTotal": 6.0,
+      "reboundDefensiveTotal": 4.0,
+      "reboundOffensiveTotal": 2.0,
+      "clock_seconds": 162.0,
+      "clock_hundredths": 16200,
+      "entity": [
+        "player",
+        1631255
+      ],
+      "effective_team_id": 1610612740
+    },
+    {
+      "gameId": 22500685,
+      "actionNumber": 162,
+      "orderNumber": 1587500,
+      "period": 1,
+      "clock": "PT00M00.10S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "TEAM offensive REBOUND",
+      "personId": 0,
+      "playerName": null,
+      "teamId": 1610612765.0,
+      "teamTricode": "DET",
+      "reboundTotal": null,
+      "reboundDefensiveTotal": null,
+      "reboundOffensiveTotal": null,
+      "clock_seconds": 0.1,
+      "clock_hundredths": 10,
+      "entity": [
+        "team",
+        1610612765
+      ],
+      "effective_team_id": 1610612765
+    },
+    {
+      "gameId": 22500863,
+      "actionNumber": 649,
+      "orderNumber": 6370000,
+      "period": 4,
+      "clock": "PT06M38.00S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "K. Knueppel REBOUND (Off:3 Def:5)",
+      "personId": 1642851,
+      "playerName": "Knueppel",
+      "teamId": 1610612766.0,
+      "teamTricode": "CHA",
+      "reboundTotal": 8.0,
+      "reboundDefensiveTotal": 5.0,
+      "reboundOffensiveTotal": 3.0,
+      "clock_seconds": 398.0,
+      "clock_hundredths": 39800,
+      "entity": [
+        "player",
+        1642851
+      ],
+      "effective_team_id": 1610612766
+    },
+    {
+      "gameId": 22501146,
+      "actionNumber": 551,
+      "orderNumber": 5207500,
+      "period": 3,
+      "clock": "PT00M00.10S",
+      "actionType": "rebound",
+      "subType": "offensive",
+      "description": "TEAM offensive REBOUND",
+      "personId": 0,
+      "playerName": null,
+      "teamId": 1610612755.0,
+      "teamTricode": "PHI",
+      "reboundTotal": null,
+      "reboundDefensiveTotal": null,
+      "reboundOffensiveTotal": null,
+      "clock_seconds": 0.1,
+      "clock_hundredths": 10,
+      "entity": [
+        "team",
+        1610612755
+      ],
+      "effective_team_id": 1610612755
+    }
+  ],
+  "nba_only_rows": [
+    {
+      "gameId": 22500095,
+      "actionNumber": 780,
+      "period": 5,
+      "clock": "PT02M02.00S",
+      "actionType": "Rebound",
+      "subType": "Unknown",
+      "description": "Castle REBOUND (Off:0 Def:6)",
+      "personId": 1642264,
+      "playerName": "Castle",
+      "teamId": 1610612759,
+      "teamTricode": "SAS",
+      "clock_seconds": 122.0,
+      "clock_hundredths": 12200,
+      "entity": [
+        "player",
+        1642264
+      ],
+      "effective_team_id": 1610612759
+    },
+    {
+      "gameId": 22500128,
+      "actionNumber": 643,
+      "period": 4,
+      "clock": "PT05M25.00S",
+      "actionType": "Rebound",
+      "subType": "Unknown",
+      "description": "Minott REBOUND (Off:3 Def:10)",
+      "personId": 1631169,
+      "playerName": "Minott",
+      "teamId": 1610612738,
+      "teamTricode": "BOS",
+      "clock_seconds": 325.0,
+      "clock_hundredths": 32500,
+      "entity": [
+        "player",
+        1631169
+      ],
+      "effective_team_id": 1610612738
+    },
+    {
+      "gameId": 22500132,
+      "actionNumber": 664,
+      "period": 2,
+      "clock": "PT08M51.00S",
+      "actionType": "Rebound",
+      "subType": "Unknown",
+      "description": "DeRozan REBOUND (Off:1 Def:3)",
+      "personId": 201942,
+      "playerName": "DeRozan",
+      "teamId": 1610612758,
+      "teamTricode": "SAC",
+      "clock_seconds": 531.0,
+      "clock_hundredths": 53100,
+      "entity": [
+        "player",
+        201942
+      ],
+      "effective_team_id": 1610612758
+    },
+    {
+      "gameId": 22500386,
+      "actionNumber": 666,
+      "period": 4,
+      "clock": "PT01M07.00S",
+      "actionType": "Rebound",
+      "subType": "Normal Rebound",
+      "description": "NUGGETS Rebound",
+      "personId": 1610612743,
+      "playerName": null,
+      "teamId": 0,
+      "teamTricode": null,
+      "clock_seconds": 67.0,
+      "clock_hundredths": 6700,
+      "entity": [
+        "team",
+        1610612743
+      ],
+      "effective_team_id": 1610612743
+    },
+    {
+      "gameId": 22500410,
+      "actionNumber": 342,
+      "period": 2,
+      "clock": "PT01M20.00S",
+      "actionType": "Rebound",
+      "subType": "Unknown",
+      "description": "Maxey REBOUND (Off:0 Def:2)",
+      "personId": 1630178,
+      "playerName": "Maxey",
+      "teamId": 1610612755,
+      "teamTricode": "PHI",
+      "clock_seconds": 80.0,
+      "clock_hundredths": 8000,
+      "entity": [
+        "player",
+        1630178
+      ],
+      "effective_team_id": 1610612755
+    },
+    {
+      "gameId": 22500794,
+      "actionNumber": 784,
+      "period": 2,
+      "clock": "PT00M21.00S",
+      "actionType": "Rebound",
+      "subType": "Unknown",
+      "description": "Okongwu REBOUND (Off:3 Def:2)",
+      "personId": 1630168,
+      "playerName": "Okongwu",
+      "teamId": 1610612737,
+      "teamTricode": "ATL",
+      "clock_seconds": 21.0,
+      "clock_hundredths": 2100,
+      "entity": [
+        "player",
+        1630168
+      ],
+      "effective_team_id": 1610612737
+    },
+    {
+      "gameId": 22500863,
+      "actionNumber": 649,
+      "period": 4,
+      "clock": "PT06M50.00S",
+      "actionType": "Rebound",
+      "subType": "Unknown",
+      "description": "Knueppel REBOUND (Off:3 Def:5)",
+      "personId": 1642851,
+      "playerName": "Knueppel",
+      "teamId": 1610612766,
+      "teamTricode": "CHA",
+      "clock_seconds": 410.0,
+      "clock_hundredths": 41000,
+      "entity": [
+        "player",
+        1642851
+      ],
+      "effective_team_id": 1610612766
+    },
+    {
+      "gameId": 22501209,
+      "actionNumber": 687,
+      "period": 4,
+      "clock": "PT09M15.00S",
+      "actionType": "Rebound",
+      "subType": "Unknown",
+      "description": "Simpson REBOUND (Off:1 Def:4)",
+      "personId": 1642354,
+      "playerName": "Simpson",
+      "teamId": 1610612766,
+      "teamTricode": "CHA",
+      "clock_seconds": 555.0,
+      "clock_hundredths": 55500,
+      "entity": [
+        "player",
+        1642354
+      ],
+      "effective_team_id": 1610612766
+    }
+  ]
+}
