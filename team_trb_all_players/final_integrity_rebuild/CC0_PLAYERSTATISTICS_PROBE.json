@@ -1,0 +1,211 @@
+{
+  "row_count": 1669922,
+  "columns": [
+    "firstName",
+    "lastName",
+    "personId",
+    "gameId",
+    "gameDateTimeEst",
+    "playerteamCity",
+    "playerteamName",
+    "opponentteamCity",
+    "opponentteamName",
+    "gameType",
+    "gameLabel",
+    "gameSubLabel",
+    "seriesGameNumber",
+    "win",
+    "home",
+    "numMinutes",
+    "points",
+    "assists",
+    "blocks",
+    "steals",
+    "fieldGoalsAttempted",
+    "fieldGoalsMade",
+    "fieldGoalsPercentage",
+    "threePointersAttempted",
+    "threePointersMade",
+    "threePointersPercentage",
+    "freeThrowsAttempted",
+    "freeThrowsMade",
+    "freeThrowsPercentage",
+    "reboundsDefensive",
+    "reboundsOffensive",
+    "reboundsTotal",
+    "foulsPersonal",
+    "turnovers",
+    "plusMinusPoints",
+    "playerteamId",
+    "opponentteamId",
+    "comment",
+    "startingPosition",
+    "gameDate"
+  ],
+  "resolved_columns": {
+    "game": "gameId",
+    "player": "personId",
+    "team": null,
+    "minutes": "numMinutes",
+    "date": "gameDate",
+    "name": null,
+    "season": null
+  },
+  "duplicate_game_player_rows": 0,
+  "zero_or_blank_minute_rows": 273997,
+  "positive_minute_rows": 1395925,
+  "sample_zero_or_blank_minute_rows": [
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1629162.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 203084.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1642885.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 203486.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 203482.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 202687.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1642278.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1630322.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1642359.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 203084.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 203486.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 1642359.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 1629162.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 203482.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 1630322.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 202687.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 1642885.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500404,
+      "gameDate": "2026-06-10 20:30:00",
+      "personId": 1642278.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500403,
+      "gameDate": "2026-06-08 20:30:00",
+      "personId": 1630574.0,
+      "numMinutes": NaN
+    },
+    {
+      "gameId": 42500403,
+      "gameDate": "2026-06-08 20:30:00",
+      "personId": 203482.0,
+      "numMinutes": NaN
+    }
+  ],
+  "sample_positive_rows": [
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1628404.0,
+      "numMinutes": "39.166666666666664"
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1628384.0,
+      "numMinutes": "32.78333333333333"
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1631110.0,
+      "numMinutes": "0.15"
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 203903.0,
+      "numMinutes": "6.116666666666666"
+    },
+    {
+      "gameId": 42500405,
+      "gameDate": "2026-06-13 20:30:00",
+      "personId": 1629013.0,
+      "numMinutes": "13.216666666666667"
+    }
+  ]
+}
