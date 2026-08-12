@@ -1,0 +1,90 @@
+name: TREB strict failure audit
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - .github/workflows/treb-safe-failure-audit.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Download strict-repair evidence from run 31546621316
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-artifacts
+          gh run download 31546621316 -R timeedmonds-maker/104 -D audit-artifacts
+      - name: Consolidate exact repair queues
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from collections import Counter, defaultdict
+          import json, re
+
+          root=Path('audit-artifacts')
+          queues=sorted(root.rglob('repair_queue/*.json'))
+          rows=[]
+          unmatched=[]
+          for p in queues:
+              d=json.loads(p.read_text())
+              season=d['season']
+              for e in d.get('exceptions',[]):
+                  err=e.get('error','')
+                  if err.startswith('unmatched rebound-bearing rows='):
+                      kind='unmatched_rebound_row'
+                  elif err.startswith('unresolved starters'):
+                      kind='unresolved_starters'
+                  elif err.startswith('unresolved carried starters'):
+                      kind='unresolved_carried_starters'
+                  elif err.startswith('substitution outgoing player absent'):
+                      kind='sub_out_absent'
+                  else:
+                      kind=err.split(' game=',1)[0][:120] or 'other'
+                  rows.append({'season':season,'game_id':e.get('game_id'),'kind':kind,'error':err})
+              for u in d.get('unmatched_rebound_rows',[]):
+                  x=dict(u); x['season']=season; unmatched.append(x)
+
+          by_kind=Counter(r['kind'] for r in rows)
+          by_season=Counter(r['season'] for r in rows)
+          payload={
+              'source_run':31546621316,
+              'repair_queue_files':len(queues),
+              'failed_game_records':len(rows),
+              'unmatched_rebound_rows':len(unmatched),
+              'by_kind':dict(sorted(by_kind.items())),
+              'by_season':dict(sorted(by_season.items())),
+              'failures':rows,
+              'unmatched_rows':unmatched,
+          }
+          Path('treb_strict_failure_audit.json').write_text(json.dumps(payload,indent=2)+'\n')
+          print(json.dumps({k:payload[k] for k in ('repair_queue_files','failed_game_records','unmatched_rebound_rows','by_kind','by_season')},indent=2))
+          print('EXACT_FAILURES')
+          for r in rows:
+              print(f"{r['season']} game={r['game_id']} kind={r['kind']} :: {r['error']}")
+          print('EXACT_UNMATCHED_ROWS')
+          for u in unmatched:
+              print(json.dumps(u,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-strict-failure-audit-${{ github.sha }}
+          path: treb_strict_failure_audit.json
+          retention-days: 90
+          if-no-files-found: error
