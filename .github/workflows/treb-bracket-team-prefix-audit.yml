@@ -1,0 +1,111 @@
+name: TREB bracket team prefix audit
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-bracket-team-prefix-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text())
+          assert len(m['chunks'])==24 and m['target_games']==58
+          x={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(x,separators=(',',':'))+'\n')
+          PY
+  audit:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_bracket_team_prefix_audit.py \
+            --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' \
+            --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' \
+            --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/BRACKET_PREFIX_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-bracket-prefix-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/BRACKET_PREFIX_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan,audit]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-bracket-prefix-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Aggregate bracket controls
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          ps=sorted(Path('/tmp/results').rglob('BRACKET_PREFIX_*.json'))
+          assert len(ps)==24,[str(p) for p in ps]
+          chunks=[json.loads(p.read_text()) for p in ps]
+          keys=list(chunks[0]['counts']); counts={k:sum(int(c['counts'][k]) for c in chunks) for k in keys}
+          wrong=[r for c in chunks for r in c['wrong_records']]
+          safe=counts['team_correct']>0 and counts['team_wrong']==0 and counts['prefix_unresolved']==0 and counts['actual_team_unresolved']==0
+          out={'status':'COMPLETE','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'purpose':'Validate bracketed PBP tricode team identity against already-matched NBA rebound team identity. No repair promoted.','counts':counts,'safe_rule':safe,'wrong_records':wrong}
+          Path('/tmp/BRACKET_TEAM_PREFIX_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Persist with branch-race retry
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812
+            git reset --hard origin/agent/treb-batched-game-facts-20260812
+            cp /tmp/BRACKET_TEAM_PREFIX_SUMMARY.json "$D/"
+            git add -f "$D/BRACKET_TEAM_PREFIX_SUMMARY.json"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Persist bracket team prefix audit'
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          echo 'failed to persist after retries' >&2; exit 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-bracket-team-prefix-summary-${{ github.run_id }}
+          path: /tmp/BRACKET_TEAM_PREFIX_SUMMARY.json
+          retention-days: 90
