@@ -1,0 +1,98 @@
+name: TREB dual anchor impact audit
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-dual-anchor-impact-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text()); assert len(m['chunks'])==24 and m['target_games']==58
+          x={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(x,separators=(',',':'))+'\n')
+          PY
+  audit:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_dual_anchor_impact_audit.py \
+            --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/IMPACT_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-impact-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/IMPACT_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan,audit]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-impact-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Strict impact-equivalence gate
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          chunks=[json.loads(p.read_text()) for p in sorted(Path('/tmp/results').rglob('IMPACT_*.json'))]; assert len(chunks)==24,len(chunks)
+          keys=list(chunks[0]['controls']); c={k:sum(int(x['controls'][k]) for x in chunks) for k in keys}; wrong=[r for x in chunks for r in x['control_wrong_records']]; residual=[r for x in chunks for r in x['residual_rows']]; assert len(residual)==77,len(residual)
+          safe=c['applicable']>0 and c['impact_wrong']==0 and c['lineup_wrong']==0 and c['kind_wrong']==0 and c['real_wrong']==0
+          candidates=[dict(r,method='dual_anchor_metric_equivalence') for r in residual if safe and r['eligible']]
+          bygame={}
+          for r in residual:bygame.setdefault(int(r['game_id']),[]).append(r)
+          ck={(int(r['game_id']),int(r['pbp_index'])) for r in candidates}; full=sorted(g for g,rs in bygame.items() if all((g,int(r['pbp_index'])) in ck for r in rs))
+          out={'status':'COMPLETE','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'controls':c,'safe_rule':safe,'control_wrong_records':wrong,'current_residual_rows':77,'repairable_rows':len(candidates),'fully_repairable_games':len(full),'fully_repairable_game_ids':full,'repair_candidates':candidates,'residual_rows':residual}
+          Path('/tmp/DUAL_ANCHOR_IMPACT_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps({k:v for k,v in out.items() if k not in {'control_wrong_records','repair_candidates','residual_rows'}},indent=2))
+          PY
+      - name: Persist checkpoint
+        run: |
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics; cp /tmp/DUAL_ANCHOR_IMPACT_SUMMARY.json "$D/"
+          git add -f "$D/DUAL_ANCHOR_IMPACT_SUMMARY.json"
+          if ! git diff --cached --quiet; then git commit -m 'Persist dual-anchor rebound impact audit'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-dual-anchor-impact-summary-${{ github.run_id }}
+          path: /tmp/DUAL_ANCHOR_IMPACT_SUMMARY.json
+          retention-days: 90
