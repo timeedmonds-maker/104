@@ -1,0 +1,17 @@
+BATCH_PROGRESS season=2003-04 batch=11 processed=20/89 success=19 failures=1
+BATCH_PROGRESS season=2003-04 batch=11 processed=40/89 success=38 failures=2
+BATCH_PROGRESS season=2003-04 batch=11 processed=60/89 success=56 failures=4
+BATCH_PROGRESS season=2003-04 batch=11 processed=80/89 success=76 failures=4
+BATCH_PROGRESS season=2003-04 batch=11 processed=89/89 success=84 failures=5
+{
+  "season": "2003-04",
+  "batch_index": 11,
+  "batch_size": 100,
+  "total_common_games": 1189,
+  "start_index": 1100,
+  "stop_index": 1189,
+  "games_requested": 89,
+  "successful_games": 84,
+  "failed_games": 5,
+  "status": "REPAIR_REQUIRED"
+}
