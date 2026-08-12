@@ -1,0 +1,98 @@
+name: TREB padded semantic rebound controls
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - .github/workflows/treb-padded-semantic-controls.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  control:
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        year: [2008,2009,2010,2011,2015,2017,2018,2019,2021,2022,2023,2024]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: '${{ github.sha }}'}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Download sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          cp team_trb_all_players/final_integrity_rebuild/nonlive_unmatched_rebound/NONLIVE_UNMATCHED_REBOUND_SUMMARY.json /tmp/nonlive-summary.json
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{y}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode(); urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}',f'pbpstats_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]; subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Run padded controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit); V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit); PBP=$(find "$RAW" -name "pbpstats_${YEAR}.csv" -print -quit)
+          NBA="$NBA" V3="$V3" PBP="$PBP" YEAR="$YEAR" python - <<'PY'
+          import os,sys
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import invariant_semantic_rebound_diagnostic as d
+          def padded(nba,row,alpha=5):
+              lo=min(int(row.START_ELAPSED),int(row.END_ELAPSED))-alpha; hi=max(int(row.START_ELAPSED),int(row.END_ELAPSED))+alpha
+              span=nba[nba.PERIOD.eq(row.PERIOD)&nba.ELAPSED.ge(lo)&nba.ELAPSED.le(hi)]
+              subs=span[span.EVENTMSGTYPE.eq(8)]; lineups={tuple(int(x) for x in lu) for lu in span.LINEUP} if len(span) else set(); invariant=bool(len(span)>0 and len(subs)==0 and len(lineups)==1)
+              return {'invariant':invariant,'events':int(len(span)),'substitutions':int(len(subs)),'unique_lineups':int(len(lineups)),'lineup':list(next(iter(lineups))) if len(lineups)==1 else None}
+          d.infer_interval_lineup=padded
+          sys.argv=['x','--nba',os.environ['NBA'],'--v3',os.environ['V3'],'--pbp',os.environ['PBP'],'--summary','/tmp/nonlive-summary.json','--year',os.environ['YEAR'],'--output',f'/tmp/PADDED_CONTROL_{os.environ["YEAR"]}.json']
+          raise SystemExit(d.main())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: 'treb-padded-control-${{ matrix.year }}', path: '/tmp/PADDED_CONTROL_${{ matrix.year }}.json', retention-days: 90}
+  aggregate:
+    needs: control
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: '${{ github.sha }}', fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'treb-padded-control-*', path: /tmp/results}
+      - name: Aggregate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          chunks=[]
+          for p in Path('/tmp/results').rglob('PADDED_CONTROL_*.json'):
+              try: chunks.append(json.loads(p.read_text()))
+              except Exception: pass
+          out={'status':'COMPLETE' if len(chunks)==12 else 'PARTIAL','chunks_found':len(chunks),'games_screened':sum(c.get('target_games',0) for c in chunks),'unmatched_rows':sum(c.get('unmatched_rows',0) for c in chunks),'safe_rows':sum(c.get('safe_rows',0) for c in chunks),'games_all_unmatched_safe':sum(c.get('games_all_unmatched_safe',0) for c in chunks),'lineup_control_applicable':sum(c.get('lineup_control_applicable',0) for c in chunks),'lineup_control_correct':sum(c.get('lineup_control_correct',0) for c in chunks),'lineup_control_wrong':sum(c.get('lineup_control_wrong',0) for c in chunks),'real_control_applicable':sum(c.get('real_control_applicable',0) for c in chunks),'real_control_correct':sum(c.get('real_control_correct',0) for c in chunks),'real_control_wrong':sum(c.get('real_control_wrong',0) for c in chunks)}
+          out['promotion_candidate']=bool(out['status']=='COMPLETE' and out['lineup_control_wrong']==0 and out['real_control_wrong']==0 and out['safe_rows']>0)
+          Path('/tmp/PADDED_SEMANTIC_CONTROL_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n'); print(json.dumps(out,indent=2))
+          PY
+      - name: Persist
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'; git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/padded_semantic_candidate; mkdir -p "$DEST"; cp /tmp/PADDED_SEMANTIC_CONTROL_SUMMARY.json "$DEST"/; git add -f "$DEST/PADDED_SEMANTIC_CONTROL_SUMMARY.json"; if ! git diff --cached --quiet; then git commit -m 'Persist padded semantic controls'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
