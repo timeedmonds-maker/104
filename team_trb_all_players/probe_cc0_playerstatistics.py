@@ -11,6 +11,12 @@ BLOCKER_GAMES = {
     21500916, 21800143, 22000485, 21901316, 21901317, 21901318,
 }
 
+V3_ONLY_TARGETS = {
+    21901316: [1629216, 1629734, 203109, 203524, 2738],
+    21901317: [1628985, 1629676, 201149, 202694, 202704],
+    21901318: [1628778, 1628966, 1629076, 203584, 203943],
+}
+
 # Candidate pools emitted by the V3/team-local canary.  The CC0 source is used
 # as independent full-game minute evidence only; `startingPosition` is retained
 # in the audit but is NOT treated as a quarter-starter flag.
@@ -101,6 +107,7 @@ def main() -> int:
         "blocker_game_ids_missing": [],
         "blocker_rows": [],
         "ambiguity_evidence": [],
+        "v3_only_target_evidence": [],
         "sample_zero_or_blank_minute_rows": [],
         "sample_positive_rows": [],
     }
@@ -160,6 +167,34 @@ def main() -> int:
                     "note": "startingPosition retained as source metadata only; resolution is based on full-game minute fit plus event legality",
                 })
 
+            # Exact target-specific minute evidence for the three V3-only games.
+            # This determines whether any target can be repaired as a true DNP
+            # without reconstructing a lineup for that player.
+            for gid, target_ids in sorted(V3_ONLY_TARGETS.items()):
+                game_mask = normalized_game.eq(gid)
+                for pid in target_ids:
+                    mask = game_mask & player_num.eq(pid)
+                    rows = d.loc[mask, [c for c in (player, team, first, last, minutes, starter, game_type, date) if c]].copy()
+                    if len(rows) == 0:
+                        payload["v3_only_target_evidence"].append({
+                            "game_id": gid, "player_id": pid, "row_found": False,
+                            "parsed_minutes": None, "dnp_or_zero": None,
+                        })
+                        continue
+                    if minute_num is not None:
+                        rows["parsed_minutes"] = minute_num.loc[mask].values
+                    records = rows.where(pd.notna(rows), None).to_dict("records")
+                    parsed = records[0].get("parsed_minutes")
+                    parsed_value = None if parsed is None else float(parsed)
+                    payload["v3_only_target_evidence"].append({
+                        "game_id": gid,
+                        "player_id": pid,
+                        "row_found": True,
+                        "parsed_minutes": parsed_value,
+                        "dnp_or_zero": parsed_value is None or parsed_value <= 0,
+                        "source_rows": records,
+                    })
+
     a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_text(json.dumps(payload, indent=2, default=str) + "\n")
     print(json.dumps({
@@ -169,9 +204,12 @@ def main() -> int:
         "blocker_game_ids_missing": payload["blocker_game_ids_missing"],
         "blocker_rows": len(payload["blocker_rows"]),
         "ambiguity_evidence_rows": len(payload["ambiguity_evidence"]),
+        "v3_only_target_evidence_rows": len(payload["v3_only_target_evidence"]),
     }, indent=2))
     if payload["blocker_game_ids_missing"]:
         raise SystemExit("CC0 dataset is missing one or more blocker games")
+    if len(payload["v3_only_target_evidence"]) != sum(len(x) for x in V3_ONLY_TARGETS.values()):
+        raise SystemExit("V3-only target evidence count mismatch")
     return 0
 
 
