@@ -1,0 +1,200 @@
+{
+  "status": "COMPLETE",
+  "workflow_run_id": 31642679590,
+  "purpose": "Full forensic-game census of already-accepted PBP-to-NBA rebound joins whose unique PBP rebounder identity conflicts with the matched NBA PLAYER1_ID. Diagnostic only; no repair promoted.",
+  "counts": {
+    "games": 58,
+    "matched_rebound_rows": 5972,
+    "resolved_rebounder_rows": 4463,
+    "current_identity_agrees": 4454,
+    "current_identity_conflicts": 9,
+    "conflict_unique_semantic_candidate": 0,
+    "conflict_unique_semantic_candidate_unused_elsewhere": 0,
+    "conflict_no_semantic_candidate": 9,
+    "conflict_multiple_semantic_candidates": 0,
+    "current_match_not_rebound_event": 0
+  },
+  "conflict_rows": 9,
+  "conflicts": [
+    {
+      "game_id": 21900343,
+      "pbp_index": 1163,
+      "period": 3,
+      "start_time": "00:45",
+      "end_time": "00:22",
+      "description": "Harrell REBOUND (Off:2 Def:2)",
+      "resolved_rebounder_id": 1626149,
+      "current_nba_index": 388,
+      "current_eventnum": 532,
+      "current_elapsed": 2134,
+      "current_event_type": 4,
+      "current_player1_id": 1628988,
+      "current_description": "holiday rebound (off:0 def:3)",
+      "current_description_distance": 0.27586206896551724,
+      "current_used_by_pbp_indices": [
+        1163
+      ],
+      "semantic_candidates": []
+    },
+    {
+      "game_id": 22101028,
+      "pbp_index": 772,
+      "period": 2,
+      "start_time": "09:35",
+      "end_time": "09:22",
+      "description": "Birch REBOUND (Off:1 Def:1)",
+      "resolved_rebounder_id": 203920,
+      "current_nba_index": 145,
+      "current_eventnum": 195,
+      "current_elapsed": 873,
+      "current_event_type": 4,
+      "current_player1_id": 201152,
+      "current_description": "young rebound (off:1 def:3)",
+      "current_description_distance": 0.2222222222222222,
+      "current_used_by_pbp_indices": [
+        772
+      ],
+      "semantic_candidates": []
+    },
+    {
+      "game_id": 22101120,
+      "pbp_index": 1202,
+      "period": 2,
+      "start_time": "09:22",
+      "end_time": "09:05",
+      "description": "Drummond REBOUND (Off:1 Def:4)",
+      "resolved_rebounder_id": 203083,
+      "current_nba_index": 161,
+      "current_eventnum": 230,
+      "current_elapsed": 895,
+      "current_event_type": 4,
+      "current_player1_id": 201988,
+      "current_description": "mills rebound (off:0 def:3)",
+      "current_description_distance": 0.3,
+      "current_used_by_pbp_indices": [
+        1202
+      ],
+      "semantic_candidates": []
+    },
+    {
+      "game_id": 22101198,
+      "pbp_index": 1741,
+      "period": 2,
+      "start_time": "03:53",
+      "end_time": "03:26",
+      "description": "Connaughton REBOUND (Off:1 Def:1)",
+      "resolved_rebounder_id": 1626192,
+      "current_nba_index": 197,
+      "current_eventnum": 288,
+      "current_elapsed": 1229,
+      "current_event_type": 4,
+      "current_player1_id": 1628401,
+      "current_description": "white rebound (off:0 def:4)",
+      "current_description_distance": 0.36363636363636365,
+      "current_used_by_pbp_indices": [
+        1741
+      ],
+      "semantic_candidates": []
+    },
+    {
+      "game_id": 22200225,
+      "pbp_index": 2429,
+      "period": 5,
+      "start_time": "04:33",
+      "end_time": "04:12",
+      "description": "Stevens REBOUND (Off:1 Def:3)",
+      "resolved_rebounder_id": 1630205,
+      "current_nba_index": 493,
+      "current_eventnum": 723,
+      "current_elapsed": 2927,
+      "current_event_type": 4,
+      "current_player1_id": 203486,
+      "current_description": "plumlee rebound (off:2 def:4)",
+      "current_description_distance": 0.3103448275862069,
+      "current_used_by_pbp_indices": [
+        2429
+      ],
+      "semantic_candidates": []
+    },
+    {
+      "game_id": 22200307,
+      "pbp_index": 3053,
+      "period": 4,
+      "start_time": "00:35",
+      "end_time": "00:06",
+      "description": "Lee REBOUND (Off:2 Def:3)",
+      "resolved_rebounder_id": 1627814,
+      "current_nba_index": 436,
+      "current_eventnum": 644,
+      "current_elapsed": 2872,
+      "current_event_type": 4,
+      "current_player1_id": 1628470,
+      "current_description": "craig rebound (off:4 def:2)",
+      "current_description_distance": 0.25925925925925924,
+      "current_used_by_pbp_indices": [
+        3053
+      ],
+      "semantic_candidates": []
+    },
+    {
+      "game_id": 22200350,
+      "pbp_index": 4118,
+      "period": 3,
+      "start_time": "07:21",
+      "end_time": "07:03",
+      "description": "DeRozan REBOUND (Off:1 Def:1)",
+      "resolved_rebounder_id": 201942,
+      "current_nba_index": 259,
+      "current_eventnum": 370,
+      "current_elapsed": 1737,
+      "current_event_type": 4,
+      "current_player1_id": 1630172,
+      "current_description": "williams rebound (off:1 def:3)",
+      "current_description_distance": 0.26666666666666666,
+      "current_used_by_pbp_indices": [
+        4118
+      ],
+      "semantic_candidates": []
+    },
+    {
+      "game_id": 22200547,
+      "pbp_index": 4943,
+      "period": 2,
+      "start_time": "00:55",
+      "end_time": "00:27",
+      "description": "Morant REBOUND (Off:1 Def:2)",
+      "resolved_rebounder_id": 1629630,
+      "current_nba_index": 272,
+      "current_eventnum": 395,
+      "current_elapsed": 1408,
+      "current_event_type": 4,
+      "current_player1_id": 1629723,
+      "current_description": "konchar rebound (off:2 def:2)",
+      "current_description_distance": 0.2413793103448276,
+      "current_used_by_pbp_indices": [
+        4943
+      ],
+      "semantic_candidates": []
+    },
+    {
+      "game_id": 22400422,
+      "pbp_index": 771,
+      "period": 2,
+      "start_time": "06:11",
+      "end_time": "05:47",
+      "description": "Smith Jr. REBOUND (Off:1 Def:2)",
+      "resolved_rebounder_id": 1631095,
+      "current_nba_index": 170,
+      "current_eventnum": 238,
+      "current_elapsed": 1094,
+      "current_event_type": 4,
+      "current_player1_id": 1629675,
+      "current_description": "reid rebound (off:1 def:1)",
+      "current_description_distance": 0.2903225806451613,
+      "current_used_by_pbp_indices": [
+        771
+      ],
+      "semantic_candidates": []
+    }
+  ]
+}
