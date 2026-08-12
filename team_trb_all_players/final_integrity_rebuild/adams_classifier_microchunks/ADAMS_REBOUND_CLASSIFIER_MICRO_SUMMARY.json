@@ -1,0 +1,1352 @@
+{
+  "status": "PARTIAL",
+  "expected_chunks": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40
+  ],
+  "found_chunks": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    15,
+    16,
+    18,
+    19,
+    21,
+    26,
+    29,
+    32,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40
+  ],
+  "missing_chunks": [
+    6,
+    14,
+    17,
+    20,
+    22,
+    23,
+    24,
+    25,
+    27,
+    28,
+    30,
+    31,
+    33
+  ],
+  "games_compared": 24,
+  "failures": [
+    {
+      "game_id": 21600011,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600011&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600021,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600021&Type=LineupOpponent (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600040,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600040&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600064,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600064&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600079,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600079&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600126,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600126&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600141,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600141&Type=LineupOpponent (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600147,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600147&Type=LineupOpponent (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600164,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600164&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600211,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600211&Type=LineupOpponent (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600235,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600235&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600255,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600255&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600270,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600270&Type=Lineup (Caused by ResponseError('too many 500 error responses'))"
+    },
+    {
+      "game_id": 21600341,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600341&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600357,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600357&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600373,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600373&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600382,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600382&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600399,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600399&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600415,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600415&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600459,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600459&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600473,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600473&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600487,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600487&Type=LineupOpponent (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600569,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600569&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600581,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600581&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600621,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600621&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600796,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600796&Type=LineupOpponent (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21600962,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021600962&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21601062,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021601062&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21601100,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021601100&Type=Lineup (Caused by ResponseError('too many 502 error responses'))"
+    },
+    {
+      "game_id": 21601135,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021601135&Type=Lineup (Caused by ResponseError('too many 500 error responses'))"
+    },
+    {
+      "game_id": 21601159,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021601159&Type=LineupOpponent (Caused by ResponseError('too many 500 error responses'))"
+    },
+    {
+      "game_id": 21601213,
+      "error": "RetryError: HTTPSConnectionPool(host='api.pbpstats.com', port=443): Max retries exceeded with url: /get-game-stats?GameId=0021601213&Type=Lineup (Caused by ResponseError('too many 500 error responses'))"
+    }
+  ],
+  "okc_oreb_universe": 851,
+  "api_truth": {
+    "seconds_on": 38396,
+    "team_oreb_on": 195,
+    "team_dreb_on": 501,
+    "opponent_oreb_on": 139,
+    "opponent_dreb_on": 477
+  },
+  "locked": {
+    "seconds_on": 143368,
+    "team_oreb_on": 816,
+    "team_dreb_on": 1846,
+    "opponent_oreb_on": 643,
+    "opponent_dreb_on": 1632
+  },
+  "api_truth_diff_vs_locked": {
+    "seconds_on": -104972,
+    "team_oreb_on": -621,
+    "team_dreb_on": -1345,
+    "opponent_oreb_on": -504,
+    "opponent_dreb_on": -1155
+  },
+  "methods": {
+    "current": {
+      "observed": {
+        "seconds_on": 95603,
+        "team_oreb_on": 493,
+        "team_dreb_on": 1249,
+        "opponent_oreb_on": 373,
+        "opponent_dreb_on": 1136
+      },
+      "exact_games": 15,
+      "sum_abs_game_error": {
+        "seconds_on": 0,
+        "team_oreb_on": 7,
+        "team_dreb_on": 0,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 9
+      },
+      "diff_vs_api_truth": {
+        "seconds_on": 57207,
+        "team_oreb_on": 298,
+        "team_dreb_on": 748,
+        "opponent_oreb_on": 234,
+        "opponent_dreb_on": 659
+      }
+    },
+    "real_first": {
+      "observed": {
+        "seconds_on": 95603,
+        "team_oreb_on": 501,
+        "team_dreb_on": 1246,
+        "opponent_oreb_on": 376,
+        "opponent_dreb_on": 1128
+      },
+      "exact_games": 20,
+      "sum_abs_game_error": {
+        "seconds_on": 0,
+        "team_oreb_on": 2,
+        "team_dreb_on": 0,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 4
+      },
+      "diff_vs_api_truth": {
+        "seconds_on": 57207,
+        "team_oreb_on": 306,
+        "team_dreb_on": 745,
+        "opponent_oreb_on": 237,
+        "opponent_dreb_on": 651
+      }
+    },
+    "description_counter": {
+      "observed": {
+        "seconds_on": 95603,
+        "team_oreb_on": 46,
+        "team_dreb_on": 1586,
+        "opponent_oreb_on": 36,
+        "opponent_dreb_on": 1583
+      },
+      "exact_games": 2,
+      "sum_abs_game_error": {
+        "seconds_on": 0,
+        "team_oreb_on": 175,
+        "team_dreb_on": 119,
+        "opponent_oreb_on": 119,
+        "opponent_dreb_on": 169
+      },
+      "diff_vs_api_truth": {
+        "seconds_on": 57207,
+        "team_oreb_on": -149,
+        "team_dreb_on": 1085,
+        "opponent_oreb_on": -103,
+        "opponent_dreb_on": 1106
+      }
+    }
+  },
+  "per_game": [
+    {
+      "game_id": 21600069,
+      "truth": {
+        "seconds_on": 1429,
+        "team_oreb_on": 6,
+        "team_dreb_on": 18,
+        "opponent_oreb_on": 8,
+        "opponent_dreb_on": 15
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 18,
+          "opponent_oreb_on": 8,
+          "opponent_dreb_on": 15,
+          "seconds_on": 1429
+        },
+        "real_first": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 18,
+          "opponent_oreb_on": 8,
+          "opponent_dreb_on": 15,
+          "seconds_on": 1429
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 25,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 20,
+          "description_unresolved_real_on": 44,
+          "seconds_on": 1429
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 406,
+        "rebound_bearing_rows": 110,
+        "matched_rebound_bearing_rows": 110,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 14,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600097,
+      "truth": {
+        "seconds_on": 1756,
+        "team_oreb_on": 6,
+        "team_dreb_on": 27,
+        "opponent_oreb_on": 9,
+        "opponent_dreb_on": 21
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 27,
+          "opponent_oreb_on": 9,
+          "opponent_dreb_on": 21,
+          "seconds_on": 1756
+        },
+        "real_first": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 27,
+          "opponent_oreb_on": 9,
+          "opponent_dreb_on": 21,
+          "seconds_on": 1756
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 34,
+          "opponent_oreb_on": 2,
+          "opponent_dreb_on": 27,
+          "description_unresolved_real_on": 57,
+          "seconds_on": 1756
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 382,
+        "rebound_bearing_rows": 107,
+        "matched_rebound_bearing_rows": 107,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 5,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600112,
+      "truth": {
+        "seconds_on": 2127,
+        "team_oreb_on": 10,
+        "team_dreb_on": 22,
+        "opponent_oreb_on": 7,
+        "opponent_dreb_on": 25
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 9,
+          "team_dreb_on": 22,
+          "opponent_oreb_on": 7,
+          "opponent_dreb_on": 26,
+          "seconds_on": 2127
+        },
+        "real_first": {
+          "team_oreb_on": 10,
+          "team_dreb_on": 22,
+          "opponent_oreb_on": 7,
+          "opponent_dreb_on": 25,
+          "seconds_on": 2127
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 28,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 34,
+          "description_unresolved_real_on": 59,
+          "seconds_on": 2127
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 383,
+        "rebound_bearing_rows": 92,
+        "matched_rebound_bearing_rows": 92,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 2,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600224,
+      "truth": {
+        "seconds_on": 1704,
+        "team_oreb_on": 1,
+        "team_dreb_on": 19,
+        "opponent_oreb_on": 8,
+        "opponent_dreb_on": 27
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 19,
+          "opponent_oreb_on": 8,
+          "opponent_dreb_on": 27,
+          "seconds_on": 1704
+        },
+        "real_first": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 19,
+          "opponent_oreb_on": 8,
+          "opponent_dreb_on": 27,
+          "seconds_on": 1704
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 26,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 28,
+          "description_unresolved_real_on": 54,
+          "seconds_on": 1704
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 390,
+        "rebound_bearing_rows": 102,
+        "matched_rebound_bearing_rows": 102,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 10,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600242,
+      "truth": {
+        "seconds_on": 1766,
+        "team_oreb_on": 9,
+        "team_dreb_on": 24,
+        "opponent_oreb_on": 5,
+        "opponent_dreb_on": 18
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 9,
+          "team_dreb_on": 24,
+          "opponent_oreb_on": 5,
+          "opponent_dreb_on": 18,
+          "seconds_on": 1766
+        },
+        "real_first": {
+          "team_oreb_on": 9,
+          "team_dreb_on": 24,
+          "opponent_oreb_on": 5,
+          "opponent_dreb_on": 18,
+          "seconds_on": 1766
+        },
+        "description_counter": {
+          "team_oreb_on": 2,
+          "team_dreb_on": 29,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 25,
+          "description_unresolved_real_on": 50,
+          "seconds_on": 1766
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 366,
+        "rebound_bearing_rows": 101,
+        "matched_rebound_bearing_rows": 101,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 10,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600301,
+      "truth": {
+        "seconds_on": 523,
+        "team_oreb_on": 0,
+        "team_dreb_on": 7,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 7
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 7,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 7,
+          "seconds_on": 523
+        },
+        "real_first": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 7,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 7,
+          "seconds_on": 523
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 7,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 7,
+          "description_unresolved_real_on": 14,
+          "seconds_on": 523
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 425,
+        "rebound_bearing_rows": 128,
+        "matched_rebound_bearing_rows": 128,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 13,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600307,
+      "truth": {
+        "seconds_on": 1673,
+        "team_oreb_on": 10,
+        "team_dreb_on": 20,
+        "opponent_oreb_on": 7,
+        "opponent_dreb_on": 21
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 9,
+          "team_dreb_on": 20,
+          "opponent_oreb_on": 7,
+          "opponent_dreb_on": 20,
+          "seconds_on": 1673
+        },
+        "real_first": {
+          "team_oreb_on": 9,
+          "team_dreb_on": 20,
+          "opponent_oreb_on": 7,
+          "opponent_dreb_on": 20,
+          "seconds_on": 1673
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 27,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 28,
+          "description_unresolved_real_on": 54,
+          "seconds_on": 1673
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 407,
+        "rebound_bearing_rows": 103,
+        "matched_rebound_bearing_rows": 103,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 5,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600507,
+      "truth": {
+        "seconds_on": 1747,
+        "team_oreb_on": 6,
+        "team_dreb_on": 22,
+        "opponent_oreb_on": 6,
+        "opponent_dreb_on": 22
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 22,
+          "opponent_oreb_on": 6,
+          "opponent_dreb_on": 22,
+          "seconds_on": 1747
+        },
+        "real_first": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 22,
+          "opponent_oreb_on": 6,
+          "opponent_dreb_on": 22,
+          "seconds_on": 1747
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 27,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 28,
+          "description_unresolved_real_on": 52,
+          "seconds_on": 1747
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 377,
+        "rebound_bearing_rows": 93,
+        "matched_rebound_bearing_rows": 93,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 0,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600540,
+      "truth": {
+        "seconds_on": 1748,
+        "team_oreb_on": 5,
+        "team_dreb_on": 24,
+        "opponent_oreb_on": 3,
+        "opponent_dreb_on": 25
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 5,
+          "team_dreb_on": 24,
+          "opponent_oreb_on": 3,
+          "opponent_dreb_on": 24,
+          "seconds_on": 1748
+        },
+        "real_first": {
+          "team_oreb_on": 5,
+          "team_dreb_on": 24,
+          "opponent_oreb_on": 3,
+          "opponent_dreb_on": 24,
+          "seconds_on": 1748
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 27,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 29,
+          "description_unresolved_real_on": 55,
+          "seconds_on": 1748
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 403,
+        "rebound_bearing_rows": 108,
+        "matched_rebound_bearing_rows": 108,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 8,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600555,
+      "truth": {
+        "seconds_on": 1855,
+        "team_oreb_on": 4,
+        "team_dreb_on": 34,
+        "opponent_oreb_on": 13,
+        "opponent_dreb_on": 26
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 4,
+          "team_dreb_on": 34,
+          "opponent_oreb_on": 13,
+          "opponent_dreb_on": 26,
+          "seconds_on": 1855
+        },
+        "real_first": {
+          "team_oreb_on": 4,
+          "team_dreb_on": 34,
+          "opponent_oreb_on": 13,
+          "opponent_dreb_on": 26,
+          "seconds_on": 1855
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 44,
+          "opponent_oreb_on": 3,
+          "opponent_dreb_on": 30,
+          "description_unresolved_real_on": 73,
+          "seconds_on": 1855
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 428,
+        "rebound_bearing_rows": 118,
+        "matched_rebound_bearing_rows": 118,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 9,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600634,
+      "truth": {
+        "seconds_on": 0,
+        "team_oreb_on": 0,
+        "team_dreb_on": 0,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 0
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 0,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 0,
+          "seconds_on": 0
+        },
+        "real_first": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 0,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 0,
+          "seconds_on": 0
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 0,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 0,
+          "description_unresolved_real_on": 0,
+          "seconds_on": 0
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 401,
+        "rebound_bearing_rows": 102,
+        "matched_rebound_bearing_rows": 102,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 11,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600770,
+      "truth": {
+        "seconds_on": 2219,
+        "team_oreb_on": 19,
+        "team_dreb_on": 34,
+        "opponent_oreb_on": 16,
+        "opponent_dreb_on": 24
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 19,
+          "team_dreb_on": 34,
+          "opponent_oreb_on": 16,
+          "opponent_dreb_on": 24,
+          "seconds_on": 2219
+        },
+        "real_first": {
+          "team_oreb_on": 19,
+          "team_dreb_on": 34,
+          "opponent_oreb_on": 16,
+          "opponent_dreb_on": 24,
+          "seconds_on": 2219
+        },
+        "description_counter": {
+          "team_oreb_on": 2,
+          "team_dreb_on": 49,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 41,
+          "description_unresolved_real_on": 90,
+          "seconds_on": 2219
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 410,
+        "rebound_bearing_rows": 122,
+        "matched_rebound_bearing_rows": 122,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 18,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600880,
+      "truth": {
+        "seconds_on": 1759,
+        "team_oreb_on": 14,
+        "team_dreb_on": 23,
+        "opponent_oreb_on": 4,
+        "opponent_dreb_on": 20
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 14,
+          "team_dreb_on": 23,
+          "opponent_oreb_on": 4,
+          "opponent_dreb_on": 20,
+          "seconds_on": 1759
+        },
+        "real_first": {
+          "team_oreb_on": 14,
+          "team_dreb_on": 23,
+          "opponent_oreb_on": 4,
+          "opponent_dreb_on": 20,
+          "seconds_on": 1759
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 27,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 33,
+          "description_unresolved_real_on": 58,
+          "seconds_on": 1759
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 428,
+        "rebound_bearing_rows": 104,
+        "matched_rebound_bearing_rows": 104,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 10,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600893,
+      "truth": {
+        "seconds_on": 1613,
+        "team_oreb_on": 5,
+        "team_dreb_on": 21,
+        "opponent_oreb_on": 5,
+        "opponent_dreb_on": 20
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 5,
+          "team_dreb_on": 21,
+          "opponent_oreb_on": 5,
+          "opponent_dreb_on": 19,
+          "seconds_on": 1613
+        },
+        "real_first": {
+          "team_oreb_on": 5,
+          "team_dreb_on": 21,
+          "opponent_oreb_on": 5,
+          "opponent_dreb_on": 19,
+          "seconds_on": 1613
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 25,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 24,
+          "description_unresolved_real_on": 47,
+          "seconds_on": 1613
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 354,
+        "rebound_bearing_rows": 94,
+        "matched_rebound_bearing_rows": 94,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 17,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21600973,
+      "truth": {
+        "seconds_on": 1915,
+        "team_oreb_on": 9,
+        "team_dreb_on": 24,
+        "opponent_oreb_on": 5,
+        "opponent_dreb_on": 22
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 8,
+          "team_dreb_on": 24,
+          "opponent_oreb_on": 5,
+          "opponent_dreb_on": 21,
+          "seconds_on": 1915
+        },
+        "real_first": {
+          "team_oreb_on": 8,
+          "team_dreb_on": 24,
+          "opponent_oreb_on": 5,
+          "opponent_dreb_on": 21,
+          "seconds_on": 1915
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 26,
+          "opponent_oreb_on": 3,
+          "opponent_dreb_on": 29,
+          "description_unresolved_real_on": 52,
+          "seconds_on": 1915
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 368,
+        "rebound_bearing_rows": 93,
+        "matched_rebound_bearing_rows": 93,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 6,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601028,
+      "truth": {
+        "seconds_on": 2085,
+        "team_oreb_on": 14,
+        "team_dreb_on": 26,
+        "opponent_oreb_on": 8,
+        "opponent_dreb_on": 21
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 13,
+          "team_dreb_on": 26,
+          "opponent_oreb_on": 8,
+          "opponent_dreb_on": 22,
+          "seconds_on": 2085
+        },
+        "real_first": {
+          "team_oreb_on": 14,
+          "team_dreb_on": 26,
+          "opponent_oreb_on": 8,
+          "opponent_dreb_on": 21,
+          "seconds_on": 2085
+        },
+        "description_counter": {
+          "team_oreb_on": 2,
+          "team_dreb_on": 31,
+          "opponent_oreb_on": 3,
+          "opponent_dreb_on": 33,
+          "description_unresolved_real_on": 61,
+          "seconds_on": 2085
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 392,
+        "rebound_bearing_rows": 102,
+        "matched_rebound_bearing_rows": 102,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 13,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601049,
+      "truth": {
+        "seconds_on": 1345,
+        "team_oreb_on": 2,
+        "team_dreb_on": 16,
+        "opponent_oreb_on": 5,
+        "opponent_dreb_on": 22
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 2,
+          "team_dreb_on": 16,
+          "opponent_oreb_on": 5,
+          "opponent_dreb_on": 22,
+          "seconds_on": 1345
+        },
+        "real_first": {
+          "team_oreb_on": 2,
+          "team_dreb_on": 16,
+          "opponent_oreb_on": 5,
+          "opponent_dreb_on": 22,
+          "seconds_on": 1345
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 20,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 23,
+          "description_unresolved_real_on": 43,
+          "seconds_on": 1345
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 405,
+        "rebound_bearing_rows": 112,
+        "matched_rebound_bearing_rows": 112,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 6,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601091,
+      "truth": {
+        "seconds_on": 1469,
+        "team_oreb_on": 9,
+        "team_dreb_on": 15,
+        "opponent_oreb_on": 0,
+        "opponent_dreb_on": 19
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 9,
+          "team_dreb_on": 15,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 19,
+          "seconds_on": 1469
+        },
+        "real_first": {
+          "team_oreb_on": 9,
+          "team_dreb_on": 15,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 19,
+          "seconds_on": 1469
+        },
+        "description_counter": {
+          "team_oreb_on": 2,
+          "team_dreb_on": 15,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 26,
+          "description_unresolved_real_on": 39,
+          "seconds_on": 1469
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 393,
+        "rebound_bearing_rows": 88,
+        "matched_rebound_bearing_rows": 88,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 8,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601112,
+      "truth": {
+        "seconds_on": 1743,
+        "team_oreb_on": 8,
+        "team_dreb_on": 25,
+        "opponent_oreb_on": 7,
+        "opponent_dreb_on": 26
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 7,
+          "team_dreb_on": 25,
+          "opponent_oreb_on": 7,
+          "opponent_dreb_on": 27,
+          "seconds_on": 1743
+        },
+        "real_first": {
+          "team_oreb_on": 8,
+          "team_dreb_on": 25,
+          "opponent_oreb_on": 7,
+          "opponent_dreb_on": 26,
+          "seconds_on": 1743
+        },
+        "description_counter": {
+          "team_oreb_on": 0,
+          "team_dreb_on": 32,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 34,
+          "description_unresolved_real_on": 64,
+          "seconds_on": 1743
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 455,
+        "rebound_bearing_rows": 134,
+        "matched_rebound_bearing_rows": 134,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 4,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601142,
+      "truth": {
+        "seconds_on": 1565,
+        "team_oreb_on": 8,
+        "team_dreb_on": 22,
+        "opponent_oreb_on": 3,
+        "opponent_dreb_on": 19
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 8,
+          "team_dreb_on": 22,
+          "opponent_oreb_on": 3,
+          "opponent_dreb_on": 19,
+          "seconds_on": 1565
+        },
+        "real_first": {
+          "team_oreb_on": 8,
+          "team_dreb_on": 22,
+          "opponent_oreb_on": 3,
+          "opponent_dreb_on": 19,
+          "seconds_on": 1565
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 25,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 26,
+          "description_unresolved_real_on": 50,
+          "seconds_on": 1565
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 369,
+        "rebound_bearing_rows": 89,
+        "matched_rebound_bearing_rows": 89,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 5,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601167,
+      "truth": {
+        "seconds_on": 1981,
+        "team_oreb_on": 11,
+        "team_dreb_on": 23,
+        "opponent_oreb_on": 9,
+        "opponent_dreb_on": 24
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 10,
+          "team_dreb_on": 23,
+          "opponent_oreb_on": 9,
+          "opponent_dreb_on": 25,
+          "seconds_on": 1981
+        },
+        "real_first": {
+          "team_oreb_on": 11,
+          "team_dreb_on": 23,
+          "opponent_oreb_on": 9,
+          "opponent_dreb_on": 24,
+          "seconds_on": 1981
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 32,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 34,
+          "description_unresolved_real_on": 64,
+          "seconds_on": 1981
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 375,
+        "rebound_bearing_rows": 102,
+        "matched_rebound_bearing_rows": 102,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 6,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601186,
+      "truth": {
+        "seconds_on": 1966,
+        "team_oreb_on": 21,
+        "team_dreb_on": 21,
+        "opponent_oreb_on": 8,
+        "opponent_dreb_on": 22
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 20,
+          "team_dreb_on": 21,
+          "opponent_oreb_on": 8,
+          "opponent_dreb_on": 23,
+          "seconds_on": 1966
+        },
+        "real_first": {
+          "team_oreb_on": 21,
+          "team_dreb_on": 21,
+          "opponent_oreb_on": 8,
+          "opponent_dreb_on": 22,
+          "seconds_on": 1966
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 27,
+          "opponent_oreb_on": 2,
+          "opponent_dreb_on": 42,
+          "description_unresolved_real_on": 68,
+          "seconds_on": 1966
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 423,
+        "rebound_bearing_rows": 112,
+        "matched_rebound_bearing_rows": 112,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 9,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601198,
+      "truth": {
+        "seconds_on": 1596,
+        "team_oreb_on": 12,
+        "team_dreb_on": 22,
+        "opponent_oreb_on": 1,
+        "opponent_dreb_on": 18
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 12,
+          "team_dreb_on": 22,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 18,
+          "seconds_on": 1596
+        },
+        "real_first": {
+          "team_oreb_on": 12,
+          "team_dreb_on": 22,
+          "opponent_oreb_on": 1,
+          "opponent_dreb_on": 18,
+          "seconds_on": 1596
+        },
+        "description_counter": {
+          "team_oreb_on": 1,
+          "team_dreb_on": 23,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 29,
+          "description_unresolved_real_on": 51,
+          "seconds_on": 1596
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 379,
+        "rebound_bearing_rows": 103,
+        "matched_rebound_bearing_rows": 103,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 7,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    },
+    {
+      "game_id": 21601225,
+      "truth": {
+        "seconds_on": 812,
+        "team_oreb_on": 6,
+        "team_dreb_on": 12,
+        "opponent_oreb_on": 2,
+        "opponent_dreb_on": 13
+      },
+      "local": {
+        "current": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 12,
+          "opponent_oreb_on": 2,
+          "opponent_dreb_on": 13,
+          "seconds_on": 812
+        },
+        "real_first": {
+          "team_oreb_on": 6,
+          "team_dreb_on": 12,
+          "opponent_oreb_on": 2,
+          "opponent_dreb_on": 13,
+          "seconds_on": 812
+        },
+        "description_counter": {
+          "team_oreb_on": 3,
+          "team_dreb_on": 14,
+          "opponent_oreb_on": 0,
+          "opponent_dreb_on": 16,
+          "description_unresolved_real_on": 29,
+          "seconds_on": 812
+        }
+      },
+      "join_audit": {
+        "total_pbp_rows": 422,
+        "rebound_bearing_rows": 116,
+        "matched_rebound_bearing_rows": 116,
+        "unmatched_rebound_bearing_rows": 0,
+        "ambiguous_matches": 11,
+        "manual_join_repairs": 0,
+        "unmatched_rows": []
+      }
+    }
+  ]
+}
