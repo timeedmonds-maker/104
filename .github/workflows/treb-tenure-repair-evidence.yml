@@ -33,8 +33,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p team_trb_all_players/impact_database/roster_tenure_v2
-          git show 0249c24df836f31931e955999b9b9f0eee3bb77f:team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
-            > team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            -o team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            'https://raw.githubusercontent.com/timeedmonds-maker/104/0249c24df836f31931e955999b9b9f0eee3bb77f/team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          test -s team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
       - name: Download CC0 PlayerStatistics
         shell: bash
         run: |
@@ -50,14 +52,20 @@ jobs:
             --playerstatistics /tmp/cc0/PlayerStatistics.csv \
             --output /tmp/TENURE_REPAIR_EVIDENCE.json 2>&1 | tee /tmp/tenure-evidence.log
       - name: Commit evidence durably
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
-          cp /tmp/TENURE_REPAIR_EVIDENCE.json team_trb_all_players/final_integrity_rebuild/TENURE_REPAIR_EVIDENCE.json
-          git add team_trb_all_players/final_integrity_rebuild/TENURE_REPAIR_EVIDENCE.json
+          if [ -s /tmp/TENURE_REPAIR_EVIDENCE.json ]; then
+            cp /tmp/TENURE_REPAIR_EVIDENCE.json team_trb_all_players/final_integrity_rebuild/TENURE_REPAIR_EVIDENCE.json
+          fi
+          if [ -s /tmp/tenure-evidence.log ]; then
+            cp /tmp/tenure-evidence.log team_trb_all_players/final_integrity_rebuild/TENURE_REPAIR_EVIDENCE_BUILD.log
+          fi
+          git add -f team_trb_all_players/final_integrity_rebuild/TENURE_REPAIR_EVIDENCE.json team_trb_all_players/final_integrity_rebuild/TENURE_REPAIR_EVIDENCE_BUILD.log 2>/dev/null || true
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "Record evidence for 30 targeted tenure repairs"
           git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
