@@ -1,58 +1,84 @@
-name: TREB final integrity exact game facts
+name: TREB exact game facts - one season
 
 on:
   push:
     branches: [agent/treb-final-integrity-rebuild-20260812]
     paths:
       - .github/workflows/treb-final-integrity-game-facts.yml
-      - team_trb_all_players/build_exact_game_fact_layer.py
-      - team_trb_all_players/production_treb_engine.py
-      - team_trb_all_players/production_treb_engine_v3.py
-      - team_trb_all_players/local_treb_rebuild.py
+      - team_trb_all_players/final_integrity_rebuild/GAME_FACT_CHUNK_CONTROL.json
   workflow_dispatch:
+    inputs:
+      year:
+        description: "Season start year, e.g. 2000"
+        required: false
+        type: string
 
 permissions:
   contents: write
-  actions: read
 
 env:
   PYTHONUNBUFFERED: "1"
 
 concurrency:
-  group: treb-final-integrity-game-facts-20260812
-  cancel-in-progress: true
+  group: treb-exact-game-facts-single-season
+  cancel-in-progress: false
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      max-parallel: 8
-      matrix:
-        year: [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024]
+  build-one-season:
     runs-on: ubuntu-latest
-    timeout-minutes: 330
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - run: python -m pip install pandas numpy rapidfuzz
-      - name: Compile exact fact builder
-        run: python -m py_compile team_trb_all_players/build_exact_game_fact_layer.py
-      - name: Download local historical sources
+
+      - name: Resolve one season only
+        id: season
         shell: bash
         run: |
           set -euo pipefail
-          YEAR='${{ matrix.year }}'
+          INPUT_YEAR='${{ inputs.year }}'
+          if [ -n "$INPUT_YEAR" ]; then
+            YEAR="$INPUT_YEAR"
+          else
+            YEAR=$(python - <<'PY'
+          import json
+          p='team_trb_all_players/final_integrity_rebuild/GAME_FACT_CHUNK_CONTROL.json'
+          print(int(json.load(open(p))['year']))
+          PY
+          )
+          fi
+          if [ "$YEAR" -lt 2000 ] || [ "$YEAR" -gt 2024 ]; then
+            echo "invalid historical season start year: $YEAR" >&2
+            exit 2
+          fi
+          NEXT=$((YEAR+1))
+          SEASON="${YEAR}-$(printf '%02d' $((NEXT%100)))"
+          echo "year=$YEAR" >> "$GITHUB_OUTPUT"
+          echo "season=$SEASON" >> "$GITHUB_OUTPUT"
+          echo "RUNNING_SINGLE_SEASON=$SEASON"
+
+      - name: Compile exact fact builder
+        run: python -m py_compile team_trb_all_players/build_exact_game_fact_layer.py
+
+      - name: Download this season's local historical sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ steps.season.outputs.year }}'
           RAW="/tmp/trebraw-${YEAR}"
-          mkdir -p "$RAW"
+          rm -rf "$RAW" && mkdir -p "$RAW"
           python - <<'PY'
           import subprocess, tarfile, urllib.request
           from pathlib import Path
-          year=int('${{ matrix.year }}')
+          year=int('${{ steps.season.outputs.year }}')
           raw=Path(f'/tmp/trebraw-{year}')
           text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt', timeout=60).read().decode()
           urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
@@ -62,6 +88,7 @@ jobs:
                   raise SystemExit(f'missing source key {key}')
               url=urls[key]
               arc=raw/url.rsplit('/',1)[-1]
+              print(f'DOWNLOAD {key} {url}', flush=True)
               subprocess.run(['curl','--fail','--location','--retry','8','--retry-all-errors','--retry-delay','3','--output',str(arc),url],check=True)
               with tarfile.open(arc,'r:xz') as tf:
                   tf.extractall(raw)
@@ -69,15 +96,15 @@ jobs:
               hits=list(raw.rglob(f'{key}.csv'))
               if len(hits)!=1:
                   raise SystemExit(f'{key}: expected exactly one csv, got {hits}')
-              print(f'SOURCE {key} {hits[0]}')
+              print(f'SOURCE {key} {hits[0]}', flush=True)
           PY
-      - name: Build exact game facts
+
+      - name: Build exact game facts for this season
         shell: bash
         run: |
           set -euo pipefail
-          YEAR='${{ matrix.year }}'
-          NEXT=$((YEAR+1))
-          SEASON="${YEAR}-$(printf '%02d' $((NEXT%100)))"
+          YEAR='${{ steps.season.outputs.year }}'
+          SEASON='${{ steps.season.outputs.season }}'
           RAW="/tmp/trebraw-${YEAR}"
           OUT="/tmp/treb-game-facts-${YEAR}"
           NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
@@ -91,100 +118,42 @@ jobs:
             --pbp "$PBP" \
             --output-dir "$OUT" 2>&1 | tee "$OUT/build.log"
           sha256sum "$OUT"/* > "$OUT/SHA256SUMS.txt"
-      - name: Persist season facts durably
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          year='${{ steps.season.outputs.year }}'
+          qa=json.loads(Path(f'/tmp/treb-game-facts-{year}/qa.json').read_text())
+          print(json.dumps(qa, indent=2))
+          if qa.get('status') not in {'PASS','INCOMPLETE'}:
+              raise SystemExit('unexpected QA state')
+          PY
+
+      - name: Persist this season durably even if repairs remain
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
-          YEAR='${{ matrix.year }}'
-          NEXT=$((YEAR+1))
-          SEASON="${YEAR}-$(printf '%02d' $((NEXT%100)))"
+          YEAR='${{ steps.season.outputs.year }}'
+          SEASON='${{ steps.season.outputs.season }}'
           OUT="/tmp/treb-game-facts-${YEAR}"
+          if [ ! -f "$OUT/qa.json" ]; then
+            echo "No season output was produced; nothing durable to commit."
+            exit 0
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git checkout -B "treb-game-facts-${YEAR}" "${{ github.sha }}"
           DEST="team_trb_all_players/impact_database/exact_game_facts/${SEASON}"
-          rm -rf "$DEST"
-          mkdir -p "$DEST"
+          rm -rf "$DEST" && mkdir -p "$DEST"
           cp "$OUT"/* "$DEST"/
           git add -f "$DEST"
           git commit -m "Persist exact TREB game facts ${SEASON}"
           git push --force origin HEAD:"treb-game-facts-${YEAR}"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: treb-exact-game-facts-${{ matrix.year }}
-          path: /tmp/treb-game-facts-${{ matrix.year }}/**
+          name: treb-exact-game-facts-${{ steps.season.outputs.year }}
+          path: /tmp/treb-game-facts-${{ steps.season.outputs.year }}/**
           retention-days: 90
           if-no-files-found: warn
-
-  aggregate:
-    needs: build
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/treb-final-integrity-rebuild-20260812
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Collect durable season QA
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf /tmp/treb-fact-status && mkdir -p /tmp/treb-fact-status
-          for YEAR in $(seq 2000 2024); do
-            NEXT=$((YEAR+1)); SEASON="${YEAR}-$(printf '%02d' $((NEXT%100)))"
-            git fetch --quiet origin "treb-game-facts-${YEAR}:refs/remotes/origin/treb-game-facts-${YEAR}" || true
-            if git show "origin/treb-game-facts-${YEAR}:team_trb_all_players/impact_database/exact_game_facts/${SEASON}/qa.json" > "/tmp/treb-fact-status/${YEAR}-qa.json" 2>/dev/null; then
-              git show "origin/treb-game-facts-${YEAR}:team_trb_all_players/impact_database/exact_game_facts/${SEASON}/failures.json" > "/tmp/treb-fact-status/${YEAR}-failures.json"
-            else
-              printf '{"season":"%s","status":"MISSING_DURABLE_BRANCH"}\n' "$SEASON" > "/tmp/treb-fact-status/${YEAR}-qa.json"
-              printf '[]\n' > "/tmp/treb-fact-status/${YEAR}-failures.json"
-            fi
-          done
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root=Path('/tmp/treb-fact-status')
-          seasons=[]; failures=[]
-          for q in sorted(root.glob('*-qa.json')):
-              year=q.name.split('-',1)[0]
-              qa=json.loads(q.read_text())
-              seasons.append(qa)
-              f=root/f'{year}-failures.json'
-              for row in json.loads(f.read_text()):
-                  failures.append({'year':int(year), **row})
-          payload={
-              'status':'PASS' if len(seasons)==25 and all(x.get('status')=='PASS' for x in seasons) else 'REPAIR_REQUIRED',
-              'season_count':len(seasons),
-              'pass_seasons':sum(x.get('status')=='PASS' for x in seasons),
-              'failed_game_count':len(failures),
-              'seasons':seasons,
-              'failures':failures,
-          }
-          Path('/tmp/GAME_FACT_MATRIX_STATUS.json').write_text(json.dumps(payload,indent=2)+'\n')
-          print(json.dumps({k:v for k,v in payload.items() if k not in {'seasons','failures'}},indent=2))
-          PY
-      - name: Commit matrix status durably
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git fetch origin agent/treb-final-integrity-rebuild-20260812
-          git reset --hard origin/agent/treb-final-integrity-rebuild-20260812
-          mkdir -p team_trb_all_players/final_integrity_rebuild
-          cp /tmp/GAME_FACT_MATRIX_STATUS.json team_trb_all_players/final_integrity_rebuild/
-          git add team_trb_all_players/final_integrity_rebuild/GAME_FACT_MATRIX_STATUS.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'Record exact TREB game-fact matrix status'
-            for attempt in 1 2 3 4 5; do
-              git push origin HEAD:agent/treb-final-integrity-rebuild-20260812 && exit 0
-              git fetch origin agent/treb-final-integrity-rebuild-20260812
-              git rebase origin/agent/treb-final-integrity-rebuild-20260812
-            done
-            exit 1
-          fi
