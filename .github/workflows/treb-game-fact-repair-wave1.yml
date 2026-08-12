@@ -1,0 +1,235 @@
+name: TREB game-fact repair wave 1
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/GAME_FACT_REPAIR_WAVE1_CONTROL.json
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  apply-patch:
+    runs-on: ubuntu-latest
+    outputs:
+      patch_sha: ${{ steps.patch.outputs.patch_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - id: patch
+        name: Promote evidence-backed technical-foul participant guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('team_trb_all_players/production_treb_engine_v3.py')
+          text=p.read_text()
+          old='return "technical" in text or "eject" in text'
+          new='return "technical" in text or "t.foul" in text or "non-unsportsmanlike" in text or "eject" in text'
+          n=text.count(old)
+          if n != 1:
+              raise SystemExit(f'expected exactly one participant-guard target, found {n}')
+          p.write_text(text.replace(old,new))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/production_treb_engine_v3.py
+          git commit -m 'Recognize legacy technical fouls as non-lineup evidence'
+          git push origin HEAD:agent/treb-batched-game-facts-20260812
+          echo "patch_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  repair:
+    needs: apply-patch
+    strategy:
+      fail-fast: false
+      max-parallel: 19
+      matrix:
+        year: [2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.apply-patch.outputs.patch_sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Fetch original consolidated failed-game list
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin treb-game-fact-qa-consolidation
+          git show origin/treb-game-fact-qa-consolidation:team_trb_all_players/final_integrity_rebuild/game_fact_qa_consolidated/FAILED_GAMES.csv > /tmp/FAILED_GAMES.csv
+      - name: Download season sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess, tarfile, urllib.request
+          from pathlib import Path
+          year=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{year}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for key in [f'nbastats_{year}',f'nbastatsv3_{year}',f'pbpstats_{year}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Rebuild only previously failed games
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; SEASON="${YEAR}-$(( (YEAR+1)%100 ))"; RAW="/tmp/trebraw-${YEAR}"; OUT="/tmp/repair-${YEAR}"; mkdir -p "$OUT"
+          NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
+          V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
+          PBP=$(find "$RAW" -name "pbpstats_${YEAR}.csv" -print -quit)
+          NBA="$NBA" V3="$V3" PBP="$PBP" YEAR="$YEAR" OUT="$OUT" PATCH_SHA='${{ needs.apply-patch.outputs.patch_sha }}' python - <<'PY'
+          import csv, json, os, sys
+          from collections import Counter
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as engine
+          import build_exact_game_fact_layer as base
+
+          year=int(os.environ['YEAR']); season=f"{year}-{(year+1)%100:02d}"; out=Path(os.environ['OUT'])
+          failed=[]
+          with open('/tmp/FAILED_GAMES.csv',encoding='utf-8') as fh:
+              for r in csv.DictReader(fh):
+                  if r['season']==season: failed.append({'game_id':int(r['game_id']),'original_error':r['error']})
+          target_ids=sorted({r['game_id'] for r in failed})
+
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False))
+          v3=engine.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False))
+          pbp=io.normalize_pbp(pd.read_csv(os.environ['PBP'],low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+
+          team_rows=[]; player_rows=[]; audits=[]; residual=[]
+          for i,gid in enumerate(target_ids,1):
+              try:
+                  if gid not in ng or gid not in vg or gid not in pg:
+                      raise ValueError(f'missing source layer nba={gid in ng} v3={gid in vg} pbp={gid in pg}')
+                  tr,pr,a=base.build_game(gid,ng[gid],vg[gid],pg[gid])
+                  team_rows.extend(tr); player_rows.extend(pr); audits.append(a)
+              except Exception as exc:
+                  residual.append({'season':season,'game_id':gid,'error':f'{type(exc).__name__}: {exc}'})
+              if i%20==0 or i==len(target_ids):
+                  print(f'REPAIR_PROGRESS season={season} processed={i}/{len(target_ids)} recovered={len(audits)} residual={len(residual)}',flush=True)
+
+          def classify(err):
+              x=err.lower()
+              if 'missing in-period lineup transition' in x or 'starter solution requires missing' in x: return 'missing_transition'
+              if 'non-unique v3/team-local starter solution' in x: return 'nonunique_starter'
+              if 'unmatched pbp rebound rows' in x: return 'unmatched_rebound'
+              return 'other'
+          classes=Counter(classify(r['error']) for r in residual)
+          team_df=pd.DataFrame(team_rows); player_df=pd.DataFrame(player_rows)
+          team_df.to_csv(out/'team_game_treb.csv.gz',index=False,compression='gzip')
+          player_df.to_csv(out/'player_game_treb_on.csv.gz',index=False,compression='gzip')
+          (out/'game_audit.json').write_text(json.dumps(audits,indent=2)+'\n')
+          (out/'residual_failures.json').write_text(json.dumps(residual,indent=2)+'\n')
+          qa={
+              'year':year,'season':season,'patch_sha':os.environ['PATCH_SHA'],
+              'original_failed_games':len(target_ids),'recovered_games':len(audits),'residual_failed_games':len(residual),
+              'recovered_team_rows':len(team_df),'recovered_player_rows':len(player_df),
+              'residual_class_counts':dict(classes),
+              'status':'PASS' if not residual else 'REPAIR_REQUIRED'
+          }
+          (out/'qa.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-game-fact-repair-wave1-${{ matrix.year }}
+          path: /tmp/repair-${{ matrix.year }}
+          retention-days: 90
+          if-no-files-found: error
+
+  aggregate:
+    needs: [apply-patch, repair]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.apply-patch.outputs.patch_sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-game-fact-repair-wave1-*
+          path: /tmp/wave1
+      - name: Aggregate repair yield and residual signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATCH_SHA='${{ needs.apply-patch.outputs.patch_sha }}' python - <<'PY'
+          import json, os
+          from collections import Counter
+          from pathlib import Path
+          root=Path('/tmp/wave1')
+          qas=[]; residual=[]
+          for q in sorted(root.glob('*/qa.json')):
+              qas.append(json.loads(q.read_text()))
+          for r in sorted(root.glob('*/residual_failures.json')):
+              residual.extend(json.loads(r.read_text()))
+          classes=Counter()
+          for r in residual:
+              x=r['error'].lower()
+              if 'missing in-period lineup transition' in x or 'starter solution requires missing' in x: c='missing_transition'
+              elif 'non-unique v3/team-local starter solution' in x: c='nonunique_starter'
+              elif 'unmatched pbp rebound rows' in x: c='unmatched_rebound'
+              else: c='other'
+              classes[c]+=1
+          payload={
+              'patch_sha':os.environ['PATCH_SHA'],'seasons_found':len(qas),
+              'original_failed_games':sum(q['original_failed_games'] for q in qas),
+              'recovered_games':sum(q['recovered_games'] for q in qas),
+              'residual_failed_games':sum(q['residual_failed_games'] for q in qas),
+              'recovered_team_rows':sum(q['recovered_team_rows'] for q in qas),
+              'recovered_player_rows':sum(q['recovered_player_rows'] for q in qas),
+              'residual_class_counts':dict(classes),'season_qa':qas,
+          }
+          payload['status']='PASS' if payload['seasons_found']==19 else 'INCOMPLETE_MATRIX'
+          Path('/tmp/GAME_FACT_REPAIR_WAVE1_SUMMARY.json').write_text(json.dumps(payload,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in payload.items() if k!='season_qa'},indent=2))
+          PY
+      - name: Persist repaired game facts and QA durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          BR=treb-game-fact-repair-wave1
+          git checkout -B "$BR" '${{ needs.apply-patch.outputs.patch_sha }}'
+          DEST=team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          for d in /tmp/wave1/treb-game-fact-repair-wave1-*; do
+            [ -d "$d" ] || continue
+            year="${d##*-}"
+            mkdir -p "$DEST/$year"
+            cp -a "$d"/. "$DEST/$year"/
+          done
+          cp /tmp/GAME_FACT_REPAIR_WAVE1_SUMMARY.json "$DEST"/
+          git add -f "$DEST"
+          git commit -m 'Persist TREB game-fact repair wave 1'
+          git push --force origin HEAD:"$BR"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-game-fact-repair-wave1-summary
+          path: /tmp/GAME_FACT_REPAIR_WAVE1_SUMMARY.json
+          retention-days: 90
