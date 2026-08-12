@@ -1,0 +1,19 @@
+{
+  "status": "LOCKED_FROM_AUTHORITATIVE_V2_BUILDER",
+  "source_commit": "0249c24df836f31931e955999b9b9f0eee3bb77f",
+  "source_builder": "team_trb_all_players/build_roster_targets_v2.py",
+  "raw_positive_core_pts": 14526,
+  "excluded_orphan_keys": [
+    {"season": "2000-01", "player_id": "145", "team_id": 1610612747},
+    {"season": "2003-04", "player_id": "1917", "team_id": 1610612746}
+  ],
+  "final_pts_target": 14524,
+  "full_core_reuse_pts": 9647,
+  "partial_pts": 4877,
+  "partial_segments": 5199,
+  "identity_checks": [
+    "14526 - 2 = 14524",
+    "9647 + 4877 = 14524"
+  ],
+  "acceptance_policy": "These counts and exact orphan keys are hard gates. Finalization must fail closed on any mismatch."
+}
