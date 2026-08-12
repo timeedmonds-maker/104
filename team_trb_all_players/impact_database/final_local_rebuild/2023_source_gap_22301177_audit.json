@@ -1,0 +1,3399 @@
+{
+  "game_id": 22301177,
+  "status": "filled_from_legacy_plus_nbastatsv3",
+  "synthetic_pbp_rows": 103,
+  "v3_rebound_rows": 103,
+  "legacy_rebound_rows": 103,
+  "legacy_event_matches": 103,
+  "live_rebounds": 89,
+  "dead_rebounds": 14,
+  "player_counter_audits": 81,
+  "teams": [
+    1610612747,
+    1610612763
+  ],
+  "team_map": {
+    "1610612763": "MEM",
+    "1610612747": "LAL"
+  },
+  "mapping": [
+    {
+      "action_number": 10,
+      "period": 1,
+      "clock": "11:18",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 9,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss laravia 25' 3pt step back jump shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 13,
+      "period": 1,
+      "clock": "11:03",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 12,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss russell 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 15,
+      "period": 1,
+      "clock": "10:53",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 14,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 24' 3pt step back jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1631222,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          1,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "laravia rebound (off:1 def:0)"
+    },
+    {
+      "action_number": 23,
+      "period": 1,
+      "clock": "10:18",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 22,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 25' 3pt pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          1,
+          1
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "goodwin rebound (off:1 def:1)"
+    },
+    {
+      "action_number": 27,
+      "period": 1,
+      "clock": "9:47",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 26,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 25' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 30,
+      "period": 1,
+      "clock": "9:44",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 28,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "jemison block (1 blk) miss james 4' running finger roll layup"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 34,
+      "period": 1,
+      "clock": "9:38",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 38,
+      "period": 1,
+      "clock": "9:15",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 37,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 25' 3pt pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          1,
+          1
+        ],
+        "current_off_def": [
+          2,
+          1
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "goodwin rebound (off:2 def:1)"
+    },
+    {
+      "action_number": 44,
+      "period": 1,
+      "clock": "8:31",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 43,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 26' 3pt pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1629060,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "hachimura rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 48,
+      "period": 1,
+      "clock": "8:17",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 47,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 10' floating jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          2,
+          1
+        ],
+        "current_off_def": [
+          2,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:2 def:2)"
+    },
+    {
+      "action_number": 52,
+      "period": 1,
+      "clock": "7:52",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 51,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 25' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641713,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "jackson rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 58,
+      "period": 1,
+      "clock": "7:14",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 57,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss russell 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          2,
+          2
+        ],
+        "current_off_def": [
+          2,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:2 def:3)"
+    },
+    {
+      "action_number": 60,
+      "period": 1,
+      "clock": "7:05",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 59,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 25' 3pt pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 63,
+      "period": 1,
+      "clock": "6:37",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 62,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 12' turnaround hook shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "james rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 65,
+      "period": 1,
+      "clock": "6:28",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 64,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss reaves 25' 3pt running jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1631222,
+        "previous_off_def": [
+          1,
+          0
+        ],
+        "current_off_def": [
+          1,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "laravia rebound (off:1 def:1)"
+    },
+    {
+      "action_number": 70,
+      "period": 1,
+      "clock": "6:26",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_id": 1610612763,
+        "v3_person_id": 1610612763
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "MEM",
+      "description": "grizzlies rebound"
+    },
+    {
+      "action_number": 72,
+      "period": 1,
+      "clock": "6:22",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 71,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 1641998,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          1,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "jemison rebound (off:1 def:0)"
+    },
+    {
+      "action_number": 74,
+      "period": 1,
+      "clock": "6:15",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 73,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 25' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "james rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 82,
+      "period": 1,
+      "clock": "5:55",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 81,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 8' hook shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          1,
+          2
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "davis rebound (off:1 def:2)"
+    },
+    {
+      "action_number": 91,
+      "period": 1,
+      "clock": "5:29",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 90,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 5' driving bank hook shot"
+      },
+      "counter_audit": {
+        "player_id": 1627752,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "prince rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 96,
+      "period": 1,
+      "clock": "4:28",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 95,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 12' turnaround fadeaway shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "james rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 100,
+      "period": 1,
+      "clock": "3:55",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 99,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 11' turnaround fadeaway shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          1,
+          2
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:1 def:3)"
+    },
+    {
+      "action_number": 117,
+      "period": 1,
+      "clock": "2:56",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 116,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 27' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630285,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "simpson rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 122,
+      "period": 1,
+      "clock": "2:04",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 121,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641851,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          1,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "allen rebound (off:1 def:0)"
+    },
+    {
+      "action_number": 128,
+      "period": 1,
+      "clock": "1:25",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 126,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 2' driving layup davis block (1 blk)"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          1,
+          3
+        ],
+        "current_off_def": [
+          1,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:1 def:4)"
+    },
+    {
+      "action_number": 130,
+      "period": 1,
+      "clock": "1:18",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 129,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss prince 25' 3pt running jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641998,
+        "previous_off_def": [
+          1,
+          0
+        ],
+        "current_off_def": [
+          1,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "jemison rebound (off:1 def:1)"
+    },
+    {
+      "action_number": 132,
+      "period": 1,
+      "clock": "1:04",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 131,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss allen 17' pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 203915,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "dinwiddie rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 140,
+      "period": 1,
+      "clock": "0:42",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 139,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss simpson 26' 3pt pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1626156,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "russell rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 148,
+      "period": 1,
+      "clock": "0:08",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 147,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 1' driving reverse layup"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          1,
+          4
+        ],
+        "current_off_def": [
+          1,
+          5
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:1 def:5)"
+    },
+    {
+      "action_number": 150,
+      "period": 1,
+      "clock": "0:04",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 149,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss vincent 25' 3pt running pull-up jump shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 156,
+      "period": 1,
+      "clock": "0:00",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_id": 1610612763,
+        "v3_person_id": 1610612763
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "grizzlies rebound"
+    },
+    {
+      "action_number": 178,
+      "period": 2,
+      "clock": "11:04",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_id": 1610612763,
+        "v3_person_id": 1610612763
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "MEM",
+      "description": "grizzlies rebound"
+    },
+    {
+      "action_number": 189,
+      "period": 2,
+      "clock": "10:22",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 185,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "laravia block (1 blk) miss hayes 6' cutting layup shot"
+      },
+      "counter_audit": {
+        "player_id": 1630590,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "pippen jr. rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 191,
+      "period": 2,
+      "clock": "10:18",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 190,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 25' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1629637,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "hayes rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 203,
+      "period": 2,
+      "clock": "9:23",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 202,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss white 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1627752,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "prince rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 208,
+      "period": 2,
+      "clock": "9:02",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 206,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 5' driving floating jump shot hayes block (1 blk)"
+      },
+      "counter_audit": {
+        "player_id": 1626156,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "russell rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 219,
+      "period": 2,
+      "clock": "7:54",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 218,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss allen 25' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641851,
+        "previous_off_def": [
+          1,
+          0
+        ],
+        "current_off_def": [
+          2,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "allen rebound (off:2 def:0)"
+    },
+    {
+      "action_number": 223,
+      "period": 2,
+      "clock": "7:36",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 222,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss james 31' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641851,
+        "previous_off_def": [
+          2,
+          0
+        ],
+        "current_off_def": [
+          2,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "allen rebound (off:2 def:1)"
+    },
+    {
+      "action_number": 225,
+      "period": 2,
+      "clock": "7:26",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 224,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss laravia 3' running layup"
+      },
+      "counter_audit": {
+        "player_id": 1629637,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "hayes rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 245,
+      "period": 2,
+      "clock": "6:37",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 244,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss reaves 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641851,
+        "previous_off_def": [
+          2,
+          1
+        ],
+        "current_off_def": [
+          2,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "allen rebound (off:2 def:2)"
+    },
+    {
+      "action_number": 249,
+      "period": 2,
+      "clock": "6:06",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 248,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss dinwiddie 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630590,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "pippen jr. rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 269,
+      "period": 2,
+      "clock": "4:03",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 267,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss laravia 6' driving floating jump shot reaves block (1 blk)"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 285,
+      "period": 2,
+      "clock": "2:42",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 284,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss russell 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641851,
+        "previous_off_def": [
+          2,
+          2
+        ],
+        "current_off_def": [
+          2,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "allen rebound (off:2 def:3)"
+    },
+    {
+      "action_number": 294,
+      "period": 2,
+      "clock": "2:11",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 293,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 2' driving finger roll layup"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          0,
+          3
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "james rebound (off:1 def:3)"
+    },
+    {
+      "action_number": 296,
+      "period": 2,
+      "clock": "2:11",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_id": 1610612763,
+        "v3_person_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 295,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss james tip layup shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "grizzlies rebound"
+    },
+    {
+      "action_number": 299,
+      "period": 2,
+      "clock": "1:57",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 298,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 8' driving floating jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          2,
+          3
+        ],
+        "current_off_def": [
+          3,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "goodwin rebound (off:3 def:3)"
+    },
+    {
+      "action_number": 301,
+      "period": 2,
+      "clock": "1:57",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 300,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin tip layup shot"
+      },
+      "counter_audit": {
+        "player_id": 1629060,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "hachimura rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 323,
+      "period": 2,
+      "clock": "0:30",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 328,
+      "period": 2,
+      "clock": "0:06",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 327,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 13' floating jump shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 334,
+      "period": 2,
+      "clock": "0:00",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_id": 1610612763,
+        "v3_person_id": 1610612763
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "grizzlies rebound"
+    },
+    {
+      "action_number": 350,
+      "period": 3,
+      "clock": "10:40",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 349,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss russell 11' driving floating jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          3,
+          3
+        ],
+        "current_off_def": [
+          3,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:3 def:4)"
+    },
+    {
+      "action_number": 354,
+      "period": 3,
+      "clock": "10:13",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 353,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 13' turnaround fadeaway shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          3,
+          4
+        ],
+        "current_off_def": [
+          3,
+          5
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:3 def:5)"
+    },
+    {
+      "action_number": 356,
+      "period": 3,
+      "clock": "9:57",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 355,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 12' pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          1,
+          5
+        ],
+        "current_off_def": [
+          1,
+          6
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:1 def:6)"
+    },
+    {
+      "action_number": 363,
+      "period": 3,
+      "clock": "8:54",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 361,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 2' driving layup davis block (2 blk)"
+      },
+      "counter_audit": {
+        "player_id": 1629060,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "hachimura rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 370,
+      "period": 3,
+      "clock": "8:23",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 369,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          1,
+          3
+        ],
+        "current_off_def": [
+          1,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "james rebound (off:1 def:4)"
+    },
+    {
+      "action_number": 372,
+      "period": 3,
+      "clock": "8:14",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 371,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss hachimura 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          1,
+          6
+        ],
+        "current_off_def": [
+          2,
+          6
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "davis rebound (off:2 def:6)"
+    },
+    {
+      "action_number": 376,
+      "period": 3,
+      "clock": "8:01",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 375,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss reaves 10' pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          3,
+          5
+        ],
+        "current_off_def": [
+          3,
+          6
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:3 def:6)"
+    },
+    {
+      "action_number": 379,
+      "period": 3,
+      "clock": "7:35",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 378,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss russell 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641998,
+        "previous_off_def": [
+          1,
+          1
+        ],
+        "current_off_def": [
+          1,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "jemison rebound (off:1 def:2)"
+    },
+    {
+      "action_number": 392,
+      "period": 3,
+      "clock": "6:30",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 391,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 26' 3pt running pull-up jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641998,
+        "previous_off_def": [
+          1,
+          2
+        ],
+        "current_off_def": [
+          2,
+          2
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "jemison rebound (off:2 def:2)"
+    },
+    {
+      "action_number": 404,
+      "period": 3,
+      "clock": "5:43",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 423,
+      "period": 3,
+      "clock": "4:55",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 422,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 18' jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1629216,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          1,
+          0
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "vincent rebound (off:1 def:0)"
+    },
+    {
+      "action_number": 425,
+      "period": 3,
+      "clock": "4:50",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 424,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 1' cutting finger roll layup shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          2,
+          6
+        ],
+        "current_off_def": [
+          3,
+          6
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "davis rebound (off:3 def:6)"
+    },
+    {
+      "action_number": 433,
+      "period": 3,
+      "clock": "3:39",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 432,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 25' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          3,
+          6
+        ],
+        "current_off_def": [
+          3,
+          7
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:3 def:7)"
+    },
+    {
+      "action_number": 435,
+      "period": 3,
+      "clock": "3:26",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 434,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss simpson 10' driving hook shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          3,
+          6
+        ],
+        "current_off_def": [
+          3,
+          7
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:3 def:7)"
+    },
+    {
+      "action_number": 439,
+      "period": 3,
+      "clock": "3:19",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 438,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 3' driving layup"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          3,
+          7
+        ],
+        "current_off_def": [
+          3,
+          8
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:3 def:8)"
+    },
+    {
+      "action_number": 451,
+      "period": 3,
+      "clock": "2:20",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_id": 1610612763,
+        "v3_person_id": 1610612763
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "grizzlies rebound"
+    },
+    {
+      "action_number": 456,
+      "period": 3,
+      "clock": "2:08",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 462,
+      "period": 3,
+      "clock": "1:40",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 461,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss laravia 23' pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1627752,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "prince rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 469,
+      "period": 3,
+      "clock": "1:16",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 468,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jemison 13' turnaround hook shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          3,
+          7
+        ],
+        "current_off_def": [
+          4,
+          7
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "goodwin rebound (off:4 def:7)"
+    },
+    {
+      "action_number": 471,
+      "period": 3,
+      "clock": "1:14",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 470,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 1' turnaround fadeaway shot"
+      },
+      "counter_audit": {
+        "player_id": 1641851,
+        "previous_off_def": [
+          2,
+          3
+        ],
+        "current_off_def": [
+          3,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "allen rebound (off:3 def:3)"
+    },
+    {
+      "action_number": 476,
+      "period": 3,
+      "clock": "1:44",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 475,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss simpson 20' step back jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          4,
+          7
+        ],
+        "current_off_def": [
+          5,
+          7
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "goodwin rebound (off:5 def:7)"
+    },
+    {
+      "action_number": 480,
+      "period": 3,
+      "clock": "1:27",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 478,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss russell 17' pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          5,
+          7
+        ],
+        "current_off_def": [
+          5,
+          8
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:5 def:8)"
+    },
+    {
+      "action_number": 493,
+      "period": 3,
+      "clock": "0:00",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 510,
+      "period": 4,
+      "clock": "10:38",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 509,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 25' 3pt step back jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          1,
+          4
+        ],
+        "current_off_def": [
+          1,
+          5
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "james rebound (off:1 def:5)"
+    },
+    {
+      "action_number": 526,
+      "period": 4,
+      "clock": "9:35",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 525,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss russell 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1631298,
+        "previous_off_def": [
+          0,
+          0
+        ],
+        "current_off_def": [
+          0,
+          1
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "white rebound (off:0 def:1)"
+    },
+    {
+      "action_number": 528,
+      "period": 4,
+      "clock": "9:24",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 527,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss laravia 26' 3pt step back jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          1,
+          5
+        ],
+        "current_off_def": [
+          1,
+          6
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "james rebound (off:1 def:6)"
+    },
+    {
+      "action_number": 530,
+      "period": 4,
+      "clock": "9:18",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 529,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss vincent 24' 3pt running pull-up jump shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          3,
+          8
+        ],
+        "current_off_def": [
+          4,
+          8
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "davis rebound (off:4 def:8)"
+    },
+    {
+      "action_number": 538,
+      "period": 4,
+      "clock": "8:41",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 537,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss prince 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1631298,
+        "previous_off_def": [
+          0,
+          1
+        ],
+        "current_off_def": [
+          0,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "white rebound (off:0 def:2)"
+    },
+    {
+      "action_number": 540,
+      "period": 4,
+      "clock": "8:29",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 539,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss white 26' 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630590,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          1,
+          2
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "pippen jr. rebound (off:1 def:2)"
+    },
+    {
+      "action_number": 548,
+      "period": 4,
+      "clock": "8:05",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 547,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 5' driving floating bank jump shot"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          4,
+          8
+        ],
+        "current_off_def": [
+          4,
+          9
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:4 def:9)"
+    },
+    {
+      "action_number": 554,
+      "period": 4,
+      "clock": "7:33",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 553,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 25' 3pt pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          1,
+          6
+        ],
+        "current_off_def": [
+          2,
+          6
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "james rebound (off:2 def:6)"
+    },
+    {
+      "action_number": 556,
+      "period": 4,
+      "clock": "7:28",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 555,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss prince 9' driving floating jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1627752,
+        "previous_off_def": [
+          0,
+          3
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "prince rebound (off:1 def:3)"
+    },
+    {
+      "action_number": 558,
+      "period": 4,
+      "clock": "7:27",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 557,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss prince tip layup shot"
+      },
+      "counter_audit": {
+        "player_id": 1630590,
+        "previous_off_def": [
+          1,
+          2
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "pippen jr. rebound (off:1 def:3)"
+    },
+    {
+      "action_number": 566,
+      "period": 4,
+      "clock": "7:01",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 565,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss james 8' driving floating bank jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630590,
+        "previous_off_def": [
+          1,
+          3
+        ],
+        "current_off_def": [
+          1,
+          4
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "pippen jr. rebound (off:1 def:4)"
+    },
+    {
+      "action_number": 569,
+      "period": 4,
+      "clock": "6:58",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 567,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss pippen jr. 6' running layup reaves block (2 blk)"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 586,
+      "period": 4,
+      "clock": "5:54",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 585,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss allen 9' fadeaway jumper"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          5,
+          8
+        ],
+        "current_off_def": [
+          6,
+          8
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "goodwin rebound (off:6 def:8)"
+    },
+    {
+      "action_number": 589,
+      "period": 4,
+      "clock": "5:54",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 587,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin putback layup russell block (1 blk)"
+      },
+      "counter_audit": {
+        "player_id": 203076,
+        "previous_off_def": [
+          4,
+          9
+        ],
+        "current_off_def": [
+          4,
+          10
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "davis rebound (off:4 def:10)"
+    },
+    {
+      "action_number": 594,
+      "period": 4,
+      "clock": "5:11",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_id": 1610612763,
+        "v3_person_id": 1610612763
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "MEM",
+      "description": "grizzlies rebound"
+    },
+    {
+      "action_number": 601,
+      "period": 4,
+      "clock": "4:47",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 600,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss prince 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1631298,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "white rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 609,
+      "period": 4,
+      "clock": "4:18",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 614,
+      "period": 4,
+      "clock": "3:48",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 613,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 2' driving finger roll layup"
+      },
+      "counter_audit": {
+        "player_id": 1626156,
+        "previous_off_def": [
+          0,
+          2
+        ],
+        "current_off_def": [
+          0,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "russell rebound (off:0 def:3)"
+    },
+    {
+      "action_number": 622,
+      "period": 4,
+      "clock": "2:54",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 621,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss james 26' 3pt step back jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1641998,
+        "previous_off_def": [
+          2,
+          2
+        ],
+        "current_off_def": [
+          2,
+          3
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "jemison rebound (off:2 def:3)"
+    },
+    {
+      "action_number": 625,
+      "period": 4,
+      "clock": "2:20",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 624,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss james 25' 3pt pullup jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1629060,
+        "previous_off_def": [
+          0,
+          3
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "hachimura rebound (off:1 def:3)"
+    },
+    {
+      "action_number": 627,
+      "period": 4,
+      "clock": "2:14",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 626,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss james 24' 3pt step back jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1629060,
+        "previous_off_def": [
+          1,
+          3
+        ],
+        "current_off_def": [
+          2,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "hachimura rebound (off:2 def:3)"
+    },
+    {
+      "action_number": 637,
+      "period": 4,
+      "clock": "1:30",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 636,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis 3pt jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          6,
+          8
+        ],
+        "current_off_def": [
+          6,
+          9
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "goodwin rebound (off:6 def:9)"
+    },
+    {
+      "action_number": 639,
+      "period": 4,
+      "clock": "1:23",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 638,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 28' 3pt pullup jump shot"
+      },
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 645,
+      "period": 4,
+      "clock": "1:23",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_id": 1610612747,
+        "v3_person_id": 1610612747
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "LAL",
+      "description": "lakers rebound"
+    },
+    {
+      "action_number": 647,
+      "period": 4,
+      "clock": "1:21",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 646,
+        "shot_event_type": 3,
+        "shot_team_id": 1610612747,
+        "shot_description": "miss davis free throw 2 of 2"
+      },
+      "counter_audit": {
+        "player_id": 1631222,
+        "previous_off_def": [
+          1,
+          1
+        ],
+        "current_off_def": [
+          1,
+          2
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "MEM",
+      "description": "laravia rebound (off:1 def:2)"
+    },
+    {
+      "action_number": 655,
+      "period": 4,
+      "clock": "0:18",
+      "is_real_rebound": true,
+      "derived_classification": "defensive",
+      "rebound_team_id": 1610612747,
+      "rebound_team": "LAL",
+      "team_evidence": {
+        "legacy_player1_team": 1610612747,
+        "v3_team_id": 1610612747
+      },
+      "shot_evidence": {
+        "shot_event": 654,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 7' driving floating bank jump shot"
+      },
+      "counter_audit": {
+        "player_id": 2544,
+        "previous_off_def": [
+          2,
+          6
+        ],
+        "current_off_def": [
+          2,
+          7
+        ],
+        "delta_off": 0,
+        "delta_def": 1
+      },
+      "counter_label": "defensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "james rebound (off:2 def:7)"
+    },
+    {
+      "action_number": 664,
+      "period": 4,
+      "clock": "0:10",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 663,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss jackson 3' driving floating bank jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          6,
+          9
+        ],
+        "current_off_def": [
+          7,
+          9
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "goodwin rebound (off:7 def:9)"
+    },
+    {
+      "action_number": 671,
+      "period": 4,
+      "clock": "0:05",
+      "is_real_rebound": false,
+      "derived_classification": "dead",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_id": 1610612763,
+        "v3_person_id": 1610612763
+      },
+      "shot_evidence": null,
+      "counter_audit": null,
+      "counter_label": null,
+      "v3_subtype": "Normal Rebound",
+      "pbp_opponent": "MEM",
+      "description": "grizzlies rebound"
+    },
+    {
+      "action_number": 673,
+      "period": 4,
+      "clock": "0:00",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 672,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss laravia 25' 3pt turnaround jump shot"
+      },
+      "counter_audit": {
+        "player_id": 1630692,
+        "previous_off_def": [
+          7,
+          9
+        ],
+        "current_off_def": [
+          8,
+          9
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "goodwin rebound (off:8 def:9)"
+    },
+    {
+      "action_number": 678,
+      "period": 4,
+      "clock": "0:08",
+      "is_real_rebound": true,
+      "derived_classification": "offensive",
+      "rebound_team_id": 1610612763,
+      "rebound_team": "MEM",
+      "team_evidence": {
+        "legacy_player1_team": 1610612763,
+        "v3_team_id": 1610612763
+      },
+      "shot_evidence": {
+        "shot_event": 677,
+        "shot_event_type": 2,
+        "shot_team_id": 1610612763,
+        "shot_description": "miss goodwin 2' tip layup shot"
+      },
+      "counter_audit": {
+        "player_id": 1631298,
+        "previous_off_def": [
+          0,
+          3
+        ],
+        "current_off_def": [
+          1,
+          3
+        ],
+        "delta_off": 1,
+        "delta_def": 0
+      },
+      "counter_label": "offensive",
+      "v3_subtype": "Unknown",
+      "pbp_opponent": "LAL",
+      "description": "white rebound (off:1 def:3)"
+    }
+  ],
+  "classification_source": "legacy live/dead rule + rebound-team versus prior missed-shot team",
+  "independent_event_source": "nbastatsv3 actionNumber/team evidence",
+  "player_classification_audit": "legacy cumulative Off/Def counters where increment is unambiguous",
+  "lineup_source": "legacy nbastats_2023 through normal production engine"
+}
