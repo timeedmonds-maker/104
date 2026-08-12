@@ -1,0 +1,74 @@
+name: TREB completed dynamic minute resolution
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - .github/workflows/treb-pre2015-minute-resolution.yml
+      - team_trb_all_players/resolve_ambiguous_lineups_from_minutes.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Download completed canary artifacts from dynamic run 5
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: 31560818240
+          pattern: treb-final-integrity-canary-*
+          path: /tmp/canaries
+          merge-multiple: true
+      - name: Build completed-games aggregate excluding unfinished Portland
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          games=[]; files=[]
+          for p in sorted(Path('/tmp/canaries').glob('treb-canary-*.json')):
+              if p.name == 'treb-canary-2015.json':
+                  continue
+              d=json.loads(p.read_text())
+              files.append(p.name)
+              games.extend(d.get('games',[]))
+          games.sort(key=lambda x:int(x['game_id']))
+          payload={'source_run_id':31560818240,'source_files':files,'games':games}
+          Path('/tmp/PRE2015_DYNAMIC_CANARY.json').write_text(json.dumps(payload,indent=2)+'\n')
+          print('games',len(games),'files',len(files))
+          PY
+      - name: Apply exact completed-minute floor gate
+        run: |
+          python -u team_trb_all_players/resolve_ambiguous_lineups_from_minutes.py \
+            --canary /tmp/PRE2015_DYNAMIC_CANARY.json \
+            --cc0 team_trb_all_players/final_integrity_rebuild/CC0_PLAYERSTATISTICS_PROBE.json \
+            --output /tmp/PRE2015_DYNAMIC_MINUTE_RESOLUTION.json
+      - name: Commit resolution audit durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
+          mkdir -p team_trb_all_players/final_integrity_rebuild
+          cp /tmp/PRE2015_DYNAMIC_MINUTE_RESOLUTION.json \
+             team_trb_all_players/final_integrity_rebuild/PRE2015_DYNAMIC_MINUTE_RESOLUTION.json
+          git add team_trb_all_players/final_integrity_rebuild/PRE2015_DYNAMIC_MINUTE_RESOLUTION.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record floor-minute resolution for completed dynamic repairs"
+          git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
