@@ -1,0 +1,116 @@
+name: TREB 2023 completion supplement
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - team_trb_all_players/impact_database/FINAL_2023_COMPLETION_CONTROL.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+concurrency:
+  group: treb-2023-completion-supplement-20260812
+  cancel-in-progress: false
+
+jobs:
+  repair-2023:
+    runs-on: windows-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+      - run: python -m pip install -r team_trb_all_players/requirements.txt
+      - name: Build authoritative V2 targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/build_roster_targets_v2.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('team_trb_all_players/impact_database/roster_tenure_v2/roster_repair_v2_summary.json').read_text())
+          assert int(d['wowy_game_bearing_segments'])==5199
+          assert int(d['cross_team_overlap_pairs'])==0
+          assert int(d['impossible_minute_rows'])==0
+          print('V2_TARGET_GATE=PASS')
+          PY
+      - name: Download 2023 sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,subprocess,tarfile,urllib.request
+          raw=Path('team_trb_all_players/impact_database/local_raw'); raw.mkdir(parents=True,exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          hashes=[]
+          for key in ('nbastats_2023','pbpstats_2023','nbastatsv3_2023'):
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),url],check=True)
+              hashes.append(f'{hashlib.sha256(arc.read_bytes()).hexdigest()}  {arc.name}')
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          (raw/'source_archives_2023.sha256').write_text('\n'.join(hashes)+'\n')
+          PY
+      - name: Fill two audited 2023 PBP source gaps
+        shell: bash
+        run: |
+          set -euo pipefail
+          for gid in 22301177 22301195; do
+            python - "$gid" <<'PY'
+          from pathlib import Path
+          import sys
+          gid=int(sys.argv[1])
+          src=Path('team_trb_all_players/fill_missing_2009_pbp_game.py').read_text(encoding='utf-8')
+          src=src.replace('GAME_ID = 20900212', f'GAME_ID = {gid}', 1)
+          src=src.replace('lineup_source": "legacy nbastats_2009 through normal production engine"', 'lineup_source": "legacy nbastats_2023 through normal production engine"')
+          out=Path(f'team_trb_all_players/fill_missing_2023_pbp_game_{gid}.py')
+          out.write_text(src, encoding='utf-8')
+          print(out)
+          PY
+            python -u "team_trb_all_players/fill_missing_2023_pbp_game_${gid}.py" \
+              --nba team_trb_all_players/impact_database/local_raw/nbastats_2023.csv \
+              --pbp team_trb_all_players/impact_database/local_raw/pbpstats_2023.csv \
+              --v3 team_trb_all_players/impact_database/local_raw/nbastatsv3_2023.csv \
+              --audit "team_trb_all_players/impact_database/final_local_rebuild/2023_source_gap_${gid}_audit.json"
+          done
+      - name: Reconstruct 2023 completion lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/run_local_treb_production_completion.py --years 2023 --batch-size 50 --force 2>&1 | tee treb-completion-2023-supplement.log
+          test -f team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/2023-24.json
+      - name: Persist 2023 safe lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B treb-final-safe-lock-2023
+          git add -f team_trb_all_players/impact_database/final_local_rebuild/checkpoints/2023-24 \
+            team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/2023-24.json \
+            team_trb_all_players/impact_database/final_local_rebuild/master_manifest.json \
+            team_trb_all_players/impact_database/final_local_rebuild/2023_source_gap_*_audit.json
+          git commit -m 'Final completion lock 2023-24 supplement'
+          git push --force origin HEAD:refs/heads/treb-final-safe-lock-2023
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-final-2023-completion-supplement-${{ github.sha }}
+          path: |
+            treb-completion-2023-supplement.log
+            team_trb_all_players/impact_database/final_local_rebuild/**
+          retention-days: 90
+          if-no-files-found: warn
