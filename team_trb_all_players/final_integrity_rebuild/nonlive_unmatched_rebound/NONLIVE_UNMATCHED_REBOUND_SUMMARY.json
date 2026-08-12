@@ -1,11 +1,3921 @@
 {
-  "status": "PARTIAL",
+  "status": "COMPLETE",
   "chunks_found": 21,
-  "games_screened": 0,
-  "zero_impact_safe_games": 0,
-  "zero_impact_safe_rows": 0,
-  "unknown_or_real_games": 0,
+  "games_screened": 109,
+  "zero_impact_safe_games": 3,
+  "zero_impact_safe_rows": 3,
+  "unknown_or_real_games": 106,
   "lineup_or_source_failures": 0,
-  "safe_games": [],
-  "all_games": []
+  "safe_games": [
+    {
+      "game_id": 22400072,
+      "status": "ALL_PBP_PROVEN_NONLIVE",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400072,
+            "period": 3,
+            "start_time": "02:04",
+            "end_time": "01:52",
+            "description": "Warriors Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "MISS Melton Free Throw 1 of 2"
+        }
+      ]
+    },
+    {
+      "game_id": 22100889,
+      "status": "ALL_PBP_PROVEN_NONLIVE",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22100889,
+            "period": 4,
+            "start_time": "00:28",
+            "end_time": "00:00",
+            "description": "Cavaliers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "MISS Goodwin 27' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200745,
+      "status": "ALL_PBP_PROVEN_NONLIVE",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200745,
+            "period": 1,
+            "start_time": "00:09",
+            "end_time": "00:00",
+            "description": "HAWKS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "MISS Jackson 28' 3PT Jump Bank Shot"
+        }
+      ]
+    }
+  ],
+  "all_games": [
+    {
+      "game_id": 21900148,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21900148,
+            "period": 3,
+            "start_time": "01:19",
+            "end_time": "01:17",
+            "description": "Pistons Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Silva 2' Running Layup: Frazier BLOCK (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 21900343,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21900343,
+            "period": 3,
+            "start_time": "00:45",
+            "end_time": "00:22",
+            "description": "Harrell REBOUND (Off:2 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Williams 27' 3PT Pullup Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22201083,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22201083,
+            "period": 2,
+            "start_time": "05:28",
+            "end_time": "05:18",
+            "description": "Wright REBOUND (Off:1 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "Wright BLOCK (2 BLK): MISS Porter Jr. 17' Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22201168,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 12,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 4,
+            "start_time": "00:47",
+            "end_time": "00:43",
+            "description": "[NYK] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[NYK] Brunson Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 4,
+            "start_time": "01:16",
+            "end_time": "00:57",
+            "description": "[NYK] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[NYK] Grimes Cutting Layup Shot: Missed Block: Cooks (1 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 4,
+            "start_time": "05:55",
+            "end_time": "05:50",
+            "description": "[NYK] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[NYK] Quickley Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 2,
+            "start_time": "00:21",
+            "end_time": "00:00",
+            "description": "[NYK] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[NYK] Brunson Driving Floating Jump Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 2,
+            "start_time": "02:36",
+            "end_time": "02:36",
+            "description": "[NYK] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[NYK] Grimes Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 2,
+            "start_time": "04:43",
+            "end_time": "04:19",
+            "description": "[WAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[NYK] Grimes 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 2,
+            "start_time": "07:41",
+            "end_time": "07:20",
+            "description": "[WAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[NYK] Quickley Driving Layup Shot: Missed Block: Gafford (1 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 4,
+            "start_time": "05:50",
+            "end_time": "05:36",
+            "description": "[WAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[WAS] Wright Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 4,
+            "start_time": "06:35",
+            "end_time": "06:26",
+            "description": "[WAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[WAS] Davis Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 2,
+            "start_time": "02:36",
+            "end_time": "02:12",
+            "description": "[WAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[WAS] Avdija Turnaround Fadeaway shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 2,
+            "start_time": "05:25",
+            "end_time": "05:06",
+            "description": "[WAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[WAS] Kispert 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201168,
+            "period": 1,
+            "start_time": "08:24",
+            "end_time": "08:01",
+            "description": "[NYK] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[WAS] Davis Cutting Layup Shot: Missed Block: Robinson (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 22201171,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 13,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 3,
+            "start_time": "00:30",
+            "end_time": "00:05",
+            "description": "[LAL] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Porter Jr. 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 2,
+            "start_time": "01:22",
+            "end_time": "01:01",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Green Driving Layup Shot: Missed Block: Davis (2 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 2,
+            "start_time": "02:28",
+            "end_time": "01:56",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Smith Jr. Pullup Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 2,
+            "start_time": "02:47",
+            "end_time": "02:39",
+            "description": "[LAL] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Sengun Driving Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 4,
+            "start_time": "06:30",
+            "end_time": "06:07",
+            "description": "[LAL] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[LAL] Beasley 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 4,
+            "start_time": "06:30",
+            "end_time": "06:07",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[LAL] Hachimura 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 4,
+            "start_time": "08:33",
+            "end_time": "08:18",
+            "description": "[LAL] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[LAL] Hachimura Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 3,
+            "start_time": "01:05",
+            "end_time": "00:47",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[LAL] James 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 3,
+            "start_time": "07:20",
+            "end_time": "06:57",
+            "description": "[LAL] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[LAL] Davis Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 2,
+            "start_time": "01:29",
+            "end_time": "01:22",
+            "description": "[LAL] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[LAL] Davis Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 2,
+            "start_time": "03:36",
+            "end_time": "03:18",
+            "description": "[LAL] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[LAL] Russell Free Throw Technical Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 1,
+            "start_time": "04:16",
+            "end_time": "04:01",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[LAL] Davis Turnaround Fadeaway shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201171,
+            "period": 1,
+            "start_time": "05:44",
+            "end_time": "05:27",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[LAL] Davis Turnaround Jump Shot: Missed Block: Smith Jr. (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 22201186,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22201186,
+            "period": 4,
+            "start_time": "05:52",
+            "end_time": "05:28",
+            "description": "Beasley REBOUND (Off:2 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "Azubuike BLOCK (1 BLK): MISS Schroder 16' Driving Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22201187,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 22,
+      "mapped_all": false,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "01:48",
+            "end_time": "01:32",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[GSW] Quinones Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "02:47",
+            "end_time": "02:28",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": false,
+          "candidate_rows": 2
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "02:47",
+            "end_time": "02:28",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": false,
+          "candidate_rows": 2
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "04:27",
+            "end_time": "04:12",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[GSW] Poole Free Throw 2 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "08:39",
+            "end_time": "08:29",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[GSW] Poole Free Throw 1 of 3 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "09:51",
+            "end_time": "09:34",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[GSW] Poole Pullup Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 3,
+            "start_time": "00:03",
+            "end_time": "00:00",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[GSW] Curry 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 3,
+            "start_time": "04:04",
+            "end_time": "03:47",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[GSW] Kuminga 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 3,
+            "start_time": "07:42",
+            "end_time": "07:32",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[GSW] Poole 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 2,
+            "start_time": "04:04",
+            "end_time": "03:46",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[GSW] Kuminga Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 1,
+            "start_time": "00:02",
+            "end_time": "00:00",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[GSW] Green 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 1,
+            "start_time": "07:49",
+            "end_time": "07:34",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[GSW] Kuminga Tip Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "01:15",
+            "end_time": "00:47",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Dieng 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "10:17",
+            "end_time": "09:51",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Giddey Driving Finger Roll Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 4,
+            "start_time": "10:43",
+            "end_time": "10:25",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Giddey Driving Layup Shot: Missed Block: Moody (1 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 3,
+            "start_time": "05:57",
+            "end_time": "05:44",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[OKC] Jay Williams Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 2,
+            "start_time": "06:20",
+            "end_time": "06:03",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Jay Williams 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 2,
+            "start_time": "08:30",
+            "end_time": "08:16",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Jal Williams Driving Layup Shot: Missed Block: Green (2 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 2,
+            "start_time": "10:31",
+            "end_time": "10:26",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[OKC] Saric Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 1,
+            "start_time": "02:28",
+            "end_time": "02:08",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Wiggins 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 1,
+            "start_time": "08:59",
+            "end_time": "08:38",
+            "description": "[GSW] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Giddey 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201187,
+            "period": 1,
+            "start_time": "09:23",
+            "end_time": "09:09",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[OKC] Gilgeous-Alexander Free Throw 1 of 2 Missed"
+        }
+      ]
+    },
+    {
+      "game_id": 22201218,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 10,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 4,
+            "start_time": "01:09",
+            "end_time": "00:57",
+            "description": "[CHA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[CLE] Merrill 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 3,
+            "start_time": "09:07",
+            "end_time": "08:58",
+            "description": "[CHA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[CLE] Green 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 3,
+            "start_time": "10:54",
+            "end_time": "10:27",
+            "description": "[CLE] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[CLE] Wade Jump Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 2,
+            "start_time": "02:51",
+            "end_time": "02:34",
+            "description": "[CLE] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[CLE] Osman Free Throw 2 of 3 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 1,
+            "start_time": "05:23",
+            "end_time": "04:52",
+            "description": "[CLE] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[CLE] Rubio Pullup Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 3,
+            "start_time": "09:46",
+            "end_time": "09:25",
+            "description": "[CHA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[CHA] McGowens 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 3,
+            "start_time": "10:27",
+            "end_time": "10:13",
+            "description": "[CHA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[CHA] McGowens Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 2,
+            "start_time": "00:27",
+            "end_time": "00:08",
+            "description": "[CHA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[CHA] Williams Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 2,
+            "start_time": "03:20",
+            "end_time": "02:51",
+            "description": "[CHA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[CHA] Bouknight Putback Layup Shot: Missed Block: Diakite (1 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201218,
+            "period": 1,
+            "start_time": "00:03",
+            "end_time": "00:00",
+            "description": "[CHA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[CHA] Bouknight 3pt Shot: Missed"
+        }
+      ]
+    },
+    {
+      "game_id": 21700281,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700281,
+            "period": 4,
+            "start_time": "04:41",
+            "end_time": "04:09",
+            "description": "Celtics Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Rozier 28' 3PT Step Back Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700311,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700311,
+            "period": 1,
+            "start_time": "03:49",
+            "end_time": "03:36",
+            "description": "GRIZZLIES Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Aldridge 17' Driving Finger Roll Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700331,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700331,
+            "period": 4,
+            "start_time": "05:21",
+            "end_time": "04:56",
+            "description": "KINGS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Antetokounmpo 19' Jump Shot: Sampson BLOCK (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 21700333,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700333,
+            "period": 3,
+            "start_time": "01:58",
+            "end_time": "01:32",
+            "description": "Trail Blazers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Cousins Free Throw 1 of 1"
+        }
+      ]
+    },
+    {
+      "game_id": 21700338,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700338,
+            "period": 3,
+            "start_time": "01:03",
+            "end_time": "00:54",
+            "description": "ROCKETS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Gordon 7' Cutting Layup Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700368,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700368,
+            "period": 1,
+            "start_time": "08:29",
+            "end_time": "08:14",
+            "description": "WARRIORS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "Harris BLOCK (1 BLK): MISS Durant 4' Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700376,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700376,
+            "period": 3,
+            "start_time": "01:26",
+            "end_time": "01:14",
+            "description": "Nets Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "Allen BLOCK (1 BLK): MISS Johnson 3' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700494,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700494,
+            "period": 4,
+            "start_time": "01:10",
+            "end_time": "00:30",
+            "description": "Cavaliers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Bell 27' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700832,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700832,
+            "period": 4,
+            "start_time": "06:16",
+            "end_time": "06:09",
+            "description": "Suns Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Chandler 1' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21701150,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 2,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21701150,
+            "period": 1,
+            "start_time": "05:45",
+            "end_time": "05:28",
+            "description": "Pelicans Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Anthony 11' Driving Floating Jump Shot"
+        },
+        {
+          "unmatched": {
+            "game_id": 21701150,
+            "period": 1,
+            "start_time": "08:48",
+            "end_time": "08:39",
+            "description": "Pelicans Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Anthony 2' Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22101030,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101030,
+            "period": 3,
+            "start_time": "09:36",
+            "end_time": "09:14",
+            "description": "MAGIC Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Irving 7' Driving Floating Bank Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101060,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101060,
+            "period": 2,
+            "start_time": "10:41",
+            "end_time": "10:28",
+            "description": "Osman REBOUND (Off:2 Def:0)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Mobley 8' Driving Bank Hook Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101072,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101072,
+            "period": 3,
+            "start_time": "11:26",
+            "end_time": "11:12",
+            "description": "James REBOUND (Off:0 Def:5)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Markkanen 27' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101096,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101096,
+            "period": 3,
+            "start_time": "11:30",
+            "end_time": "11:17",
+            "description": "Adams REBOUND (Off:5 Def:8)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "Adams BLOCK (3 BLK): MISS Hield 11' Driving Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101101,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101101,
+            "period": 3,
+            "start_time": "02:14",
+            "end_time": "01:48",
+            "description": "McGruder REBOUND (Off:2 Def:0)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Jackson 25' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101103,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101103,
+            "period": 3,
+            "start_time": "07:06",
+            "end_time": "06:41",
+            "description": "Robinson REBOUND (Off:6 Def:0)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Toppin Tip Layup Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101115,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101115,
+            "period": 2,
+            "start_time": "03:26",
+            "end_time": "03:10",
+            "description": "Knicks Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Stewart 26' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101120,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101120,
+            "period": 2,
+            "start_time": "09:22",
+            "end_time": "09:05",
+            "description": "Drummond REBOUND (Off:1 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Ball 12' Driving Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101151,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101151,
+            "period": 1,
+            "start_time": "04:05",
+            "end_time": "03:38",
+            "description": "VanVleet REBOUND (Off:0 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Bamba 4' Layup: VanVleet BLOCK (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 22101198,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101198,
+            "period": 2,
+            "start_time": "03:53",
+            "end_time": "03:26",
+            "description": "Connaughton REBOUND (Off:1 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Hill 29' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21100736,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21100736,
+            "period": 3,
+            "start_time": "10:13",
+            "end_time": "09:50",
+            "description": "Brand Rebound "
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Irving 25' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21000288,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21000288,
+            "period": 3,
+            "start_time": "05:12",
+            "end_time": "05:05",
+            "description": "Heat Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "James BLOCK (1 BLK): MISS Evans 2' Dunk"
+        }
+      ]
+    },
+    {
+      "game_id": 20900122,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 20900122,
+            "period": 4,
+            "start_time": "07:59",
+            "end_time": "07:39",
+            "description": "Cavaliers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Beasley  Driving Layup: Moon BLOCK (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 22300279,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22300279,
+            "period": 2,
+            "start_time": "00:28",
+            "end_time": "00:10",
+            "description": "Gordon REBOUND (Off:1 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "Gordon BLOCK (1 BLK): MISS Watson 11' Cutting Dunk Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22300320,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22300320,
+            "period": 3,
+            "start_time": "06:56",
+            "end_time": "06:30",
+            "description": "Butler REBOUND (Off:2 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS White 2' Driving Finger Roll Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22300694,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22300694,
+            "period": 4,
+            "start_time": "12:00",
+            "end_time": "11:19",
+            "description": "M. Wagner REBOUND (Off:1 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Ingles 24' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22300820,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22300820,
+            "period": 2,
+            "start_time": "03:35",
+            "end_time": "03:22",
+            "description": "Kuzma REBOUND (Off:0 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Allen 6' Turnaround Hook Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22301002,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22301002,
+            "period": 1,
+            "start_time": "07:41",
+            "end_time": "07:18",
+            "description": "Nurkic REBOUND (Off:3 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Booker 19' Pullup Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22400001,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400001,
+            "period": 4,
+            "start_time": "06:08",
+            "end_time": "05:54",
+            "description": "Johnson REBOUND (Off:2 Def:8)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Wallace 26' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22400072,
+      "status": "ALL_PBP_PROVEN_NONLIVE",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400072,
+            "period": 3,
+            "start_time": "02:04",
+            "end_time": "01:52",
+            "description": "Warriors Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "MISS Melton Free Throw 1 of 2"
+        }
+      ]
+    },
+    {
+      "game_id": 22400181,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400181,
+            "period": 3,
+            "start_time": "02:19",
+            "end_time": "02:05",
+            "description": "Terry REBOUND (Off:1 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS DiVincenzo 3' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22400241,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400241,
+            "period": 2,
+            "start_time": "00:36",
+            "end_time": "00:21",
+            "description": "Sengun REBOUND (Off:0 Def:6)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS White 2' Driving Floating Bank Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22400323,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400323,
+            "period": 2,
+            "start_time": "10:33",
+            "end_time": "10:23",
+            "description": "Risacher REBOUND (Off:1 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "Trent Jr. BLOCK (1 BLK): MISS Risacher 2' Cutting Layup Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22400422,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400422,
+            "period": 2,
+            "start_time": "06:11",
+            "end_time": "05:47",
+            "description": "Smith Jr. REBOUND (Off:1 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Reid 8' Driving Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22400487,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400487,
+            "period": 1,
+            "start_time": "04:34",
+            "end_time": "04:15",
+            "description": "Holiday REBOUND (Off:1 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Hartenstein 10' Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22400551,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400551,
+            "period": 2,
+            "start_time": "01:35",
+            "end_time": "01:15",
+            "description": "Grizzlies Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Jackson Jr. 10' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22400624,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22400624,
+            "period": 4,
+            "start_time": "04:29",
+            "end_time": "04:06",
+            "description": "Lopez REBOUND (Off:1 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Rozier 26' 3PT Pullup Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21701229,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21701229,
+            "period": 1,
+            "start_time": "04:00",
+            "end_time": "03:48",
+            "description": "Trail Blazers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Mitchell 2' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22100889,
+      "status": "ALL_PBP_PROVEN_NONLIVE",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22100889,
+            "period": 4,
+            "start_time": "00:28",
+            "end_time": "00:00",
+            "description": "Cavaliers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "MISS Goodwin 27' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22100921,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22100921,
+            "period": 4,
+            "start_time": "06:09",
+            "end_time": "05:47",
+            "description": "Jackson REBOUND (Off:1 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Wagner 8' Driving Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22100924,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22100924,
+            "period": 4,
+            "start_time": "01:53",
+            "end_time": "01:32",
+            "description": "Jones REBOUND (Off:2 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Jones 7' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22100935,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22100935,
+            "period": 2,
+            "start_time": "01:34",
+            "end_time": "01:25",
+            "description": "Wood REBOUND (Off:0 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "Porter Jr. BLOCK (1 BLK): MISS Bogdanovic 2' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22100950,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22100950,
+            "period": 4,
+            "start_time": "08:02",
+            "end_time": "07:43",
+            "description": "Snell REBOUND (Off:0 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Gay 8' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22100974,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22100974,
+            "period": 4,
+            "start_time": "06:13",
+            "end_time": "05:52",
+            "description": "Randle REBOUND (Off:2 Def:6)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Sabonis 18' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22100976,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 2,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22100976,
+            "period": 2,
+            "start_time": "04:06",
+            "end_time": "03:48",
+            "description": "Jackson REBOUND (Off:1 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Rondo 4' Finger Roll Layup"
+        },
+        {
+          "unmatched": {
+            "game_id": 22100976,
+            "period": 1,
+            "start_time": "05:39",
+            "end_time": "05:21",
+            "description": "Smith REBOUND (Off:0 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Wade 27' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101008,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101008,
+            "period": 3,
+            "start_time": "05:22",
+            "end_time": "04:48",
+            "description": "Bjelica REBOUND (Off:2 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Curry 29' 3PT Pullup Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22101023,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 2,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101023,
+            "period": 3,
+            "start_time": "02:56",
+            "end_time": "02:51",
+            "description": "THUNDER Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Harrell 4' Alley Oop Dunk"
+        },
+        {
+          "unmatched": {
+            "game_id": 22101023,
+            "period": 2,
+            "start_time": "08:20",
+            "end_time": "07:54",
+            "description": "Plumlee REBOUND (Off:1 Def:0)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Thomas 7' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22101028,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22101028,
+            "period": 2,
+            "start_time": "09:35",
+            "end_time": "09:22",
+            "description": "Birch REBOUND (Off:1 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Young 3' Running Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700085,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700085,
+            "period": 2,
+            "start_time": "10:25",
+            "end_time": "10:02",
+            "description": "Bucks Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Vaughn 26' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700103,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700103,
+            "period": 4,
+            "start_time": "10:28",
+            "end_time": "10:12",
+            "description": "Anthony REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "Antetokounmpo BLOCK (1 BLK): MISS Anthony 15' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700108,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700108,
+            "period": 1,
+            "start_time": "09:58",
+            "end_time": "09:22",
+            "description": "Wizards Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Smith 24' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700161,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700161,
+            "period": 4,
+            "start_time": "07:30",
+            "end_time": "07:11",
+            "description": "LAKERS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "Theis BLOCK (3 BLK): MISS Clarkson 2' Driving Reverse Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700231,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700231,
+            "period": 2,
+            "start_time": "12:00",
+            "end_time": "11:43",
+            "description": "Covington REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Thompson 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700235,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700235,
+            "period": 3,
+            "start_time": "05:34",
+            "end_time": "05:20",
+            "description": "PACERS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Dragic 19' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700241,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700241,
+            "period": 4,
+            "start_time": "01:39",
+            "end_time": "01:18",
+            "description": "Hornets Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Walker 4' Jump Shot: Teague BLOCK (3 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 21700250,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700250,
+            "period": 3,
+            "start_time": "02:38",
+            "end_time": "02:20",
+            "description": "Ginobili REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "Anderson BLOCK (1 BLK): MISS Delaney 15' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700262,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700262,
+            "period": 2,
+            "start_time": "10:16",
+            "end_time": "09:45",
+            "description": "SPURS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Murray 2' Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700274,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700274,
+            "period": 1,
+            "start_time": "01:34",
+            "end_time": "01:33",
+            "description": "Grizzlies Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Lyles  3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700007,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700007,
+            "period": 3,
+            "start_time": "10:49",
+            "end_time": "10:26",
+            "description": "Brown REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Snell 27' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700017,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700017,
+            "period": 1,
+            "start_time": "10:59",
+            "end_time": "10:43",
+            "description": "HORNETS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Lamb 3' Pullup Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700020,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700020,
+            "period": 4,
+            "start_time": "03:56",
+            "end_time": "03:37",
+            "description": "Johnson REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Wall Free Throw 1 of 1"
+        }
+      ]
+    },
+    {
+      "game_id": 21700022,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700022,
+            "period": 1,
+            "start_time": "11:23",
+            "end_time": "11:07",
+            "description": "Hollis-Jefferson REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Ross 14' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700024,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700024,
+            "period": 4,
+            "start_time": "02:15",
+            "end_time": "02:00",
+            "description": "Mavericks Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "Barea BLOCK (1 BLK): MISS Temple 7' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700034,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700034,
+            "period": 1,
+            "start_time": "02:39",
+            "end_time": "02:33",
+            "description": "Bucks Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Lillard 1' Driving Reverse Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21700042,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700042,
+            "period": 2,
+            "start_time": "01:27",
+            "end_time": "01:12",
+            "description": "Johnson REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Babbitt 10' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700044,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700044,
+            "period": 4,
+            "start_time": "06:17",
+            "end_time": "05:53",
+            "description": "Bucks Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Williams 10' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21700052,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700052,
+            "period": 4,
+            "start_time": "05:06",
+            "end_time": "04:59",
+            "description": "Timberwolves Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Crawford 6' Driving Layup: Young BLOCK (2 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 21700077,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 2,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21700077,
+            "period": 1,
+            "start_time": "06:53",
+            "end_time": "06:40",
+            "description": "Cavaliers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Cousins 9' Jump Shot"
+        },
+        {
+          "unmatched": {
+            "game_id": 21700077,
+            "period": 2,
+            "start_time": "04:34",
+            "end_time": "03:59",
+            "description": "Holiday REBOUND (Off:0 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Love 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21800022,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21800022,
+            "period": 4,
+            "start_time": "11:00",
+            "end_time": "10:37",
+            "description": "KINGS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Jackson 9' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21800024,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21800024,
+            "period": 4,
+            "start_time": "01:45",
+            "end_time": "01:29",
+            "description": "WARRIORS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Mitchell 4' Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21800144,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21800144,
+            "period": 4,
+            "start_time": "03:36",
+            "end_time": "03:24",
+            "description": "PELICANS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS George 15' Pullup Jump Shot: Holiday BLOCK (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 21800183,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21800183,
+            "period": 3,
+            "start_time": "04:56",
+            "end_time": "04:39",
+            "description": "LAKERS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Hield 5' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21800620,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21800620,
+            "period": 4,
+            "start_time": "04:26",
+            "end_time": "04:20",
+            "description": "PISTONS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Jackson 9' Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21800778,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21800778,
+            "period": 3,
+            "start_time": "05:56",
+            "end_time": "05:45",
+            "description": "Wizards Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "Satoransky BLOCK (1 BLK): MISS Brown 2' Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21800846,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21800846,
+            "period": 2,
+            "start_time": "10:53",
+            "end_time": "10:33",
+            "description": "Trail Blazers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS George 11' Turnaround Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21800983,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21800983,
+            "period": 3,
+            "start_time": "00:47",
+            "end_time": "00:30",
+            "description": "Pelicans Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Lin 1' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 21801036,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21801036,
+            "period": 1,
+            "start_time": "03:30",
+            "end_time": "03:20",
+            "description": "Pelicans Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Booker 7' Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 21801108,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 21801108,
+            "period": 4,
+            "start_time": "02:19",
+            "end_time": "02:06",
+            "description": "Celtics Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Nance Jr. 6' Hook Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200461,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200461,
+            "period": 3,
+            "start_time": "01:22",
+            "end_time": "01:03",
+            "description": "Kessler REBOUND (Off:2 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Joseph 10' Step Back Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200478,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200478,
+            "period": 3,
+            "start_time": "09:37",
+            "end_time": "09:09",
+            "description": "Clarkson REBOUND (Off:0 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Gafford 4' Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22200508,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200508,
+            "period": 4,
+            "start_time": "10:19",
+            "end_time": "09:59",
+            "description": "Johnson REBOUND (Off:0 Def:6)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS McConnell 1' Driving Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22200547,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200547,
+            "period": 2,
+            "start_time": "00:55",
+            "end_time": "00:27",
+            "description": "Morant REBOUND (Off:1 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Morant 4' Driving Layup: Holmes BLOCK (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 22200602,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 2,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200602,
+            "period": 1,
+            "start_time": "06:57",
+            "end_time": "06:50",
+            "description": "Williams REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Dort 3' Running Layup"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200602,
+            "period": 2,
+            "start_time": "02:25",
+            "end_time": "01:49",
+            "description": "Pinson REBOUND (Off:1 Def:0)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Bullock 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200733,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200733,
+            "period": 2,
+            "start_time": "07:03",
+            "end_time": "06:48",
+            "description": "Cavaliers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Mobley Putback Layup"
+        }
+      ]
+    },
+    {
+      "game_id": 22200745,
+      "status": "ALL_PBP_PROVEN_NONLIVE",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200745,
+            "period": 1,
+            "start_time": "00:09",
+            "end_time": "00:00",
+            "description": "HAWKS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "MISS Jackson 28' 3PT Jump Bank Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200812,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 15,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 4,
+            "start_time": "00:16",
+            "end_time": "00:00",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[HOU] Washington Jr. 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 4,
+            "start_time": "00:50",
+            "end_time": "00:29",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Washington Jr. Pullup Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 4,
+            "start_time": "10:10",
+            "end_time": "09:50",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Christopher Driving Finger Roll Layup Shot: Missed Block: Metu (2 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 3,
+            "start_time": "01:15",
+            "end_time": "01:01",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Sengun Driving Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 3,
+            "start_time": "03:29",
+            "end_time": "03:07",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[HOU] Tate Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 2,
+            "start_time": "00:04",
+            "end_time": "00:00",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[HOU] Green 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 2,
+            "start_time": "07:12",
+            "end_time": "06:36",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Sengun Hook Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 1,
+            "start_time": "01:16",
+            "end_time": "01:11",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[HOU] Christopher Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 1,
+            "start_time": "03:25",
+            "end_time": "02:57",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Green 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 1,
+            "start_time": "08:18",
+            "end_time": "08:14",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[HOU] Green Running Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 4,
+            "start_time": "05:27",
+            "end_time": "05:18",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Monk 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 4,
+            "start_time": "07:31",
+            "end_time": "07:16",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Murray Driving Layup Shot: Missed Block: Eason (1 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 3,
+            "start_time": "04:21",
+            "end_time": "04:05",
+            "description": "[HOU] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Murray 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 3,
+            "start_time": "07:40",
+            "end_time": "07:27",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[SAC] Fox Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200812,
+            "period": 1,
+            "start_time": "12:00",
+            "end_time": "11:30",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Huerter 3pt Shot: Missed Block: Gordon (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 22201018,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 16,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 4,
+            "start_time": "01:25",
+            "end_time": "01:17",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAS] McDermott 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 3,
+            "start_time": "00:11",
+            "end_time": "00:00",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[SAS] Mamukelashvili Floating Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "02:16",
+            "end_time": "02:06",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[SAS] Mamukelashvili Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "02:58",
+            "end_time": "02:54",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[SAS] Mamukelashvili Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "05:17",
+            "end_time": "04:54",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAS] McDermott Fadeaway Bank shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "06:40",
+            "end_time": "06:01",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAS] Bates-Diop 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "07:39",
+            "end_time": "07:11",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAS] Vassell Pullup Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 4,
+            "start_time": "06:27",
+            "end_time": "06:06",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Waters III 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 3,
+            "start_time": "00:45",
+            "end_time": "00:34",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[OKC] Dieng Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 3,
+            "start_time": "01:32",
+            "end_time": "01:10",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Dieng 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 3,
+            "start_time": "04:37",
+            "end_time": "04:13",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Joe 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 3,
+            "start_time": "08:04",
+            "end_time": "07:56",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Giddey Driving Floating Jump Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "02:54",
+            "end_time": "02:44",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[OKC] Saric Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "07:11",
+            "end_time": "06:58",
+            "description": "[SAS] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Jay Williams Driving Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "07:51",
+            "end_time": "07:39",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Joe Pullup Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201018,
+            "period": 1,
+            "start_time": "11:50",
+            "end_time": "11:35",
+            "description": "[OKC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[OKC] Jal Williams Cutting Layup Shot: Missed Block: Graham (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 22201076,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 33,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 4,
+            "start_time": "00:19",
+            "end_time": "00:16",
+            "description": "[UTA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[UTA] Kessler Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 3,
+            "start_time": "04:17",
+            "end_time": "04:00",
+            "description": "[SAC] Sabonis Rebound (Off:1 Def:10)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Dunn Driving Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 3,
+            "start_time": "06:14",
+            "end_time": "05:53",
+            "description": "[UTA] Agbaji Rebound (Off:1 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Gay 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 3,
+            "start_time": "07:04",
+            "end_time": "06:42",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:9)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Kessler Hook Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 3,
+            "start_time": "10:08",
+            "end_time": "10:01",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:8)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Agbaji 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 3,
+            "start_time": "10:39",
+            "end_time": "10:21",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[UTA] Horton-Tucker Driving Layup Shot: Missed Block: Edwards (1 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "01:20",
+            "end_time": "01:00",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:7)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Agbaji Driving Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "03:12",
+            "end_time": "02:44",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[UTA] Fontecchio 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "04:00",
+            "end_time": "03:43",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:6)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Kessler Free Throw 2 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "09:07",
+            "end_time": "08:45",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:5)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Dunn Floating Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "11:05",
+            "end_time": "10:33",
+            "description": "[UTA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[UTA] Gay 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "04:51",
+            "end_time": "04:37",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Olynyk Floating Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "05:38",
+            "end_time": "05:31",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Fontecchio 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "06:29",
+            "end_time": "06:05",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Olynyk Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "11:23",
+            "end_time": "11:06",
+            "description": "[SAC] Sabonis Rebound (Off:0 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[UTA] Olynyk 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 4,
+            "start_time": "00:41",
+            "end_time": "00:31",
+            "description": "[UTA] Agbaji Rebound (Off:1 Def:4)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[SAC] Barnes 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 4,
+            "start_time": "02:41",
+            "end_time": "02:18",
+            "description": "[UTA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Sabonis Hook Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 4,
+            "start_time": "03:15",
+            "end_time": "02:58",
+            "description": "[SAC] Sabonis Rebound (Off:2 Def:10)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[SAC] Monk Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 4,
+            "start_time": "04:19",
+            "end_time": "04:04",
+            "description": "[UTA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Fox Jump Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 4,
+            "start_time": "05:46",
+            "end_time": "05:39",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Monk Free Throw 1 of 1 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 3,
+            "start_time": "00:09",
+            "end_time": "00:00",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[SAC] Fox Pullup Jump shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 3,
+            "start_time": "04:29",
+            "end_time": "04:17",
+            "description": "[SAC] Sabonis Rebound (Off:1 Def:9)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[SAC] Murray 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 3,
+            "start_time": "08:41",
+            "end_time": "08:34",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Edwards 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "00:03",
+            "end_time": "00:00",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[SAC] Mitchell Running Layup Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "00:34",
+            "end_time": "00:27",
+            "description": "[UTA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Mitchell 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "01:34",
+            "end_time": "01:20",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "non_live_free_throw_placeholder",
+          "previous_description": "[SAC] Fox Free Throw 1 of 2 Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 2,
+            "start_time": "03:43",
+            "end_time": "03:12",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Murray 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "00:08",
+            "end_time": "00:00",
+            "description": "[SAC] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": true,
+          "reason": "buzzer_placeholder",
+          "previous_description": "[SAC] Fox Turnaround Fadeaway shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "04:09",
+            "end_time": "03:55",
+            "description": "[UTA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Davis Floating Jump shot: Missed Block: Dunn (1 BLK)"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "05:51",
+            "end_time": "05:38",
+            "description": "[UTA] Agbaji Rebound (Off:0 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[SAC] Davis 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "06:50",
+            "end_time": "06:29",
+            "description": "[UTA] Team Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "[SAC] Murray 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "09:14",
+            "end_time": "09:02",
+            "description": "[UTA] Agbaji Rebound (Off:0 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[SAC] Murray 3pt Shot: Missed"
+        },
+        {
+          "unmatched": {
+            "game_id": 22201076,
+            "period": 1,
+            "start_time": "11:53",
+            "end_time": "11:23",
+            "description": "[UTA] Agbaji Rebound (Off:0 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "[SAC] Sabonis Hook Shot: Missed"
+        }
+      ]
+    },
+    {
+      "game_id": 20800374,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 20800374,
+            "period": 4,
+            "start_time": "09:19",
+            "end_time": "09:10",
+            "description": "Brown Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Bonner 25' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 20800999,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 20800999,
+            "period": 4,
+            "start_time": "01:46",
+            "end_time": "01:33",
+            "description": "Krstic REBOUND"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Parker 19' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 20801111,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 20801111,
+            "period": 1,
+            "start_time": "02:39",
+            "end_time": "02:22",
+            "description": "Trail Blazers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "Batum BLOCK (1 BLK): MISS Kirilenko 6' Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200029,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200029,
+            "period": 1,
+            "start_time": "06:03",
+            "end_time": "05:40",
+            "description": "Ivey REBOUND (Off:0 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Haliburton 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200224,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200224,
+            "period": 1,
+            "start_time": "10:56",
+            "end_time": "10:29",
+            "description": "Heat Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Highsmith 13' Floating Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200225,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200225,
+            "period": 5,
+            "start_time": "04:33",
+            "end_time": "04:12",
+            "description": "Stevens REBOUND (Off:1 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Stevens 4' Cutting Layup Shot: Plumlee BLOCK (1 BLK)"
+        }
+      ]
+    },
+    {
+      "game_id": 22200274,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200274,
+            "period": 3,
+            "start_time": "04:41",
+            "end_time": "04:05",
+            "description": "Trail Blazers Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS Simons 25' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200307,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200307,
+            "period": 4,
+            "start_time": "00:35",
+            "end_time": "00:06",
+            "description": "Lee REBOUND (Off:2 Def:3)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Bridges 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200331,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200331,
+            "period": 3,
+            "start_time": "01:04",
+            "end_time": "01:02",
+            "description": "BUCKS Rebound"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "not_proven_nonlive",
+          "previous_description": "MISS G. Antetokounmpo Free Throw 1 of 1"
+        }
+      ]
+    },
+    {
+      "game_id": 22200350,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 2,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200350,
+            "period": 3,
+            "start_time": "03:22",
+            "end_time": "03:02",
+            "description": "Jones Jr. REBOUND (Off:0 Def:2)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Sabonis 18' Jump Shot"
+        },
+        {
+          "unmatched": {
+            "game_id": 22200350,
+            "period": 3,
+            "start_time": "07:21",
+            "end_time": "07:03",
+            "description": "DeRozan REBOUND (Off:1 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Huerter 3' Cutting Layup Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200365,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200365,
+            "period": 3,
+            "start_time": "05:54",
+            "end_time": "05:26",
+            "description": "Krejci REBOUND (Off:1 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Griffin 26' 3PT Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200374,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200374,
+            "period": 1,
+            "start_time": "00:57",
+            "end_time": "00:49",
+            "description": "Covington REBOUND (Off:1 Def:0)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Kennard 24' 3PT Step Back Jump Shot"
+        }
+      ]
+    },
+    {
+      "game_id": 22200457,
+      "status": "UNKNOWN_OR_REAL",
+      "unmatched_rows": 1,
+      "mapped_all": true,
+      "detail": [
+        {
+          "unmatched": {
+            "game_id": 22200457,
+            "period": 3,
+            "start_time": "02:56",
+            "end_time": "02:37",
+            "description": "Matthews REBOUND (Off:0 Def:1)"
+          },
+          "mapped": true,
+          "proven_nonlive": false,
+          "reason": "player_counter_rebound",
+          "previous_description": "MISS Williamson 7' Driving Layup"
+        }
+      ]
+    }
+  ]
 }
