@@ -1,0 +1,157 @@
+name: TREB rebound forensics v3 rerun
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - .github/workflows/treb-rebound-forensics-v3-rerun.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      chunk_matrix: ${{ steps.plan.outputs.chunk_matrix }}
+      expected_chunks: ${{ steps.plan.outputs.expected_chunks }}
+      expected_games: ${{ steps.plan.outputs.expected_games }}
+      expected_rows: ${{ steps.plan.outputs.expected_rows }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text()); chunks=m['chunks']
+          ids=[int(g) for c in chunks for g in c['game_ids']]
+          assert len(chunks)==24 and len(ids)==58 and len(set(ids))==58
+          assert sum(int(c['estimated_unmatched_rows']) for c in chunks)==110
+          matrix={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids'])),'kind':c['kind'],'estimated_rows':int(c['estimated_unmatched_rows'])} for c in chunks]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('chunk_matrix='+json.dumps(matrix,separators=(',',':'))+'\n')
+              f.write('expected_chunks=24\nexpected_games=58\nexpected_rows=110\n')
+          print('V3_PLAN chunks=24 games=58 expected_unmatched_rows=110 source_run='+os.environ['SOURCE_RUN_ID'])
+          PY
+
+  diagnose-chunk:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.chunk_matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Reuse validated season source slice
+        uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - name: Analyze current production-v3 residual chunk
+        shell: bash
+        env:
+          YEAR: ${{ matrix.year }}
+          CHUNK_ID: ${{ matrix.chunk_id }}
+          GAMES: ${{ matrix.games }}
+          KIND: ${{ matrix.kind }}
+          EST_ROWS: ${{ matrix.estimated_rows }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          ids=[int(x) for x in os.environ['GAMES'].split(',') if x]
+          Path('/tmp/residual.json').write_text(json.dumps([{'game_id':g} for g in ids])+'\n')
+          PY
+          python -u team_trb_all_players/order_preserving_rebound_diagnostic.py \
+            --nba "/tmp/source/nbastats_${YEAR}.csv" \
+            --v3 "/tmp/source/nbastatsv3_${YEAR}.csv" \
+            --pbp "/tmp/source/pbpstats_${YEAR}.csv" \
+            --residual /tmp/residual.json --year "$YEAR" --output "/tmp/V3_${CHUNK_ID}.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path('/tmp')/f'V3_{os.environ["CHUNK_ID"]}.json'; d=json.loads(p.read_text())
+          assert d.get('diagnostic_engine')=='production_rebound_v3', d.get('diagnostic_engine')
+          d['chunk_id']=os.environ['CHUNK_ID']; d['chunk_kind']=os.environ['KIND']; d['estimated_unmatched_rows']=int(os.environ['EST_ROWS'])
+          p.write_text(json.dumps(d,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in d.items() if k!='games'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-v3-forensic-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/V3_${{ matrix.chunk_id }}.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: [plan, diagnose-chunk]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-v3-forensic-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Strict production-v3 aggregate gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text()); target_ids={int(g) for c in m['chunks'] for g in c['game_ids']}
+          chunks=[json.loads(p.read_text()) for p in sorted(Path('/tmp/results').rglob('V3_*.json'))]
+          engines={c.get('diagnostic_engine') for c in chunks}
+          games=[g for c in chunks for g in c.get('games',[])]; seen=[int(g['game_id']) for g in games]
+          analyzed=[g for g in games if g.get('status')=='OK']; observed=sum(int(g.get('unmatched_rows',0)) for g in analyzed)
+          complete=(len(chunks)==24 and len(seen)==58 and len(set(seen))==58 and set(seen)==target_ids and observed==110 and engines=={'production_rebound_v3'})
+          solvable=[g for g in analyzed if g.get('all_unmatched_uniquely_assigned')]
+          controls=sum(int(c.get('control_applicable',0)) for c in chunks); correct=sum(int(c.get('control_correct',0)) for c in chunks); wrong=sum(int(c.get('control_wrong',0)) for c in chunks)
+          out={'status':'COMPLETE' if complete else 'REJECTED','diagnostic_engine':'production_rebound_v3','source_production_run_id':m['source_run_id'],'source_production_patch_sha':m['source_patch_sha'],'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_slice_run_id':int(os.environ['SOURCE_RUN_ID']),'chunks_found':len(chunks),'target_games':58,'games_seen':len(seen),'games_analyzed':len(analyzed),'target_unmatched_rows':110,'unmatched_rows_observed':observed,'games_all_unmatched_uniquely_assigned':len(solvable),'assigned_rows_in_solvable_games':sum(int(g.get('assigned_rows',0)) for g in solvable),'control_applicable':controls,'control_correct':correct,'control_wrong':wrong,'solvable_games':[int(g['game_id']) for g in solvable],'games':games}
+          out['promotion_candidate']=bool(complete and wrong==0 and controls>0 and len(solvable)>0)
+          Path('/tmp/REBOUND_FORENSICS_V3_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2))
+          if not complete: raise SystemExit(f'REJECT: expected exact v3 residual state 58 games / 110 rows; got chunks={len(chunks)} games={len(seen)} rows={observed} engines={engines}')
+          if wrong: raise SystemExit(f'REJECT: leave-one-out controls wrong={wrong}')
+          PY
+      - name: Persist accepted v3 forensic checkpoint
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/rebound_forensics; mkdir -p "$DEST"
+          cp /tmp/REBOUND_FORENSICS_V3_SUMMARY.json "$DEST/"
+          git add -f "$DEST/REBOUND_FORENSICS_V3_SUMMARY.json"
+          if ! git diff --cached --quiet; then git commit -m 'Persist production-v3 rebound forensics checkpoint'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-rebound-forensics-v3-summary-${{ github.run_id }}
+          path: /tmp/REBOUND_FORENSICS_V3_SUMMARY.json
+          retention-days: 90
+          if-no-files-found: warn
