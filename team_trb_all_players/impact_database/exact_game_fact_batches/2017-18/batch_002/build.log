@@ -1,0 +1,17 @@
+BATCH_PROGRESS season=2017-18 batch=2 processed=20/100 success=19 failures=1
+BATCH_PROGRESS season=2017-18 batch=2 processed=40/100 success=36 failures=4
+BATCH_PROGRESS season=2017-18 batch=2 processed=60/100 success=52 failures=8
+BATCH_PROGRESS season=2017-18 batch=2 processed=80/100 success=69 failures=11
+BATCH_PROGRESS season=2017-18 batch=2 processed=100/100 success=86 failures=14
+{
+  "season": "2017-18",
+  "batch_index": 2,
+  "batch_size": 100,
+  "total_common_games": 1230,
+  "start_index": 200,
+  "stop_index": 300,
+  "games_requested": 100,
+  "successful_games": 86,
+  "failed_games": 14,
+  "status": "REPAIR_REQUIRED"
+}
