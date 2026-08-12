@@ -7,6 +7,7 @@ from collections import Counter
 import pandas as pd
 TEAM_MIN=1610612737
 COUNTER_RE=re.compile(r'\(\s*Off\s*:\s*(\d+)\s+Def\s*:\s*(\d+)\s*\)',re.I)
+HEADERS={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0 Safari/537.36','Referer':'https://www.nba.com/','Origin':'https://www.nba.com','Accept':'application/json, text/plain, */*','Accept-Language':'en-US,en;q=0.9'}
 
 def ni(v):
     x=pd.to_numeric(pd.Series([v]),errors='coerce').iloc[0];return None if pd.isna(x) else int(x)
@@ -36,8 +37,8 @@ def rec(r):
     ks=['gameId','actionNumber','orderNumber','period','clock','actionType','subType','description','personId','playerName','teamId','teamTricode','reboundOffensiveTotal','reboundDefensiveTotal']
     return {k:(None if pd.isna(r.get(k)) else r.get(k)) for k in ks if k in r.index}
 def load_live(gid):
-    full=f'{gid:010d}';url=f'https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{full}.json'
-    with urllib.request.urlopen(url,timeout=30) as h:d=json.loads(h.read().decode())
+    full=f'{gid:010d}';url=f'https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{full}.json';req=urllib.request.Request(url,headers=HEADERS)
+    with urllib.request.urlopen(req,timeout=30) as h:d=json.loads(h.read().decode())
     rows=d['game']['actions'];f=pd.DataFrame(rows);f['gameId']=gid
     f['action_norm']=f.actionType.astype('string').fillna('').str.strip().str.lower()
     return f[f.action_norm.eq('rebound')].copy(),url
