@@ -1,0 +1,112 @@
+name: TREB game-fact QA consolidation
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/QA_CONSOLIDATION_CONTROL.json
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Download all historical fanout artifacts
+        uses: actions/download-artifact@v4
+        with:
+          repository: ${{ github.repository }}
+          run-id: 31569006637
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: treb-fanout-*
+          path: /tmp/treb-fanout-qa
+      - name: Consolidate QA and failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/treb-qa-consolidated
+          mkdir -p "$OUT"
+          python - <<'PY'
+          import csv, json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          root=Path('/tmp/treb-fanout-qa')
+          out=Path('/tmp/treb-qa-consolidated')
+          qas=[]; failed_games=[]; missing=[]
+          for d in sorted(p for p in root.iterdir() if p.is_dir()):
+              q=d/'qa.json'; f=d/'failures.json'
+              if not q.exists():
+                  missing.append(d.name); continue
+              qa=json.loads(q.read_text())
+              qa['artifact']=d.name
+              qas.append(qa)
+              if f.exists():
+                  failures=json.loads(f.read_text())
+                  for row in failures:
+                      failed_games.append({
+                          'season':qa.get('season'),
+                          'batch_index':qa.get('batch_index'),
+                          'artifact':d.name,
+                          'game_id':row.get('game_id'),
+                          'error':row.get('error'),
+                      })
+          qas.sort(key=lambda x:(x.get('season',''), int(x.get('batch_index',-1))))
+          failed_games.sort(key=lambda x:(x.get('season',''), int(x.get('batch_index',-1)), int(x.get('game_id') or 0)))
+          status_counts=Counter(q.get('status') for q in qas)
+          by_season=defaultdict(lambda:{'batches':0,'pass_batches':0,'repair_batches':0,'games_requested':0,'successful_games':0,'failed_games':0})
+          for q in qas:
+              s=q.get('season')
+              x=by_season[s]; x['batches']+=1; x['games_requested']+=int(q.get('games_requested',0)); x['successful_games']+=int(q.get('successful_games',0)); x['failed_games']+=int(q.get('failed_games',0))
+              if q.get('status')=='PASS': x['pass_batches']+=1
+              else: x['repair_batches']+=1
+          summary={
+              'source_run_id':31569006637,
+              'expected_artifacts':240,
+              'qa_files_found':len(qas),
+              'missing_qa_artifacts':missing,
+              'status_counts':dict(status_counts),
+              'batches_repair_required':sum(1 for q in qas if q.get('status')!='PASS'),
+              'games_requested':sum(int(q.get('games_requested',0)) for q in qas),
+              'successful_games':sum(int(q.get('successful_games',0)) for q in qas),
+              'failed_games':len(failed_games),
+              'unique_failed_game_ids':len({str(x.get('game_id')) for x in failed_games}),
+              'seasons_with_failures':sorted({x['season'] for x in failed_games}),
+              'season_summary':dict(sorted(by_season.items())),
+              'status':'PASS' if len(qas)==240 and not missing and not failed_games else 'REPAIR_REQUIRED',
+          }
+          (out/'QA_CONSOLIDATED_SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n')
+          (out/'FAILED_GAMES.json').write_text(json.dumps(failed_games,indent=2)+'\n')
+          with (out/'FAILED_GAMES.csv').open('w',newline='',encoding='utf-8') as fh:
+              w=csv.DictWriter(fh,fieldnames=['season','batch_index','artifact','game_id','error']); w.writeheader(); w.writerows(failed_games)
+          with (out/'BATCH_QA.csv').open('w',newline='',encoding='utf-8') as fh:
+              fields=['season','batch_index','artifact','status','games_requested','successful_games','failed_games','total_common_games','start_index','stop_index']
+              w=csv.DictWriter(fh,fieldnames=fields,extrasaction='ignore'); w.writeheader(); w.writerows(qas)
+          print(json.dumps(summary,indent=2))
+          PY
+      - name: Persist QA consolidation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          BR=treb-game-fact-qa-consolidation
+          git checkout -B "$BR" "${{ github.sha }}"
+          DEST=team_trb_all_players/final_integrity_rebuild/game_fact_qa_consolidated
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          cp /tmp/treb-qa-consolidated/* "$DEST"/
+          git add -f "$DEST"
+          git commit -m 'Persist TREB game-fact QA consolidation'
+          git push --force origin HEAD:"$BR"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-game-fact-qa-consolidated
+          path: /tmp/treb-qa-consolidated/**
+          retention-days: 90
