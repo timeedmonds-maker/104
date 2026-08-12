@@ -1,0 +1,132 @@
+{
+  "year": 2017,
+  "targets": 31,
+  "control_applicable": 2961,
+  "control_correct": 2960,
+  "control_wrong": 1,
+  "duplicate_skipped": 45,
+  "wrong": [
+    {
+      "game_id": 21700017,
+      "pbp_index": 120507,
+      "period": 1,
+      "start_time": "03:57",
+      "end_time": "03:39",
+      "pbp_description": "HAWKS Rebound",
+      "actual_nba_index": 30,
+      "actual_eventnum": 46,
+      "actual_elapsed": 221,
+      "actual_description": "hawks rebound",
+      "actual_lineup": [
+        2730,
+        101107,
+        101141,
+        202689,
+        203087,
+        203145,
+        203471,
+        203473,
+        1627752,
+        1628407
+      ],
+      "forced_nba_index": 80,
+      "forced": {
+        "nba_index": 80,
+        "eventnum": 119,
+        "elapsed": 502,
+        "description": "hornets rebound",
+        "distance": 0.3333333333333333,
+        "player1_id": 1610612766,
+        "action_type": 0,
+        "nba_is_real_rebound": true,
+        "lineup": [
+          201158,
+          202933,
+          203087,
+          203488,
+          203948,
+          1626163,
+          1627098,
+          1627752,
+          1628370,
+          1628381
+        ]
+      },
+      "all_window_rebounds": [
+        {
+          "nba_index": 74,
+          "eventnum": 113,
+          "elapsed": 483,
+          "description": "kaminsky rebound (off:0 def:1)",
+          "distance": 0.6666666666666666,
+          "player1_id": 1626163,
+          "action_type": 0,
+          "nba_is_real_rebound": true,
+          "lineup": [
+            2730,
+            201158,
+            202689,
+            203087,
+            203488,
+            1626163,
+            1627098,
+            1627752,
+            1628370,
+            1628381
+          ]
+        },
+        {
+          "nba_index": 80,
+          "eventnum": 119,
+          "elapsed": 502,
+          "description": "hornets rebound",
+          "distance": 0.3333333333333333,
+          "player1_id": 1610612766,
+          "action_type": 0,
+          "nba_is_real_rebound": true,
+          "lineup": [
+            201158,
+            202933,
+            203087,
+            203488,
+            203948,
+            1626163,
+            1627098,
+            1627752,
+            1628370,
+            1628381
+          ]
+        }
+      ],
+      "join_audit": {
+        "total_pbp_rows": 425,
+        "rebound_bearing_rows": 115,
+        "matched_rebound_bearing_rows": 114,
+        "unmatched_rebound_bearing_rows": 1,
+        "ambiguous_matches": 13,
+        "manual_join_repairs": 0,
+        "exact_identity_join_repairs": 1,
+        "exact_description_repairs": 1,
+        "exact_player_counter_repairs": 0,
+        "exact_identity_records": [
+          {
+            "period": 1,
+            "pbp_description": "HAWKS Rebound",
+            "nba_eventnum": 46,
+            "nba_description_norm": "hawks rebound",
+            "method": "exact_description"
+          }
+        ],
+        "unmatched_rows": [
+          {
+            "game_id": 21700017,
+            "period": 1,
+            "start_time": "10:59",
+            "end_time": "10:43",
+            "description": "HORNETS Rebound"
+          }
+        ]
+      }
+    }
+  ]
+}
