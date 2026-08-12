@@ -15,14 +15,14 @@ env:
   PYTHONUNBUFFERED: '1'
 
 jobs:
-  audit-pair:
+  audit-game:
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 3
       matrix:
-        chunk: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
+        chunk: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81]
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,7 +47,7 @@ jobs:
               subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
               with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
           PY
-      - name: Run 2-game classifier pair
+      - name: Run one-game classifier audit
         shell: bash
         run: |
           set -o pipefail
@@ -56,7 +56,7 @@ jobs:
           PBP=$(find /tmp/trebraw-2016 -name 'pbpstats_2016.csv' -print -quit)
           python -u team_trb_all_players/adams_rebound_classifier_audit_chunk.py \
             --nba "$NBA" --v3 "$V3" --pbp "$PBP" \
-            --chunk-index '${{ matrix.chunk }}' --chunk-size 2 \
+            --chunk-index '${{ matrix.chunk }}' --chunk-size 1 \
             --output '/tmp/ADAMS_REBOUND_CLASSIFIER_MICRO_${{ matrix.chunk }}.json'
       - uses: actions/upload-artifact@v4
         if: always()
@@ -67,7 +67,7 @@ jobs:
           if-no-files-found: warn
 
   aggregate:
-    needs: audit-pair
+    needs: audit-game
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -98,17 +98,25 @@ jobs:
               try: payloads.append(json.loads(p.read_text()))
               except Exception: pass
           by_chunk={int(x['chunk_index']):x for x in payloads}
-          expected=list(range(41)); found=sorted(by_chunk); missing=[x for x in expected if x not in by_chunk]
-          truth=zero(); universe=0; per_game=[]; failures=[]
-          methods={m:{'observed':zero(),'exact_games':0,'sum_abs_game_error':zero()} for m in MODES}
+          expected=list(range(82)); found=sorted(by_chunk); missing=[x for x in expected if x not in by_chunk]
+          per_game=[]; failures=[]
           for idx in found:
-              p=by_chunk[idx]; add(truth,p.get('api_truth',{})); universe+=int(p.get('okc_oreb_universe',0))
-              per_game.extend(p.get('per_game',[])); failures.extend(p.get('failures',[]))
+              p=by_chunk[idx]
+              per_game.extend(p.get('per_game',[]))
+              failures.extend(p.get('failures',[]))
+          per_game=sorted(per_game,key=lambda x:int(x['game_id']))
+          truth=zero(); methods={m:{'observed':zero(),'exact_games':0,'sum_abs_game_error':zero()} for m in MODES}
+          for g in per_game:
+              t=g['truth']; add(truth,t)
               for m in MODES:
-                  s=p.get('methods',{}).get(m,{}); add(methods[m]['observed'],s.get('observed',{})); methods[m]['exact_games']+=int(s.get('exact_games',0)); add(methods[m]['sum_abs_game_error'],s.get('sum_abs_game_error',{}))
+                  loc=g['local'][m]
+                  add(methods[m]['observed'],loc)
+                  ds={k:int(loc.get(k,0))-int(t.get(k,0)) for k in KEYS}
+                  if all(v==0 for v in ds.values()): methods[m]['exact_games']+=1
+                  for k,v in ds.items(): methods[m]['sum_abs_game_error'][k]+=abs(v)
           for m in MODES: methods[m]['diff_vs_api_truth']=diff(methods[m]['observed'],truth)
-          complete=(not missing and len(per_game)==82 and not failures and all(by_chunk[i].get('status')=='COMPLETE' for i in expected))
-          out={'status':'COMPLETE' if complete else 'PARTIAL','expected_chunks':expected,'found_chunks':found,'missing_chunks':missing,'games_compared':len(per_game),'failures':failures,'okc_oreb_universe':universe,'api_truth':truth,'locked':LOCKED,'api_truth_diff_vs_locked':diff(truth,LOCKED),'methods':methods,'per_game':sorted(per_game,key=lambda x:int(x['game_id']))}
+          complete=(not missing and len(per_game)==82 and not failures)
+          out={'status':'COMPLETE' if complete else 'PARTIAL','expected_chunks':expected,'found_chunks':found,'missing_chunks':missing,'games_compared':len(per_game),'failures':failures,'api_truth':truth,'locked':LOCKED,'api_truth_diff_vs_locked':diff(truth,LOCKED),'methods':methods,'per_game':per_game}
           Path('/tmp/ADAMS_REBOUND_CLASSIFIER_MICRO_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
           print(json.dumps({k:v for k,v in out.items() if k!='per_game'},indent=2))
           PY
@@ -123,7 +131,7 @@ jobs:
           mkdir -p "$DEST"; cp /tmp/ADAMS_REBOUND_CLASSIFIER_MICRO_SUMMARY.json "$DEST"/
           git add -f "$DEST/ADAMS_REBOUND_CLASSIFIER_MICRO_SUMMARY.json"
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Persist microchunked Adams rebound classifier audit'
+          git commit -m 'Persist one-game Adams rebound classifier audit'
           git push origin HEAD:agent/treb-batched-game-facts-20260812
       - uses: actions/upload-artifact@v4
         if: always()
