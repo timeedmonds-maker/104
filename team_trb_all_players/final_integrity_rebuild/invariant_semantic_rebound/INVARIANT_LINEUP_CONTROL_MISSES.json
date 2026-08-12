@@ -1,0 +1,523 @@
+{
+  "status": "COMPLETE",
+  "chunks": 12,
+  "control_applicable": 8493,
+  "control_correct": 8491,
+  "control_wrong": 2,
+  "misses": [
+    {
+      "game_id": 22301002,
+      "pbp_index": 391697,
+      "period": 3,
+      "start_time": "02:40",
+      "end_time": "02:21",
+      "start_elapsed": 2000,
+      "end_elapsed": 2019,
+      "description": "76ers Rebound",
+      "actual_nba_eventnum": 470,
+      "actual_nba_elapsed": 1998,
+      "actual_lineup": [
+        201569,
+        1626164,
+        1626166,
+        1626220,
+        1627741,
+        1628960,
+        1629234,
+        1630178,
+        1630194,
+        1630231
+      ],
+      "inferred_lineup": [
+        201569,
+        203078,
+        1626166,
+        1626220,
+        1627741,
+        1628960,
+        1629234,
+        1630178,
+        1630194,
+        1630231
+      ],
+      "interval": {
+        "invariant": true,
+        "events": 3,
+        "substitutions": 0,
+        "unique_lineups": 1,
+        "lineup": [
+          201569,
+          203078,
+          1626166,
+          1626220,
+          1627741,
+          1628960,
+          1629234,
+          1630178,
+          1630194,
+          1630231
+        ]
+      },
+      "neighborhood": [
+        {
+          "eventnum": 467,
+          "elapsed": 1998,
+          "type": 6,
+          "description": "o'neale s.foul (p2.t3) (j.schroeder)",
+          "lineup": [
+            201569,
+            1626164,
+            1626166,
+            1626220,
+            1627741,
+            1628960,
+            1629234,
+            1630178,
+            1630194,
+            1630231
+          ]
+        },
+        {
+          "eventnum": 469,
+          "elapsed": 1998,
+          "type": 3,
+          "description": "miss reed free throw 1 of 2",
+          "lineup": [
+            201569,
+            1626164,
+            1626166,
+            1626220,
+            1627741,
+            1628960,
+            1629234,
+            1630178,
+            1630194,
+            1630231
+          ]
+        },
+        {
+          "eventnum": 470,
+          "elapsed": 1998,
+          "type": 4,
+          "description": "76ers rebound",
+          "lineup": [
+            201569,
+            1626164,
+            1626166,
+            1626220,
+            1627741,
+            1628960,
+            1629234,
+            1630178,
+            1630194,
+            1630231
+          ]
+        },
+        {
+          "eventnum": 471,
+          "elapsed": 1998,
+          "type": 8,
+          "description": "sub: beal for booker",
+          "lineup": [
+            201569,
+            203078,
+            1626166,
+            1626220,
+            1627741,
+            1628960,
+            1629234,
+            1630178,
+            1630194,
+            1630231
+          ]
+        },
+        {
+          "eventnum": 473,
+          "elapsed": 1998,
+          "type": 3,
+          "description": "miss reed free throw 2 of 2",
+          "lineup": [
+            201569,
+            203078,
+            1626166,
+            1626220,
+            1627741,
+            1628960,
+            1629234,
+            1630178,
+            1630194,
+            1630231
+          ]
+        },
+        {
+          "eventnum": 474,
+          "elapsed": 2000,
+          "type": 4,
+          "description": "o'neale rebound (off:2 def:1)",
+          "lineup": [
+            201569,
+            203078,
+            1626166,
+            1626220,
+            1627741,
+            1628960,
+            1629234,
+            1630178,
+            1630194,
+            1630231
+          ]
+        },
+        {
+          "eventnum": 475,
+          "elapsed": 2016,
+          "type": 2,
+          "description": "miss beal 26' 3pt jump shot",
+          "lineup": [
+            201569,
+            203078,
+            1626166,
+            1626220,
+            1627741,
+            1628960,
+            1629234,
+            1630178,
+            1630194,
+            1630231
+          ]
+        },
+        {
+          "eventnum": 476,
+          "elapsed": 2019,
+          "type": 4,
+          "description": "76ers rebound",
+          "lineup": [
+            201569,
+            203078,
+            1626166,
+            1626220,
+            1627741,
+            1628960,
+            1629234,
+            1630178,
+            1630194,
+            1630231
+          ]
+        }
+      ],
+      "join_audit": {
+        "total_pbp_rows": 390,
+        "rebound_bearing_rows": 112,
+        "matched_rebound_bearing_rows": 111,
+        "unmatched_rebound_bearing_rows": 1,
+        "ambiguous_matches": 16,
+        "manual_join_repairs": 0,
+        "exact_identity_join_repairs": 0,
+        "exact_description_repairs": 0,
+        "exact_player_counter_repairs": 0,
+        "exact_identity_records": [],
+        "unmatched_rows": [
+          {
+            "game_id": 22301002,
+            "period": 1,
+            "start_time": "07:41",
+            "end_time": "07:18",
+            "description": "Nurkic REBOUND (Off:3 Def:1)"
+          }
+        ]
+      }
+    },
+    {
+      "game_id": 22200029,
+      "pbp_index": 174558,
+      "period": 3,
+      "start_time": "07:23",
+      "end_time": "07:11",
+      "start_elapsed": 1717,
+      "end_elapsed": 1729,
+      "description": "Stewart REBOUND (Off:4 Def:8)",
+      "actual_nba_eventnum": 447,
+      "actual_nba_elapsed": 1716,
+      "actual_lineup": [
+        202711,
+        1627741,
+        1630169,
+        1630174,
+        1630180,
+        1630188,
+        1630191,
+        1630543,
+        1630595,
+        1631093
+      ],
+      "inferred_lineup": [
+        202711,
+        1627741,
+        1629048,
+        1630169,
+        1630188,
+        1630191,
+        1630537,
+        1630587,
+        1630595,
+        1631093
+      ],
+      "interval": {
+        "invariant": true,
+        "events": 3,
+        "substitutions": 0,
+        "unique_lineups": 1,
+        "lineup": [
+          202711,
+          1627741,
+          1629048,
+          1630169,
+          1630188,
+          1630191,
+          1630537,
+          1630587,
+          1630595,
+          1631093
+        ]
+      },
+      "neighborhood": [
+        {
+          "eventnum": 446,
+          "elapsed": 1714,
+          "type": 2,
+          "description": "miss stewart 3' hook shot",
+          "lineup": [
+            202711,
+            1627741,
+            1630169,
+            1630174,
+            1630180,
+            1630188,
+            1630191,
+            1630543,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 447,
+          "elapsed": 1716,
+          "type": 4,
+          "description": "stewart rebound (off:4 def:8)",
+          "lineup": [
+            202711,
+            1627741,
+            1630169,
+            1630174,
+            1630180,
+            1630188,
+            1630191,
+            1630543,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 448,
+          "elapsed": 1716,
+          "type": 6,
+          "description": "nesmith s.foul (p2.t2) (j.tiven)",
+          "lineup": [
+            202711,
+            1627741,
+            1630169,
+            1630174,
+            1630180,
+            1630188,
+            1630191,
+            1630543,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 450,
+          "elapsed": 1716,
+          "type": 3,
+          "description": "stewart free throw 1 of 2 (9 pts)",
+          "lineup": [
+            202711,
+            1627741,
+            1630169,
+            1630174,
+            1630180,
+            1630188,
+            1630191,
+            1630543,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 451,
+          "elapsed": 1716,
+          "type": 8,
+          "description": "sub: bitadze for jackson",
+          "lineup": [
+            202711,
+            1627741,
+            1629048,
+            1630169,
+            1630174,
+            1630180,
+            1630188,
+            1630191,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 452,
+          "elapsed": 1716,
+          "type": 8,
+          "description": "sub: duarte for nesmith",
+          "lineup": [
+            202711,
+            1627741,
+            1629048,
+            1630169,
+            1630180,
+            1630188,
+            1630191,
+            1630537,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 453,
+          "elapsed": 1716,
+          "type": 8,
+          "description": "sub: livers for bey",
+          "lineup": [
+            202711,
+            1627741,
+            1629048,
+            1630169,
+            1630188,
+            1630191,
+            1630537,
+            1630587,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 457,
+          "elapsed": 1716,
+          "type": 3,
+          "description": "miss stewart free throw 2 of 2",
+          "lineup": [
+            202711,
+            1627741,
+            1629048,
+            1630169,
+            1630188,
+            1630191,
+            1630537,
+            1630587,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 458,
+          "elapsed": 1717,
+          "type": 4,
+          "description": "smith rebound (off:2 def:9)",
+          "lineup": [
+            202711,
+            1627741,
+            1629048,
+            1630169,
+            1630188,
+            1630191,
+            1630537,
+            1630587,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 459,
+          "elapsed": 1726,
+          "type": 2,
+          "description": "miss hield 3' driving layup",
+          "lineup": [
+            202711,
+            1627741,
+            1629048,
+            1630169,
+            1630188,
+            1630191,
+            1630537,
+            1630587,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 460,
+          "elapsed": 1729,
+          "type": 4,
+          "description": "stewart rebound (off:4 def:9)",
+          "lineup": [
+            202711,
+            1627741,
+            1629048,
+            1630169,
+            1630188,
+            1630191,
+            1630537,
+            1630587,
+            1630595,
+            1631093
+          ]
+        },
+        {
+          "eventnum": 461,
+          "elapsed": 1732,
+          "type": 5,
+          "description": "haliburton steal (3 stl) cunningham bad pass turnover (p2.t9)",
+          "lineup": [
+            202711,
+            1627741,
+            1629048,
+            1630169,
+            1630188,
+            1630191,
+            1630537,
+            1630587,
+            1630595,
+            1631093
+          ]
+        }
+      ],
+      "join_audit": {
+        "total_pbp_rows": 448,
+        "rebound_bearing_rows": 128,
+        "matched_rebound_bearing_rows": 127,
+        "unmatched_rebound_bearing_rows": 1,
+        "ambiguous_matches": 14,
+        "manual_join_repairs": 0,
+        "exact_identity_join_repairs": 0,
+        "exact_description_repairs": 0,
+        "exact_player_counter_repairs": 0,
+        "exact_identity_records": [],
+        "unmatched_rows": [
+          {
+            "game_id": 22200029,
+            "period": 1,
+            "start_time": "06:03",
+            "end_time": "05:40",
+            "description": "Ivey REBOUND (Off:0 Def:3)"
+          }
+        ]
+      }
+    }
+  ]
+}
