@@ -1,9 +1,392 @@
 {
   "status": "COMPLETE",
+  "audit_version": 2,
   "rounding_tolerance_minutes": 0.55,
-  "games_with_explicit_trials": 0,
-  "status_counts": {},
+  "games_with_explicit_trials": 9,
+  "status_counts": {
+    "NO_BOUNDED_MINUTE_FIT": 2,
+    "NO_FULL_GAME_LEGAL_TRIAL": 6,
+    "UNIQUE_BOUNDED_MINUTE_FIT": 1
+  },
   "auto_promoted_repairs": 0,
   "policy": "Recommendations are evidence only. Engine repair files are updated separately after unique bounded fit and event-legality review.",
-  "games": []
+  "games": [
+    {
+      "game_id": 20201160,
+      "period": 5,
+      "team_id": 1610612765,
+      "status": "NO_BOUNDED_MINUTE_FIT",
+      "recommended_starters": null,
+      "source_minutes": {
+        "1088": 13.0,
+        "1442": 16.0,
+        "1888": 39.0
+      },
+      "trials_attempted": 3,
+      "full_game_success_count": 3,
+      "failed_trial_count": 0,
+      "ranked_trials": [
+        {
+          "starters": [
+            361,
+            688,
+            1497,
+            1888,
+            2246
+          ],
+          "comparisons": [
+            {
+              "player_id": 1088,
+              "engine_minutes": 13.816667,
+              "source_minutes": 13.0,
+              "abs_delta_minutes": 0.816667,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 1442,
+              "engine_minutes": 16.85,
+              "source_minutes": 16.0,
+              "abs_delta_minutes": 0.85,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 1888,
+              "engine_minutes": 39.016667,
+              "source_minutes": 39.0,
+              "abs_delta_minutes": 0.016667,
+              "within_rounding_bound": true
+            }
+          ],
+          "missing_official_candidate_rows": [],
+          "out_of_bound_candidates": 2,
+          "interval_penalty_minutes": 0.566667,
+          "sum_abs_delta_minutes": 1.683334,
+          "max_abs_delta_minutes": 0.85,
+          "bounded_fit": false
+        },
+        {
+          "starters": [
+            361,
+            688,
+            1088,
+            1497,
+            2246
+          ],
+          "comparisons": [
+            {
+              "player_id": 1088,
+              "engine_minutes": 18.816667,
+              "source_minutes": 13.0,
+              "abs_delta_minutes": 5.816667,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 1442,
+              "engine_minutes": 16.85,
+              "source_minutes": 16.0,
+              "abs_delta_minutes": 0.85,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 1888,
+              "engine_minutes": 34.016667,
+              "source_minutes": 39.0,
+              "abs_delta_minutes": 4.983333,
+              "within_rounding_bound": false
+            }
+          ],
+          "missing_official_candidate_rows": [],
+          "out_of_bound_candidates": 3,
+          "interval_penalty_minutes": 10.0,
+          "sum_abs_delta_minutes": 11.65,
+          "max_abs_delta_minutes": 5.816667,
+          "bounded_fit": false
+        },
+        {
+          "starters": [
+            361,
+            688,
+            1442,
+            1497,
+            2246
+          ],
+          "comparisons": [
+            {
+              "player_id": 1088,
+              "engine_minutes": 13.816667,
+              "source_minutes": 13.0,
+              "abs_delta_minutes": 0.816667,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 1442,
+              "engine_minutes": 21.85,
+              "source_minutes": 16.0,
+              "abs_delta_minutes": 5.85,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 1888,
+              "engine_minutes": 34.016667,
+              "source_minutes": 39.0,
+              "abs_delta_minutes": 4.983333,
+              "within_rounding_bound": false
+            }
+          ],
+          "missing_official_candidate_rows": [],
+          "out_of_bound_candidates": 3,
+          "interval_penalty_minutes": 10.0,
+          "sum_abs_delta_minutes": 11.65,
+          "max_abs_delta_minutes": 5.85,
+          "bounded_fit": false
+        }
+      ]
+    },
+    {
+      "game_id": 20400335,
+      "period": 2,
+      "team_id": 1610612740,
+      "status": "NO_BOUNDED_MINUTE_FIT",
+      "recommended_starters": null,
+      "source_minutes": {
+        "1924": 38.0,
+        "2365": 18.0,
+        "2424": 28.0,
+        "2437": 4.0,
+        "2454": 26.0,
+        "2747": 12.0
+      },
+      "trials_attempted": 1,
+      "full_game_success_count": 1,
+      "failed_trial_count": 0,
+      "ranked_trials": [
+        {
+          "starters": [
+            1924,
+            2365,
+            2424,
+            2437,
+            2454
+          ],
+          "comparisons": [
+            {
+              "player_id": 1924,
+              "engine_minutes": 38.566667,
+              "source_minutes": 38.0,
+              "abs_delta_minutes": 0.566667,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 2365,
+              "engine_minutes": 18.066667,
+              "source_minutes": 18.0,
+              "abs_delta_minutes": 0.066667,
+              "within_rounding_bound": true
+            },
+            {
+              "player_id": 2424,
+              "engine_minutes": 28.266667,
+              "source_minutes": 28.0,
+              "abs_delta_minutes": 0.266667,
+              "within_rounding_bound": true
+            },
+            {
+              "player_id": 2437,
+              "engine_minutes": 4.316667,
+              "source_minutes": 4.0,
+              "abs_delta_minutes": 0.316667,
+              "within_rounding_bound": true
+            },
+            {
+              "player_id": 2454,
+              "engine_minutes": 36.95,
+              "source_minutes": 26.0,
+              "abs_delta_minutes": 10.95,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 2747,
+              "engine_minutes": 0.0,
+              "source_minutes": 12.0,
+              "abs_delta_minutes": 12.0,
+              "within_rounding_bound": false
+            }
+          ],
+          "missing_official_candidate_rows": [],
+          "out_of_bound_candidates": 3,
+          "interval_penalty_minutes": 21.866667,
+          "sum_abs_delta_minutes": 24.166668,
+          "max_abs_delta_minutes": 12.0,
+          "bounded_fit": false
+        }
+      ]
+    },
+    {
+      "game_id": 20600887,
+      "period": 5,
+      "team_id": 1610612750,
+      "status": "NO_FULL_GAME_LEGAL_TRIAL",
+      "recommended_starters": null,
+      "source_minutes": {},
+      "trials_attempted": 2,
+      "full_game_success_count": 0,
+      "failed_trial_count": 2,
+      "ranked_trials": []
+    },
+    {
+      "game_id": 20700319,
+      "period": 4,
+      "team_id": 1610612752,
+      "status": "NO_FULL_GAME_LEGAL_TRIAL",
+      "recommended_starters": null,
+      "source_minutes": {},
+      "trials_attempted": 4,
+      "full_game_success_count": 0,
+      "failed_trial_count": 4,
+      "ranked_trials": []
+    },
+    {
+      "game_id": 20800142,
+      "period": 5,
+      "team_id": 1610612752,
+      "status": "UNIQUE_BOUNDED_MINUTE_FIT",
+      "recommended_starters": [
+        2037,
+        2047,
+        2216,
+        2768,
+        201163
+      ],
+      "source_minutes": {
+        "2216": 47.0,
+        "200776": 5.0
+      },
+      "trials_attempted": 2,
+      "full_game_success_count": 2,
+      "failed_trial_count": 0,
+      "ranked_trials": [
+        {
+          "starters": [
+            2037,
+            2047,
+            2216,
+            2768,
+            201163
+          ],
+          "comparisons": [
+            {
+              "player_id": 2216,
+              "engine_minutes": 47.066667,
+              "source_minutes": 47.0,
+              "abs_delta_minutes": 0.066667,
+              "within_rounding_bound": true
+            },
+            {
+              "player_id": 200776,
+              "engine_minutes": 5.55,
+              "source_minutes": 5.0,
+              "abs_delta_minutes": 0.55,
+              "within_rounding_bound": true
+            }
+          ],
+          "missing_official_candidate_rows": [],
+          "out_of_bound_candidates": 0,
+          "interval_penalty_minutes": 0.0,
+          "sum_abs_delta_minutes": 0.616667,
+          "max_abs_delta_minutes": 0.55,
+          "bounded_fit": true
+        },
+        {
+          "starters": [
+            2037,
+            2047,
+            2768,
+            200776,
+            201163
+          ],
+          "comparisons": [
+            {
+              "player_id": 2216,
+              "engine_minutes": 42.066667,
+              "source_minutes": 47.0,
+              "abs_delta_minutes": 4.933333,
+              "within_rounding_bound": false
+            },
+            {
+              "player_id": 200776,
+              "engine_minutes": 10.55,
+              "source_minutes": 5.0,
+              "abs_delta_minutes": 5.55,
+              "within_rounding_bound": false
+            }
+          ],
+          "missing_official_candidate_rows": [],
+          "out_of_bound_candidates": 2,
+          "interval_penalty_minutes": 9.383333,
+          "sum_abs_delta_minutes": 10.483333,
+          "max_abs_delta_minutes": 5.55,
+          "bounded_fit": false
+        }
+      ]
+    },
+    {
+      "game_id": 21100842,
+      "period": 2,
+      "team_id": 1610612766,
+      "status": "NO_FULL_GAME_LEGAL_TRIAL",
+      "recommended_starters": null,
+      "source_minutes": {},
+      "trials_attempted": 2,
+      "full_game_success_count": 0,
+      "failed_trial_count": 2,
+      "ranked_trials": []
+    },
+    {
+      "game_id": 21500916,
+      "period": 5,
+      "team_id": 1610612757,
+      "status": "NO_FULL_GAME_LEGAL_TRIAL",
+      "recommended_starters": null,
+      "source_minutes": {
+        "202334": 20.0,
+        "203148": 1.0,
+        "203459": 23.0,
+        "203943": 10.0,
+        "1626192": NaN
+      },
+      "trials_attempted": 56,
+      "full_game_success_count": 0,
+      "failed_trial_count": 56,
+      "ranked_trials": []
+    },
+    {
+      "game_id": 21800143,
+      "period": 6,
+      "team_id": 1610612741,
+      "status": "NO_FULL_GAME_LEGAL_TRIAL",
+      "recommended_starters": null,
+      "source_minutes": {
+        "203200": 46.0,
+        "1627885": NaN
+      },
+      "trials_attempted": 4,
+      "full_game_success_count": 0,
+      "failed_trial_count": 4,
+      "ranked_trials": []
+    },
+    {
+      "game_id": 22000485,
+      "period": 1,
+      "team_id": 1610612742,
+      "status": "NO_FULL_GAME_LEGAL_TRIAL",
+      "recommended_starters": null,
+      "source_minutes": {
+        "1628973": 30.0
+      },
+      "trials_attempted": 3,
+      "full_game_success_count": 0,
+      "failed_trial_count": 3,
+      "ranked_trials": []
+    }
+  ]
 }
