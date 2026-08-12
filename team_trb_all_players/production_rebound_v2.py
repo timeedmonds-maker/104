@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Evidence-backed production rebound layer.
 
-Two deliberately narrow changes over production_treb_engine:
-1) after the baseline fuzzy join fails, allow an unused NBA EVENTMSGTYPE=4 row
-   only when its normalized description is an exact match (or exact player +
-   cumulative rebound counter identity); and
-2) classify the first N *real* rebounds in a possession as the authoritative N
-   offensive rebounds, so non-live placeholder rows cannot consume an OREB slot.
+One deliberately narrow production extension over production_treb_engine:
+after the baseline fuzzy join fails, allow an unused NBA EVENTMSGTYPE=4 row
+only when its normalized description is an exact match (or exact player +
+cumulative rebound counter identity). Rebound classification remains the locked
+legacy production classifier.
 """
 from __future__ import annotations
 
@@ -138,11 +137,5 @@ def join_pbp_rebounds(lineups: core.GameLineups, pbp_game: pd.DataFrame, alpha: 
 
 
 def classify_rebounds(pbp_game: pd.DataFrame) -> pd.DataFrame:
-    """Use authoritative possession OREB count over real rebounds only."""
-    out = core.classify_rebounds(pbp_game)
-    real = out.IS_REAL_REBOUND.astype(bool)
-    real_number = real.astype(int).groupby([out[c] for c in core.POSSESSION_ID], dropna=False).cumsum()
-    possession_oreb = out.groupby(core.POSSESSION_ID, dropna=False).OFFENSIVEREBOUNDS.transform("first")
-    out["REAL_REBOUND_NUMBER"] = real_number
-    out["IS_OREB"] = real & real_number.le(possession_oreb)
-    return out
+    """Preserve the locked legacy rebound classifier; v2 extends joining only."""
+    return legacy.classify_rebounds(pbp_game)

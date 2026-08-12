@@ -18,6 +18,7 @@ import pandas as pd
 
 import local_treb_rebuild as core
 import production_treb_engine as rebound_engine
+import production_rebound_v2 as rebound_join_engine
 import production_treb_engine_v3 as lineup_engine
 import run_local_treb_production as io
 
@@ -61,7 +62,7 @@ def _count(mask: pd.Series) -> int:
 
 def build_game(game_id: int, nba_game: pd.DataFrame, v3_game: pd.DataFrame, pbp_game: pd.DataFrame) -> tuple[list[dict], list[dict], dict]:
     lineups = lineup_engine.reconstruct_game_lineups(nba_game, v3_game)
-    joined, join_audit = rebound_engine.join_pbp_rebounds(lineups, pbp_game)
+    joined, join_audit = rebound_join_engine.join_pbp_rebounds(lineups, pbp_game)
     if int(join_audit.get("unmatched_rebound_bearing_rows", 0)) != 0:
         raise ValueError(
             f"unmatched PBP rebound rows game={game_id}: "
