@@ -1,0 +1,122 @@
+name: TREB transition residual evidence
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/TRANSITION_RESIDUAL_EVIDENCE_CONTROL.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  extract:
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        year: [2006,2009,2010,2012,2013,2014,2017,2018,2021]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Fetch residual list
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin treb-game-fact-repair-wave1
+          git show origin/treb-game-fact-repair-wave1:team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1/${{ matrix.year }}/residual_failures.json > /tmp/residual.json
+      - name: Download NBA and v3 sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=int('${{ matrix.year }}'); raw=Path(f'/tmp/trebraw-{y}')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Extract exact transition evidence
+        shell: bash
+        run: |
+          YEAR='${{ matrix.year }}'; RAW="/tmp/trebraw-${YEAR}"
+          NBA=$(find "$RAW" -name "nbastats_${YEAR}.csv" -print -quit)
+          V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
+          python -u team_trb_all_players/extract_transition_residual_evidence.py \
+            --nba "$NBA" --v3 "$V3" --residual-json /tmp/residual.json --year "$YEAR" \
+            --output '/tmp/TRANSITION_EVIDENCE_${{ matrix.year }}.json'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-transition-evidence-${{ matrix.year }}
+          path: /tmp/TRANSITION_EVIDENCE_${{ matrix.year }}.json
+          retention-days: 90
+          if-no-files-found: warn
+
+  aggregate:
+    needs: extract
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-transition-evidence-*
+          path: /tmp/results
+      - name: Aggregate evidence
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          payloads=[]
+          for p in Path('/tmp/results').rglob('TRANSITION_EVIDENCE_*.json'):
+              try: payloads.append(json.loads(p.read_text()))
+              except Exception: pass
+          records=[r for p in payloads for r in p.get('records',[])]
+          event_types=Counter(str(r.get('event_type')) for r in records)
+          action_types=Counter(str((r.get('target_nba') or {}).get('EVENTMSGACTIONTYPE')) for r in records)
+          out={'status':'COMPLETE' if len(payloads)==9 and len(records)==13 else 'PARTIAL','seasons_found':len(payloads),'records_found':len(records),'event_type_counts':dict(event_types),'action_type_counts':dict(action_types),'records':records}
+          Path('/tmp/TRANSITION_RESIDUAL_EVIDENCE_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='records'},indent=2))
+          PY
+      - name: Persist checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/transition_residual_evidence; mkdir -p "$DEST"; cp /tmp/TRANSITION_RESIDUAL_EVIDENCE_SUMMARY.json "$DEST"/
+          git add -f "$DEST/TRANSITION_RESIDUAL_EVIDENCE_SUMMARY.json"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Persist transition residual evidence'; git push origin HEAD:agent/treb-batched-game-facts-20260812
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-transition-residual-evidence-summary
+          path: /tmp/TRANSITION_RESIDUAL_EVIDENCE_SUMMARY.json
+          retention-days: 90
+          if-no-files-found: warn
