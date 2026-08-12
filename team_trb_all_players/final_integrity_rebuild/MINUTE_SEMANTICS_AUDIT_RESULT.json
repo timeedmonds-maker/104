@@ -1,0 +1,22 @@
+{
+  "workflow_run": 31577473693,
+  "season_sample": "2016-17",
+  "games_checked": 100,
+  "floor_gate_passes": 94,
+  "nearest_minute_gate_passes": 0,
+  "source_minus_engine_team_minute_delta": {
+    "min": -9.0,
+    "max": -3.0,
+    "mean": -5.43
+  },
+  "interpretation": "The CC0 numMinutes field behaves as completed/truncated whole minutes, not nearest-minute rounding. All six strict-floor failures have exactly one player at an exact whole-minute reconstruction boundary one completed minute above the stored source value, with no missing active player.",
+  "strict_floor_failures": [
+    {"game_id":21600011,"player_id":202683,"source_minutes":23.0,"engine_seconds":1440.0},
+    {"game_id":21600014,"player_id":200757,"source_minutes":21.0,"engine_seconds":1320.0},
+    {"game_id":21600015,"player_id":202703,"source_minutes":28.0,"engine_seconds":1740.0},
+    {"game_id":21600026,"player_id":203501,"source_minutes":18.0,"engine_seconds":1140.0},
+    {"game_id":21600046,"player_id":200771,"source_minutes":31.0,"engine_seconds":1920.0},
+    {"game_id":21600074,"player_id":203210,"source_minutes":16.0,"engine_seconds":1020.0}
+  ],
+  "recommended_gate": "Retain exact completed-minute floor matching. Permit only the empirically observed boundary exception where engine_seconds is exactly 60*(source_completed_minutes+1), with all active players present in the independent source roster. Do not use nearest-minute rounding or wider minute tolerance."
+}
