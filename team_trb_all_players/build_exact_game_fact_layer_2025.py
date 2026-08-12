@@ -51,8 +51,10 @@ def main() -> int:
     schedule = [r for r in base.read_jsonl_gz(args.schedule) if r.get("season") == SEASON]
     dates = {int(r["game_id"]): str(r["game_date"]) for r in schedule}
     schedule_ids = set(dates)
-    source_ids = set(pd.to_numeric(cdn.gameId, errors="coerce").dropna().astype(int))
+    groups = {int(gid): frame.copy() for gid, frame in cdn.groupby("gameId", sort=False)}
+    source_ids = set(groups)
     game_ids = sorted(schedule_ids & source_ids)
+    del cdn
 
     team_rows = []
     player_rows = []
@@ -60,7 +62,7 @@ def main() -> int:
     failures = []
 
     for i, gid in enumerate(game_ids, 1):
-        game = cdn[cdn.gameId.eq(gid)].copy()
+        game = groups[gid]
         try:
             lineup = modern.reconstruct_game_lineups(game)
             rebounds = prod.classify_game_rebounds(lineup.events, lineup.teams)
