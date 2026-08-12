@@ -1,0 +1,125 @@
+name: TREB final integrity reconcile exact game facts
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/RECONCILE_TRIGGER.txt
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+concurrency:
+  group: treb-final-integrity-reconcile-20260812
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-integrity-rebuild-20260812
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Compile reconciler
+        run: python -m py_compile team_trb_all_players/reconcile_exact_treb_from_game_facts.py
+      - name: Gather all 26 durable exact game-fact seasons
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=/tmp/treb-exact-facts
+          rm -rf "$ROOT" && mkdir -p "$ROOT"
+          for YEAR in $(seq 2000 2025); do
+            NEXT=$((YEAR+1)); SEASON="${YEAR}-$(printf '%02d' $((NEXT%100)))"
+            BRANCH="treb-game-facts-${YEAR}"
+            echo "FETCH_FACTS $SEASON $BRANCH"
+            git fetch --quiet origin "$BRANCH:refs/remotes/origin/$BRANCH"
+            mkdir -p "$ROOT/$SEASON"
+            for FILE in qa.json failures.json team_game_treb.csv.gz player_game_treb_on.csv.gz; do
+              git show "origin/$BRANCH:team_trb_all_players/impact_database/exact_game_facts/$SEASON/$FILE" > "$ROOT/$SEASON/$FILE"
+              test -s "$ROOT/$SEASON/$FILE"
+            done
+          done
+          test "$(find "$ROOT" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 26
+      - name: Gather authoritative audited tenure windows
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin treb-authoritative-final-repair-20260812:refs/remotes/origin/treb-authoritative-final-repair-20260812
+          git show origin/treb-authoritative-final-repair-20260812:team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz > /tmp/player_team_season_windows_evidence_audited.jsonl.gz
+          test -s /tmp/player_team_season_windows_evidence_audited.jsonl.gz
+      - name: Run hard reconciliation gate
+        id: reconcile
+        shell: bash
+        run: |
+          set +e
+          rm -rf /tmp/treb-reconciled && mkdir -p /tmp/treb-reconciled
+          python -u team_trb_all_players/reconcile_exact_treb_from_game_facts.py \
+            --core-root team_trb_all_players/impact_database/core_checkpoints \
+            --tenure-windows /tmp/player_team_season_windows_evidence_audited.jsonl.gz \
+            --facts-root /tmp/treb-exact-facts \
+            --output-dir /tmp/treb-reconciled \
+            --expected-seasons 26 2>&1 | tee /tmp/treb-reconciled/build.log
+          CODE=${PIPESTATUS[0]}
+          echo "exit_code=$CODE" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Persist reconciliation audit on recovery branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-integrity-rebuild-20260812
+          git reset --hard origin/agent/treb-final-integrity-rebuild-20260812
+          DEST=team_trb_all_players/final_integrity_rebuild/reconciliation_output
+          rm -rf "$DEST" && mkdir -p "$DEST"
+          cp /tmp/treb-reconciled/reconciliation_qa.json "$DEST"/
+          cp /tmp/treb-reconciled/tenure_coverage_blockers.csv "$DEST"/
+          cp /tmp/treb-reconciled/build.log "$DEST"/
+          if [ -f /tmp/treb-reconciled/treb_player_team_season.csv ]; then
+            cp /tmp/treb-reconciled/treb_player_team_season.csv "$DEST"/
+            cp /tmp/treb-reconciled/career_treb_summary.csv "$DEST"/
+          fi
+          sha256sum "$DEST"/* > "$DEST/SHA256SUMS.txt"
+          git add -f "$DEST"
+          git commit -m 'Persist exact TREB reconciliation gate' || true
+          for attempt in 1 2 3 4 5; do
+            git push origin HEAD:agent/treb-final-integrity-rebuild-20260812 && break
+            git fetch origin agent/treb-final-integrity-rebuild-20260812
+            git rebase origin/agent/treb-final-integrity-rebuild-20260812
+          done
+      - name: Publish exact TREB layer only if all hard gates pass
+        if: steps.reconcile.outputs.exit_code == '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B treb-final-exact-treb-20260812
+          DEST=team_trb_all_players/impact_database/final_exact_treb
+          rm -rf "$DEST" && mkdir -p "$DEST"
+          cp /tmp/treb-reconciled/* "$DEST"/
+          sha256sum "$DEST"/* > "$DEST/SHA256SUMS.txt"
+          git add -f "$DEST"
+          git commit -m 'Publish hard-gated exact TREB layer 2000-01 through 2025-26'
+          git push --force origin HEAD:treb-final-exact-treb-20260812
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-final-integrity-reconciliation
+          path: /tmp/treb-reconciled/**
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Enforce final gate
+        if: steps.reconcile.outputs.exit_code != '0'
+        run: exit 1
