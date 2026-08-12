@@ -1,0 +1,61 @@
+name: TREB V3 team rebound 2019 validation
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - .github/workflows/treb-v3-team-rebound-2019-validation.yml
+      - team_trb_all_players/validate_modern_team_rebound_rule_2024.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Download 2019 legacy and V3 archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v2019
+          for kind in nbastats nbastatsv3; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+              -o "/tmp/v2019/${kind}_2019.tar.xz" \
+              "https://github.com/shufinskiy/nba_data/raw/main/datasets/${kind}_2019.tar.xz"
+            tar -xJf "/tmp/v2019/${kind}_2019.tar.xz" -C /tmp/v2019
+          done
+          test -s /tmp/v2019/nbastats_2019.csv
+          test -s /tmp/v2019/nbastatsv3_2019.csv
+      - name: Validate team-rebound live/dead rule against legacy 2019 labels
+        run: |
+          python -u team_trb_all_players/validate_modern_team_rebound_rule_2024.py \
+            --nba /tmp/v2019/nbastats_2019.csv \
+            --v3 /tmp/v2019/nbastatsv3_2019.csv \
+            --output /tmp/V3_TEAM_REBOUND_RULE_2019_VALIDATION.json
+      - name: Commit validation evidence durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
+          mkdir -p team_trb_all_players/final_integrity_rebuild
+          cp /tmp/V3_TEAM_REBOUND_RULE_2019_VALIDATION.json team_trb_all_players/final_integrity_rebuild/V3_TEAM_REBOUND_RULE_2019_VALIDATION.json
+          git add team_trb_all_players/final_integrity_rebuild/V3_TEAM_REBOUND_RULE_2019_VALIDATION.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record 2019 V3 team-rebound validation"
+          git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
