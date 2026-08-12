@@ -3,9 +3,8 @@
   "diagnostic_engine": "production_rebound_v3",
   "source_production_run_id": 31631817465,
   "source_production_patch_sha": "58e51fa25a4d8753ccbb5d880438f715a0a8b286",
-  "main_chunk_run_id": 31634605646,
-  "escape_chunk_run_id": 31634849173,
-  "aggregate_run_id": 31634935601,
+  "workflow_run_id": 31634605646,
+  "source_slice_run_id": 31634201123,
   "chunks_found": 24,
   "target_games": 58,
   "games_seen": 58,
@@ -18,6 +17,7 @@
   "control_correct": 5693,
   "control_wrong": 0,
   "solvable_games": [
+    20801111,
     21000288,
     21700017,
     21700024,
@@ -49,11 +49,100 @@
     22200547,
     22200602,
     22200835,
-    22400422,
-    20801111
+    22400422
   ],
-  "promotion_candidate": true,
   "games": [
+    {
+      "game_id": 20801111,
+      "status": "OK",
+      "unmatched_rows": 1,
+      "assigned_rows": 1,
+      "all_unmatched_uniquely_assigned": true,
+      "periods": [
+        {
+          "period": 1,
+          "unmatched_rows": 1,
+          "solution_count_capped": 1,
+          "unique_complete_assignment": true,
+          "candidate_detail": [
+            {
+              "pbp_index": 335,
+              "description": "Trail Blazers Rebound",
+              "start_time": "02:39",
+              "end_time": "02:22",
+              "candidates": [
+                {
+                  "nba_index": 74,
+                  "order": 74,
+                  "eventnum": 85,
+                  "elapsed": 578,
+                  "description": "",
+                  "lineup": [
+                    1905,
+                    2430,
+                    2566,
+                    2581,
+                    2594,
+                    101114,
+                    200746,
+                    200794,
+                    201141,
+                    201587
+                  ],
+                  "real": false
+                }
+              ]
+            }
+          ],
+          "assignments": [
+            {
+              "pbp_index": 335,
+              "nba_index": 74,
+              "eventnum": 85,
+              "elapsed": 578,
+              "lineup": [
+                1905,
+                2430,
+                2566,
+                2581,
+                2594,
+                101114,
+                200746,
+                200794,
+                201141,
+                201587
+              ],
+              "real": false
+            }
+          ]
+        }
+      ],
+      "join_audit": {
+        "total_pbp_rows": 365,
+        "rebound_bearing_rows": 77,
+        "matched_rebound_bearing_rows": 76,
+        "unmatched_rebound_bearing_rows": 1,
+        "ambiguous_matches": 7,
+        "manual_join_repairs": 0,
+        "exact_identity_join_repairs": 0,
+        "exact_description_repairs": 0,
+        "exact_player_counter_repairs": 0,
+        "exact_identity_records": [],
+        "invariant_semantic_join_repairs": 0,
+        "invariant_semantic_player_repairs": 0,
+        "invariant_semantic_generic_repairs": 0,
+        "invariant_semantic_records": [],
+        "unmatched_rows": [
+          {
+            "game_id": 20801111,
+            "period": 1,
+            "start_time": "02:39",
+            "end_time": "02:22",
+            "description": "Trail Blazers Rebound"
+          }
+        ]
+      }
+    },
     {
       "game_id": 21000288,
       "status": "OK",
@@ -8244,97 +8333,7 @@
           }
         ]
       }
-    },
-    {
-      "game_id": 20801111,
-      "status": "OK",
-      "unmatched_rows": 1,
-      "assigned_rows": 1,
-      "all_unmatched_uniquely_assigned": true,
-      "periods": [
-        {
-          "period": 1,
-          "unmatched_rows": 1,
-          "solution_count_capped": 1,
-          "unique_complete_assignment": true,
-          "candidate_detail": [
-            {
-              "pbp_index": 335,
-              "description": "Trail Blazers Rebound",
-              "start_time": "02:39",
-              "end_time": "02:22",
-              "candidates": [
-                {
-                  "nba_index": 74,
-                  "order": 74,
-                  "eventnum": 85,
-                  "elapsed": 578,
-                  "description": "",
-                  "lineup": [
-                    1905,
-                    2430,
-                    2566,
-                    2581,
-                    2594,
-                    101114,
-                    200746,
-                    200794,
-                    201141,
-                    201587
-                  ],
-                  "real": false
-                }
-              ]
-            }
-          ],
-          "assignments": [
-            {
-              "pbp_index": 335,
-              "nba_index": 74,
-              "eventnum": 85,
-              "elapsed": 578,
-              "lineup": [
-                1905,
-                2430,
-                2566,
-                2581,
-                2594,
-                101114,
-                200746,
-                200794,
-                201141,
-                201587
-              ],
-              "real": false
-            }
-          ]
-        }
-      ],
-      "join_audit": {
-        "total_pbp_rows": 365,
-        "rebound_bearing_rows": 77,
-        "matched_rebound_bearing_rows": 76,
-        "unmatched_rebound_bearing_rows": 1,
-        "ambiguous_matches": 7,
-        "manual_join_repairs": 0,
-        "exact_identity_join_repairs": 0,
-        "exact_description_repairs": 0,
-        "exact_player_counter_repairs": 0,
-        "exact_identity_records": [],
-        "invariant_semantic_join_repairs": 0,
-        "invariant_semantic_player_repairs": 0,
-        "invariant_semantic_generic_repairs": 0,
-        "invariant_semantic_records": [],
-        "unmatched_rows": [
-          {
-            "game_id": 20801111,
-            "period": 1,
-            "start_time": "02:39",
-            "end_time": "02:22",
-            "description": "Trail Blazers Rebound"
-          }
-        ]
-      }
     }
-  ]
+  ],
+  "promotion_candidate": true
 }
