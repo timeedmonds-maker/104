@@ -1,0 +1,139 @@
+name: TREB 2025-26 final production
+
+on:
+  push:
+    branches: [treb-final-production-20260812]
+    paths:
+      - team_trb_all_players/impact_database/FINAL_2025_PRODUCTION_CONTROL.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+concurrency:
+  group: treb-2025-final-production-20260812
+  cancel-in-progress: false
+
+jobs:
+  build-2025:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+      - run: python -m pip install -r team_trb_all_players/requirements.txt
+
+      - name: Compile modern production layer
+        run: |
+          python -m py_compile \
+            team_trb_all_players/modern_cdn_lineups.py \
+            team_trb_all_players/validate_modern_team_rebound_rule_2024.py \
+            team_trb_all_players/run_modern_treb_production_2025.py
+
+      - name: Build and verify authoritative V2 targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/build_roster_targets_v2.py
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          summary=json.loads(Path('team_trb_all_players/impact_database/roster_tenure_v2/roster_repair_v2_summary.json').read_text())
+          assert int(summary['wowy_game_bearing_segments'])==5199
+          assert int(summary['cross_team_overlap_pairs'])==0
+          assert int(summary['impossible_minute_rows'])==0
+          path=Path('team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz')
+          rows=[]
+          with gzip.open(path,'rt',encoding='utf-8') as f:
+              rows=[json.loads(line) for line in f if line.strip()]
+          modern=[r for r in rows if r.get('season')=='2025-26']
+          if not modern:
+              raise SystemExit('NO_2025_26_V2_TARGETS')
+          print('V2_TARGET_GATE=PASS modern_targets=',len(modern))
+          PY
+
+      - name: Download static 2025-26 CDN source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,subprocess,tarfile,urllib.request
+          raw=Path('team_trb_all_players/impact_database/local_raw')
+          raw.mkdir(parents=True,exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          url=urls['cdnnba_2025']
+          arc=raw/'cdnnba_2025.tar.xz'
+          subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),url],check=True)
+          print('CDN_ARCHIVE_SHA256',hashlib.sha256(arc.read_bytes()).hexdigest())
+          with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          csv=raw/'cdnnba_2025.csv'
+          if not csv.exists(): raise SystemExit(f'missing extracted {csv}')
+          print('CDN_CSV_BYTES',csv.stat().st_size)
+          PY
+
+      - name: Reconstruct 2025-26 production lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/run_modern_treb_production_2025.py --batch-size 50 --force 2>&1 | tee treb-2025-production.log
+          test -f team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/2025-26.json
+
+      - name: Validate 2025-26 lock invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/2025-26.json')
+          d=json.loads(p.read_text())
+          assert d['status']=='COMPLETE'
+          assert not d.get('exceptions')
+          assert not d.get('accepted_excluded_games')
+          assert not d.get('unmatched_rebound_rows')
+          assert d.get('targets') and len(d['targets'])==int(d['target_count'])
+          seen=set()
+          for r in d['targets']:
+              key=(r['season'],int(r['player_id']),int(r['team_id']),r['query_start_date'],r['query_end_date'])
+              if key in seen: raise SystemExit(f'duplicate target key {key}')
+              seen.add(key)
+              for k in ('team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off'):
+                  if int(r[k]) < 0: raise SystemExit(f'negative count {key} {k}')
+          print('MODERN_2025_LOCK_GATE=PASS targets=',len(seen),'games=',d['games_required'])
+          PY
+
+      - name: Persist 2025-26 safe lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B treb-final-safe-lock-2025
+          git add -f \
+            team_trb_all_players/impact_database/final_local_rebuild/checkpoints/2025-26 \
+            team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/2025-26.json \
+            team_trb_all_players/impact_database/final_local_rebuild/master_manifest.json
+          git commit -m 'Final completion lock 2025-26 modern production'
+          git push --force origin HEAD:refs/heads/treb-final-safe-lock-2025
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-final-2025-production-${{ github.sha }}
+          path: |
+            treb-2025-production.log
+            team_trb_all_players/impact_database/final_local_rebuild/**
+          retention-days: 90
+          if-no-files-found: warn
