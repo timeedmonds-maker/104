@@ -1,0 +1,89 @@
+name: TREB v3 forensics cross-run aggregate
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-v3-forensics-crossrun-aggregate.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MAIN_RUN_ID: '31634605646'
+  ESCAPE_RUN_ID: '31634849173'
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Download 23 durable main-run chunk checkpoints
+        uses: actions/download-artifact@v4
+        with:
+          pattern: treb-v3-forensic-*-${{ env.MAIN_RUN_ID }}
+          path: /tmp/main
+          github-token: ${{ github.token }}
+          run-id: ${{ env.MAIN_RUN_ID }}
+      - name: Download standalone 2008 checkpoint
+        uses: actions/download-artifact@v4
+        with:
+          name: treb-v3-forensic-2008-L01-escape-${{ env.ESCAPE_RUN_ID }}
+          path: /tmp/escape
+          github-token: ${{ github.token }}
+          run-id: ${{ env.ESCAPE_RUN_ID }}
+      - name: Exact 24-chunk / 58-game / 110-row production-v3 gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          manifest=json.loads(Path(os.environ['MANIFEST']).read_text())
+          target_ids={int(g) for c in manifest['chunks'] for g in c['game_ids']}
+          files=sorted(Path('/tmp/main').rglob('V3_*.json'))+sorted(Path('/tmp/escape').rglob('V3_*.json'))
+          chunks=[json.loads(p.read_text()) for p in files]
+          chunk_ids=[c.get('chunk_id') for c in chunks]
+          assert len(chunks)==24, ('chunk_count',len(chunks),chunk_ids)
+          assert len(chunk_ids)==len(set(chunk_ids))==24, ('duplicate_chunk',chunk_ids)
+          assert {c.get('diagnostic_engine') for c in chunks}=={'production_rebound_v3'}
+          games=[g for c in chunks for g in c.get('games',[])]
+          seen=[int(g['game_id']) for g in games]
+          assert len(seen)==58 and len(set(seen))==58 and set(seen)==target_ids, ('game_coverage',len(seen),len(set(seen)),target_ids-set(seen),set(seen)-target_ids)
+          analyzed=[g for g in games if g.get('status')=='OK']
+          observed=sum(int(g.get('unmatched_rows',0)) for g in analyzed)
+          assert observed==110, ('current_v3_unmatched_rows',observed)
+          wrong=sum(int(c.get('control_wrong',0)) for c in chunks)
+          controls=sum(int(c.get('control_applicable',0)) for c in chunks)
+          correct=sum(int(c.get('control_correct',0)) for c in chunks)
+          assert wrong==0 and correct==controls and controls>0, (controls,correct,wrong)
+          solvable=[g for g in analyzed if g.get('all_unmatched_uniquely_assigned')]
+          out={
+            'status':'COMPLETE','diagnostic_engine':'production_rebound_v3',
+            'source_production_run_id':manifest['source_run_id'],'source_production_patch_sha':manifest['source_patch_sha'],
+            'main_chunk_run_id':int(os.environ['MAIN_RUN_ID']),'escape_chunk_run_id':int(os.environ['ESCAPE_RUN_ID']),
+            'aggregate_run_id':int(os.environ['GITHUB_RUN_ID']),'chunks_found':24,'target_games':58,'games_seen':58,'games_analyzed':len(analyzed),
+            'target_unmatched_rows':110,'unmatched_rows_observed':observed,
+            'games_all_unmatched_uniquely_assigned':len(solvable),'assigned_rows_in_solvable_games':sum(int(g.get('assigned_rows',0)) for g in solvable),
+            'control_applicable':controls,'control_correct':correct,'control_wrong':wrong,
+            'solvable_games':[int(g['game_id']) for g in solvable], 'promotion_candidate':bool(solvable), 'games':games
+          }
+          Path('/tmp/REBOUND_FORENSICS_V3_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='games'},indent=2))
+          PY
+      - name: Persist durable accepted v3 checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics; mkdir -p "$D"
+          cp /tmp/REBOUND_FORENSICS_V3_SUMMARY.json "$D/"
+          git add -f "$D/REBOUND_FORENSICS_V3_SUMMARY.json"
+          if ! git diff --cached --quiet; then git commit -m 'Persist accepted production-v3 rebound forensic checkpoint'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-rebound-forensics-v3-accepted-${{ github.run_id }}
+          path: /tmp/REBOUND_FORENSICS_V3_SUMMARY.json
+          retention-days: 90
