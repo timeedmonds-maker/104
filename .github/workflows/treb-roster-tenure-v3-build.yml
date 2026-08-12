@@ -1,0 +1,65 @@
+name: TREB roster tenure V3 from boxscore roster ledger
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - .github/workflows/treb-roster-tenure-v3-build.yml
+      - team_trb_all_players/build_roster_targets_v3_from_boxscores.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Download public CC0 PlayerStatistics
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cc0
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            -o /tmp/cc0/dataset.zip \
+            'https://www.kaggle.com/api/v1/datasets/download/eoinamoore/historical-nba-data-and-player-box-scores'
+          unzip -j /tmp/cc0/dataset.zip 'PlayerStatistics.csv' -d /tmp/cc0 || \
+          unzip -j /tmp/cc0/dataset.zip '*/PlayerStatistics.csv' -d /tmp/cc0
+          test -s /tmp/cc0/PlayerStatistics.csv
+          sha256sum /tmp/cc0/dataset.zip /tmp/cc0/PlayerStatistics.csv | tee /tmp/cc0/SOURCE_SHA256.txt
+      - name: Build V3 game-exact roster tenure
+        run: |
+          rm -rf team_trb_all_players/impact_database/roster_tenure_v3
+          python -u team_trb_all_players/build_roster_targets_v3_from_boxscores.py \
+            --playerstatistics /tmp/cc0/PlayerStatistics.csv
+          cp /tmp/cc0/SOURCE_SHA256.txt team_trb_all_players/impact_database/roster_tenure_v3/SOURCE_SHA256.txt
+          find team_trb_all_players/impact_database/roster_tenure_v3 -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('team_trb_all_players/impact_database/roster_tenure_v3')
+          too=[(p.name,p.stat().st_size) for p in root.iterdir() if p.is_file() and p.stat().st_size>=95_000_000]
+          if too: raise SystemExit(f'GitHub file-size guard failed: {too}')
+          PY
+      - name: Commit V3 artifacts durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
+          git add -f team_trb_all_players/impact_database/roster_tenure_v3
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Build game-exact roster tenure V3 from CC0 boxscores"
+          git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
