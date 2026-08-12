@@ -1,0 +1,17 @@
+BATCH_PROGRESS season=2010-11 batch=7 processed=20/100 success=20 failures=0
+BATCH_PROGRESS season=2010-11 batch=7 processed=40/100 success=40 failures=0
+BATCH_PROGRESS season=2010-11 batch=7 processed=60/100 success=60 failures=0
+BATCH_PROGRESS season=2010-11 batch=7 processed=80/100 success=79 failures=1
+BATCH_PROGRESS season=2010-11 batch=7 processed=100/100 success=98 failures=2
+{
+  "season": "2010-11",
+  "batch_index": 7,
+  "batch_size": 100,
+  "total_common_games": 1230,
+  "start_index": 700,
+  "stop_index": 800,
+  "games_requested": 100,
+  "successful_games": 98,
+  "failed_games": 2,
+  "status": "REPAIR_REQUIRED"
+}
