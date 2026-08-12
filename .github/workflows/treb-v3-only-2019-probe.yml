@@ -1,0 +1,58 @@
+name: TREB V3-only 2019 blocker probe
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - .github/workflows/treb-v3-only-2019-probe.yml
+      - team_trb_all_players/probe_v3_only_2019.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas
+      - name: Download archived NBA Stats V3 2019 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v3
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            -o /tmp/v3/nbastatsv3_2019.tar.xz \
+            'https://github.com/shufinskiy/nba_data/raw/main/datasets/nbastatsv3_2019.tar.xz'
+          tar -xJf /tmp/v3/nbastatsv3_2019.tar.xz -C /tmp/v3
+          test -s /tmp/v3/nbastatsv3_2019.csv
+      - name: Probe the three source-missing games
+        run: |
+          python -u team_trb_all_players/probe_v3_only_2019.py \
+            --csv /tmp/v3/nbastatsv3_2019.csv \
+            --output /tmp/V3_ONLY_2019_SOURCE_PROBE.json
+      - name: Commit probe evidence durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
+          mkdir -p team_trb_all_players/final_integrity_rebuild
+          cp /tmp/V3_ONLY_2019_SOURCE_PROBE.json \
+             team_trb_all_players/final_integrity_rebuild/V3_ONLY_2019_SOURCE_PROBE.json
+          git add team_trb_all_players/final_integrity_rebuild/V3_ONLY_2019_SOURCE_PROBE.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record V3-only 2019 blocker source evidence"
+          git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
