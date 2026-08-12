@@ -1,0 +1,78 @@
+{
+  "game_id": "0021600358",
+  "endpoint": "https://api.pbpstats.com/get-game-stats",
+  "requests": {
+    "Lineup": {
+      "status_code": 200,
+      "url": "https://api.pbpstats.com/get-game-stats?GameId=0021600358&Type=Lineup",
+      "bytes": 135788,
+      "top_level_keys": [
+        "stats",
+        "team_results",
+        "home_team_abbreviation",
+        "away_team_abbreviation",
+        "home_team_id",
+        "away_team_id",
+        "date",
+        "league",
+        "season",
+        "season_type"
+      ],
+      "response_summary": {
+        "stats": "dict",
+        "team_results": "dict",
+        "home_team_abbreviation": "str",
+        "away_team_abbreviation": "str",
+        "home_team_id": "str",
+        "away_team_id": "str",
+        "date": "str",
+        "league": "str",
+        "season": "str",
+        "season_type": "str"
+      },
+      "samples": {}
+    },
+    "LineupOpponent": {
+      "status_code": 500,
+      "url": "https://api.pbpstats.com/get-game-stats?GameId=0021600358&Type=LineupOpponent",
+      "bytes": 34,
+      "top_level_keys": [
+        "detail"
+      ],
+      "response_summary": {
+        "detail": "str"
+      },
+      "samples": {}
+    },
+    "Player": {
+      "status_code": 200,
+      "url": "https://api.pbpstats.com/get-game-stats?GameId=0021600358&Type=Player",
+      "bytes": 146881,
+      "top_level_keys": [
+        "stats",
+        "team_results",
+        "home_team_abbreviation",
+        "away_team_abbreviation",
+        "home_team_id",
+        "away_team_id",
+        "date",
+        "league",
+        "season",
+        "season_type"
+      ],
+      "response_summary": {
+        "stats": "dict",
+        "team_results": "dict",
+        "home_team_abbreviation": "str",
+        "away_team_abbreviation": "str",
+        "home_team_id": "str",
+        "away_team_id": "str",
+        "date": "str",
+        "league": "str",
+        "season": "str",
+        "season_type": "str"
+      },
+      "samples": {}
+    }
+  }
+}
