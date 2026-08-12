@@ -1,0 +1,60 @@
+name: TREB V3-only 2019 lineup canary
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - .github/workflows/treb-v3-only-2019-lineup-canary.yml
+      - team_trb_all_players/v3_only_lineups_2019.py
+      - team_trb_all_players/canary_v3_only_lineups_2019.py
+      - team_trb_all_players/final_integrity_rebuild/CC0_PLAYERSTATISTICS_PROBE.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas numpy
+      - name: Download archived V3 2019 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v3
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            -o /tmp/v3/nbastatsv3_2019.tar.xz \
+            'https://github.com/shufinskiy/nba_data/raw/main/datasets/nbastatsv3_2019.tar.xz'
+          tar -xJf /tmp/v3/nbastatsv3_2019.tar.xz -C /tmp/v3
+          test -s /tmp/v3/nbastatsv3_2019.csv
+      - name: Reconstruct and compare game seconds
+        run: |
+          python -u team_trb_all_players/canary_v3_only_lineups_2019.py \
+            --v3 /tmp/v3/nbastatsv3_2019.csv \
+            --cc0-json team_trb_all_players/final_integrity_rebuild/CC0_PLAYERSTATISTICS_PROBE.json \
+            --output /tmp/V3_ONLY_2019_LINEUP_CANARY.json
+      - name: Commit canary evidence durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
+          mkdir -p team_trb_all_players/final_integrity_rebuild
+          cp /tmp/V3_ONLY_2019_LINEUP_CANARY.json team_trb_all_players/final_integrity_rebuild/V3_ONLY_2019_LINEUP_CANARY.json
+          git add team_trb_all_players/final_integrity_rebuild/V3_ONLY_2019_LINEUP_CANARY.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record V3-only 2019 lineup canary"
+          git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
