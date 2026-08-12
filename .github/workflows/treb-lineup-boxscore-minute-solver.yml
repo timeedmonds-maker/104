@@ -1,0 +1,69 @@
+name: TREB lineup repair with official game minutes
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - .github/workflows/treb-lineup-boxscore-minute-solver.yml
+      - team_trb_all_players/solve_lineup_failures_with_boxscore_minutes.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  solve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Download CC0 PlayerStatistics and historical NBA feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/solver /tmp/cc0
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            -o /tmp/cc0/dataset.zip \
+            'https://www.kaggle.com/api/v1/datasets/download/eoinamoore/historical-nba-data-and-player-box-scores'
+          unzip -j /tmp/cc0/dataset.zip 'PlayerStatistics.csv' -d /tmp/cc0 || unzip -j /tmp/cc0/dataset.zip '*/PlayerStatistics.csv' -d /tmp/cc0
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          years=[2002,2004,2006,2007,2008,2011,2015,2018,2020]
+          raw=Path('/tmp/solver')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for y in years:
+              for prefix in ('nbastats','nbastatsv3'):
+                  key=f'{prefix}_{y}'; url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+                  subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),url],check=True)
+                  with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Solve ambiguous games against official minutes
+        run: |
+          python -u team_trb_all_players/solve_lineup_failures_with_boxscore_minutes.py \
+            --raw /tmp/solver \
+            --playerstatistics /tmp/cc0/PlayerStatistics.csv \
+            --output /tmp/BOX_SCORE_MINUTE_LINEUP_SOLVER_RESULT.json
+      - name: Commit solver evidence durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
+          cp /tmp/BOX_SCORE_MINUTE_LINEUP_SOLVER_RESULT.json team_trb_all_players/final_integrity_rebuild/BOX_SCORE_MINUTE_LINEUP_SOLVER_RESULT.json
+          git add team_trb_all_players/final_integrity_rebuild/BOX_SCORE_MINUTE_LINEUP_SOLVER_RESULT.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record official-minute constrained lineup repair evidence"
+          git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
