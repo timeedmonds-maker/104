@@ -1,0 +1,166 @@
+name: TREB prior miss lineup diagnostic
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-prior-miss-lineup-diagnostic.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: plan
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text()); assert len(m['chunks'])==24
+          matrix={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(matrix,separators=(',',':'))+'\n')
+          PY
+
+  diagnose:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - name: Exact prior-miss lineup controls and residual candidates
+        shell: bash
+        env:
+          YEAR: ${{ matrix.year }}
+          GAMES: ${{ matrix.games }}
+          CHUNK_ID: ${{ matrix.chunk_id }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os,re,sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import local_treb_rebuild as core
+          import production_rebound_v4 as rebound
+          import production_treb_engine_v3 as lineup_engine
+          import run_local_treb_production as io
+          y=int(os.environ['YEAR']); ids=[int(x) for x in os.environ['GAMES'].split(',') if x]
+          nba=io.normalize_nba(pd.read_csv(f'/tmp/source/nbastats_{y}.csv',low_memory=False)); v3=lineup_engine.normalize_v3(pd.read_csv(f'/tmp/source/nbastatsv3_{y}.csv',low_memory=False)); pbp=io.normalize_pbp(pd.read_csv(f'/tmp/source/pbpstats_{y}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}; pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          def norm(v): return re.sub(r'\s+',' ','' if pd.isna(v) else str(v)).strip().lower()
+          def rows_for(p):
+              x=p.copy(); x['PREV_PBP_DESCRIPTION']=x.groupby(core.POSSESSION_ID,dropna=False).DESCRIPTION.shift(1)
+              return x[x.DESCRIPTION.fillna('').str.contains('rebound',case=False)].copy()
+          controls={'applicable':0,'correct':0,'wrong':0,'player_real_applicable':0,'player_real_correct':0,'player_real_wrong':0}
+          residual=[]
+          for gid in ids:
+              lu=lineup_engine.reconstruct_game_lineups(ng[gid],vg[gid]); joined,audit=rebound.join_pbp_rebounds(lu,pg[gid]); events=lu.events; rows=rows_for(pg[gid])
+              for idx,row in rows.iterrows():
+                  prev=norm(row.PREV_PBP_DESCRIPTION)
+                  # Exact description only; require a missed-shot/free-throw source event and one unique hit in-period.
+                  hits=events[events.PERIOD.eq(row.PERIOD)&events.DESCRIPTION_NORM.eq(prev)&events.EVENTMSGTYPE.isin([2,3])]
+                  pred=None; source=None
+                  if len(hits)==1:
+                      hi=int(hits.index[0]); pred=tuple(int(x) for x in events.loc[hi,'LINEUP']); source={'eventnum':int(events.loc[hi,'EVENTNUM']),'elapsed':int(events.loc[hi,'ELAPSED']),'description':str(events.loc[hi,'DESCRIPTION_NORM']),'eventmsgtype':int(events.loc[hi,'EVENTMSGTYPE'])}
+                  if idx in joined.index and pd.notna(joined.loc[idx,'NBA_INDEX']):
+                      ni=int(joined.loc[idx,'NBA_INDEX'])
+                      if pred is not None:
+                          controls['applicable']+=1
+                          actual=tuple(int(x) for x in events.loc[ni,'LINEUP'])
+                          if pred==actual: controls['correct']+=1
+                          else: controls['wrong']+=1
+                      player=bool(re.search(r'\(Off:\d+ Def:\d+\)',str(row.DESCRIPTION),re.I))
+                      if player:
+                          controls['player_real_applicable']+=1
+                          actual_real=bool(core._nba_real_rebound(events,ni))
+                          if actual_real: controls['player_real_correct']+=1
+                          else: controls['player_real_wrong']+=1
+                  elif idx not in joined.index:
+                      residual.append({'game_id':gid,'pbp_index':int(idx),'period':int(row.PERIOD),'start_time':str(row.STARTTIME),'end_time':str(row.ENDTIME),'description':str(row.DESCRIPTION),'previous_description':'' if pd.isna(row.PREV_PBP_DESCRIPTION) else str(row.PREV_PBP_DESCRIPTION),'player_credited':bool(re.search(r'\(Off:\d+ Def:\d+\)',str(row.DESCRIPTION),re.I)),'prior_miss_lineup':list(pred) if pred is not None else None,'prior_miss_source':source})
+          out={'chunk_id':os.environ['CHUNK_ID'],'year':y,'controls':controls,'residual_rows':residual}
+          Path('/tmp').joinpath('MISS_'+os.environ['CHUNK_ID']+'.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({'chunk_id':out['chunk_id'],'year':y,'controls':controls,'residual_rows':len(residual)},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-prior-miss-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/MISS_${{ matrix.chunk_id }}.json
+          retention-days: 90
+
+  aggregate:
+    needs: [plan, diagnose]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-prior-miss-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Aggregate exact control gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          chunks=[json.loads(p.read_text()) for p in sorted(Path('/tmp/results').rglob('MISS_*.json'))]; assert len(chunks)==24,len(chunks)
+          keys=['applicable','correct','wrong','player_real_applicable','player_real_correct','player_real_wrong']
+          controls={k:sum(int(c['controls'][k]) for c in chunks) for k in keys}
+          residual=[r for c in chunks for r in c['residual_rows']]; assert len(residual)==77,len(residual)
+          lineup_safe=controls['applicable']>0 and controls['wrong']==0
+          player_real_safe=controls['player_real_applicable']>0 and controls['player_real_wrong']==0
+          candidates=[]
+          for r in residual:
+              if lineup_safe and player_real_safe and r['player_credited'] and r['prior_miss_lineup'] is not None:
+                  x=dict(r); x['real']=True; x['method']='unique_exact_prior_miss_lineup_plus_player_credit_real'; candidates.append(x)
+          bygame={}
+          for r in residual: bygame.setdefault(int(r['game_id']),[]).append(r)
+          ckeys={(int(r['game_id']),int(r['pbp_index'])) for r in candidates}
+          full=sorted(g for g,rs in bygame.items() if all((g,int(r['pbp_index'])) in ckeys for r in rs))
+          out={'status':'COMPLETE','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'controls':controls,'prior_miss_lineup_rule_safe':lineup_safe,'player_real_rule_safe':player_real_safe,'current_residual_rows':77,'repairable_rows':len(candidates),'fully_repairable_games':len(full),'fully_repairable_game_ids':full,'repair_candidates':candidates,'residual_rows':residual}
+          Path('/tmp/PRIOR_MISS_LINEUP_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k not in {'repair_candidates','residual_rows'}},indent=2))
+          PY
+      - name: Persist durable checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812; git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics; cp /tmp/PRIOR_MISS_LINEUP_SUMMARY.json "$D/"
+          git add -f "$D/PRIOR_MISS_LINEUP_SUMMARY.json"
+          if ! git diff --cached --quiet; then git commit -m 'Persist exact prior-miss rebound diagnostic'; git push origin HEAD:agent/treb-batched-game-facts-20260812; fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-prior-miss-lineup-summary-${{ github.run_id }}
+          path: /tmp/PRIOR_MISS_LINEUP_SUMMARY.json
+          retention-days: 90
