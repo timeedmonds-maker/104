@@ -72,7 +72,7 @@ jobs:
           V3=$(find "$RAW" -name "nbastatsv3_${YEAR}.csv" -print -quit)
           PBP=$(find "$RAW" -name "pbpstats_${YEAR}.csv" -print -quit)
           NBA="$NBA" V3="$V3" PBP="$PBP" YEAR="$YEAR" GAMES='${{ matrix.games }}' python - <<'PY'
-          import csv, json, os, re, sys
+          import csv, json, os, sys
           from pathlib import Path
           import pandas as pd
           sys.path.insert(0,'team_trb_all_players')
@@ -109,7 +109,7 @@ jobs:
               if original(row):
                   return True
               text=engine._description(row)
-              return bool(re.search(r'(?<!\\w)t\\.foul(?!\\w)',text)) or 'non-unsportsmanlike' in text
+              return 't.foul' in text or 'non-unsportsmanlike' in text
           engine._ignore_participant_constraint=patched
 
           regressions=[]
@@ -178,7 +178,7 @@ jobs:
           V3=$(find /tmp/trebraw-2016 -name 'nbastatsv3_2016.csv' -print -quit)
           PBP=$(find /tmp/trebraw-2016 -name 'pbpstats_2016.csv' -print -quit)
           NBA="$NBA" V3="$V3" PBP="$PBP" python - <<'PY'
-          import json, os, re, sys
+          import json, os, sys
           from pathlib import Path
           import pandas as pd
           sys.path.insert(0,'team_trb_all_players')
@@ -196,7 +196,7 @@ jobs:
           def patched(row):
               if original(row): return True
               text=engine._description(row)
-              return bool(re.search(r'(?<!\\w)t\\.foul(?!\\w)',text)) or 'non-unsportsmanlike' in text
+              return 't.foul' in text or 'non-unsportsmanlike' in text
           engine._ignore_participant_constraint=patched
           gids=[]
           for gid,g in ng.items():
@@ -209,9 +209,9 @@ jobs:
                   tr,pr,a=base.build_game(gid,ng[gid],vg[gid],pg[gid]); audits.append(a)
                   for r in tr:
                       if r['team_id']==OKC: sums['okc_oreb_universe']+=int(r['team_oreb'])
-                  rows=[r for r in pr if r['player_id']==ADAMS and r['team_id']==OKC]
-                  for r in rows:
-                      for k in ('team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','seconds_on'): sums[k]+=int(r[k])
+                  for r in pr:
+                      if r['player_id']==ADAMS and r['team_id']==OKC:
+                          for k in ('team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','seconds_on'): sums[k]+=int(r[k])
               except Exception as exc: failures.append({'game_id':gid,'error':f'{type(exc).__name__}: {exc}'})
           sums['team_rebounds_on']=sums['team_oreb_on']+sums['team_dreb_on']
           sums['opponent_rebounds_on']=sums['opponent_oreb_on']+sums['opponent_dreb_on']
