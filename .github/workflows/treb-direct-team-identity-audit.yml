@@ -1,0 +1,123 @@
+name: TREB direct team rebound identity audit
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-direct-team-identity-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+  PYTHONUNBUFFERED: '1'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          m=json.loads(Path(os.environ['MANIFEST']).read_text())
+          assert len(m['chunks'])==24 and m['target_games']==58
+          x={'include':[{'chunk_id':c['chunk_id'],'year':int(c['year']),'games':','.join(map(str,c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('matrix='+json.dumps(x,separators=(',',':'))+'\n')
+          PY
+  audit:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_direct_team_identity_audit.py \
+            --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' \
+            --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' \
+            --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/DIRECT_TEAM_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-direct-team-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/DIRECT_TEAM_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan,audit]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-direct-team-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Aggregate controls and residual candidates
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          ps=sorted(Path('/tmp/results').rglob('DIRECT_TEAM_*.json'))
+          assert len(ps)==24,[str(p) for p in ps]
+          chunks=[json.loads(p.read_text()) for p in ps]
+          keys=list(chunks[0]['controls'])
+          controls={k:sum(int(c['controls'][k]) for c in chunks) for k in keys}
+          wrong=[r for c in chunks for r in c['wrong_records']]
+          residual=[r for c in chunks for r in c['residual_rows']]
+          assert len(residual)==77,len(residual)
+          safe=controls['unique_candidate_controls']>0 and controls['identity_wrong']==0
+          candidates=[r for r in residual if safe and r['candidate_count']==1 and r['candidate_unused'] and r['candidate'] is not None]
+          keys2=[(int(r['game_id']),int(r['candidate']['nba_index'])) for r in candidates]
+          duplicate_candidate_events=sorted({x for x in keys2 if keys2.count(x)>1})
+          if duplicate_candidate_events:
+              safe=False;candidates=[]
+          out={
+            'status':'COMPLETE','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+            'purpose':'Audit exact source-native team identity plus unique NBA team/placeholder rebound event inside each PBP interval. No repair promoted.',
+            'controls':controls,'safe_rule':safe,'wrong_records':wrong,
+            'current_residual_rows':len(residual),'candidate_rows':len(candidates),
+            'candidate_game_ids':sorted({int(r['game_id']) for r in candidates}),
+            'duplicate_candidate_events':[list(x) for x in duplicate_candidate_events],
+            'candidates':candidates,'residual_rows':residual,
+          }
+          Path('/tmp/DIRECT_TEAM_IDENTITY_SUMMARY.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k not in {'wrong_records','candidates','residual_rows'}},indent=2))
+          PY
+      - name: Persist durable checkpoint
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-batched-game-facts-20260812
+          git reset --hard origin/agent/treb-batched-game-facts-20260812
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          cp /tmp/DIRECT_TEAM_IDENTITY_SUMMARY.json "$D/"
+          git add -f "$D/DIRECT_TEAM_IDENTITY_SUMMARY.json"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist direct team rebound identity audit'
+            git push origin HEAD:agent/treb-batched-game-facts-20260812
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-direct-team-identity-summary-${{ github.run_id }}
+          path: /tmp/DIRECT_TEAM_IDENTITY_SUMMARY.json
+          retention-days: 90
