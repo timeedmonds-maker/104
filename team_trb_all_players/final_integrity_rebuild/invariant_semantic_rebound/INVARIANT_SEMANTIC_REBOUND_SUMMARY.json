@@ -2,14 +2,14 @@
   "status": "COMPLETE",
   "chunks_found": 12,
   "games_screened": 106,
-  "unmatched_rows": 226,
-  "safe_rows": 143,
-  "games_all_unmatched_safe": 68,
-  "lineup_control_applicable": 8496,
-  "lineup_control_correct": 8494,
+  "unmatched_rows": 231,
+  "safe_rows": 146,
+  "games_all_unmatched_safe": 67,
+  "lineup_control_applicable": 8493,
+  "lineup_control_correct": 8491,
   "lineup_control_wrong": 2,
-  "real_control_applicable": 8232,
-  "real_control_correct": 8232,
+  "real_control_applicable": 8229,
+  "real_control_correct": 8229,
   "real_control_wrong": 0,
   "games": [
     {
@@ -2432,10 +2432,31 @@
     {
       "game_id": 21700017,
       "status": "OK",
-      "unmatched_rows": 1,
+      "unmatched_rows": 2,
       "safe_rows": 1,
-      "all_unmatched_safe": true,
+      "all_unmatched_safe": false,
       "detail": [
+        {
+          "pbp_index": 120507,
+          "description": "HAWKS Rebound",
+          "period": 1,
+          "start_time": "03:57",
+          "end_time": "03:39",
+          "player_credited": false,
+          "interval": {
+            "invariant": false,
+            "events": 5,
+            "substitutions": 2,
+            "unique_lineups": 3,
+            "lineup": null
+          },
+          "candidate_count": 2,
+          "candidate_real_values": [
+            true
+          ],
+          "inferred_real": true,
+          "safe_candidate": false
+        },
         {
           "pbp_index": 120535,
           "description": "HORNETS Rebound",
@@ -2472,23 +2493,22 @@
       "join_audit": {
         "total_pbp_rows": 425,
         "rebound_bearing_rows": 115,
-        "matched_rebound_bearing_rows": 114,
-        "unmatched_rebound_bearing_rows": 1,
+        "matched_rebound_bearing_rows": 113,
+        "unmatched_rebound_bearing_rows": 2,
         "ambiguous_matches": 13,
         "manual_join_repairs": 0,
-        "exact_identity_join_repairs": 1,
-        "exact_description_repairs": 1,
+        "exact_identity_join_repairs": 0,
+        "exact_description_repairs": 0,
         "exact_player_counter_repairs": 0,
-        "exact_identity_records": [
-          {
-            "period": 1,
-            "pbp_description": "HAWKS Rebound",
-            "nba_eventnum": 46,
-            "nba_description_norm": "hawks rebound",
-            "method": "exact_description"
-          }
-        ],
+        "exact_identity_records": [],
         "unmatched_rows": [
+          {
+            "game_id": 21700017,
+            "period": 1,
+            "start_time": "03:57",
+            "end_time": "03:39",
+            "description": "HAWKS Rebound"
+          },
           {
             "game_id": 21700017,
             "period": 1,
@@ -2777,8 +2797,8 @@
     {
       "game_id": 21700044,
       "status": "OK",
-      "unmatched_rows": 1,
-      "safe_rows": 1,
+      "unmatched_rows": 2,
+      "safe_rows": 2,
       "all_unmatched_safe": true,
       "detail": [
         {
@@ -2812,27 +2832,51 @@
           ],
           "inferred_real": true,
           "safe_candidate": true
+        },
+        {
+          "pbp_index": 235931,
+          "description": "Howard REBOUND (Off:2 Def:2)",
+          "period": 1,
+          "start_time": "06:26",
+          "end_time": "06:16",
+          "player_credited": true,
+          "interval": {
+            "invariant": true,
+            "events": 3,
+            "substitutions": 0,
+            "unique_lineups": 1,
+            "lineup": [
+              2730,
+              101107,
+              202328,
+              202689,
+              202732,
+              203087,
+              203114,
+              203141,
+              203521,
+              1628407
+            ]
+          },
+          "candidate_count": 1,
+          "candidate_real_values": [
+            true
+          ],
+          "inferred_real": true,
+          "safe_candidate": true
         }
       ],
       "join_audit": {
         "total_pbp_rows": 400,
         "rebound_bearing_rows": 107,
-        "matched_rebound_bearing_rows": 106,
-        "unmatched_rebound_bearing_rows": 1,
+        "matched_rebound_bearing_rows": 105,
+        "unmatched_rebound_bearing_rows": 2,
         "ambiguous_matches": 9,
         "manual_join_repairs": 0,
-        "exact_identity_join_repairs": 1,
-        "exact_description_repairs": 1,
+        "exact_identity_join_repairs": 0,
+        "exact_description_repairs": 0,
         "exact_player_counter_repairs": 0,
-        "exact_identity_records": [
-          {
-            "period": 1,
-            "pbp_description": "Howard REBOUND (Off:2 Def:2)",
-            "nba_eventnum": 81,
-            "nba_description_norm": "howard rebound (off:2 def:2)",
-            "method": "exact_description"
-          }
-        ],
+        "exact_identity_records": [],
         "unmatched_rows": [
           {
             "game_id": 21700044,
@@ -2840,6 +2884,13 @@
             "start_time": "06:17",
             "end_time": "05:53",
             "description": "Bucks Rebound"
+          },
+          {
+            "game_id": 21700044,
+            "period": 1,
+            "start_time": "06:26",
+            "end_time": "06:16",
+            "description": "Howard REBOUND (Off:2 Def:2)"
           }
         ]
       }
@@ -3225,10 +3276,40 @@
     {
       "game_id": 21700231,
       "status": "OK",
-      "unmatched_rows": 1,
-      "safe_rows": 0,
+      "unmatched_rows": 2,
+      "safe_rows": 1,
       "all_unmatched_safe": false,
       "detail": [
+        {
+          "pbp_index": 147360,
+          "description": "Livingston REBOUND (Off:1 Def:0)",
+          "period": 2,
+          "start_time": "12:00",
+          "end_time": "11:43",
+          "player_credited": true,
+          "interval": {
+            "invariant": true,
+            "events": 2,
+            "substitutions": 0,
+            "unique_lineups": 1,
+            "lineup": [
+              2561,
+              2733,
+              2738,
+              200755,
+              202691,
+              203110,
+              203496,
+              203954,
+              203967,
+              1627732
+            ]
+          },
+          "candidate_count": 0,
+          "candidate_real_values": [],
+          "inferred_real": true,
+          "safe_candidate": true
+        },
         {
           "pbp_index": 147362,
           "description": "Covington REBOUND",
@@ -3263,23 +3344,22 @@
       "join_audit": {
         "total_pbp_rows": 391,
         "rebound_bearing_rows": 99,
-        "matched_rebound_bearing_rows": 98,
-        "unmatched_rebound_bearing_rows": 1,
+        "matched_rebound_bearing_rows": 97,
+        "unmatched_rebound_bearing_rows": 2,
         "ambiguous_matches": 5,
         "manual_join_repairs": 0,
-        "exact_identity_join_repairs": 1,
-        "exact_description_repairs": 1,
+        "exact_identity_join_repairs": 0,
+        "exact_description_repairs": 0,
         "exact_player_counter_repairs": 0,
-        "exact_identity_records": [
-          {
-            "period": 2,
-            "pbp_description": "Livingston REBOUND (Off:1 Def:0)",
-            "nba_eventnum": 169,
-            "nba_description_norm": "livingston rebound (off:1 def:0)",
-            "method": "exact_description"
-          }
-        ],
+        "exact_identity_records": [],
         "unmatched_rows": [
+          {
+            "game_id": 21700231,
+            "period": 2,
+            "start_time": "12:00",
+            "end_time": "11:43",
+            "description": "Livingston REBOUND (Off:1 Def:0)"
+          },
           {
             "game_id": 21700231,
             "period": 2,
@@ -3293,8 +3373,8 @@
     {
       "game_id": 21700235,
       "status": "OK",
-      "unmatched_rows": 1,
-      "safe_rows": 1,
+      "unmatched_rows": 2,
+      "safe_rows": 2,
       "all_unmatched_safe": true,
       "detail": [
         {
@@ -3328,27 +3408,49 @@
           ],
           "inferred_real": true,
           "safe_candidate": true
+        },
+        {
+          "pbp_index": 148681,
+          "description": "Sabonis REBOUND (Off:1 Def:4)",
+          "period": 2,
+          "start_time": "08:34",
+          "end_time": "08:39",
+          "player_credited": true,
+          "interval": {
+            "invariant": true,
+            "events": 2,
+            "substitutions": 0,
+            "unique_lineups": 1,
+            "lineup": [
+              201949,
+              201954,
+              201961,
+              202362,
+              202709,
+              202711,
+              203079,
+              203482,
+              1626159,
+              1627734
+            ]
+          },
+          "candidate_count": 0,
+          "candidate_real_values": [],
+          "inferred_real": true,
+          "safe_candidate": true
         }
       ],
       "join_audit": {
         "total_pbp_rows": 331,
         "rebound_bearing_rows": 85,
-        "matched_rebound_bearing_rows": 84,
-        "unmatched_rebound_bearing_rows": 1,
+        "matched_rebound_bearing_rows": 83,
+        "unmatched_rebound_bearing_rows": 2,
         "ambiguous_matches": 5,
         "manual_join_repairs": 0,
-        "exact_identity_join_repairs": 1,
-        "exact_description_repairs": 1,
+        "exact_identity_join_repairs": 0,
+        "exact_description_repairs": 0,
         "exact_player_counter_repairs": 0,
-        "exact_identity_records": [
-          {
-            "period": 2,
-            "pbp_description": "Sabonis REBOUND (Off:1 Def:4)",
-            "nba_eventnum": 168,
-            "nba_description_norm": "sabonis rebound (off:1 def:4)",
-            "method": "exact_description"
-          }
-        ],
+        "exact_identity_records": [],
         "unmatched_rows": [
           {
             "game_id": 21700235,
@@ -3356,6 +3458,13 @@
             "start_time": "05:34",
             "end_time": "05:20",
             "description": "PACERS Rebound"
+          },
+          {
+            "game_id": 21700235,
+            "period": 2,
+            "start_time": "08:34",
+            "end_time": "08:39",
+            "description": "Sabonis REBOUND (Off:1 Def:4)"
           }
         ]
       }
@@ -5244,7 +5353,7 @@
     {
       "game_id": 22200331,
       "status": "OK",
-      "unmatched_rows": 1,
+      "unmatched_rows": 2,
       "safe_rows": 0,
       "all_unmatched_safe": false,
       "detail": [
@@ -5268,27 +5377,38 @@
           ],
           "inferred_real": true,
           "safe_candidate": false
+        },
+        {
+          "pbp_index": 193147,
+          "description": "Lakers Rebound",
+          "period": 3,
+          "start_time": "02:50",
+          "end_time": "02:32",
+          "player_credited": false,
+          "interval": {
+            "invariant": false,
+            "events": 3,
+            "substitutions": 1,
+            "unique_lineups": 2,
+            "lineup": null
+          },
+          "candidate_count": 0,
+          "candidate_real_values": [],
+          "inferred_real": null,
+          "safe_candidate": false
         }
       ],
       "join_audit": {
         "total_pbp_rows": 378,
         "rebound_bearing_rows": 98,
-        "matched_rebound_bearing_rows": 97,
-        "unmatched_rebound_bearing_rows": 1,
+        "matched_rebound_bearing_rows": 96,
+        "unmatched_rebound_bearing_rows": 2,
         "ambiguous_matches": 7,
         "manual_join_repairs": 0,
-        "exact_identity_join_repairs": 1,
-        "exact_description_repairs": 1,
+        "exact_identity_join_repairs": 0,
+        "exact_description_repairs": 0,
         "exact_player_counter_repairs": 0,
-        "exact_identity_records": [
-          {
-            "period": 3,
-            "pbp_description": "Lakers Rebound",
-            "nba_eventnum": 553,
-            "nba_description_norm": "lakers rebound",
-            "method": "exact_description"
-          }
-        ],
+        "exact_identity_records": [],
         "unmatched_rows": [
           {
             "game_id": 22200331,
@@ -5296,6 +5416,13 @@
             "start_time": "01:04",
             "end_time": "01:02",
             "description": "BUCKS Rebound"
+          },
+          {
+            "game_id": 22200331,
+            "period": 3,
+            "start_time": "02:50",
+            "end_time": "02:32",
+            "description": "Lakers Rebound"
           }
         ]
       }
