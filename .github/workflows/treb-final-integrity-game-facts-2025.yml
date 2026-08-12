@@ -1,0 +1,91 @@
+name: TREB final integrity exact game facts 2025-26
+
+on:
+  push:
+    branches: [agent/treb-final-integrity-rebuild-20260812]
+    paths:
+      - .github/workflows/treb-final-integrity-game-facts-2025.yml
+      - team_trb_all_players/build_exact_game_fact_layer_2025.py
+      - team_trb_all_players/run_modern_treb_production_2025.py
+      - team_trb_all_players/modern_cdn_lineups.py
+      - team_trb_all_players/validate_modern_team_rebound_rule_2024.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+concurrency:
+  group: treb-final-integrity-game-facts-2025-20260812
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Compile modern fact builder
+        run: python -m py_compile team_trb_all_players/build_exact_game_fact_layer_2025.py
+      - name: Download static 2025-26 CDN archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/trebraw-2025
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          raw=Path('/tmp/trebraw-2025')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt', timeout=60).read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          url=urls['cdnnba_2025']
+          arc=raw/url.rsplit('/',1)[-1]
+          subprocess.run(['curl','--fail','--location','--retry','8','--retry-all-errors','--retry-delay','3','--output',str(arc),url],check=True)
+          with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          hits=list(raw.rglob('cdnnba_2025.csv'))
+          if len(hits)!=1: raise SystemExit(f'expected one cdnnba csv, got {hits}')
+          print(hits[0])
+          PY
+      - name: Build exact 2025-26 game facts
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/treb-game-facts-2025
+          rm -rf "$OUT" && mkdir -p "$OUT"
+          CDN=$(find /tmp/trebraw-2025 -name cdnnba_2025.csv -print -quit)
+          python -u team_trb_all_players/build_exact_game_fact_layer_2025.py \
+            --cdn "$CDN" \
+            --schedule team_trb_all_players/impact_database/roster_tenure/regular_season_games.jsonl.gz \
+            --output-dir "$OUT" 2>&1 | tee "$OUT/build.log"
+          sha256sum "$OUT"/* > "$OUT/SHA256SUMS.txt"
+      - name: Persist 2025-26 facts durably
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/treb-game-facts-2025
+          DEST=team_trb_all_players/impact_database/exact_game_facts/2025-26
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -B treb-game-facts-2025 "${{ github.sha }}"
+          rm -rf "$DEST" && mkdir -p "$DEST"
+          cp "$OUT"/* "$DEST"/
+          git add -f "$DEST"
+          git commit -m 'Persist exact TREB game facts 2025-26'
+          git push --force origin HEAD:treb-game-facts-2025
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-exact-game-facts-2025
+          path: /tmp/treb-game-facts-2025/**
+          retention-days: 90
+          if-no-files-found: warn
