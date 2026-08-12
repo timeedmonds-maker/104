@@ -1,0 +1,114 @@
+name: TREB 2016 independent-minute semantics audit
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - team_trb_all_players/final_integrity_rebuild/MINUTE_SEMANTICS_AUDIT_CONTROL.json
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - name: Download 2016 lineup sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          RAW=/tmp/trebraw-2016; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          y=2016; raw=Path('/tmp/trebraw-2016')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in text.splitlines() if '=' in x}
+          for key in [f'nbastats_{y}',f'nbastatsv3_{y}']:
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Download independent CC0 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/cc0
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/cc0/dataset.zip \
+            'https://www.kaggle.com/api/v1/datasets/download/eoinamoore/historical-nba-data-and-player-box-scores'
+          unzip -j /tmp/cc0/dataset.zip 'PlayerStatistics.csv' -d /tmp/cc0 || unzip -j /tmp/cc0/dataset.zip '*/PlayerStatistics.csv' -d /tmp/cc0
+      - name: Audit floor vs rounded source-minute semantics on 100 legal reconstructions
+        shell: bash
+        run: |
+          NBA=$(find /tmp/trebraw-2016 -name 'nbastats_2016.csv' -print -quit)
+          V3=$(find /tmp/trebraw-2016 -name 'nbastatsv3_2016.csv' -print -quit)
+          NBA="$NBA" V3="$V3" CC0=/tmp/cc0/PlayerStatistics.csv python - <<'PY'
+          import json,math,os,sys
+          from collections import Counter
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as engine
+
+          nba=io.normalize_nba(pd.read_csv(os.environ['NBA'],low_memory=False))
+          v3=engine.normalize_v3(pd.read_csv(os.environ['V3'],low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          cc0=pd.read_csv(os.environ['CC0'],low_memory=False)
+          cg=pd.to_numeric(cc0.gameId,errors='coerce'); cp=pd.to_numeric(cc0.personId,errors='coerce'); ct=pd.to_numeric(cc0.playerteamId,errors='coerce'); cm=pd.to_numeric(cc0.numMinutes,errors='coerce')
+
+          rows=[]
+          for gid in sorted(set(ng)&set(vg)):
+              try: lu=engine.reconstruct_game_lineups(ng[gid],vg[gid])
+              except Exception: continue
+              mask=cg.eq(gid)&cp.notna()
+              if not mask.any(): continue
+              src={int(cp.loc[i]): None if pd.isna(cm.loc[i]) else float(cm.loc[i]) for i in cc0.index[mask]}
+              team_by_pid={int(cp.loc[i]): None if pd.isna(ct.loc[i]) else int(ct.loc[i]) for i in cc0.index[mask]}
+              floor_bad=[]; round_bad=[]
+              for pid,m in src.items():
+                  sec=float(lu.seconds.get(pid,0)); val=0 if m is None else int(round(m))
+                  floor_val=int(math.floor((sec+1e-7)/60)); round_val=int(math.floor(sec/60+0.5))
+                  if (m is None and sec>1e-7) or (m is not None and floor_val!=val): floor_bad.append({'player_id':pid,'source':m,'seconds':sec,'floor':floor_val,'round':round_val})
+                  if (m is None and sec>30) or (m is not None and round_val!=val): round_bad.append({'player_id':pid,'source':m,'seconds':sec,'floor':floor_val,'round':round_val})
+              active_missing=[{'player_id':int(pid),'seconds':float(sec)} for pid,sec in lu.seconds.items() if sec>1e-7 and int(pid) not in src]
+              # Source minute sums by team vs exact engine team seconds/60; useful to distinguish floor from nearest rounding.
+              team_sums={}
+              for pid,m in src.items():
+                  tid=team_by_pid.get(pid)
+                  if tid is not None and m is not None: team_sums[tid]=team_sums.get(tid,0)+m
+              engine_team_minutes={}
+              for pid,sec in lu.seconds.items():
+                  tid=team_by_pid.get(int(pid))
+                  if tid is not None: engine_team_minutes[tid]=engine_team_minutes.get(tid,0)+float(sec)/60
+              deltas={str(t):round(team_sums.get(t,0)-engine_team_minutes.get(t,0),6) for t in set(team_sums)|set(engine_team_minutes)}
+              rows.append({'game_id':gid,'floor_gate_pass':not floor_bad and not active_missing,'round_gate_pass':not round_bad and not active_missing,'floor_bad':floor_bad,'round_bad':round_bad,'active_missing':active_missing,'source_minus_engine_team_minute_deltas':deltas})
+              if len(rows)>=100: break
+          deltas=[v for r in rows for v in r['source_minus_engine_team_minute_deltas'].values()]
+          out={
+             'games_checked':len(rows),'floor_gate_passes':sum(r['floor_gate_pass'] for r in rows),'round_gate_passes':sum(r['round_gate_pass'] for r in rows),
+             'team_minute_delta_min':min(deltas) if deltas else None,'team_minute_delta_max':max(deltas) if deltas else None,'team_minute_delta_mean':sum(deltas)/len(deltas) if deltas else None,
+             'floor_failures':[r for r in rows if not r['floor_gate_pass']],
+             'round_failures':[r for r in rows if not r['round_gate_pass']],
+             'all_games':rows,
+          }
+          Path('/tmp/MINUTE_SEMANTICS_AUDIT.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k not in {'floor_failures','round_failures','all_games'}},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-2016-minute-semantics-audit
+          path: /tmp/MINUTE_SEMANTICS_AUDIT.json
+          retention-days: 90
