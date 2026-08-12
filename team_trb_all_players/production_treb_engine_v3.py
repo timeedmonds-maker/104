@@ -76,7 +76,7 @@ def _ignore_participant_constraint(row: pd.Series) -> bool:
     if typ in {8, 9, 11, 12, 13, 18}:
         return True
     text = _description(row)
-    return "technical" in text or "eject" in text
+    return "technical" in text or "t.foul" in text or "non-unsportsmanlike" in text or "eject" in text
 
 
 def _team_participants(row: pd.Series, team_id: int) -> set[int]:
