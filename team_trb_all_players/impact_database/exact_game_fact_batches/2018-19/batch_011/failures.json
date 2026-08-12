@@ -1,0 +1,22 @@
+[
+  {
+    "game_id": 21801108,
+    "error": "ValueError: unmatched PBP rebound rows game=21801108: 1"
+  },
+  {
+    "game_id": 21801123,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21801123 period=2 team=1610612751: starters=[201162, 201960, 202334, 1626156, 1627747] violations=[{'kind': 'participant', 'event_num': 322, 'player_id': 1626156, 'event_type': 6}]"
+  },
+  {
+    "game_id": 21801125,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21801125 period=2 team=1610612761: starters=[200768, 201586, 202391, 1626181, 1627775] violations=[{'kind': 'participant', 'event_num': 179, 'player_id': 1627832, 'event_type': 6}]"
+  },
+  {
+    "game_id": 21801132,
+    "error": "ValueError: non-unique v3/team-local starter solution game=21801132 period=5 team=1610612744: candidates=[2733, 2738, 201142, 201939, 202326, 202691, 203110, 1626172, 1626188, 1628035] prior=[2733, 2738, 201142, 202691, 203110] best_score=0 solutions=[[2733, 201142, 201939, 202691, 203110], [2738, 201142, 201939, 202691, 203110], [201142, 201939, 202326, 202691, 203110], [201142, 201939, 202691, 203110, 1626172], [201142, 201939, 202691, 203110, 1626188], [201142, 201939, 202691, 203110, 1628035]]"
+  },
+  {
+    "game_id": 21801186,
+    "error": "ValueError: starter solution requires missing in-period lineup transition game=21801186 period=2 team=1610612765: starters=[201933, 202397, 204038, 1627748, 1628379] violations=[{'kind': 'participant', 'event_num': 228, 'player_id': 203083, 'event_type': 6}]"
+  }
+]
