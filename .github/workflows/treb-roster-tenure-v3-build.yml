@@ -39,12 +39,43 @@ jobs:
           unzip -j /tmp/cc0/dataset.zip '*/PlayerStatistics.csv' -d /tmp/cc0
           test -s /tmp/cc0/PlayerStatistics.csv
           sha256sum /tmp/cc0/dataset.zip /tmp/cc0/PlayerStatistics.csv | tee /tmp/cc0/SOURCE_SHA256.txt
-      - name: Build V3 game-exact roster tenure
+      - name: Build V3 game-exact roster tenure and preserve diagnostics
+        shell: bash
         run: |
+          set -uo pipefail
           rm -rf team_trb_all_players/impact_database/roster_tenure_v3
+          mkdir -p team_trb_all_players/impact_database/roster_tenure_v3
+          set +e
           python -u team_trb_all_players/build_roster_targets_v3_from_boxscores.py \
-            --playerstatistics /tmp/cc0/PlayerStatistics.csv
+            --playerstatistics /tmp/cc0/PlayerStatistics.csv 2>&1 | tee /tmp/v3-build.log
+          rc=${PIPESTATUS[0]}
+          set -e
           cp /tmp/cc0/SOURCE_SHA256.txt team_trb_all_players/impact_database/roster_tenure_v3/SOURCE_SHA256.txt
+          python - "$rc" <<'PY'
+          import json,sys
+          from pathlib import Path
+          import pandas as pd
+          root=Path('team_trb_all_players/impact_database/roster_tenure_v3')
+          rc=int(sys.argv[1])
+          log=Path('/tmp/v3-build.log').read_text(errors='replace').splitlines()
+          payload={'builder_exit_code':rc,'log_tail':log[-80:]}
+          recon=root/'core_boxscore_reconciliation.csv.gz'
+          if recon.exists():
+              d=pd.read_csv(recon,compression='gzip',dtype={'player_id':str})
+              final=d[d.valid_final_pts.astype(bool)] if 'valid_final_pts' in d else d
+              payload.update({
+                'reconciliation_rows':int(len(d)),
+                'final_rows':int(len(final)),
+                'games_exact_final':int(final.games_diff.eq(0).sum()) if 'games_diff' in final else None,
+                'games_mismatch_final':int(final.games_diff.ne(0).sum()) if 'games_diff' in final else None,
+                'seconds_exact_final':int(final.seconds_diff.eq(0).sum()) if 'seconds_diff' in final else None,
+                'seconds_mismatch_final':int(final.seconds_diff.ne(0).sum()) if 'seconds_diff' in final else None,
+                'top_games_mismatches': final.loc[final.games_diff.ne(0)].assign(abs_games=lambda x:x.games_diff.abs()).sort_values('abs_games',ascending=False).head(50).drop(columns='abs_games').to_dict('records') if 'games_diff' in final else [],
+                'top_seconds_mismatches': final.loc[final.seconds_diff.ne(0)].assign(abs_seconds=lambda x:x.seconds_diff.abs()).sort_values('abs_seconds',ascending=False).head(50).drop(columns='abs_seconds').to_dict('records') if 'seconds_diff' in final else [],
+              })
+          (root/'BUILD_DIAGNOSTIC.json').write_text(json.dumps(payload,indent=2,default=str)+'\n')
+          print(json.dumps({k:v for k,v in payload.items() if not isinstance(v,list)},indent=2))
+          PY
           find team_trb_all_players/impact_database/roster_tenure_v3 -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
           python - <<'PY'
           from pathlib import Path
@@ -61,5 +92,5 @@ jobs:
           git pull --rebase origin agent/treb-final-integrity-rebuild-20260812
           git add -f team_trb_all_players/impact_database/roster_tenure_v3
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "Build game-exact roster tenure V3 from CC0 boxscores"
+          git commit -m "Build and audit game-exact roster tenure V3 from CC0 boxscores"
           git push origin HEAD:agent/treb-final-integrity-rebuild-20260812
