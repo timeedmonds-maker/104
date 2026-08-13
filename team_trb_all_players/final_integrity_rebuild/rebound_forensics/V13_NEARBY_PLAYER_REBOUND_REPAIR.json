@@ -1,0 +1,48 @@
+{
+  "status": "CANDIDATE_FOR_PROMOTION",
+  "engine_base": "production_rebound_v12",
+  "repair_rows": 2,
+  "audit_evidence": "V13_NEARBY_PLAYER_REBOUND_AUDIT.json",
+  "safe_controls": {
+    "unique_nearest_real_nba_player_rebound_exact_name_within_3s": {
+      "applicable": 4888,
+      "exact_nba_event_identity_correct": 4888,
+      "exact_lineup_correct": 4888,
+      "wrong": 0
+    }
+  },
+  "repairs": [
+    {
+      "game_id": 21700042,
+      "pbp_index": 7322,
+      "period": 2,
+      "start_time": "01:27",
+      "end_time": "01:12",
+      "pbp_description": "Johnson REBOUND",
+      "pbp_is_oreb": false,
+      "nba_eventnum": 254,
+      "nba_elapsed": 1351,
+      "nba_player1_id": 201949,
+      "nba_description_norm": "johnson rebound (off:0 def:5)",
+      "real": true,
+      "resolution_method": "unique_nearest_real_nba_player_rebound_exact_name_within_3s",
+      "lineup": [201158,201609,201949,201961,202337,203482,1626196,1627098,1627752,1628381]
+    },
+    {
+      "game_id": 22201076,
+      "pbp_index": 494,
+      "period": 3,
+      "start_time": "06:14",
+      "end_time": "05:53",
+      "pbp_description": "[UTA] Agbaji Rebound (Off:1 Def:3)",
+      "pbp_is_oreb": true,
+      "nba_eventnum": 416,
+      "nba_elapsed": 1802,
+      "nba_player1_id": 1630534,
+      "nba_description_norm": "agbaji rebound (off:1 def:2)",
+      "real": true,
+      "resolution_method": "unique_nearest_real_nba_player_rebound_exact_name_within_3s",
+      "lineup": [200752,1626168,1627734,1627739,1628368,1628370,1630534,1630548,1631099,1631117]
+    }
+  ]
+}
