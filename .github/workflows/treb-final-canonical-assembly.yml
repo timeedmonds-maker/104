@@ -1,0 +1,508 @@
+name: TREB final canonical assembly
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-final-canonical-assembly.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+  OUT: /tmp/treb_final
+  EXPECTED_TENURES: '14524'
+  EXPECTED_PLAYERS: '2584'
+  EXPECTED_FULL: '9647'
+  EXPECTED_PARTIAL: '4877'
+  EXPECTED_SEGMENTS: '5199'
+  EXPECTED_ZERO_MINUTE_EXCLUSIONS: '221'
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout durable forensic branch with all refs
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install final export dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow
+
+      - name: Recover canonical V2 universe and 26 validated locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2 /tmp/treb_locks "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          git worktree add --detach /tmp/treb_stage2 refs/remotes/origin/treb-stage2-actions-live
+          python /tmp/treb_stage2/team_trb_all_players/build_roster_targets_v2.py
+          for y in $(seq 2000 2025); do
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git show "refs/remotes/origin/treb-final-safe-lock-${y}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+
+      - name: Assemble canonical 14524-row rebound database
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import ast, csv, gzip, hashlib, json, math, os, sqlite3, zipfile
+          from collections import Counter, defaultdict
+          from decimal import Decimal
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+
+          stage2 = Path('/tmp/treb_stage2/team_trb_all_players')
+          db = stage2/'impact_database'
+          roster = db/'roster_tenure_v2'
+          core = db/'outputs'
+          corrected = db/'corrected_off'
+          locks_dir = Path('/tmp/treb_locks')
+          out = Path(os.environ['OUT']); out.mkdir(parents=True, exist_ok=True)
+
+          EXPECTED_EXCLUDED_GAMES = {
+              20201160,20400335,20400736,20500090,20500102,20600887,20700319,
+              20800032,20800142,20900113,21000431,21000997,21100842,21200919,
+              21201167,21301048,21400968,21500711,21500903,21500916,21600358,
+              21600655,21600668,21701085,21800143,21901316,21901317,21901318,
+              22000485,22000853,22100688,22200140,22200182,22200207,22200234,
+              22200778,22201040,22300452,22300599,22400433,
+          }
+          RESIDUALS = [
+              [21700032,4988],[21700042,7322],[21700494,7412],[21800689,1396],
+              [21800689,1398],[22101023,256],[22200322,3388],[22200331,3717],
+              [22200331,3912],[22200733,5955],[22201187,1569],[22201187,1573],
+              [22400072,288],
+          ]
+          TEAM = {1610612737:'ATL',1610612738:'BOS',1610612739:'CLE',1610612740:'NOP',1610612741:'CHI',1610612742:'DAL',1610612743:'DEN',1610612744:'GSW',1610612745:'HOU',1610612746:'LAC',1610612747:'LAL',1610612748:'MIA',1610612749:'MIL',1610612750:'MIN',1610612751:'BKN',1610612752:'NYK',1610612753:'ORL',1610612754:'IND',1610612755:'PHI',1610612756:'PHX',1610612757:'POR',1610612758:'SAC',1610612759:'SAS',1610612760:'OKC',1610612761:'TOR',1610612762:'UTA',1610612763:'MEM',1610612764:'WAS',1610612765:'DET',1610612766:'CHA'}
+          COUNT_COLS=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off']
+          RATE_COLS=['treb_on','treb_off','treb_swing_pp','oreb_pct_on','oreb_pct_off','oreb_swing_pp','dreb_pct_on','dreb_pct_off','dreb_swing_pp']
+
+          def ids(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def read_jsonl_gz(p):
+              rows=[]
+              with gzip.open(p,'rt',encoding='utf-8') as f:
+                  for line in f:
+                      if line.strip(): rows.append(json.loads(line))
+              return rows
+          def hist_abbr(season, tid):
+              y=int(str(season)[:4]); tid=int(tid)
+              if tid==1610612763 and y==2000: return 'VAN'
+              if tid==1610612740:
+                  if y<=2001: return 'CHH'
+                  if y in (2005,2006): return 'NOK'
+                  if y<=2012: return 'NOH'
+                  return 'NOP'
+              if tid==1610612751 and y<=2011: return 'NJN'
+              if tid==1610612760 and y<=2007: return 'SEA'
+              return TEAM.get(tid,'')
+          def integer(v):
+              x=float(v)
+              if not math.isfinite(x) or abs(x-round(x))>1e-6: raise ValueError(f'non-integer rebound count {v}')
+              return int(round(x))
+          def parse_candidates(v):
+              if isinstance(v,list): a=v
+              elif pd.isna(v): a=[]
+              else:
+                  try: a=ast.literal_eval(str(v))
+                  except Exception: a=[]
+              return {int(x) for x in a if x is not None}
+          def pct_candidates(own, displayed, cap=6000):
+              try: own=int(own); p=float(displayed)
+              except Exception: return set()
+              if own<=0 or not math.isfinite(p) or p<=0 or p>1: return set()
+              pdx=Decimal(str(p)); half=Decimal('0.0005')
+              low=max(Decimal('0'),pdx-half); high=min(Decimal('1'),pdx+half); own_d=Decimal(own)
+              lo=max(0,math.ceil(float(own_d/high-own_d)-1e-12))
+              hi=cap if low<=0 else min(cap,math.floor(float(own_d/low-own_d)+1e-12))
+              if hi<lo: return set()
+              return {opp for opp in range(lo,hi+1) if abs(own/(own+opp)-p)<=0.0005000001}
+          def intersect_sets(sets):
+              sets=[set(s) for s in sets if s]
+              if not sets: return set()
+              sets.sort(key=len); z=sets[0].copy()
+              for s in sets[1:]:
+                  z &= s
+                  if not z: break
+              return z
+          def pct(n,d): return (float(n)/float(d)) if d else np.nan
+          def add_rates(f):
+              f=f.copy()
+              f['team_rebounds_on']=f.team_oreb_on+f.team_dreb_on
+              f['opponent_rebounds_on']=f.opponent_oreb_on+f.opponent_dreb_on
+              f['team_rebounds_off']=f.team_oreb_off+f.team_dreb_off
+              f['opponent_rebounds_off']=f.opponent_oreb_off+f.opponent_dreb_off
+              f['treb_on']=[pct(a,a+b) for a,b in zip(f.team_rebounds_on,f.opponent_rebounds_on)]
+              f['treb_off']=[pct(a,a+b) for a,b in zip(f.team_rebounds_off,f.opponent_rebounds_off)]
+              f['treb_swing_pp']=(f.treb_on-f.treb_off)*100.0
+              f['oreb_pct_on']=[pct(a,a+b) for a,b in zip(f.team_oreb_on,f.opponent_dreb_on)]
+              f['oreb_pct_off']=[pct(a,a+b) for a,b in zip(f.team_oreb_off,f.opponent_dreb_off)]
+              f['oreb_swing_pp']=(f.oreb_pct_on-f.oreb_pct_off)*100.0
+              f['dreb_pct_on']=[pct(a,a+b) for a,b in zip(f.team_dreb_on,f.opponent_oreb_on)]
+              f['dreb_pct_off']=[pct(a,a+b) for a,b in zip(f.team_dreb_off,f.opponent_oreb_off)]
+              f['dreb_swing_pp']=(f.dreb_pct_on-f.dreb_pct_off)*100.0
+              return f
+
+          canonical=read_jsonl_gz(roster/'player_team_season_targets.jsonl.gz')
+          partial_expected=read_jsonl_gz(roster/'wowy_partial_segments.jsonl.gz')
+          summary=json.loads((roster/'roster_repair_v2_summary.json').read_text())
+          assert len(canonical)==int(os.environ['EXPECTED_TENURES'])==14524
+          assert len({ids(r['player_id']) for r in canonical})==int(os.environ['EXPECTED_PLAYERS'])==2584
+          assert summary['full_core_reuse_rows']==int(os.environ['EXPECTED_FULL'])==9647
+          assert summary['partial_player_team_season_rows']==int(os.environ['EXPECTED_PARTIAL'])==4877
+          assert len(partial_expected)==int(os.environ['EXPECTED_SEGMENTS'])==5199
+          assert summary['excluded_stale_core_artifacts']==2
+          full=[r for r in canonical if bool(r['full_core_reuse'])]
+          partial=[r for r in canonical if not bool(r['full_core_reuse'])]
+          canon_key=lambda r:(str(r['season']),ids(r['player_id']),int(r['team_id']))
+          seg_key=lambda r:(str(r['season']),ids(r['player_id']),int(r['team_id']),int(r.get('segment_index') or 1),str(r.get('query_start_date') or ''),str(r.get('query_end_date') or ''))
+          assert len({canon_key(r) for r in canonical})==14524
+
+          # Load four core rebound metrics plus derived opponent candidate evidence.
+          metric_parts=[]; derived_parts=[]
+          need={'OffRebounds','DefRebounds','OffReboundPct','DefReboundPct'}
+          for p in sorted(core.glob('*/team_on_off_metrics.csv.gz')):
+              season=p.parent.name
+              x=pd.read_csv(p,compression='gzip',low_memory=False)
+              x=x[x.metric.astype(str).isin(need)].copy(); x['season']=season
+              metric_parts.append(x)
+          for p in sorted(core.glob('*/team_rebound_derived.csv.gz')):
+              x=pd.read_csv(p,compression='gzip',low_memory=False); derived_parts.append(x)
+          metrics=pd.concat(metric_parts,ignore_index=True,sort=False)
+          derived=pd.concat(derived_parts,ignore_index=True,sort=False)
+          metrics['pid']=metrics.subject_player_id.map(ids); metrics['team_id']=pd.to_numeric(metrics.team_id,errors='raise').astype(int)
+          derived['pid']=derived.player_id.map(ids); derived['team_id']=pd.to_numeric(derived.team_id,errors='raise').astype(int)
+          metrics['season']=metrics.season.astype(str); derived['season']=derived.season.astype(str)
+          midx={}
+          for _,r in metrics.iterrows():
+              k=(r.season,r.pid,int(r.team_id),str(r.metric))
+              if k in midx: raise RuntimeError(f'duplicate core metric key {k}')
+              midx[k]=r
+          didx={}
+          for _,r in derived.iterrows():
+              k=(r.season,r.pid,int(r.team_id))
+              if k in didx: raise RuntimeError(f'duplicate derived key {k}')
+              didx[k]=r
+
+          # Solve exact opponent season OREB/DREB totals from all core player evidence.
+          evidence_by_team=defaultdict(list)
+          for k,drow in didx.items():
+              s,pid,tid=k
+              try:
+                  orow=midx[(s,pid,tid,'OffRebounds')]; drowm=midx[(s,pid,tid,'DefRebounds')]
+                  opct=midx[(s,pid,tid,'OffReboundPct')]; dpct=midx[(s,pid,tid,'DefReboundPct')]
+                  team_oreb_off=integer(orow['off']); team_dreb_off=integer(drowm['off'])
+                  on_opp_oreb=parse_candidates(drow.get('opponent_off_rebound_candidates'))
+                  on_opp_dreb=parse_candidates(drow.get('opponent_def_rebound_candidates'))
+                  off_opp_oreb=pct_candidates(team_dreb_off,dpct['off'])
+                  off_opp_dreb=pct_candidates(team_oreb_off,opct['off'])
+                  if not (on_opp_oreb and on_opp_dreb and off_opp_oreb and off_opp_dreb): continue
+                  evidence_by_team[(s,tid)].append({
+                      'key':k,'oreb_totals':{a+b for a in on_opp_oreb for b in off_opp_oreb},
+                      'dreb_totals':{a+b for a in on_opp_dreb for b in off_opp_dreb},
+                      'on_oreb':on_opp_oreb,'on_dreb':on_opp_dreb,'off_oreb':off_opp_oreb,'off_dreb':off_opp_dreb,
+                      'on_total_exact':None if pd.isna(drow.get('opponent_rebounds_exact')) else integer(drow.get('opponent_rebounds_exact')),
+                  })
+              except Exception:
+                  continue
+
+          solved={}; solver_rows=[]; unresolved=[]
+          needed_team_seasons=sorted({(str(r['season']),int(r['team_id'])) for r in full})
+          for ts in needed_team_seasons:
+              ev=evidence_by_team.get(ts,[])
+              oi=intersect_sets([e['oreb_totals'] for e in ev]); di=intersect_sets([e['dreb_totals'] for e in ev])
+              trb_sets=[]
+              for e in ev:
+                  if e['on_total_exact'] is not None:
+                      off_tot={a+b for a in e['off_oreb'] for b in e['off_dreb']}
+                      trb_sets.append({e['on_total_exact']+x for x in off_tot})
+              ti=intersect_sets(trb_sets)
+              pairs={(o,d) for o in oi for d in di if not ti or (o+d) in ti}
+              if len(pairs)!=1:
+                  unresolved.append({'season':ts[0],'team_id':ts[1],'evidence_rows':len(ev),'oreb_total_candidates':len(oi),'dreb_total_candidates':len(di),'trb_total_candidates':len(ti),'joint_pairs':len(pairs),'oreb_examples':sorted(oi)[:10],'dreb_examples':sorted(di)[:10],'trb_examples':sorted(ti)[:10]})
+                  continue
+              o,d=next(iter(pairs)); solved[ts]=(o,d)
+              solver_rows.append({'season':ts[0],'team_id':ts[1],'team_abbr':hist_abbr(*ts),'opponent_season_oreb':o,'opponent_season_dreb':d,'evidence_rows':len(ev),'oreb_candidate_count':len(oi),'dreb_candidate_count':len(di),'trb_candidate_count':len(ti)})
+          if unresolved:
+              (out/'CORE_OPPONENT_COUNT_SOLVER_FAILURES.json').write_text(json.dumps(unresolved,indent=2)+'\n')
+              raise RuntimeError(f'core opponent rebound component solver unresolved team-seasons={len(unresolved)}')
+          assert len(solved)==len(needed_team_seasons)
+          pd.DataFrame(solver_rows).to_csv(out/'core_opponent_count_solver.csv',index=False)
+
+          # Build 9,647 unchanged full-team-schedule tenure rows.
+          full_rows=[]; full_resolution_fail=[]
+          for c in full:
+              k=canon_key(c); s,pid,tid=k
+              try:
+                  orow=midx[(s,pid,tid,'OffRebounds')]; drowm=midx[(s,pid,tid,'DefRebounds')]
+                  opct=midx[(s,pid,tid,'OffReboundPct')]; dpct=midx[(s,pid,tid,'DefReboundPct')]; drv=didx[k]
+                  team_oreb_on=integer(orow['on']); team_oreb_off=integer(orow['off'])
+                  team_dreb_on=integer(drowm['on']); team_dreb_off=integer(drowm['off'])
+                  on_opp_oreb=parse_candidates(drv.get('opponent_off_rebound_candidates'))
+                  on_opp_dreb=parse_candidates(drv.get('opponent_def_rebound_candidates'))
+                  off_opp_oreb=pct_candidates(team_dreb_off,dpct['off']); off_opp_dreb=pct_candidates(team_oreb_off,opct['off'])
+                  total_oreb,total_dreb=solved[(s,tid)]
+                  valid_oreb=[x for x in on_opp_oreb if (total_oreb-x) in off_opp_oreb]
+                  valid_dreb=[x for x in on_opp_dreb if (total_dreb-x) in off_opp_dreb]
+                  exact_on=None if pd.isna(drv.get('opponent_rebounds_exact')) else integer(drv.get('opponent_rebounds_exact'))
+                  combos=[(a,b) for a in valid_oreb for b in valid_dreb if exact_on is None or a+b==exact_on]
+                  if len(combos)!=1: raise ValueError(f'joint opponent component choices={len(combos)}')
+                  opp_oreb_on,opp_dreb_on=combos[0]; opp_oreb_off=total_oreb-opp_oreb_on; opp_dreb_off=total_dreb-opp_dreb_on
+                  # Independent consistency against displayed source percentages.
+                  checks=[
+                      (team_oreb_on/(team_oreb_on+opp_dreb_on),float(opct['on'])),
+                      (team_oreb_off/(team_oreb_off+opp_dreb_off),float(opct['off'])),
+                      (team_dreb_on/(team_dreb_on+opp_oreb_on),float(dpct['on'])),
+                      (team_dreb_off/(team_dreb_off+opp_oreb_off),float(dpct['off'])),
+                  ]
+                  if any(abs(a-b)>0.0005000001 for a,b in checks): raise ValueError('source rebound percentage consistency failed')
+                  seconds_on=integer(c['seconds_on']); seconds_off=int(round(float(orow['minutes_off'])*60.0))
+                  if abs(float(orow['minutes_on'])*60.0-seconds_on)>2.0: raise ValueError('core minutes-on mismatch >2 seconds')
+                  ints=c.get('intervals') or []
+                  full_rows.append({
+                      'season':s,'player_id':pid,'player':str(c.get('player') or ''),'team_id':tid,'team_abbr':hist_abbr(s,tid),
+                      'tenure_start':str(ints[0]['start']) if ints else '', 'tenure_end':str(ints[-1]['end']) if ints else '',
+                      'source_type':'full_team_schedule_core','segment_count':1,'games_processed':int(c['team_games_in_tenure']),
+                      'seconds_on':seconds_on,'seconds_off':seconds_off,
+                      'team_oreb_on':team_oreb_on,'team_dreb_on':team_dreb_on,'opponent_oreb_on':opp_oreb_on,'opponent_dreb_on':opp_dreb_on,
+                      'team_oreb_off':team_oreb_off,'team_dreb_off':team_dreb_off,'opponent_oreb_off':opp_oreb_off,'opponent_dreb_off':opp_dreb_off,
+                  })
+              except Exception as exc:
+                  full_resolution_fail.append({'key':list(k),'error':repr(exc)})
+          if full_resolution_fail:
+              (out/'FULL_CORE_RESOLUTION_FAILURES.json').write_text(json.dumps(full_resolution_fail[:500],indent=2)+'\n')
+              raise RuntimeError(f'full core row resolution failures={len(full_resolution_fail)}')
+          assert len(full_rows)==9647
+
+          # Load validated partial-segment locks and aggregate to 4,877 canonical tenures.
+          lock_rows=[]; exclusions=[]; lock_manifest=[]; lock_seg=set(); exceptions=[]; unmatched=[]
+          for p in sorted(locks_dir.glob('*.json')):
+              d=json.loads(p.read_text()); season=str(d['season'])
+              if d.get('status')!='COMPLETE': raise RuntimeError(f'non-complete lock {season}')
+              exceptions += [{'season':season,**x} for x in d.get('exceptions',[])]
+              unmatched += [{'season':season,**x} for x in d.get('unmatched_rebound_rows',[])]
+              for x in d.get('accepted_excluded_games',[]): exclusions.append({'season':season,**x,'game_id':int(x['game_id'])})
+              for x in d.get('targets',[]):
+                  x=dict(x); x['season']=season; lock_rows.append(x); lock_seg.add(seg_key(x))
+              lock_manifest.append({'season':season,'status':d.get('status'),'engine':d.get('engine'),'target_count':len(d.get('targets',[])),'games_required':d.get('games_required',0),'accepted_excluded_games':len(d.get('accepted_excluded_games',[])),'exceptions':len(d.get('exceptions',[])),'unmatched_rebound_rows':len(d.get('unmatched_rebound_rows',[])),'code_commit':d.get('code_commit')})
+          if exceptions or unmatched: raise RuntimeError(f'lock integrity not clean exceptions={len(exceptions)} unmatched={len(unmatched)}')
+          expected_seg={seg_key(x) for x in partial_expected}
+          if lock_seg!=expected_seg: raise RuntimeError(f'partial lock key mismatch missing={len(expected_seg-lock_seg)} extra={len(lock_seg-expected_seg)}')
+          assert len(lock_rows)==5199 and len(lock_seg)==5199
+          observed_excluded={int(x['game_id']) for x in exclusions}
+          if observed_excluded!=EXPECTED_EXCLUDED_GAMES: raise RuntimeError(f'exclusion ledger mismatch missing={sorted(EXPECTED_EXCLUDED_GAMES-observed_excluded)} extra={sorted(observed_excluded-EXPECTED_EXCLUDED_GAMES)}')
+          assert len(exclusions)==40
+
+          lf=pd.DataFrame(lock_rows)
+          for col in COUNT_COLS+['seconds_on','seconds_off','games_processed']: lf[col]=pd.to_numeric(lf[col],errors='raise')
+          lf['player_id']=lf.player_id.map(ids); lf['team_id']=pd.to_numeric(lf.team_id,errors='raise').astype(int)
+          partial_rows=[]
+          for k,g in lf.groupby(['season','player_id','team_id'],sort=True,dropna=False):
+              s,pid,tid=k
+              row={'season':str(s),'player_id':ids(pid),'player':next((str(x) for x in g.player if pd.notna(x) and str(x).strip()),''),'team_id':int(tid),'team_abbr':next((str(x) for x in g.team_abbr if pd.notna(x) and str(x).strip()),hist_abbr(s,tid)),'tenure_start':str(g.query_start_date.min()),'tenure_end':str(g.query_end_date.max()),'source_type':'validated_partial_segment_locks','segment_count':int(len(g)),'games_processed':int(g.games_processed.sum()),'seconds_on':int(g.seconds_on.sum()),'seconds_off':int(g.seconds_off.sum())}
+              for col in COUNT_COLS: row[col]=int(g[col].sum())
+              partial_rows.append(row)
+          assert len(partial_rows)==4877
+          if { (r['season'],r['player_id'],r['team_id']) for r in partial_rows } != {canon_key(r) for r in partial}: raise RuntimeError('aggregated partial tenure keys do not equal canonical V2 partial keys')
+
+          detail=pd.DataFrame(full_rows+partial_rows)
+          detail['minutes_on']=detail.seconds_on/60.0; detail['minutes_off']=detail.seconds_off/60.0
+          detail=add_rates(detail)
+          detail=detail.sort_values(['season','player_id','team_id'],kind='stable').reset_index(drop=True)
+          assert len(detail)==14524 and detail.player_id.nunique()==2584 and detail.season.nunique()==26
+          assert int(detail.duplicated(['season','player_id','team_id']).sum())==0
+          assert set(map(tuple,detail[['season','player_id','team_id']].to_records(index=False))) == {canon_key(r) for r in canonical}
+          assert (detail.seconds_on>0).all() and (detail.seconds_off>=0).all()
+          assert int((detail.source_type=='full_team_schedule_core').sum())==9647
+          assert int((detail.source_type=='validated_partial_segment_locks').sum())==4877
+
+          # Career totals are recomputed from raw rebound counts, never by averaging percentages.
+          def first_nonblank(s):
+              for v in s:
+                  if pd.notna(v) and str(v).strip(): return str(v)
+              return ''
+          grp=detail.groupby('player_id',sort=True,dropna=False)
+          career=grp[COUNT_COLS+['seconds_on','seconds_off','games_processed']].sum().reset_index()
+          career=career.merge(grp['player'].agg(first_nonblank).rename('player').reset_index(),on='player_id',validate='one_to_one')
+          meta=grp.agg(first_season=('season','min'),last_season=('season','max'),seasons=('season','nunique'),teams=('team_id','nunique'),tenures=('season','size')).reset_index()
+          career=career.merge(meta,on='player_id',validate='one_to_one')
+          career=career.merge(grp['team_abbr'].agg(lambda s:','.join(sorted({str(x) for x in s if pd.notna(x)}))).rename('team_list').reset_index(),on='player_id',validate='one_to_one')
+          career['minutes_on']=career.seconds_on/60.0; career['minutes_off']=career.seconds_off/60.0
+          career=add_rates(career).sort_values(['minutes_on','player_id'],ascending=[False,True],kind='stable').reset_index(drop=True)
+          assert len(career)==2584 and career.player_id.nunique()==2584
+
+          # Convenient long-format rebound metrics for plotting/filtering.
+          def metric_long(frame, level):
+              rows=[]
+              idcols=['player_id','player'] + (['season','team_id','team_abbr','tenure_start','tenure_end','minutes_on','minutes_off','source_type'] if level=='tenure' else ['first_season','last_season','seasons','teams','team_list','minutes_on','minutes_off'])
+              specs=[('TREB%','treb_on','treb_off','treb_swing_pp'),('OREB%','oreb_pct_on','oreb_pct_off','oreb_swing_pp'),('DREB%','dreb_pct_on','dreb_pct_off','dreb_swing_pp')]
+              for _,r in frame.iterrows():
+                  base={c:r[c] for c in idcols}
+                  for m,a,b,c in specs: rows.append({**base,'metric':m,'on':r[a],'off':r[b],'on_off_swing_pp':r[c]})
+              return pd.DataFrame(rows)
+          detail_long=metric_long(detail,'tenure'); career_long=metric_long(career,'career')
+          assert len(detail_long)==14524*3 and len(career_long)==2584*3
+
+          exclusions_df=pd.DataFrame(exclusions).sort_values(['season','game_id'],kind='stable')
+          locks_df=pd.DataFrame(lock_manifest).sort_values('season',kind='stable')
+          solver_df=pd.DataFrame(solver_rows).sort_values(['season','team_id'],kind='stable')
+
+          zero_report=json.loads((corrected/'zero_minute_tail_report.json').read_text())
+          if int(zero_report['total_excluded_zero_minute_windows'])!=221 or int(zero_report['indeterminate_windows'])!=0 or int(zero_report['remaining_retry_queue_windows'])!=0: raise RuntimeError(f'zero-minute exclusion gate failed {zero_report}')
+          (out/'zero_minute_tail_report.json').write_text(json.dumps(zero_report,indent=2)+'\n')
+          (out/'zero_minute_tail_exclusions.json').write_text((corrected/'zero_minute_tail_exclusions.json').read_text())
+
+          captain={'status':'ACCEPTED_IMMATERIAL_CAPTAINS_CALL','accepted_date':'2026-08-13','scope':'exact residual rebound-event keys only','residual_rebound_events':13,'unique_games':10,'residual_keys':RESIDUALS,'structural_gates_relaxed':False,'generic_rebound_ordering_rule_introduced':False,'notes':'Rebound forensics closed by user captain’s call; provenance only, not a synthetic repair or blanket tolerance.'}
+          (out/'captains_call_accepted_residuals.json').write_text(json.dumps(captain,indent=2)+'\n')
+
+          detail.to_csv(out/'career_treb_detail.csv',index=False)
+          career.to_csv(out/'career_treb_summary.csv',index=False)
+          detail_long.to_csv(out/'rebound_metrics_tenure_long.csv',index=False)
+          career_long.to_csv(out/'rebound_metrics_career_long.csv',index=False)
+          detail.to_parquet(out/'career_treb_detail.parquet',index=False)
+          career.to_parquet(out/'career_treb_summary.parquet',index=False)
+          detail_long.to_parquet(out/'rebound_metrics_tenure_long.parquet',index=False)
+          career_long.to_parquet(out/'rebound_metrics_career_long.parquet',index=False)
+          exclusions_df.to_csv(out/'accepted_exclusions.csv',index=False)
+          locks_df.to_csv(out/'season_lock_manifest.csv',index=False)
+          solver_df.to_csv(out/'core_opponent_count_solver.csv',index=False)
+
+          with sqlite3.connect(out/'treb_2000_01_to_2025_26.sqlite') as con:
+              detail.to_sql('tenure_detail',con,index=False,if_exists='replace')
+              career.to_sql('career_summary',con,index=False,if_exists='replace')
+              detail_long.to_sql('rebound_metrics_tenure_long',con,index=False,if_exists='replace')
+              career_long.to_sql('rebound_metrics_career_long',con,index=False,if_exists='replace')
+              exclusions_df.to_sql('accepted_exclusions',con,index=False,if_exists='replace')
+              locks_df.to_sql('season_locks',con,index=False,if_exists='replace')
+              solver_df.to_sql('core_opponent_count_solver',con,index=False,if_exists='replace')
+              con.execute('CREATE INDEX idx_tenure_player ON tenure_detail(player_id)')
+              con.execute('CREATE INDEX idx_tenure_season ON tenure_detail(season)')
+              con.execute('CREATE INDEX idx_career_minutes ON career_summary(minutes_on)')
+
+          qa={'status':'PASS','season_range':['2000-01','2025-26'],'seasons':26,'canonical_tenure_rows':14524,'canonical_unique_tenure_keys':14524,'career_players':2584,'full_core_reuse_tenures':9647,'partial_tenures':4877,'validated_partial_segments':5199,'zero_minute_windows_excluded':221,'stale_core_affiliations_excluded':2,'lock_files':26,'lock_exceptions':0,'lock_unmatched_rebound_rows':0,'accepted_excluded_games':40,'accepted_exclusion_ledger_exact_match':True,'captains_call_residual_rebounds_accepted':13,'captains_call_unique_games':10,'structural_gates_relaxed':False,'core_opponent_component_team_seasons_solved':len(solved),'full_core_resolution_failures':0,'duplicate_tenure_keys':0,'rebound_metric_fields':RATE_COLS,'rebound_metric_long_rows':len(detail_long),'career_metric_long_rows':len(career_long)}
+          (out/'qa_report.json').write_text(json.dumps(qa,indent=2)+'\n')
+
+          readme='''TREB final canonical database — NBA regular seasons 2000-01 through 2025-26.\n\nCanonical population: 14,524 positive-minute player/team/season tenures, 2,584 players. The two documented stale core affiliations and 221 verified zero-ON-minute windows are excluded.\n\nComposition: 9,647 unchanged full-team-schedule core tenures plus 4,877 transaction-bounded partial tenures aggregated from 5,199 validated safe-lock segments. All 26 safe locks are COMPLETE with zero reconstruction exceptions and zero unmatched rebound rows.\n\nPrimary rebound metrics at both tenure and career level: TREB%, OREB%, DREB%, each with ON, tenure-corrected OFF, and ON-OFF swing in percentage points. Raw team/opponent OREB/DREB counts are retained. Career rates are recomputed from aggregated raw counts, not averaged percentages.\n\nFiles: career_treb_detail.*, career_treb_summary.*, rebound_metrics_tenure_long.*, rebound_metrics_career_long.*, SQLite database, accepted exclusion ledger, season-lock manifest, core opponent-count solver provenance, zero-minute exclusion provenance, captain’s-call residual ledger, QA and reader validation.\n\nThe 13 isolated residual rebound events across 10 games were explicitly accepted by captain’s call as immaterial. No structural gate was relaxed and no generic rebound-ordering rule was introduced.\n'''
+          (out/'README.txt').write_text(readme)
+          print(json.dumps(qa,indent=2))
+          PY
+
+      - name: Independent CSV Parquet SQLite and nine-field formula validation
+        run: |
+          python - <<'PY'
+          import json, os, sqlite3
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          out=Path(os.environ['OUT'])
+          d_csv=pd.read_csv(out/'career_treb_detail.csv',dtype={'player_id':'string'},low_memory=False)
+          c_csv=pd.read_csv(out/'career_treb_summary.csv',dtype={'player_id':'string'},low_memory=False)
+          d_pq=pd.read_parquet(out/'career_treb_detail.parquet'); c_pq=pd.read_parquet(out/'career_treb_summary.parquet')
+          with sqlite3.connect(out/'treb_2000_01_to_2025_26.sqlite') as con:
+              d_sql=pd.read_sql_query('select * from tenure_detail',con,dtype={'player_id':'string'})
+              c_sql=pd.read_sql_query('select * from career_summary',con,dtype={'player_id':'string'})
+          assert len(d_csv)==len(d_pq)==len(d_sql)==14524
+          assert len(c_csv)==len(c_pq)==len(c_sql)==2584
+          key=['season','player_id','team_id']
+          def keyset(f): return set(map(tuple,f[key].astype({'season':str,'player_id':str,'team_id':int}).to_records(index=False)))
+          assert keyset(d_csv)==keyset(d_pq)==keyset(d_sql)
+          count_cols=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off','seconds_on','seconds_off','games_processed']
+          for col in count_cols:
+              vals=[float(pd.to_numeric(f[col]).sum()) for f in (d_csv,d_pq,d_sql)]
+              assert max(vals)-min(vals)<1e-6,(col,vals)
+          rate_cols=['treb_on','treb_off','treb_swing_pp','oreb_pct_on','oreb_pct_off','oreb_swing_pp','dreb_pct_on','dreb_pct_off','dreb_swing_pp']
+          def recompute(f):
+              x=f.copy()
+              to_on=pd.to_numeric(x.team_oreb_on); td_on=pd.to_numeric(x.team_dreb_on); oo_on=pd.to_numeric(x.opponent_oreb_on); od_on=pd.to_numeric(x.opponent_dreb_on)
+              to_off=pd.to_numeric(x.team_oreb_off); td_off=pd.to_numeric(x.team_dreb_off); oo_off=pd.to_numeric(x.opponent_oreb_off); od_off=pd.to_numeric(x.opponent_dreb_off)
+              z={}
+              z['treb_on']=(to_on+td_on)/(to_on+td_on+oo_on+od_on); z['treb_off']=(to_off+td_off)/(to_off+td_off+oo_off+od_off); z['treb_swing_pp']=(z['treb_on']-z['treb_off'])*100
+              z['oreb_pct_on']=to_on/(to_on+od_on); z['oreb_pct_off']=to_off/(to_off+od_off); z['oreb_swing_pp']=(z['oreb_pct_on']-z['oreb_pct_off'])*100
+              z['dreb_pct_on']=td_on/(td_on+oo_on); z['dreb_pct_off']=td_off/(td_off+oo_off); z['dreb_swing_pp']=(z['dreb_pct_on']-z['dreb_pct_off'])*100
+              return z
+          maxdiff={}
+          for name,f in [('detail',d_csv),('career',c_csv)]:
+              calc=recompute(f)
+              for col in rate_cols:
+                  a=pd.to_numeric(f[col],errors='coerce').to_numpy(float); b=calc[col].to_numpy(float)
+                  diff=np.abs(a-b); finite=diff[np.isfinite(diff)]; m=float(finite.max()) if finite.size else 0.0
+                  assert np.allclose(a,b,rtol=0,atol=1e-12,equal_nan=True),(name,col,m)
+                  maxdiff[f'{name}.{col}']=m
+          # Cross-format equality for all nine stored rate columns.
+          for col in rate_cols:
+              base=pd.to_numeric(d_csv.sort_values(key)[col],errors='coerce').to_numpy(float)
+              for f in (d_pq,d_sql):
+                  other=pd.to_numeric(f.sort_values(key)[col],errors='coerce').to_numpy(float)
+                  assert np.allclose(base,other,rtol=0,atol=1e-12,equal_nan=True),col
+          report={'status':'PASS','detail_rows':14524,'career_players':2584,'csv_parquet_sqlite_keysets_identical':True,'count_second_game_totals_identical':True,'all_nine_rebound_rate_fields_recomputed':True,'all_nine_rate_fields_cross_format_identical':True,'formula_max_abs_differences':maxdiff}
+          (out/'reader_validation.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+
+      - name: Package checksums and final release report
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          out=Path(os.environ['OUT'])
+          files=[p for p in out.iterdir() if p.is_file() and p.name not in {'SHA256SUMS.txt','FINAL_PRODUCTION_BUILD_REPORT.json'}]
+          lines=[]
+          for p in sorted(files): lines.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}")
+          (out/'SHA256SUMS.txt').write_text('\n'.join(lines)+'\n')
+          qa=json.loads((out/'qa_report.json').read_text()); reader=json.loads((out/'reader_validation.json').read_text())
+          report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_branch':os.environ['GITHUB_REF_NAME'],'source_commit':os.environ['GITHUB_SHA'],'season_range':['2000-01','2025-26'],'canonical_tenure_rows':14524,'career_players':2584,'full_core_reuse_tenures':9647,'partial_tenures':4877,'validated_partial_segments':5199,'zero_minute_windows_excluded':221,'captains_call_residual_rebounds_accepted':13,'captains_call_unique_games':10,'structural_gates_relaxed':False,'qa_status':qa['status'],'reader_validation':reader['status']}
+          (out/'FINAL_PRODUCTION_BUILD_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
+          PY
+          cd "$OUT"
+          zip -9 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
+          sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip > /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+
+      - name: Upload complete canonical database
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-canonical-database-${{ github.run_id }}
+          path: |
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+            /tmp/treb_final/FINAL_PRODUCTION_BUILD_REPORT.json
+            /tmp/treb_final/qa_report.json
+            /tmp/treb_final/reader_validation.json
+          retention-days: 90
+
+      - name: Persist final canonical release provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_release
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812
+            git reset --hard origin/agent/treb-batched-game-facts-20260812
+            mkdir -p "$D"
+            cp "$OUT/FINAL_PRODUCTION_BUILD_REPORT.json" "$D/"
+            cp "$OUT/qa_report.json" "$D/FINAL_QA_REPORT.json"
+            cp "$OUT/reader_validation.json" "$D/FINAL_READER_VALIDATION.json"
+            cp "$OUT/captains_call_accepted_residuals.json" "$D/CAPTAINS_CALL_ACCEPTED_RESIDUALS.json"
+            cp "$OUT/zero_minute_tail_report.json" "$D/ZERO_MINUTE_TAIL_REPORT.json"
+            cp "$OUT/core_opponent_count_solver.csv" "$D/CORE_OPPONENT_COUNT_SOLVER.csv"
+            cp "$OUT/SHA256SUMS.txt" "$D/FINAL_SHA256SUMS.txt"
+            git add -f "$D"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Persist final canonical TREB release provenance'
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1
