@@ -1,0 +1,117 @@
+name: TREB V10 team anchor audit
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-v10-team-anchor-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          m = json.loads(Path(os.environ['MANIFEST']).read_text())
+          assert len(m['chunks']) == 24 and m['target_games'] == 58
+          x = {'include': [{'chunk_id': c['chunk_id'], 'year': int(c['year']), 'games': ','.join(map(str, c['game_ids']))} for c in m['chunks']]}
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('matrix=' + json.dumps(x, separators=(',', ':')) + '\n')
+          PY
+  audit:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - run: |
+          python -u team_trb_all_players/rebound_v10_team_anchor_audit.py --year '${{ matrix.year }}' --games '${{ matrix.games }}' --chunk-id '${{ matrix.chunk_id }}' --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' --output '/tmp/V10_${{ matrix.chunk_id }}.json'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v10-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/V10_${{ matrix.chunk_id }}.json
+          retention-days: 90
+  aggregate:
+    needs: [plan, audit]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-v10-*-${{ github.run_id }}
+          path: /tmp/results
+      - name: Aggregate diagnostic controls and candidates
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          ps = sorted(Path('/tmp/results').rglob('V10_*.json'))
+          assert len(ps) == 24, [str(p) for p in ps]
+          xs = [json.loads(p.read_text()) for p in ps]
+          names = list(xs[0]['controls'])
+          ctl = {n: {k: sum(int(x['controls'][n][k]) for x in xs) for k in ('applicable','correct','wrong')} for n in names}
+          wrong = {n: [r for x in xs for r in x['wrong_records'][n]] for n in names}
+          cand = [r for x in xs for r in x['residual_candidates']]
+          zero = [n for n in names if ctl[n]['applicable'] > 0 and ctl[n]['wrong'] == 0]
+          out = {
+              'status': 'DIAGNOSTIC_ONLY',
+              'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'engine_under_test': 'production_rebound_v8',
+              'starting_v8b_residual_rows': 16,
+              'controls': ctl,
+              'zero_error_rules': zero,
+              'wrong_records': wrong,
+              'residual_candidates': cand
+          }
+          Path('/tmp/V10_TEAM_ANCHOR_AUDIT.json').write_text(json.dumps(out, indent=2) + '\n')
+          print(json.dumps({'controls': ctl, 'zero_error_rules': zero, 'residual_candidates': len(cand)}, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v10-team-anchor-${{ github.run_id }}
+          path: /tmp/V10_TEAM_ANCHOR_AUDIT.json
+          retention-days: 90
+      - name: Persist durable result
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812
+            git reset --hard origin/agent/treb-batched-game-facts-20260812
+            cp /tmp/V10_TEAM_ANCHOR_AUDIT.json "$D/"
+            git add -f "$D/V10_TEAM_ANCHOR_AUDIT.json"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Persist V10 team anchor audit'
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
