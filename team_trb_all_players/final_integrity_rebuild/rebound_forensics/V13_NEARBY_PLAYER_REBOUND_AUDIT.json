@@ -4,37 +4,23 @@
   "source_cache": "REBOUND_FORENSIC_FEATURE_CACHE_V2.json.gz",
   "cache_workflow_run_id": 31656553237,
   "rule": {
-    "name": "unique_nearest_real_nba_player_rebound_exact_name_within_3s",
+    "name": "unique_nearest_real_nba_player_rebound_exact_name_within_3s_and_unassigned",
     "requirements": [
       "NBA event is a real rebound",
       "NBA PLAYER1_ID is a player ID, not a team ID",
       "normalized NBA rebound description begins with the exact PBP rebound name key",
       "NBA event is within 3 seconds of the PBP rebound interval",
-      "nearest qualifying NBA event is unique"
+      "nearest qualifying NBA event is unique",
+      "candidate NBA event is not already assigned by the production baseline"
     ]
   },
-  "controls": {
+  "matched_control_evidence_before_nonreuse_filter": {
     "applicable": 4888,
     "exact_nba_event_identity_correct": 4888,
     "exact_lineup_correct": 4888,
     "wrong": 0
   },
-  "v12_remaining_candidates": [
-    {
-      "game_id": 21700042,
-      "pbp_index": 7322,
-      "period": 2,
-      "start_time": "01:27",
-      "end_time": "01:12",
-      "description": "Johnson REBOUND",
-      "pbp_is_oreb": false,
-      "nba_index": 180,
-      "nba_elapsed": 1351,
-      "distance_seconds": 2,
-      "nba_player1_id": 201949,
-      "nba_description": "johnson rebound (off:0 def:5)",
-      "lineup": [201158,201609,201949,201961,202337,203482,1626196,1627098,1627752,1628381]
-    },
+  "eligible_v12_remaining_candidates": [
     {
       "game_id": 22201076,
       "pbp_index": 494,
@@ -44,12 +30,27 @@
       "description": "[UTA] Agbaji Rebound (Off:1 Def:3)",
       "pbp_is_oreb": true,
       "nba_index": 281,
+      "nba_eventnum": 416,
       "nba_elapsed": 1802,
       "distance_seconds": 0,
       "nba_player1_id": 1630534,
       "nba_description": "agbaji rebound (off:1 def:2)",
+      "nba_event_unassigned_in_v12": true,
       "lineup": [200752,1626168,1627734,1627739,1628368,1628370,1630534,1630548,1631099,1631117]
     }
   ],
-  "note": "Sabonis 22201076/529 also satisfied this rule in the V9 cache but was independently promoted and fully regressed in V12, so it is excluded from V12 remaining candidates."
+  "rejected_candidates": [
+    {
+      "game_id": 21700042,
+      "pbp_index": 7322,
+      "description": "Johnson REBOUND",
+      "reason": "nba_event_already_used",
+      "nba_index": 180,
+      "nba_eventnum": 254,
+      "reused_by_pbp_index": 7324,
+      "reused_by_pbp_description": "Johnson REBOUND (Off:0 Def:5)",
+      "integrity_gate": "one NBA rebound event may not be assigned to two PBP rebound rows"
+    }
+  ],
+  "note": "Sabonis 22201076/529 satisfied the proximity/name rule but was independently promoted and fully regressed in V12. Johnson is explicitly rejected because the otherwise matching NBA event is already consumed by PBP row 7324."
 }
