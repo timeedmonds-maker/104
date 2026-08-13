@@ -1,0 +1,180 @@
+{
+  "status": "DIAGNOSTIC_ONLY",
+  "cache_schema_version": 2,
+  "engine_under_test": "production_rebound_v9",
+  "matched_control_rows": 6022,
+  "generic_unmatched_rows": 101,
+  "current_residual_rows": 15,
+  "predeclared_rule_classes_tested": 563,
+  "minimum_control_support": 25,
+  "zero_error_rules_covering_residuals": [
+    {
+      "anchor": "clock_invariant",
+      "side": "dreb",
+      "format": "all",
+      "identity": "resolved",
+      "applicable_controls": 348,
+      "correct_controls": 348,
+      "wrong_controls": 0,
+      "residual_candidates": [
+        {
+          "game_id": 22201076,
+          "pbp_index": 529,
+          "description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+          "predicted_lineup": [
+            203084,
+            203482,
+            1627734,
+            1627739,
+            1630534,
+            1630556,
+            1630558,
+            1631099,
+            1631117,
+            1631323
+          ]
+        }
+      ]
+    },
+    {
+      "anchor": "clock_invariant",
+      "side": "dreb",
+      "format": "bracket",
+      "identity": "named_nonteam",
+      "applicable_controls": 52,
+      "correct_controls": 52,
+      "wrong_controls": 0,
+      "residual_candidates": [
+        {
+          "game_id": 22201076,
+          "pbp_index": 529,
+          "description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+          "predicted_lineup": [
+            203084,
+            203482,
+            1627734,
+            1627739,
+            1630534,
+            1630556,
+            1630558,
+            1631099,
+            1631117,
+            1631323
+          ]
+        }
+      ]
+    },
+    {
+      "anchor": "clock_invariant",
+      "side": "dreb",
+      "format": "bracket",
+      "identity": "resolved",
+      "applicable_controls": 52,
+      "correct_controls": 52,
+      "wrong_controls": 0,
+      "residual_candidates": [
+        {
+          "game_id": 22201076,
+          "pbp_index": 529,
+          "description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+          "predicted_lineup": [
+            203084,
+            203482,
+            1627734,
+            1627739,
+            1630534,
+            1630556,
+            1630558,
+            1631099,
+            1631117,
+            1631323
+          ]
+        }
+      ]
+    },
+    {
+      "anchor": "clock_invariant",
+      "side": "dreb",
+      "format": "bracket_counter",
+      "identity": "all",
+      "applicable_controls": 52,
+      "correct_controls": 52,
+      "wrong_controls": 0,
+      "residual_candidates": [
+        {
+          "game_id": 22201076,
+          "pbp_index": 529,
+          "description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+          "predicted_lineup": [
+            203084,
+            203482,
+            1627734,
+            1627739,
+            1630534,
+            1630556,
+            1630558,
+            1631099,
+            1631117,
+            1631323
+          ]
+        }
+      ]
+    },
+    {
+      "anchor": "clock_invariant",
+      "side": "dreb",
+      "format": "bracket_counter",
+      "identity": "named_nonteam",
+      "applicable_controls": 52,
+      "correct_controls": 52,
+      "wrong_controls": 0,
+      "residual_candidates": [
+        {
+          "game_id": 22201076,
+          "pbp_index": 529,
+          "description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+          "predicted_lineup": [
+            203084,
+            203482,
+            1627734,
+            1627739,
+            1630534,
+            1630556,
+            1630558,
+            1631099,
+            1631117,
+            1631323
+          ]
+        }
+      ]
+    },
+    {
+      "anchor": "clock_invariant",
+      "side": "dreb",
+      "format": "bracket_counter",
+      "identity": "resolved",
+      "applicable_controls": 52,
+      "correct_controls": 52,
+      "wrong_controls": 0,
+      "residual_candidates": [
+        {
+          "game_id": 22201076,
+          "pbp_index": 529,
+          "description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+          "predicted_lineup": [
+            203084,
+            203482,
+            1627734,
+            1627739,
+            1630534,
+            1630556,
+            1630558,
+            1631099,
+            1631117,
+            1631323
+          ]
+        }
+      ]
+    }
+  ]
+}
