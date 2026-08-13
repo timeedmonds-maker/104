@@ -1,0 +1,19 @@
+{
+  "status": "PROMOTED",
+  "method": "v8b_strict_named_zero_error_controls",
+  "source_audit_run_id": 31653013259,
+  "safe_controls": {
+    "dual_anchor_named": {"applicable": 3616, "correct": 3616, "wrong": 0},
+    "dreb_counter_prior_named": {"applicable": 3141, "correct": 3141, "wrong": 0}
+  },
+  "rejected_controls": {
+    "bracket_counter_clock_named": {"applicable": 169, "correct": 165, "wrong": 4},
+    "bracket_counter_endpoint_clock_named": {"applicable": 161, "correct": 160, "wrong": 1}
+  },
+  "repair_rows": 3,
+  "repairs": [
+    {"game_id": 21700077, "pbp_index": 8523, "period": 2, "start_time": "04:34", "end_time": "03:59", "pbp_description": "Holiday REBOUND (Off:0 Def:3)", "resolved_player_id": 201950, "lineup": [2544,2548,2747,201567,201950,201967,202684,202734,203076,203546], "real": true, "resolution_method": "dreb_counter_prior_named"},
+    {"game_id": 21700363, "pbp_index": 6774, "period": 1, "start_time": "05:19", "end_time": "05:15", "pbp_description": "Ball REBOUND (Off:0 Def:2)", "resolved_player_id": 1628366, "lineup": [101161,200755,201572,203484,204456,1627732,1627742,1627789,1628366,1628398], "real": true, "resolution_method": "dreb_counter_prior_named"},
+    {"game_id": 21900121, "pbp_index": 47, "period": 4, "start_time": "10:36", "end_time": "10:16", "pbp_description": "Siakam REBOUND (Off:3 Def:6)", "resolved_player_id": 1627783, "lineup": [201188,202734,1626259,1627783,1628402,1629026,1629056,1629637,1629638,1629744], "real": true, "resolution_method": "dual_anchor_named+dreb_counter_prior_named"}
+  ]
+}
