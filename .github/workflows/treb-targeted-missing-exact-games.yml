@@ -1,0 +1,157 @@
+name: TREB targeted missing exact games
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-targeted-missing-exact-games.yml
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: '1'
+  STAGE2_REF: treb-stage2-actions-live
+  OUT: team_trb_all_players/final_integrity_rebuild/final_exact_release/TARGETED_MISSING_EXACT_GAMES.json
+
+jobs:
+  manifest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch durable refs
+        run: git fetch --force origin '+refs/heads/*:refs/remotes/origin/*'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pandas
+        run: python -m pip install --disable-pip-version-check pandas
+      - name: Build exact missing-game manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2
+          git worktree add --detach /tmp/treb_stage2 refs/remotes/origin/${STAGE2_REF}
+          python - <<'PY'
+          import gzip, io, json, subprocess
+          from collections import defaultdict
+          from pathlib import Path
+          import pandas as pd
+
+          repo=Path.cwd()
+          stage=Path('/tmp/treb_stage2/team_trb_all_players')
+          src=repo/'team_trb_all_players/final_integrity_rebuild/final_exact_release/FULLCORE_EXACT_SOURCE_MANIFEST_V3.json'
+          report=json.loads(src.read_text())
+          assert report['canonical']['tenure_rows']==14524
+          assert report['canonical']['full_core_rows']==9647
+          assert report['canonical']['partial_rows']==4877
+          assert report['inventory']['team_conflict_keys']==0
+          assert report['inventory']['player_conflict_keys']==0
+
+          def blob(sha):
+              return subprocess.check_output(['git','cat-file','-p',sha])
+          def csvblob(sha):
+              return pd.read_csv(io.BytesIO(blob(sha)),compression='gzip',low_memory=False)
+
+          present=defaultdict(set)
+          source_pair_count=defaultdict(int)
+          read_errors=[]
+          for rec in report.get('exact_source_pairs',[]):
+              seasons=rec.get('seasons',[])
+              if not seasons:
+                  continue
+              try:
+                  t=csvblob(rec['team_blob_sha'])
+              except Exception as e:
+                  read_errors.append({'team_blob_sha':rec.get('team_blob_sha'),'error':repr(e)})
+                  continue
+              for season in seasons:
+                  source_pair_count[season]+=1
+              for r in t.itertuples(index=False):
+                  gid=int(r.game_id); tid=int(r.team_id)
+                  y=2000+int(str(gid)[:3][1:3]) if str(gid).startswith('2') else None
+                  if y is None: continue
+                  season=f'{y}-{(y+1)%100:02d}'
+                  present[season].add((gid,tid))
+
+          accepted=set(map(int,report.get('accepted_game_exclusions',[])))
+          by_season={}
+          all_missing=set()
+          all_missing_unaccepted=set()
+          for y in range(2000,2026):
+              season=f'{y}-{(y+1)%100:02d}'
+              sched_path=stage/'impact_database/roster_tenure/regular_season_games_raw'/f'{season}.json.gz'
+              with gzip.open(sched_path,'rt',encoding='utf-8') as f:
+                  d=json.load(f)
+              expected=set()
+              for g in d['results']:
+                  gid=int(g['GameId'])
+                  expected.add((gid,int(g['HomeTeamId'])))
+                  expected.add((gid,int(g['AwayTeamId'])))
+              missing_keys=expected-present.get(season,set())
+              missing_games=sorted({gid for gid,_ in missing_keys})
+              missing_unaccepted=sorted(g for g in missing_games if g not in accepted)
+              accepted_missing=sorted(g for g in missing_games if g in accepted)
+              complete_games=sorted({gid for gid,_ in expected if (gid,_) in present.get(season,set())})
+              all_missing.update(missing_games)
+              all_missing_unaccepted.update(missing_unaccepted)
+              by_season[season]={
+                  'source_pairs':source_pair_count.get(season,0),
+                  'expected_team_game_sides':len(expected),
+                  'present_team_game_sides':len(expected & present.get(season,set())),
+                  'missing_team_game_sides':len(missing_keys),
+                  'missing_games':missing_games,
+                  'missing_game_count':len(missing_games),
+                  'accepted_exclusion_missing_games':accepted_missing,
+                  'accepted_exclusion_missing_count':len(accepted_missing),
+                  'strict_unaccepted_missing_games':missing_unaccepted,
+                  'strict_unaccepted_missing_count':len(missing_unaccepted),
+              }
+
+          payload={
+              'status':'PASS' if not read_errors else 'FAIL_READ_ERRORS',
+              'purpose':'Exact targeted reconstruction list; no successful season/game is to be rerun.',
+              'source_manifest':str(src),
+              'canonical':report['canonical'],
+              'team_conflict_keys':report['inventory']['team_conflict_keys'],
+              'player_conflict_keys':report['inventory']['player_conflict_keys'],
+              'accepted_exclusions_are_not_production_waivers':True,
+              'accepted_exclusion_count_in_legacy_manifest':len(accepted),
+              'missing_game_count_all':len(all_missing),
+              'strict_unaccepted_missing_game_count':len(all_missing_unaccepted),
+              'strict_unaccepted_missing_games':sorted(all_missing_unaccepted),
+              'by_season':by_season,
+              'read_errors':read_errors,
+          }
+          out=repo/'team_trb_all_players/final_integrity_rebuild/final_exact_release/TARGETED_MISSING_EXACT_GAMES.json'
+          out.parent.mkdir(parents=True,exist_ok=True)
+          out.write_text(json.dumps(payload,indent=2)+'\n')
+          print(json.dumps({
+              'status':payload['status'],
+              'missing_game_count_all':payload['missing_game_count_all'],
+              'strict_unaccepted_missing_game_count':payload['strict_unaccepted_missing_game_count'],
+              'seasons_with_strict_missing':{s:v['strict_unaccepted_missing_count'] for s,v in by_season.items() if v['strict_unaccepted_missing_count']},
+          },indent=2))
+          assert not read_errors, read_errors
+          PY
+      - name: Persist targeted manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$OUT"
+          if git diff --cached --quiet; then
+            echo 'No manifest change.'
+            exit 0
+          fi
+          git commit -m 'Persist targeted missing exact-game manifest [skip ci]'
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        with:
+          name: targeted-missing-exact-games
+          path: ${{ env.OUT }}
