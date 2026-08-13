@@ -158,17 +158,37 @@ def main():
         joined, _ = rebound.join_pbp_rebounds(lu, pg[gid])
         rows = audit.rows_for_game(pg[gid])
         rmap = audit.rebounder_map(events)
-        matched_count = 0
+        production_joined_count = 0
+        nba_backed_control_count = 0
         residual_count = 0
         for idx, row in rows.iterrows():
-            matched = idx in joined.index and pd.notna(joined.loc[idx, "NBA_INDEX"])
-            ni = int(joined.loc[idx, "NBA_INDEX"]) if matched else None
-            if matched:
-                matched_count += 1
+            # Production V5-V9 may resolve a PBP rebound by a validated synthetic
+            # lineage.  Those rows deliberately have NBA_INDEX=NA.  They are no
+            # longer production residuals, but they must not be recycled as
+            # independent NBA-backed controls for a new forensic rule.
+            production_joined = idx in joined.index
+            nba_backed_control = production_joined and pd.notna(joined.loc[idx, "NBA_INDEX"])
+            ni = int(joined.loc[idx, "NBA_INDEX"]) if nba_backed_control else None
+            if production_joined:
+                production_joined_count += 1
             else:
                 residual_count += 1
-            lp = audit.lineup_predictions(events, row, exclude=ni)
+            if nba_backed_control:
+                nba_backed_control_count += 1
+
+            # For already-promoted synthetic joins, suppress lineup predictions
+            # from the control pool.  Their evidence remains represented by the
+            # production lineage, but using them as controls would be circular.
+            if production_joined and not nba_backed_control:
+                lp = {k: None for k in audit.lineup_predictions(events, row, exclude=None)}
+            else:
+                lp = audit.lineup_predictions(events, row, exclude=ni)
             rp = audit.live_predictions(row, rmap)
+
+            joined_lineage = None
+            if production_joined and "REBOUND_LINEAGE" in joined.columns:
+                joined_lineage = clean_scalar(joined.loc[idx, "REBOUND_LINEAGE"])
+
             rec = {
                 "chunk_id": z.chunk_id,
                 "year": int(z.year),
@@ -189,10 +209,16 @@ def main():
                 "bracket_format": bool(audit.BRACKET_RE.match(str(row.DESCRIPTION))),
                 "name_key": audit.name_key(row.DESCRIPTION),
                 "resolved_player_id": clean_scalar(rmap.get(audit.name_key(row.DESCRIPTION))),
-                "matched": bool(matched),
+                # Backward-compatible meaning for the existing sweep: matched
+                # means available as an independent NBA-backed control.
+                "matched": bool(nba_backed_control),
+                "production_joined": bool(production_joined),
+                "production_residual": bool(not production_joined),
+                "nba_backed_control": bool(nba_backed_control),
+                "rebound_lineage": joined_lineage,
                 "nba_index": ni,
-                "actual_real_rebound": bool(core._nba_real_rebound(events, ni)) if matched else None,
-                "actual_lineup": lineup_json(events.loc[ni, "LINEUP"]) if matched else None,
+                "actual_real_rebound": bool(core._nba_real_rebound(events, ni)) if nba_backed_control else None,
+                "actual_lineup": lineup_json(events.loc[ni, "LINEUP"]) if nba_backed_control else None,
                 "lineup_predictions": {k: lineup_json(v) for k, v in lp.items()},
                 "live_predictions": {k: clean_scalar(v) for k, v in rp.items()},
                 "nearby_nba_events": nearby_events(events, row, exclude=ni),
@@ -202,13 +228,14 @@ def main():
         game_summaries.append({
             "game_id": int(gid),
             "pbp_rebound_rows": int(len(rows)),
-            "matched_rows": int(matched_count),
+            "production_joined_rows": int(production_joined_count),
+            "nba_backed_control_rows": int(nba_backed_control_count),
             "unmatched_rows": int(residual_count),
         })
 
     payload = {
         "status": "FORENSIC_FEATURE_CACHE",
-        "schema_version": 1,
+        "schema_version": 2,
         "engine": "production_rebound_v9",
         "chunk_id": z.chunk_id,
         "year": int(z.year),
@@ -225,7 +252,8 @@ def main():
         "year": z.year,
         "games": len(ids),
         "records": len(records),
-        "unmatched": sum(x["unmatched_rows"] for x in game_summaries),
+        "production_residual": sum(x["unmatched_rows"] for x in game_summaries),
+        "nba_backed_controls": sum(x["nba_backed_control_rows"] for x in game_summaries),
     }, indent=2))
     return 0
 
