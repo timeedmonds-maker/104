@@ -31,6 +31,12 @@ SUBSTITUTION_OUT_REPAIRS = {
 JOIN_REPAIRS = {
     (20000758, 4, "gatling rebound (off:2 def:3)"): 394,
     (20000998, 1, "wizards rebound"): 114,
+    # Exact adjudication from the retained 2002 NBA/V3/PBP source layers.
+    # The PBP Stats Richardson rebound in game 20200077 period 2 has no
+    # acceptable fuzzy event match, but source chronology uniquely identifies
+    # NBA EVENTNUM 110. The isolated 50-game canary recovered this game with
+    # zero validation drift while leaving the nine starter ambiguities failed.
+    (20200077, 2, "richardson rebound (off:1 def:1)"): 110,
     (22400208, 1, "murray rebound (off:0 def:1)"): 170,
     (22401102, 5, "mcdaniels rebound (off:4 def:1)"): 709,
 }
