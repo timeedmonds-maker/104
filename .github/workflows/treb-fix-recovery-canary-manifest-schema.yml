@@ -1,0 +1,50 @@
+name: TREB fix recovery canary manifest schema
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-fix-recovery-canary-manifest-schema.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - name: Patch only stale manifest field references
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/treb-exact-game-recovery-canary.yml')
+          s=p.read_text()
+          replacements={
+            "m=pd.read_csv(manifest,dtype={'game_id':str,'game_id_numeric':str})":"m=pd.read_csv(manifest,dtype={'game_id':str})",
+            "if 'partition_bucket' not in m or not m['partition_bucket'].astype(str).eq('strict_recovery').all():\n              raise SystemExit('strict manifest partition guard failed')":"if 'partition_class' not in m or not m['partition_class'].astype(str).eq('strict_historical_recovery_required').all():\n              raise SystemExit('strict manifest partition-class guard failed')\n          if 'production_recovery_required' not in m or not m['production_recovery_required'].astype(str).str.lower().eq('true').all():\n              raise SystemExit('strict manifest production-recovery guard failed')",
+            "m['canonical_game_id']=m['game_id_numeric'].map(lambda x:str(int(str(x).strip().removesuffix('.0'))))":"m['canonical_game_id']=m['game_id'].map(lambda x:str(int(str(x).strip().removesuffix('.0'))))",
+            "requested=pd.read_csv(out/'requested_games.csv',dtype={'game_id':str,'game_id_numeric':str,'canonical_game_id':str})":"requested=pd.read_csv(out/'requested_games.csv',dtype={'game_id':str,'canonical_game_id':str})",
+          }
+          for old,new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'expected stale snippet missing: {old[:100]}')
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          git diff --check
+          git diff -- .github/workflows/treb-exact-game-recovery-canary.yml
+      - name: Commit corrected canary
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/treb-exact-game-recovery-canary.yml
+          git commit -m 'Fix exact-game canary manifest schema guard'
+          git push origin HEAD:agent/treb-final-exact-assembly
