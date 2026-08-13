@@ -57,7 +57,8 @@ jobs:
 
           def norm(v):
               s=str(v).strip()
-              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+              if s.endswith('.0') and s[:-2].isdigit(): s=s[:-2]
+              return str(int(s)) if s.isdigit() else s
           def ckey(s,p,t): return f'{norm(s)}|{norm(p)}|{norm(t)}'
           def read_jsonl_gz(p):
               rows=[]
@@ -173,6 +174,11 @@ jobs:
               validated_present[s]=actual_present
 
               current=set(season_games.get(s,set())); old_missing={norm(x) for x in info.get('missing_ids',[])}
+              overlap=actual_present & current
+              if reported_present and current and not overlap:
+                  hard_guard_failures.append({'season':s,'guard':'positive_present_ids_must_overlap_current_schedule','reported_present':reported_present,'current_schedule_games':len(current),'overlap':0})
+              if reported_present==reported_expected==len(current) and actual_present!=current:
+                  hard_guard_failures.append({'season':s,'guard':'complete_union_season_must_exactly_match_current_schedule_after_id_normalization','reported_expected':reported_expected,'reported_present':reported_present,'current_schedule_games':len(current),'overlap':len(overlap),'present_not_current':len(actual_present-current),'current_not_present':len(current-actual_present)})
               current_minus_old_missing=current-old_missing
               diag={
                   'season':s,
@@ -181,7 +187,7 @@ jobs:
                   'union_reported_present_games':reported_present,
                   'union_reported_missing_ids':len(old_missing),
                   'positively_recovered_present_ids':len(actual_present),
-                  'positively_recovered_present_ids_in_current_v3_schedule':len(actual_present & current),
+                  'positively_recovered_present_ids_in_current_v3_schedule':len(overlap),
                   'positively_recovered_present_ids_not_in_current_v3_schedule':len(actual_present-current),
                   'current_v3_schedule_ids_not_in_positive_union_present_set':len(current-actual_present),
                   'historical_missing_ids_in_current_v3_schedule':len(old_missing & current),
@@ -205,9 +211,12 @@ jobs:
               'policy':{
                   'historical_union_metadata_authoritative_for_its_source':True,
                   'current_v3_schedule_authoritative_for_current_scope':True,
+                  'game_id_normalization':'integer_equivalent_string',
                   'positive_presence_source':'retained validated team_game_treb rows only',
                   'current_schedule_minus_historical_missing_used_to_establish_presence':False,
                   'cross_snapshot_identities_are_hard_gates':False,
+                  'positive_present_current_schedule_nonzero_overlap_is_hard_gate':True,
+                  'complete_union_season_exact_overlap_after_normalization_is_hard_gate':True,
                   'reported_team_rows_equals_2x_reported_present_is_hard_gate':True,
               },
               'source_recovery':{
@@ -307,6 +316,9 @@ jobs:
                   'targeted_retained_exact_team_fact_fetch_used':True,
                   'player_game_fact_sources_refetched':False,
                   'scope_limited_to_current_4602_residual':True,
+                  'game_ids_normalized_to_integer_equivalent_strings':True,
+                  'positive_present_current_schedule_nonzero_overlap_hard_gate':True,
+                  'complete_union_season_exact_overlap_after_normalization_hard_gate':True,
                   'historical_expected_schedule_count_is_diagnostic_only':True,
                   'historical_present_equals_current_schedule_minus_old_missing_is_not_a_gate':True,
                   'positive_present_ids_recovered_from_retained_exact_team_game_facts':True,
@@ -319,7 +331,7 @@ jobs:
           (OUT/'README.md').write_text(
               '# TREB residual game-scope mapping v2\n\n'
               'Status: **PASS**\n\n'
-              'No reconstruction or rounded-percentage inference. Positive historical exact-game presence is established only from retained validated `team_game_treb` rows. Cross-snapshot schedule identities are diagnostic only; the union two-team integrity and exact source reproduction remain hard guards.\n\n'
+              'No reconstruction or rounded-percentage inference. Game IDs are normalized to integer-equivalent strings before cross-source comparison. Positive historical exact-game presence is established only from retained validated `team_game_treb` rows. Cross-snapshot schedule identities remain diagnostic, while zero-overlap and complete-union-season overlap checks are hard guards alongside union two-team integrity and exact source reproduction.\n\n'
               f'- Residual canonical keys: **{len(key_rows):,}**\n'
               f'- Keys with missing exact team games: **{len(with_missing):,}**\n'
               f'- Keys already fully team-game covered: **{len(fully):,}**\n'
