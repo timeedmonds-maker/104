@@ -1,0 +1,77 @@
+name: TREB V13 aggregate recovery
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-v13-aggregate-recovery.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+env:
+  SOURCE_V13_RUN_ID: '31657395380'
+jobs:
+  aggregate-existing-v13:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-v13-reg-*-${{ env.SOURCE_V13_RUN_ID }}
+          path: /tmp/results
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_V13_RUN_ID }}
+      - name: Enforce Agbaji promotion with expanded zero-error control populations
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          ps = sorted(Path('/tmp/results').rglob('V13REG_*.json'))
+          assert len(ps) == 24, [str(p) for p in ps]
+          xs = [json.loads(p.read_text()) for p in ps]
+          def agg(sec, name):
+              return {k: sum(int(x[sec][name][k]) for x in xs) for k in ('applicable','correct','wrong')}
+          interval = agg('lineup_controls','interval_invariant')
+          named = agg('live_controls','resolved_named_player')
+          counter = agg('live_controls','counter_credited_player')
+          assert interval == {'applicable':4682,'correct':4682,'wrong':0}, interval
+          # Agbaji itself becomes one additional valid named/counter control after promotion.
+          assert named == {'applicable':5035,'correct':5035,'wrong':0}, named
+          assert counter == {'applicable':5164,'correct':5164,'wrong':0}, counter
+          d = Path('team_trb_all_players/final_integrity_rebuild/rebound_forensics')
+          prior = json.loads((d/'V12_PROMOTION_REGRESSION.json').read_text())
+          prior_keys = {(int(x[0]),int(x[1])) for x in prior['residual_keys']}
+          assert prior['status']=='PASS' and prior['v12_residual_rows']==14 and len(prior_keys)==14
+          target={(22201076,494)}
+          residual=[r for x in xs for r in x['residual_rows']]
+          after={(int(r['game_id']),int(r['pbp_index'])) for r in residual}
+          expected=prior_keys-target
+          assert len(residual)==13 and len(after)==13 and after==expected
+          out={
+            'status':'PASS',
+            'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+            'source_v13_run_id':int(os.environ['SOURCE_V13_RUN_ID']),
+            'engine':'production_rebound_v13',
+            'prior_v12_residual_rows':14,
+            'promoted_v13_rows':1,
+            'v13_residual_rows':13,
+            'promoted_keys':[[22201076,494]],
+            'rejected_candidate_keys':[[21700042,7322]],
+            'rejected_candidate_reason':'NBA event 180 already assigned to PBP row 7324; event reuse forbidden',
+            'non_target_residual_delta_rows':0,
+            'lineup_interval_invariant_controls':interval,
+            'named_player_live_controls':named,
+            'counter_credited_player_live_controls':counter,
+            'prior_control_wrong_delta':0,
+            'newly_added_correct_named_controls':1,
+            'newly_added_correct_counter_controls':1,
+            'existing_control_regressions':0,
+            'residual_rows':residual,
+          }
+          Path('/tmp/V13_PROMOTION_REGRESSION.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in out.items() if k!='residual_rows'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-v13-aggregate-recovery-${{ github.run_id }}
+          path: /tmp/V13_PROMOTION_REGRESSION.json
+          retention-days: 90
