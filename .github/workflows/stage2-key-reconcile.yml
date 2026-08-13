@@ -1,0 +1,99 @@
+name: TREB Stage2 key reconciliation
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/stage2-key-reconcile.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+          path: stage2
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Reconcile key populations
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path('stage2/team_trb_all_players/impact_database')
+          seasons=[f'{y}-{str(y+1)[-2:]}' for y in range(2000,2026)]
+          p=root/'corrected_off/tenure_segment_on_off.jsonl.gz'
+          d=pd.read_json(p,lines=True,compression='gzip')
+          d=d[d.season.isin(seasons)].copy()
+          k=['season','player_id','team_id']
+          w=k+['start','end']
+          sk=d[k].drop_duplicates()
+          sw=d[w].drop_duplicates()
+          totals=[]
+          schemas={}
+          for s in seasons:
+            q=root/'outputs'/s/'player_team_totals.csv.gz'
+            x=pd.read_csv(q,compression='gzip',low_memory=False)
+            schemas[s]=list(x.columns)
+            pc=next(c for c in x.columns if c.lower().replace('_','')=='playerid')
+            tc=next(c for c in x.columns if c.lower().replace('_','')=='teamid')
+            y=x[[pc,tc]].drop_duplicates().rename(columns={pc:'player_id',tc:'team_id'})
+            y.insert(0,'season',s); totals.append(y)
+          tk=pd.concat(totals,ignore_index=True).drop_duplicates()
+          S=set(map(tuple,sk.itertuples(index=False,name=None)))
+          T=set(map(tuple,tk.itertuples(index=False,name=None)))
+          only_s=sorted(S-T); only_t=sorted(T-S)
+          detail=[]
+          for key in only_s:
+            z=d[(d.season==key[0])&(d.player_id==key[1])&(d.team_id==key[2])]
+            keep=z[z.metric.astype(str).str.contains('min|reb|oreb|dreb|trb',case=False,regex=True)]
+            detail.append({
+              'key':'|'.join(map(str,key)),
+              'windows':int(z[w].drop_duplicates().shape[0]),
+              'sources':z.source.value_counts(dropna=False).to_dict(),
+              'metrics':keep[['start','end','metric','on','off_raw','off_corrected']].to_dict('records')
+            })
+          metric_counts=d.groupby(w).size().value_counts().sort_index().to_dict()
+          report={
+            'source_commit':'57ba237c36d75f7a3ef2cc998d91aa70a59b3c29',
+            'stage2_metric_rows':int(len(d)),
+            'stage2_windows':int(len(sw)),
+            'stage2_keys':int(len(S)),
+            'player_team_totals_keys':int(len(T)),
+            'intersection':int(len(S&T)),
+            'stage2_only_count':len(only_s),
+            'totals_only_count':len(only_t),
+            'stage2_only_by_season':pd.Series([x[0] for x in only_s]).value_counts().sort_index().to_dict(),
+            'totals_only_by_season':pd.Series([x[0] for x in only_t]).value_counts().sort_index().to_dict(),
+            'stage2_only_keys':['|'.join(map(str,x)) for x in only_s],
+            'totals_only_keys':['|'.join(map(str,x)) for x in only_t],
+            'stage2_only_detail':detail,
+            'metrics_per_window_distribution':{str(a):int(b) for a,b in metric_counts.items()},
+            'schemas':schemas
+          }
+          out=Path('reconcile_output'); out.mkdir()
+          (out/'stage2_key_reconciliation.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          md=['# Stage2 key reconciliation','',
+              f'- Stage2 keys: **{len(S):,}**',
+              f'- player_team_totals keys: **{len(T):,}**',
+              f'- Intersection: **{len(S&T):,}**',
+              f'- Stage2-only: **{len(only_s):,}**',
+              f'- Totals-only: **{len(only_t):,}**',
+              f'- Stage2 windows: **{len(sw):,}**','',
+              '## Stage2-only keys','',*['- '+x for x in report['stage2_only_keys']],
+              '','## Totals-only keys','',*['- '+x for x in report['totals_only_keys']]]
+          (out/'stage2_key_reconciliation.md').write_text('\n'.join(md)+'\n')
+          print(json.dumps({x:report[x] for x in ('stage2_metric_rows','stage2_windows','stage2_keys','player_team_totals_keys','intersection','stage2_only_count','totals_only_count','metrics_per_window_distribution')},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage2-key-reconciliation-${{ github.run_id }}
+          path: reconcile_output/
+          retention-days: 30
+          if-no-files-found: error
