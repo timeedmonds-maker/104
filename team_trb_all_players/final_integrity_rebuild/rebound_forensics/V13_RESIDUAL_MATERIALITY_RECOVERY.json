@@ -1,0 +1,224 @@
+{
+  "cache_semantics_recovery": {
+    "deprecated_not_matched_rows": 101,
+    "nba_backed_control_rows": 6022,
+    "note": "`matched` is an independent-control flag in cache v2 and must not be used as a production-residual predicate.",
+    "production_residual_rows_v9_cache": 15
+  },
+  "committed_detail_candidates": [],
+  "counts": {
+    "accepted_immaterial": 0,
+    "deterministic_repair_required": 0,
+    "remaining_for_materiality_or_repair": 13
+  },
+  "feature_cache_engine": "production_rebound_v9",
+  "integrity_note": "No generic event-ordering rule was introduced and no tolerance threshold was weakened.",
+  "materiality_input_status": "missing_authoritative_published_denominators",
+  "policy_threshold_pp": 0.01,
+  "rows": [
+    {
+      "classification": "evidence_recheck_required",
+      "evidence_note": "expected durable invariance node was not recovered; cache description: Mavericks Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 21700032,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 4988
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "V13 rejected apparent NBA event 180 because it is already assigned to PBP row 7324; event reuse forbidden; cache description: Johnson REBOUND",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 21700042,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 7322
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: Cavaliers Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 21700494,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 7412
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: TIMBERWOLVES Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 21800689,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 1396
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: Suns Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 21800689,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 1398
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: THUNDER Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 22101023,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 256
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: Clippers Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 22200322,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 3388
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: BUCKS Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 22200331,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 3717
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: Lakers Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 22200331,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 3912
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: Cavaliers Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 22200733,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 5955
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: [GSW] Team Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 22201187,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 1569
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: [GSW] Team Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 22201187,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 1573
+    },
+    {
+      "classification": "materiality_pending",
+      "evidence_note": "cache description: Warriors Rebound",
+      "feature_cache_engine": "production_rebound_v9",
+      "feature_cache_nba_backed_control": false,
+      "feature_cache_production_residual": true,
+      "game_id": 22400072,
+      "materiality_threshold_pp": 0.01,
+      "max_possible_metric_error_pp": null,
+      "pbp_index": 288
+    }
+  ],
+  "source_cache_files": 24,
+  "source_cache_games": 58,
+  "source_cache_run_id": 31659111313,
+  "source_v13_report": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_PROMOTION_REGRESSION.json",
+  "status": "MATERIALITY_INPUT_REQUIRED",
+  "v13_engine": "production_rebound_v13",
+  "v13_residual_keys": [
+    [
+      21700032,
+      4988
+    ],
+    [
+      21700042,
+      7322
+    ],
+    [
+      21700494,
+      7412
+    ],
+    [
+      21800689,
+      1396
+    ],
+    [
+      21800689,
+      1398
+    ],
+    [
+      22101023,
+      256
+    ],
+    [
+      22200322,
+      3388
+    ],
+    [
+      22200331,
+      3717
+    ],
+    [
+      22200331,
+      3912
+    ],
+    [
+      22200733,
+      5955
+    ],
+    [
+      22201187,
+      1569
+    ],
+    [
+      22201187,
+      1573
+    ],
+    [
+      22400072,
+      288
+    ]
+  ],
+  "v13_residual_rows": 13
+}
