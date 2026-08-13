@@ -1,0 +1,358 @@
+name: TREB residual game-scope mapping
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-residual-game-scope.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-residual-game-scope-mapping
+  cancel-in-progress: false
+
+jobs:
+  map-game-scope:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout canonical assembly branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - name: Map 4,602 residual keys to exact missing games
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_residual_game_scope
+          mkdir -p /tmp/treb_residual_game_scope
+          python - <<'PY'
+          import csv, gzip, json
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          ROOT = Path('.')
+          OUT = Path('/tmp/treb_residual_game_scope')
+          TARGET = ROOT / 'team_trb_all_players/impact_database/roster_tenure_v3_hybrid/player_team_season_targets.jsonl.gz'
+          SCHEDULE = ROOT / 'team_trb_all_players/impact_database/roster_tenure/regular_season_games.jsonl.gz'
+          RESIDUAL = ROOT / 'team_trb_all_players/final_integrity_rebuild/final_exact_release/safe_lock_overlay/CANONICAL_UNRESOLVED_AFTER_SAFE_LOCK.csv'
+          OVERLAY = ROOT / 'team_trb_all_players/final_integrity_rebuild/final_exact_release/source_overlay_mapping/CANONICAL_EXACT_SOURCE_OVERLAY_MAPPING.csv'
+          UNION = ROOT / 'team_trb_all_players/final_integrity_rebuild/final_exact_release/EXACT_GAME_UNION_COVERAGE.json'
+
+          REQUIRED = [TARGET, SCHEDULE, RESIDUAL, OVERLAY, UNION]
+          for p in REQUIRED:
+              if not p.exists():
+                  raise SystemExit(f'missing required input: {p}')
+
+          def norm(v):
+              s = str(v).strip()
+              if s.endswith('.0') and s[:-2].isdigit():
+                  s = s[:-2]
+              return s
+
+          def ckey(season, player_id, team_id):
+              return f'{norm(season)}|{norm(player_id)}|{norm(team_id)}'
+
+          def read_jsonl_gz(path):
+              rows=[]
+              with gzip.open(path, 'rt', encoding='utf-8') as f:
+                  for line in f:
+                      if line.strip(): rows.append(json.loads(line))
+              return rows
+
+          def write_csv(path, rows, fieldnames):
+              with open(path, 'w', newline='', encoding='utf-8') as f:
+                  w=csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+                  w.writeheader(); w.writerows(rows)
+
+          def write_csv_gz(path, rows, fieldnames):
+              with gzip.open(path, 'wt', newline='', encoding='utf-8') as f:
+                  w=csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+                  w.writeheader(); w.writerows(rows)
+
+          # Canonical V3 targets.
+          targets = read_jsonl_gz(TARGET)
+          if len(targets) != 14524:
+              raise SystemExit(f'canonical target row mismatch: {len(targets)} != 14524')
+          target_by = {ckey(r['season'],r['player_id'],r['team_id']): r for r in targets}
+          if len(target_by) != 14524:
+              raise SystemExit(f'canonical target key mismatch: {len(target_by)} != 14524')
+
+          # Current 4,602-row residual only.
+          with open(RESIDUAL, newline='', encoding='utf-8-sig') as f:
+              residual = list(csv.DictReader(f))
+          residual_keys = [ckey(r['season'],r['player_id'],r['team_id']) for r in residual]
+          if len(residual) != 4602 or len(set(residual_keys)) != 4602:
+              raise SystemExit(f'residual mismatch rows={len(residual)} unique={len(set(residual_keys))}')
+          missing_target_keys = sorted(set(residual_keys)-set(target_by))
+          if missing_target_keys:
+              raise SystemExit(f'residual keys missing canonical target: {len(missing_target_keys)}')
+
+          # Existing overlay supplies exact-player coverage counts for interpretation only.
+          with open(OVERLAY, newline='', encoding='utf-8-sig') as f:
+              overlay_rows=list(csv.DictReader(f))
+          overlay_by={ckey(r['season'],r['player_id'],r['team_id']):r for r in overlay_rows}
+          if len(overlay_by) != 14524:
+              raise SystemExit(f'overlay key mismatch: {len(overlay_by)} != 14524')
+
+          # Normalized full schedule; this is the authoritative game/date/team index used by tenure tooling.
+          games = read_jsonl_gz(SCHEDULE)
+          team_games=defaultdict(list)
+          game_meta={}
+          season_games=defaultdict(set)
+          for g in games:
+              season=norm(g['season']); gid=norm(g['game_id']); date=str(g['game_date'])
+              home=norm(g['home_team_id']); away=norm(g['away_team_id'])
+              ng={'season':season,'game_id':gid,'game_date':date,'home_team_id':home,'away_team_id':away}
+              game_meta[(season,gid)]=ng
+              season_games[season].add(gid)
+              team_games[(season,home)].append(ng)
+              team_games[(season,away)].append(ng)
+          for k in team_games:
+              team_games[k].sort(key=lambda x:(x['game_date'],x['game_id']))
+          seasons=sorted(season_games)
+          if len(seasons) != 26 or seasons[0] != '2000-01' or seasons[-1] != '2025-26':
+              raise SystemExit(f'schedule season universe mismatch: {seasons[:2]} ... {seasons[-2:]} count={len(seasons)}')
+
+          # The persisted exact-game union coverage is already the validated result of reading all
+          # historical batch refs + repair overlays. Reuse it rather than refetching/reparsing 290 branches.
+          union=json.loads(UNION.read_text(encoding='utf-8'))
+          union_years=union.get('years') or {}
+          validated_present_by_season={s:set() for s in seasons}
+          pair_integrity_failures=[]
+          union_schedule_mismatches=[]
+          for season, info in union_years.items():
+              expected_schedule=set(season_games.get(season,set()))
+              missing={norm(x) for x in info.get('missing_ids',[])}
+              present=expected_schedule-missing
+              validated_present_by_season[season]=present
+              reported_expected=int(info.get('expected',len(expected_schedule)))
+              reported_present=int(info.get('present',len(present)))
+              team_rows=int(info.get('team_rows',reported_present*2))
+              if reported_expected != len(expected_schedule) or reported_present != len(present):
+                  union_schedule_mismatches.append({
+                      'season':season,'schedule_games':len(expected_schedule),
+                      'reported_expected':reported_expected,'derived_present':len(present),
+                      'reported_present':reported_present
+                  })
+              # Exact union construction deduplicated team facts by (game_id, team_id). Two rows per
+              # present NBA game proves game-level presence represents both teams, not a one-sided fact.
+              if team_rows != 2*reported_present:
+                  pair_integrity_failures.append({
+                      'season':season,'team_rows':team_rows,'reported_present_games':reported_present,
+                      'expected_team_rows':2*reported_present
+                  })
+
+          # Middle-season coverage must be structurally sound before using game-level presence.
+          expected_union_seasons={f'{y}-{(y+1)%100:02d}' for y in range(2002,2025)}
+          absent_union_seasons=sorted(expected_union_seasons-set(union_years))
+          if absent_union_seasons:
+              raise SystemExit(f'exact union missing expected middle seasons: {absent_union_seasons}')
+          if pair_integrity_failures or union_schedule_mismatches:
+              OUT.joinpath('PAIR_INTEGRITY_FAILURES.json').write_text(json.dumps({
+                  'pair_integrity_failures':pair_integrity_failures,
+                  'union_schedule_mismatches':union_schedule_mismatches
+              },indent=2)+'\n',encoding='utf-8')
+              raise SystemExit('validated union structural guard failed; see PAIR_INTEGRITY_FAILURES.json')
+
+          key_rows=[]
+          requirement_rows=[]
+          missing_game_impacts=defaultdict(lambda:{'canonical_keys':set(),'team_ids':set(),'classifications':Counter()})
+          required_unique_games=set()
+          target_game_count_mismatches=[]
+          class_missing=Counter(); class_fully=Counter()
+
+          residual_class_by={ckey(r['season'],r['player_id'],r['team_id']): r.get('canonical_classification','') for r in residual}
+
+          for k in residual_keys:
+              t=target_by[k]
+              season=norm(t['season']); pid=norm(t['player_id']); tid=norm(t['team_id'])
+              intervals=t.get('intervals') or []
+              if not intervals:
+                  raise SystemExit(f'canonical target has no intervals: {k}')
+              scoped=[]
+              for g in team_games.get((season,tid),[]):
+                  if any(str(iv['start']) <= g['game_date'] <= str(iv['end']) for iv in intervals):
+                      scoped.append(g)
+              # Deduplicate in case canonical intervals touch/overlap.
+              scoped_by={g['game_id']:g for g in scoped}
+              scoped=[scoped_by[x] for x in sorted(scoped_by, key=lambda z:(scoped_by[z]['game_date'],z))]
+              required_ids={g['game_id'] for g in scoped}
+              required_unique_games.update((season,gid) for gid in required_ids)
+              exact_present=validated_present_by_season.get(season,set())
+              present_ids=required_ids & exact_present
+              missing_ids=required_ids - exact_present
+
+              target_team_games=t.get('team_games_in_tenure')
+              try: target_team_games_i=int(target_team_games)
+              except Exception: target_team_games_i=None
+              if target_team_games_i is not None and target_team_games_i != len(required_ids):
+                  target_game_count_mismatches.append({
+                      'canonical_key':k,'season':season,'player_id':pid,'team_id':tid,
+                      'target_team_games_in_tenure':target_team_games_i,
+                      'interval_derived_team_games':len(required_ids)
+                  })
+
+              o=overlay_by[k]
+              def as_int(v):
+                  try: return int(float(v))
+                  except Exception: return None
+              expected_player_games=as_int(o.get('expected_player_games'))
+              exact_player_games=as_int(o.get('exact_player_games'))
+              player_deficit=(expected_player_games-exact_player_games) if expected_player_games is not None and exact_player_games is not None else None
+              classification=residual_class_by.get(k,'')
+
+              if missing_ids: class_missing[classification]+=1
+              else: class_fully[classification]+=1
+
+              ordered_missing=sorted(missing_ids,key=lambda gid:(game_meta[(season,gid)]['game_date'],gid))
+              key_rows.append({
+                  'canonical_key':k,'season':season,'player_id':pid,'player':t.get('player',''),'team_id':tid,
+                  'canonical_classification':classification,
+                  'interval_count':len(intervals),
+                  'intervals_json':json.dumps(intervals,separators=(',',':')),
+                  'required_team_games':len(required_ids),
+                  'validated_exact_team_games_in_scope':len(present_ids),
+                  'missing_exact_team_games':len(missing_ids),
+                  'missing_game_ids':'|'.join(ordered_missing),
+                  'expected_player_games':expected_player_games,
+                  'exact_player_games_current_union':exact_player_games,
+                  'player_game_deficit_current_union':player_deficit,
+                  'fully_team_game_covered':not bool(missing_ids),
+              })
+
+              for g in scoped:
+                  present=g['game_id'] in exact_present
+                  requirement_rows.append({
+                      'canonical_key':k,'season':season,'player_id':pid,'team_id':tid,
+                      'canonical_classification':classification,
+                      'game_id':g['game_id'],'game_date':g['game_date'],
+                      'home_team_id':g['home_team_id'],'away_team_id':g['away_team_id'],
+                      'validated_exact_team_game_present':present,
+                      'needs_exact_game_recovery':not present,
+                  })
+                  if not present:
+                      imp=missing_game_impacts[(season,g['game_id'])]
+                      imp['canonical_keys'].add(k); imp['team_ids'].add(tid); imp['classifications'][classification]+=1
+
+          unique_missing=[]
+          for (season,gid),imp in sorted(missing_game_impacts.items(),key=lambda kv:(kv[0][0],game_meta[kv[0]]['game_date'],kv[0][1])):
+              g=game_meta[(season,gid)]
+              unique_missing.append({
+                  'season':season,'game_id':gid,'game_date':g['game_date'],
+                  'home_team_id':g['home_team_id'],'away_team_id':g['away_team_id'],
+                  'affected_residual_keys':len(imp['canonical_keys']),
+                  'affected_team_ids':len(imp['team_ids']),
+                  'affected_full_core_keys':imp['classifications'].get('full_core',0),
+                  'affected_partial_keys':imp['classifications'].get('partial',0),
+                  'coverage_reason':('edge_season_no_validated_exact_game_union' if season in {'2000-01','2001-02','2025-26'} else 'missing_from_validated_exact_game_union'),
+              })
+
+          by_season=[]
+          for season in seasons:
+              us=[r for r in unique_missing if r['season']==season]
+              affected={r['canonical_key'] for r in key_rows if r['season']==season and int(r['missing_exact_team_games'])>0}
+              by_season.append({
+                  'season':season,
+                  'residual_keys':sum(1 for r in key_rows if r['season']==season),
+                  'residual_keys_with_missing_games':len(affected),
+                  'unique_missing_games':len(us),
+                  'schedule_games':len(season_games[season]),
+                  'validated_exact_games_available':len(validated_present_by_season.get(season,set())),
+              })
+
+          fully=[r for r in key_rows if r['fully_team_game_covered']]
+          with_missing=[r for r in key_rows if not r['fully_team_game_covered']]
+          player_deficit_fully=[r for r in fully if (r['player_game_deficit_current_union'] or 0) > 0]
+
+          key_fields=['canonical_key','season','player_id','player','team_id','canonical_classification','interval_count','intervals_json','required_team_games','validated_exact_team_games_in_scope','missing_exact_team_games','missing_game_ids','expected_player_games','exact_player_games_current_union','player_game_deficit_current_union','fully_team_game_covered']
+          req_fields=['canonical_key','season','player_id','team_id','canonical_classification','game_id','game_date','home_team_id','away_team_id','validated_exact_team_game_present','needs_exact_game_recovery']
+          miss_fields=['season','game_id','game_date','home_team_id','away_team_id','affected_residual_keys','affected_team_ids','affected_full_core_keys','affected_partial_keys','coverage_reason']
+          season_fields=['season','residual_keys','residual_keys_with_missing_games','unique_missing_games','schedule_games','validated_exact_games_available']
+
+          write_csv(OUT/'RESIDUAL_KEY_GAME_COVERAGE.csv', key_rows, key_fields)
+          write_csv_gz(OUT/'RESIDUAL_GAME_REQUIREMENT_MANIFEST.csv.gz', requirement_rows, req_fields)
+          write_csv(OUT/'UNIQUE_MISSING_GAMES.csv', unique_missing, miss_fields)
+          write_csv(OUT/'MISSING_GAMES_BY_SEASON.csv', by_season, season_fields)
+          write_csv(OUT/'RESIDUAL_KEYS_FULLY_TEAM_GAME_COVERED_BUT_NOT_ASSEMBLED.csv', fully, key_fields)
+          write_csv(OUT/'RESIDUAL_KEYS_FULLY_TEAM_GAME_COVERED_WITH_PLAYER_FACT_DEFICIT.csv', player_deficit_fully, key_fields)
+          write_csv(OUT/'RESIDUAL_KEYS_WITH_MISSING_GAMES.csv', with_missing, key_fields)
+          write_csv(OUT/'TARGET_INTERVAL_GAME_COUNT_MISMATCHES.csv', target_game_count_mismatches,
+                    ['canonical_key','season','player_id','team_id','target_team_games_in_tenure','interval_derived_team_games'])
+
+          summary={
+              'status':'PASS',
+              'operation':'residual_to_deduplicated_missing_game_scope_only_no_reconstruction',
+              'canonical_residual_rows':len(key_rows),
+              'canonical_residual_unique_keys':len({r['canonical_key'] for r in key_rows}),
+              'residual_classification_counts':dict(Counter(r['canonical_classification'] for r in key_rows)),
+              'residual_keys_with_missing_exact_team_games':len(with_missing),
+              'residual_keys_fully_team_game_covered_but_not_assembled':len(fully),
+              'fully_team_game_covered_rows_with_player_fact_deficit':len(player_deficit_fully),
+              'unique_missing_games_global':len(unique_missing),
+              'missing_team_game_pair_requirements':sum(int(r['missing_exact_team_games']) for r in key_rows),
+              'total_team_game_pair_requirements':sum(int(r['required_team_games']) for r in key_rows),
+              'unique_required_games_global':len(required_unique_games),
+              'rows_with_missing_games_by_classification':dict(class_missing),
+              'fully_team_game_covered_by_classification':dict(class_fully),
+              'target_interval_game_count_mismatches':len(target_game_count_mismatches),
+              'validated_union_middle_seasons':len(union_years),
+              'validated_union_pair_integrity_failures':len(pair_integrity_failures),
+              'validated_union_schedule_mismatches':len(union_schedule_mismatches),
+              'edge_seasons_without_validated_exact_game_union':['2000-01','2001-02','2025-26'],
+              'guards':{
+                  'game_reconstruction_run':False,
+                  'rounded_percentage_backsolve_used':False,
+                  'broad_historical_refetch_used':False,
+                  'reused_persisted_exact_union_coverage':True,
+                  'scope_limited_to_current_4602_residual':True,
+              },
+              'by_season':by_season,
+          }
+          (OUT/'RESIDUAL_GAME_SCOPE_SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          (OUT/'STATUS.txt').write_text('PASS\n',encoding='utf-8')
+          (OUT/'README.md').write_text(
+              '# TREB residual game-scope mapping\n\n'
+              'Status: **PASS**\n\n'
+              '**No game reconstruction, replay, or rounded-percentage inference is performed.**\n\n'
+              f'- Residual canonical keys: **{len(key_rows):,}**\n'
+              f'- Keys with at least one missing exact team game: **{len(with_missing):,}**\n'
+              f'- Keys already fully covered at team-game level: **{len(fully):,}**\n'
+              f'- Deduplicated unique missing games: **{len(unique_missing):,}**\n'
+              f'- Missing team-game pair requirements before deduplication: **{sum(int(r["missing_exact_team_games"]) for r in key_rows):,}**\n\n'
+              'The mapping reuses the persisted validated exact-game union coverage instead of refetching/reparsing hundreds of historical batch branches. '
+              'Edge seasons without a validated exact-game union are explicitly retained as missing exact-game scope rather than inferred.\n',
+              encoding='utf-8'
+          )
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+
+      - name: Upload durable mapping artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-residual-game-scope-${{ github.run_id }}
+          path: /tmp/treb_residual_game_scope
+          retention-days: 90
+
+      - name: Persist mapping checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release/residual_game_scope
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch --no-tags origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          rm -rf "$D"
+          mkdir -p "$D"
+          cp -a /tmp/treb_residual_game_scope/. "$D/"
+          git add -f "$D"
+          git commit -m 'Persist TREB residual game-scope mapping [skip ci]'
+          git push origin HEAD:agent/treb-final-exact-assembly
+
+      - name: Enforce PASS
+        run: test "$(cat /tmp/treb_residual_game_scope/STATUS.txt)" = PASS
