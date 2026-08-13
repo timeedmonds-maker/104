@@ -1,0 +1,171 @@
+name: TREB full-core total-count audit
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-full-core-total-count-audit.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  OUT: /tmp/treb_full_core_total_audit
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python -m pip install --disable-pip-version-check pandas pyarrow
+      - name: Audit exact total-rebound sources only
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2 "$OUT"
+          mkdir -p "$OUT"
+          git worktree add --detach /tmp/treb_stage2 refs/remotes/origin/treb-stage2-actions-live
+          python /tmp/treb_stage2/team_trb_all_players/build_roster_targets_v2.py
+          python - <<'PY'
+          import gzip, json, math, os
+          from pathlib import Path
+          import pandas as pd
+
+          root=Path('/tmp/treb_stage2/team_trb_all_players')
+          db=root/'impact_database'
+          roster=db/'roster_tenure_v2'
+          outputs=db/'outputs'
+          out=Path(os.environ['OUT'])
+
+          def read_jsonl_gz(p):
+              z=[]
+              with gzip.open(p,'rt',encoding='utf-8') as f:
+                  for line in f:
+                      if line.strip(): z.append(json.loads(line))
+              return z
+          def pid(v):
+              s=str(v).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def exact_int(v):
+              try: x=float(v)
+              except Exception: return None
+              if not math.isfinite(x) or abs(x-round(x))>1e-9: return None
+              return int(round(x))
+
+          targets=read_jsonl_gz(roster/'player_team_season_targets.jsonl.gz')
+          summary=json.loads((roster/'roster_repair_v2_summary.json').read_text())
+          assert len(targets)==14524
+          assert summary['full_core_reuse_rows']==9647
+          assert summary['partial_player_team_season_rows']==4877
+          assert len(read_jsonl_gz(roster/'wowy_partial_segments.jsonl.gz'))==5199
+          full=[r for r in targets if bool(r['full_core_reuse'])]
+          full_keys={(str(r['season']),pid(r['player_id']),int(r['team_id'])) for r in full}
+          assert len(full_keys)==9647
+
+          metric_parts=[]; derived_parts=[]
+          for p in sorted(outputs.glob('*/team_on_off_metrics.csv.gz')):
+              x=pd.read_csv(p,compression='gzip',low_memory=False); x['season']=p.parent.name; metric_parts.append(x)
+          for p in sorted(outputs.glob('*/team_rebound_derived.csv.gz')):
+              x=pd.read_csv(p,compression='gzip',low_memory=False); derived_parts.append(x)
+          metrics=pd.concat(metric_parts,ignore_index=True,sort=False)
+          derived=pd.concat(derived_parts,ignore_index=True,sort=False)
+          metrics['pid']=metrics.subject_player_id.map(pid); metrics['team_id']=pd.to_numeric(metrics.team_id,errors='coerce')
+          derived['pid']=derived.player_id.map(pid); derived['team_id']=pd.to_numeric(derived.team_id,errors='coerce')
+          metrics['season']=metrics.season.astype(str); derived['season']=derived.season.astype(str)
+
+          report={
+              'status':'PASS',
+              'v2':{'total':14524,'full':9647,'partial':4877,'segments':5199},
+              'metric_columns':list(metrics.columns),
+              'derived_columns':list(derived.columns),
+              'full_rows':9647,
+          }
+
+          # Exact team total ON/OFF counts are available if OffRebounds and DefRebounds
+          # are integer counts for the canonical full-reuse key.
+          mm=metrics[metrics.metric.astype(str).isin(['OffRebounds','DefRebounds'])].copy()
+          index={}
+          dup=0
+          for _,r in mm.iterrows():
+              k=(str(r.season),r.pid,int(r.team_id),str(r.metric))
+              if k in index: dup+=1
+              index[k]=r
+          exact_team=0; missing_team=[]
+          for s,p,t in sorted(full_keys):
+              a=index.get((s,p,t,'OffRebounds')); b=index.get((s,p,t,'DefRebounds'))
+              vals=None if a is None or b is None else [exact_int(a.get('on')),exact_int(b.get('on')),exact_int(a.get('off')),exact_int(b.get('off'))]
+              if vals is not None and all(v is not None and v>=0 for v in vals): exact_team+=1
+              else: missing_team.append([s,p,t])
+          report['duplicate_metric_keys']=dup
+          report['full_rows_with_exact_team_total_on_off']=exact_team
+          report['full_rows_missing_exact_team_total_on_off']=len(missing_team)
+          report['team_missing_examples']=missing_team[:50]
+
+          # Inventory every derived field that can plausibly carry exact opponent totals.
+          opp_cols=[c for c in derived.columns if 'opponent' in c.lower() and 'rebound' in c.lower()]
+          report['opponent_rebound_columns']=opp_cols
+          cov={}
+          for c in opp_cols:
+              vals=derived[c]
+              numeric=pd.to_numeric(vals,errors='coerce')
+              cov[c]={
+                  'nonblank':int(vals.notna().sum()),
+                  'numeric':int(numeric.notna().sum()),
+                  'integer_nonnegative':int(((numeric.notna())&(numeric>=0)&((numeric-numeric.round()).abs()<1e-9)).sum()),
+              }
+          report['opponent_column_coverage']=cov
+
+          # Canonical full-key coverage for each exact-looking opponent field.
+          dindex={(str(r.season),r.pid,int(r.team_id)):r for _,r in derived.iterrows() if pd.notna(r.team_id)}
+          field_key_cov={}
+          for c in opp_cols:
+              ok=0
+              for k in full_keys:
+                  r=dindex.get(k)
+                  if r is not None and exact_int(r.get(c)) is not None and exact_int(r.get(c))>=0: ok+=1
+              field_key_cov[c]=ok
+          report['full_key_exact_coverage_by_opponent_field']=field_key_cov
+
+          # Locked 2016 Adams reference must remain visible in the retained exact source.
+          adams=('2016-17','203500',1610612760)
+          ar=dindex.get(adams)
+          report['adams_2016_derived']={c:(None if ar is None or pd.isna(ar.get(c)) else str(ar.get(c))) for c in opp_cols}
+          for m in ['OffRebounds','DefRebounds']:
+              r=index.get((*adams,m))
+              report.setdefault('adams_2016_core_metrics',{})[m]=None if r is None else {'on':str(r.get('on')),'off':str(r.get('off')),'minutes_on':str(r.get('minutes_on')),'minutes_off':str(r.get('minutes_off'))}
+
+          # Strict release-policy audit: current safe locks may be useful diagnostics, but
+          # accepted game exclusions or bounded 2025 approximation are blockers here.
+          exclusions=[]; modern=None; lock_meta=[]
+          lock_path='team_trb_all_players/impact_database/final_local_rebuild/locked_seasons'
+          for y in range(2000,2026):
+              season=f'{y}-{(y+1)%100:02d}'
+              import subprocess
+              raw=subprocess.check_output(['git','show',f'refs/remotes/origin/treb-final-safe-lock-{y}:{lock_path}/{season}.json'],text=True)
+              d=json.loads(raw)
+              exclusions += [(season,int(x['game_id'])) for x in d.get('accepted_excluded_games',[])]
+              if season=='2025-26': modern={'engine':d.get('engine'),'policy':d.get('modern_bridge_audit',{}).get('policy')}
+              lock_meta.append({'season':season,'status':d.get('status'),'exceptions':len(d.get('exceptions',[])),'unmatched':len(d.get('unmatched_rebound_rows',[])),'accepted_excluded_games':len(d.get('accepted_excluded_games',[]))})
+          report['safe_lock_policy_audit']={'accepted_excluded_games':len(exclusions),'exclusions':exclusions,'modern_2025':modern,'locks':lock_meta}
+          report['strict_release_blocked']=bool(exclusions) or not modern or modern.get('policy')!='strict_validated_semantics'
+
+          (out/'FULL_CORE_TOTAL_COUNT_AUDIT.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps({k:report[k] for k in ['status','v2','full_rows','full_rows_with_exact_team_total_on_off','full_rows_missing_exact_team_total_on_off','opponent_rebound_columns','full_key_exact_coverage_by_opponent_field','safe_lock_policy_audit','strict_release_blocked']},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-full-core-total-count-audit
+          path: /tmp/treb_full_core_total_audit/FULL_CORE_TOTAL_COUNT_AUDIT.json
+      - name: Persist audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/final_integrity_rebuild/final_exact_release
+          cp "$OUT/FULL_CORE_TOTAL_COUNT_AUDIT.json" team_trb_all_players/final_integrity_rebuild/final_exact_release/
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/final_integrity_rebuild/final_exact_release/FULL_CORE_TOTAL_COUNT_AUDIT.json
+          git commit -m 'Persist full-core total-count audit' || exit 0
+          git push origin HEAD:agent/treb-final-exact-assembly
