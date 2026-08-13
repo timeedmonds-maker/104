@@ -14,39 +14,47 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  supervise:
+  retained-evidence-inventory:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - name: Checkout controller branch
+      - name: Checkout final assembly controller
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
           path: control
           fetch-depth: 1
 
-      - name: Checkout authoritative Stage2 source
+      - name: Checkout retained forensic evidence
         uses: actions/checkout@v4
         with:
-          ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
-          path: stage2
+          ref: agent/treb-batched-game-facts-20260812
+          path: evidence
           fetch-depth: 1
 
-      - name: Reconcile canonical population and inventory next evidence
-        id: audit
+      - name: Inventory retained raw rebound evidence against canonical V2 universe
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p supervisor_output
           python - <<'PY'
-          import csv, gzip, json, re, subprocess
-          from collections import Counter
+          import csv
+          import gzip
+          import io
+          import json
+          import os
+          import re
+          import subprocess
+          from collections import Counter, defaultdict
           from pathlib import Path
 
-          stage2_root = Path('stage2/team_trb_all_players/impact_database')
-          payload = stage2_root / 'corrected_off/tenure_segment_on_off.jsonl.gz'
-          seasons = [f'{y}-{str(y+1)[-2:]}' for y in range(2000, 2026)]
-          season_set = set(seasons)
+          CONTROL = Path('control')
+          EVIDENCE = Path('evidence')
+          OUT = Path('supervisor_output')
+          TARGETS = CONTROL / 'team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          EXPECTED_CANONICAL = 14524
+          MAX_SAMPLE_RECORDS = 8
+          MAX_FILE_BYTES = 250 * 1024 * 1024
 
           def norm(v):
               if v is None:
@@ -59,221 +67,332 @@ jobs:
                       pass
               return s
 
-          metric_rows = 0
-          windows = {}
-          metrics = set()
-          collection_sources = Counter()
-          with gzip.open(payload, 'rt', encoding='utf-8') as f:
-              for line in f:
-                  row = json.loads(line)
-                  season = norm(row.get('season'))
-                  if season not in season_set:
+          def nfield(v):
+              return re.sub(r'[^a-z0-9]+', '', str(v).lower())
+
+          def field_alias(fields, aliases):
+              lookup = {nfield(f): f for f in fields}
+              for alias in aliases:
+                  if nfield(alias) in lookup:
+                      return lookup[nfield(alias)]
+              return None
+
+          def key_fields(fields):
+              sf = field_alias(fields, ('season','season_id','seasonid'))
+              pf = field_alias(fields, ('player_id','playerid','entity_id','entityid','nba_player_id','nbaplayerid'))
+              tf = field_alias(fields, ('team_id','teamid','nba_team_id','nbateamid'))
+              return sf, pf, tf
+
+          pct_tokens = ('pct','percent','percentage','rate','ratio','share','swing','difference','diff','minus','plusminus')
+          reb_tokens = ('rebound','rebounds','trb','oreb','dreb','orb','drb')
+          count_context = ('count','total','made','team','opp','opponent','player','on','off','for','against','own','available','chance','opportunity')
+
+          def rebound_field_kind(field):
+              low = str(field).lower()
+              nf = nfield(field)
+              if not any(tok in low or tok in nf for tok in reb_tokens):
+                  return None
+              if '%' in low or any(tok in nf for tok in pct_tokens):
+                  return 'percentage'
+              if nf in ('trb','oreb','dreb','orb','drb','reb','rebound','rebounds'):
+                  return 'raw_count'
+              if any(tok in nf for tok in count_context):
+                  return 'raw_count'
+              return 'raw_candidate'
+
+          canonical = set()
+          with gzip.open(TARGETS, 'rt', encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip():
                       continue
-                  metric_rows += 1
-                  pid = norm(row.get('player_id'))
-                  tid = norm(row.get('team_id'))
-                  key = (season, pid, tid)
-                  wkey = key + (norm(row.get('tenure_start')), norm(row.get('tenure_end')))
-                  if wkey not in windows:
-                      try:
-                          minutes_on = float(row.get('minutes_on') or 0)
-                      except Exception:
-                          minutes_on = 0.0
-                      windows[wkey] = {
-                          'key': key,
-                          'minutes_on': minutes_on,
-                          'collection_source': norm(row.get('collection_source')),
-                      }
-                  metric = norm(row.get('metric'))
-                  if metric:
-                      metrics.add(metric)
-                  src = norm(row.get('collection_source'))
-                  if src:
-                      collection_sources[src] += 1
+                  row = json.loads(line)
+                  fields = list(row.keys())
+                  sf, pf, tf = key_fields(fields)
+                  if not (sf and pf and tf):
+                      raise RuntimeError(f'Canonical target schema missing key fields: {fields}')
+                  canonical.add((norm(row.get(sf)), norm(row.get(pf)), norm(row.get(tf))))
 
-          stage2_keys = {v['key'] for v in windows.values()}
-          positive_keys = {v['key'] for v in windows.values() if v['minutes_on'] > 0}
-          zero_windows = [v for v in windows.values() if v['minutes_on'] <= 0]
-          zero_only_keys = stage2_keys - positive_keys
-          zero_only_sources = Counter(
-              v['collection_source'] for v in windows.values()
-              if v['key'] in zero_only_keys
-          )
+          if len(canonical) != EXPECTED_CANONICAL:
+              raise RuntimeError(f'Canonical V2 population gate failed: {len(canonical)} != {EXPECTED_CANONICAL}')
 
-          totals_keys = set()
-          totals_schemas = {}
-          for season in seasons:
-              path = stage2_root / 'outputs' / season / 'player_team_totals.csv.gz'
-              with gzip.open(path, 'rt', encoding='utf-8-sig', newline='') as f:
-                  reader = csv.DictReader(f)
+          evidence_sha = subprocess.check_output(['git','-C','evidence','rev-parse','HEAD'], text=True).strip()
+          controller_sha = subprocess.check_output(['git','-C','control','rev-parse','HEAD'], text=True).strip()
+
+          allowed_suffixes = ('.csv','.csv.gz','.json','.json.gz','.jsonl','.jsonl.gz')
+          name_hints = ('rebound','reb','trb','oreb','dreb','residual','exact','repair','recover','candidate','accumulator','fact','overlay','lock','v13','forensic','promotion','promote')
+          skip_parts = {'.git','node_modules','__pycache__'}
+
+          def candidate_path(p):
+              rel = str(p.relative_to(EVIDENCE)).lower()
+              if any(part in skip_parts for part in p.parts):
+                  return False
+              if not rel.endswith(allowed_suffixes):
+                  return False
+              return any(h in rel for h in name_hints)
+
+          files = sorted(p for p in EVIDENCE.rglob('*') if p.is_file() and candidate_path(p))
+
+          def text_open(path):
+              if str(path).lower().endswith('.gz'):
+                  return gzip.open(path, 'rt', encoding='utf-8-sig', errors='replace', newline='')
+              return open(path, 'rt', encoding='utf-8-sig', errors='replace', newline='')
+
+          def sample_and_iter(path):
+              low = str(path).lower()
+              if low.endswith('.csv') or low.endswith('.csv.gz'):
+                  fh = text_open(path)
+                  reader = csv.DictReader(fh)
                   fields = reader.fieldnames or []
-                  totals_schemas[season] = fields
+                  def gen():
+                      try:
+                          for row in reader:
+                              yield row
+                      finally:
+                          fh.close()
+                  return fields, gen()
 
-                  def find_field(*targets):
-                      normalized = {col.lower().replace('_','').replace(' ',''): col for col in fields}
-                      for target in targets:
-                          key = target.lower().replace('_','').replace(' ','')
-                          if key in normalized:
-                              return normalized[key]
-                      raise RuntimeError(f'{season}: missing any of {targets}; fields={fields}')
+              if low.endswith('.jsonl') or low.endswith('.jsonl.gz'):
+                  fh = text_open(path)
+                  first = None
+                  while True:
+                      line = fh.readline()
+                      if not line:
+                          break
+                      if line.strip():
+                          obj = json.loads(line)
+                          if isinstance(obj, dict):
+                              first = obj
+                              break
+                  if first is None:
+                      fh.close()
+                      return [], iter(())
+                  fields = list(first.keys())
+                  def gen():
+                      try:
+                          yield first
+                          for line in fh:
+                              if not line.strip():
+                                  continue
+                              obj = json.loads(line)
+                              if isinstance(obj, dict):
+                                  yield obj
+                      finally:
+                          fh.close()
+                  return fields, gen()
 
-                  pc = find_field('player_id', 'playerid', 'EntityId')
-                  tc = find_field('team_id', 'teamid', 'TeamId')
-                  for row in reader:
-                      totals_keys.add((season, norm(row.get(pc)), norm(row.get(tc))))
+              # JSON files are inspected only when reasonably sized; they are loaded as a bounded structural source.
+              if path.stat().st_size > 30 * 1024 * 1024:
+                  return [], iter(())
+              with text_open(path) as fh:
+                  obj = json.load(fh)
+              records = []
+              if isinstance(obj, list):
+                  records = [x for x in obj if isinstance(x, dict)]
+              elif isinstance(obj, dict):
+                  for key in ('rows','records','data','items','candidates','results'):
+                      val = obj.get(key)
+                      if isinstance(val, list) and val and isinstance(val[0], dict):
+                          records = val
+                          break
+                  if not records:
+                      records = [obj]
+              fields = list(records[0].keys()) if records else []
+              return fields, iter(records)
 
-          all_only_stage2 = sorted(stage2_keys - totals_keys)
-          all_only_totals = sorted(totals_keys - stage2_keys)
-          pos_only_stage2 = sorted(positive_keys - totals_keys)
-          pos_only_totals = sorted(totals_keys - positive_keys)
+          source_reports = []
+          raw_union = set()
+          raw_key_sources = defaultdict(list)
+          percentage_union = set()
+          files_examined = 0
+          files_skipped_large = 0
+          parse_errors = []
 
-          population_gate = (
-              len(stage2_keys) == 14600 and
-              len(windows) == 15206 and
-              metric_rows == 1353334 and
-              len(totals_keys) == 14524 and
-              len(positive_keys) == 14524 and
-              positive_keys == totals_keys and
-              len(zero_only_keys) == 76
-          )
-
-          rebound_metrics = sorted(
-              m for m in metrics
-              if re.search(r'(^|[^a-z])(reb|trb|oreb|dreb)(%|[^a-z]|$)', m, flags=re.I)
-              or 'rebound' in m.lower()
-          )
-
-          git_hits = []
-          patterns = r'14524|14,524|14600|14,600|7241|7,241|2681|2,681|9922|9,922|4602|4,602'
-          try:
-              out = subprocess.run(
-                  ['git', '-C', 'control', 'grep', '-n', '-E', patterns],
-                  text=True, capture_output=True, check=False
-              ).stdout
-              git_hits = out.splitlines()[:500]
-          except Exception as e:
-              git_hits = [f'git grep failed: {e}']
-
-          candidate_paths = []
-          keywords = ('canonical','population','lock','overlay','residual','assembly','v13','exact')
-          for p in Path('control').rglob('*'):
-              if not p.is_file() or '.git' in p.parts:
+          for path in files:
+              rel = str(path.relative_to(EVIDENCE))
+              size = path.stat().st_size
+              if size > MAX_FILE_BYTES:
+                  files_skipped_large += 1
+                  source_reports.append({'path': rel, 'classification':'skipped_large', 'bytes':size})
                   continue
-              low = p.name.lower()
-              if any(k in low for k in keywords):
-                  candidate_paths.append(str(p.relative_to('control')))
-          candidate_paths = sorted(candidate_paths)[:1000]
+              files_examined += 1
+              try:
+                  fields, rows = sample_and_iter(path)
+                  sf, pf, tf = key_fields(fields)
+                  raw_fields = [f for f in fields if rebound_field_kind(f) in ('raw_count','raw_candidate')]
+                  pct_fields = [f for f in fields if rebound_field_kind(f) == 'percentage']
+                  if not (sf and pf and tf) or not (raw_fields or pct_fields):
+                      source_reports.append({
+                          'path': rel,
+                          'classification': 'non_keyed_or_non_rebound',
+                          'bytes': size,
+                          'key_fields': [x for x in (sf,pf,tf) if x],
+                          'raw_rebound_fields': raw_fields,
+                          'percentage_fields': pct_fields,
+                      })
+                      if hasattr(rows, 'close'):
+                          rows.close()
+                      continue
+
+                  source_keys = set()
+                  canonical_source_keys = set()
+                  noncanonical = 0
+                  row_count = 0
+                  for row in rows:
+                      row_count += 1
+                      key = (norm(row.get(sf)), norm(row.get(pf)), norm(row.get(tf)))
+                      if not all(key):
+                          continue
+                      source_keys.add(key)
+                      if key in canonical:
+                          canonical_source_keys.add(key)
+                      else:
+                          noncanonical += 1
+
+                  if raw_fields:
+                      classification = 'candidate_raw_count_evidence'
+                      raw_union.update(canonical_source_keys)
+                      for key in canonical_source_keys:
+                          raw_key_sources[key].append(rel)
+                  else:
+                      classification = 'percentage_only_evidence'
+                      percentage_union.update(canonical_source_keys)
+
+                  source_reports.append({
+                      'path': rel,
+                      'classification': classification,
+                      'bytes': size,
+                      'rows': row_count,
+                      'unique_keys': len(source_keys),
+                      'canonical_keys_covered': len(canonical_source_keys),
+                      'noncanonical_rows_or_keys_seen': noncanonical,
+                      'key_fields': [sf,pf,tf],
+                      'raw_rebound_fields': raw_fields,
+                      'percentage_fields': pct_fields,
+                  })
+              except Exception as exc:
+                  parse_errors.append({'path':rel,'error':f'{type(exc).__name__}: {exc}'})
+                  source_reports.append({'path':rel,'classification':'parse_error','bytes':size,'error':f'{type(exc).__name__}: {exc}'})
+
+          unresolved_candidate = canonical - raw_union
+          multi_source = {k:v for k,v in raw_key_sources.items() if len(v) > 1}
+          class_counts = Counter(r['classification'] for r in source_reports)
+          raw_sources = [r for r in source_reports if r['classification'] == 'candidate_raw_count_evidence']
+          raw_sources.sort(key=lambda r:(-r.get('canonical_keys_covered',0), r['path']))
+          pct_sources = [r for r in source_reports if r['classification'] == 'percentage_only_evidence']
+          pct_sources.sort(key=lambda r:(-r.get('canonical_keys_covered',0), r['path']))
 
           report = {
-              'status': 'PASS' if population_gate else 'FAIL',
-              'source_commit_stage2': '57ba237c36d75f7a3ef2cc998d91aa70a59b3c29',
-              'controller_trigger_sha': '${{ github.sha }}',
-              'season_range': [seasons[0], seasons[-1]],
-              'stage2_metric_rows': metric_rows,
-              'stage2_tenure_windows': len(windows),
-              'stage2_all_keys': len(stage2_keys),
-              'stage2_positive_minute_keys': len(positive_keys),
-              'stage2_zero_minute_windows': len(zero_windows),
-              'stage2_zero_only_keys': len(zero_only_keys),
-              'player_team_totals_keys': len(totals_keys),
-              'all_stage2_only_count': len(all_only_stage2),
-              'all_totals_only_count': len(all_only_totals),
-              'positive_stage2_only_count': len(pos_only_stage2),
-              'positive_totals_only_count': len(pos_only_totals),
-              'all_stage2_only_keys': ['|'.join(x) for x in all_only_stage2],
-              'all_totals_only_keys': ['|'.join(x) for x in all_only_totals],
-              'positive_stage2_only_keys': ['|'.join(x) for x in pos_only_stage2],
-              'positive_totals_only_keys': ['|'.join(x) for x in pos_only_totals],
-              'zero_only_keys': ['|'.join(x) for x in sorted(zero_only_keys)],
-              'zero_only_collection_sources': dict(sorted(zero_only_sources.items())),
-              'collection_source_metric_rows': dict(sorted(collection_sources.items())),
-              'rebound_metric_names': rebound_metrics,
-              'controller_evidence_paths': candidate_paths,
-              'controller_count_references': git_hits,
-              'population_resolution': (
-                  'CONFIRMED_14524_POSITIVE_MINUTE_CANONICAL_KEYS'
-                  if population_gate else
-                  'UNRESOLVED_STOP_REQUIRED'
-              ),
-              'automatic_progression_policy': {
+              'status': 'PASS',
+              'controller_sha': controller_sha,
+              'evidence_branch': 'agent/treb-batched-game-facts-20260812',
+              'evidence_sha': evidence_sha,
+              'canonical_population': len(canonical),
+              'canonical_population_required': EXPECTED_CANONICAL,
+              'candidate_files_found': len(files),
+              'files_examined': files_examined,
+              'files_skipped_large': files_skipped_large,
+              'parse_error_count': len(parse_errors),
+              'classification_counts': dict(sorted(class_counts.items())),
+              'candidate_raw_source_count': len(raw_sources),
+              'percentage_only_source_count': len(pct_sources),
+              'candidate_raw_union_canonical_keys': len(raw_union),
+              'candidate_raw_uncovered_canonical_keys': len(unresolved_candidate),
+              'percentage_only_union_canonical_keys': len(percentage_union),
+              'multi_raw_source_key_count': len(multi_source),
+              'coverage_semantics': 'candidate inventory only; a key is not promoted or declared exact merely because a raw-looking source covers it',
+              'integrity_policy': {
                   'reconstruction_permitted': False,
                   'rounded_metric_promotion_permitted': False,
+                  'percentage_only_promotion_permitted': False,
                   'accepted_v13_residuals_reopened': False,
-                  'continue_on_population_gate_failure': False,
+                  'canonical_population_required': EXPECTED_CANONICAL,
+                  'automatic_exact_promotion_permitted': False,
               },
+              'candidate_raw_sources': raw_sources,
+              'percentage_only_sources': pct_sources,
+              'uncovered_canonical_keys': ['|'.join(k) for k in sorted(unresolved_candidate)],
+              'multi_raw_source_keys': [
+                  {'key':'|'.join(k),'sources':sorted(v)} for k,v in sorted(multi_source.items())
+              ],
+              'parse_errors': parse_errors,
+              'all_source_reports': source_reports,
           }
 
-          outdir = Path('supervisor_output')
-          (outdir / 'treb_completion_supervisor.json').write_text(
-              json.dumps(report, indent=2) + '\n', encoding='utf-8'
-          )
-          md = [
-              '# TREB completion supervisor', '',
-              f"- Status: **{report['status']}**",
-              f"- Stage2 metric rows: **{metric_rows:,}**",
-              f"- Stage2 tenure windows: **{len(windows):,}**",
-              f"- Stage2 all keys: **{len(stage2_keys):,}**",
-              f"- Stage2 positive-minute keys: **{len(positive_keys):,}**",
-              f"- Stage2 zero-minute windows: **{len(zero_windows):,}**",
-              f"- Stage2 zero-only keys: **{len(zero_only_keys):,}**",
-              f"- player_team_totals keys: **{len(totals_keys):,}**",
-              f"- Positive Stage2-only: **{len(pos_only_stage2):,}**",
-              f"- Positive totals-only: **{len(pos_only_totals):,}**",
-              f"- Population resolution: **{report['population_resolution']}**", '',
-              '## Rebound metric names', '',
-              *[f'- {m}' for m in rebound_metrics], '',
-              '## Zero-only key sources', '',
-              *[f'- {k}: {v}' for k,v in sorted(zero_only_sources.items())], '',
-              '## Automatic policy', '',
-              '- No reconstruction.',
-              '- No promotion of rounded percentages.',
-              '- Accepted V13 immaterial residuals stay closed.',
-              '- Stop automatically on any failed hard gate.',
-          ]
-          (outdir / 'TREB_COMPLETION_SUPERVISOR.md').write_text('\n'.join(md) + '\n', encoding='utf-8')
+          (OUT / 'retained_evidence_inventory.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+          with (OUT / 'candidate_raw_sources.csv').open('w', encoding='utf-8', newline='') as fh:
+              cols = ['path','canonical_keys_covered','unique_keys','rows','bytes','raw_rebound_fields','percentage_fields']
+              w = csv.DictWriter(fh, fieldnames=cols)
+              w.writeheader()
+              for r in raw_sources:
+                  w.writerow({
+                      'path':r['path'],
+                      'canonical_keys_covered':r.get('canonical_keys_covered',0),
+                      'unique_keys':r.get('unique_keys',0),
+                      'rows':r.get('rows',0),
+                      'bytes':r.get('bytes',0),
+                      'raw_rebound_fields':'|'.join(r.get('raw_rebound_fields',[])),
+                      'percentage_fields':'|'.join(r.get('percentage_fields',[])),
+                  })
 
-          Path('supervisor_output/population_gate.txt').write_text(
-              'PASS\n' if population_gate else 'FAIL\n', encoding='utf-8'
-          )
+          md = [
+              '# TREB retained evidence inventory', '',
+              f'- Status: **PASS**',
+              f'- Canonical V2 universe: **{len(canonical):,} / {EXPECTED_CANONICAL:,}**',
+              f'- Retained evidence branch: `{evidence_sha}`',
+              f'- Candidate files found: **{len(files):,}**',
+              f'- Files examined: **{files_examined:,}**',
+              f'- Candidate raw/count sources: **{len(raw_sources):,}**',
+              f'- Candidate raw/count union coverage: **{len(raw_union):,} canonical keys**',
+              f'- Canonical keys not covered by candidate raw/count sources: **{len(unresolved_candidate):,}**',
+              f'- Percentage-only union coverage: **{len(percentage_union):,} canonical keys**',
+              f'- Keys appearing in multiple raw/count candidate sources: **{len(multi_source):,}**',
+              f'- Parse errors: **{len(parse_errors):,}**', '',
+              '## Important interpretation', '',
+              'This is a retained-source inventory, not an automatic promotion step. Raw-looking coverage is not treated as exact until source semantics and conflicts are validated.',
+              'No reconstruction, rounded-percentage backsolve, percentage-only promotion, or reopening of the 13 accepted V13 residuals is permitted.', '',
+              '## Top raw/count candidate sources', '',
+          ]
+          for r in raw_sources[:40]:
+              md.append(f"- `{r['path']}` — {r.get('canonical_keys_covered',0):,} canonical keys; fields: {', '.join(r.get('raw_rebound_fields',[])[:12])}")
+          if not raw_sources:
+              md.append('- None detected by the conservative schema classifier.')
+          (OUT / 'RETAINED_EVIDENCE_INVENTORY.md').write_text('\n'.join(md) + '\n', encoding='utf-8')
+
           print(json.dumps({
-              k: report[k] for k in (
-                  'status','stage2_metric_rows','stage2_tenure_windows','stage2_all_keys',
-                  'stage2_positive_minute_keys','stage2_zero_minute_windows',
-                  'stage2_zero_only_keys','player_team_totals_keys',
-                  'positive_stage2_only_count','positive_totals_only_count',
-                  'population_resolution'
-              )
+              'canonical_population': len(canonical),
+              'candidate_files_found': len(files),
+              'candidate_raw_source_count': len(raw_sources),
+              'candidate_raw_union_canonical_keys': len(raw_union),
+              'candidate_raw_uncovered_canonical_keys': len(unresolved_candidate),
+              'multi_raw_source_key_count': len(multi_source),
+              'parse_error_count': len(parse_errors),
           }, indent=2))
           PY
 
-      - name: Persist supervisor artifact
+      - name: Upload retained evidence inventory artifact
         uses: actions/upload-artifact@v4
         with:
-          name: treb-completion-supervisor-${{ github.run_id }}
+          name: treb-retained-evidence-inventory-${{ github.run_id }}
           path: supervisor_output/
           retention-days: 90
           if-no-files-found: error
 
-      - name: Commit durable supervisor checkpoint
+      - name: Persist retained evidence inventory checkpoint
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p control/treb_automation/status
-          cp supervisor_output/treb_completion_supervisor.json control/treb_automation/status/latest.json
-          cp supervisor_output/TREB_COMPLETION_SUPERVISOR.md control/treb_automation/status/LATEST.md
+          cp supervisor_output/retained_evidence_inventory.json control/treb_automation/status/retained_evidence_inventory_latest.json
+          cp supervisor_output/RETAINED_EVIDENCE_INVENTORY.md control/treb_automation/status/RETAINED_EVIDENCE_INVENTORY_LATEST.md
           cd control
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add treb_automation/status/latest.json treb_automation/status/LATEST.md
+          git add treb_automation/status/retained_evidence_inventory_latest.json treb_automation/status/RETAINED_EVIDENCE_INVENTORY_LATEST.md
           if git diff --cached --quiet; then
             echo 'No checkpoint changes to commit.'
           else
-            git commit -m 'Persist TREB completion supervisor checkpoint [skip ci]'
+            git commit -m 'Persist TREB retained evidence inventory [skip ci]'
+            git fetch origin agent/treb-final-exact-assembly
+            git rebase origin/agent/treb-final-exact-assembly
             git push origin HEAD:agent/treb-final-exact-assembly
           fi
-
-      - name: Enforce population gate after checkpoint persistence
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$(tr -d '\r\n' < supervisor_output/population_gate.txt)" = PASS
