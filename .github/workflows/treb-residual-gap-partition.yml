@@ -1,0 +1,210 @@
+name: TREB residual missing-game partition
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-residual-gap-partition.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-residual-missing-game-partition
+  cancel-in-progress: false
+
+jobs:
+  partition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout canonical assembly branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - name: Partition current residual missing-game scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_residual_gap_partition
+          mkdir -p /tmp/treb_residual_gap_partition
+          python - <<'PY'
+          import csv, json
+          from pathlib import Path
+
+          ROOT=Path('.')
+          OUT=Path('/tmp/treb_residual_gap_partition')
+          BASE=ROOT/'team_trb_all_players/final_integrity_rebuild/final_exact_release'
+          MISSING=BASE/'residual_game_scope/UNIQUE_MISSING_GAMES.csv'
+          SOURCE=BASE/'FULLCORE_EXACT_SOURCE_MANIFEST_V3.json'
+          TARGETED=BASE/'TARGETED_MISSING_EXACT_GAMES.json'
+
+          for p in (MISSING,SOURCE,TARGETED):
+              if not p.exists():
+                  raise SystemExit(f'missing required input: {p}')
+
+          def norm_gid(v):
+              s=str(v).strip()
+              if s.endswith('.0') and s[:-2].isdigit():
+                  s=s[:-2]
+              return str(int(s)) if s.isdigit() else s
+
+          def write_csv(path, rows, fields):
+              with open(path,'w',newline='',encoding='utf-8') as f:
+                  w=csv.DictWriter(f,fieldnames=fields,extrasaction='ignore')
+                  w.writeheader(); w.writerows(rows)
+
+          with open(MISSING,newline='',encoding='utf-8-sig') as f:
+              rows=list(csv.DictReader(f))
+          for r in rows:
+              r['game_id']=norm_gid(r['game_id'])
+
+          keys={(r['season'],r['game_id']) for r in rows}
+          if len(rows)!=3958 or len(keys)!=3958:
+              raise SystemExit(f'current missing scope mismatch rows={len(rows)} unique={len(keys)}')
+
+          source=json.loads(SOURCE.read_text(encoding='utf-8'))
+          accepted=[norm_gid(x) for x in source.get('accepted_game_exclusions',[])]
+          accepted_set=set(accepted)
+          if len(accepted)!=40 or len(accepted_set)!=40:
+              raise SystemExit(f'legacy accepted exclusion manifest mismatch rows={len(accepted)} unique={len(accepted_set)}')
+
+          targeted=json.loads(TARGETED.read_text(encoding='utf-8'))
+          if int(targeted.get('missing_game_count_all',-1))!=3958:
+              raise SystemExit('TARGETED_MISSING_EXACT_GAMES missing_game_count_all mismatch')
+          if int(targeted.get('strict_unaccepted_missing_game_count',-1))!=3949:
+              raise SystemExit('TARGETED_MISSING_EXACT_GAMES strict_unaccepted_missing_game_count mismatch')
+          if int(targeted.get('accepted_exclusion_count_in_legacy_manifest',-1))!=40:
+              raise SystemExit('TARGETED_MISSING_EXACT_GAMES legacy accepted exclusion count mismatch')
+          if targeted.get('accepted_exclusions_are_not_production_waivers') is not True:
+              raise SystemExit('legacy accepted exclusions must not be treated as production waivers')
+
+          edge_seasons={'2000-01','2001-02','2025-26'}
+          edge=[dict(r) for r in rows if r['season'] in edge_seasons]
+          historical=[dict(r) for r in rows if r['season'] not in edge_seasons]
+          if len(edge)!=3608 or len(historical)!=350:
+              raise SystemExit(f'edge/historical partition mismatch edge={len(edge)} historical={len(historical)}')
+
+          current_missing_ids={r['game_id'] for r in rows}
+          accepted_overlap_ids=accepted_set & current_missing_ids
+          if len(accepted_overlap_ids)!=9:
+              raise SystemExit(f'legacy accepted/current-missing overlap mismatch: {len(accepted_overlap_ids)}')
+          if any(r['game_id'] in accepted_overlap_ids for r in edge):
+              raise SystemExit('legacy accepted exclusion unexpectedly overlaps an edge-season missing game')
+
+          accepted_overlap=[]
+          strict=[]
+          partition=[]
+          for r in historical:
+              x=dict(r)
+              if r['game_id'] in accepted_overlap_ids:
+                  x['partition_class']='legacy_accepted_exclusion_overlap_recovery_required'
+                  accepted_overlap.append(x)
+              else:
+                  x['partition_class']='strict_historical_recovery_required'
+                  strict.append(x)
+              x['production_recovery_required']='true'
+              partition.append(x)
+
+          if len(strict)!=341 or len(accepted_overlap)!=9 or len(partition)!=350:
+              raise SystemExit(f'historical partition mismatch strict={len(strict)} accepted_overlap={len(accepted_overlap)} total={len(partition)}')
+
+          accepted_not_missing=sorted(accepted_set-current_missing_ids,key=int)
+          if len(accepted_not_missing)!=31:
+              raise SystemExit(f'legacy accepted exclusions not currently missing mismatch: {len(accepted_not_missing)}')
+
+          base_fields=list(rows[0].keys())
+          partition_fields=base_fields+['partition_class','production_recovery_required']
+          write_csv(OUT/'HISTORICAL_MISSING_GAME_PARTITION.csv',partition,partition_fields)
+          write_csv(OUT/'HISTORICAL_STRICT_RECOVERY_GAMES.csv',strict,partition_fields)
+          write_csv(OUT/'HISTORICAL_LEGACY_ACCEPTED_OVERLAP_RECOVERY_GAMES.csv',accepted_overlap,partition_fields)
+          edge_out=[]
+          for r in edge:
+              x=dict(r); x['partition_class']='edge_season_recovery_required'; x['production_recovery_required']='true'; edge_out.append(x)
+          write_csv(OUT/'EDGE_SEASON_RECOVERY_GAMES.csv',edge_out,partition_fields)
+          write_csv(OUT/'LEGACY_ACCEPTED_EXCLUSIONS_NOT_CURRENT_MISSING.csv',
+                    [{'game_id':x,'status':'legacy_exclusion_not_in_current_missing_scope'} for x in accepted_not_missing],
+                    ['game_id','status'])
+
+          by_season={}
+          for r in rows:
+              s=r['season']
+              d=by_season.setdefault(s,{'missing_games':0,'strict_historical_recovery':0,'legacy_accepted_overlap_recovery':0,'edge_recovery':0})
+              d['missing_games']+=1
+              if s in edge_seasons:
+                  d['edge_recovery']+=1
+              elif r['game_id'] in accepted_overlap_ids:
+                  d['legacy_accepted_overlap_recovery']+=1
+              else:
+                  d['strict_historical_recovery']+=1
+
+          summary={
+              'status':'PASS',
+              'operation':'partition_current_residual_missing_games_only_no_reconstruction',
+              'current_missing_games_total':len(rows),
+              'historical_missing_games_2002_03_to_2024_25':len(historical),
+              'historical_strict_recovery_games':len(strict),
+              'historical_legacy_accepted_exclusion_overlap_recovery_games':len(accepted_overlap),
+              'edge_season_recovery_games':len(edge),
+              'legacy_accepted_exclusion_manifest_count':len(accepted_set),
+              'legacy_accepted_exclusions_not_in_current_missing_scope':len(accepted_not_missing),
+              'legacy_accepted_exclusions_are_production_waivers':False,
+              'all_350_historical_missing_games_remain_recovery_targets':True,
+              'edge_seasons':['2000-01','2001-02','2025-26'],
+              'accepted_overlap_game_ids':sorted(accepted_overlap_ids,key=int),
+              'by_season':by_season,
+              'guards':{
+                  'game_reconstruction_run':False,
+                  'rounded_percentage_backsolve_used':False,
+                  'current_missing_scope_unique_games_equals_3958':True,
+                  'historical_missing_scope_equals_350':True,
+                  'edge_missing_scope_equals_3608':True,
+                  'legacy_accepted_manifest_equals_40':True,
+                  'current_missing_legacy_accepted_overlap_equals_9':True,
+                  'historical_strict_recovery_equals_341':True,
+                  'accepted_exclusions_not_treated_as_release_waivers':True
+              }
+          }
+          (OUT/'HISTORICAL_MISSING_GAME_PARTITION_SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          (OUT/'STATUS.txt').write_text('PASS\n',encoding='utf-8')
+          (OUT/'README.md').write_text(
+              '# TREB current residual missing-game partition\n\n'
+              'Status: **PASS**\n\n'
+              '- Current missing unique games: **3,958**\n'
+              '- Historical missing games (2002-03 to 2024-25): **350**\n'
+              '- Strict historical recovery games: **341**\n'
+              '- Historical games overlapping the 40-game legacy accepted-exclusion list: **9**\n'
+              '- Edge-season recovery games (2000-01, 2001-02, 2025-26): **3,608**\n\n'
+              'The legacy accepted-exclusion label is retained only as provenance. It is not a production waiver; all 350 current historical missing games remain recovery targets. No reconstruction was run by this workflow.\n',
+              encoding='utf-8')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+
+      - name: Upload durable partition artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-residual-gap-partition-${{ github.run_id }}
+          path: /tmp/treb_residual_gap_partition
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Persist partition checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release/residual_game_scope/historical_gap_partition
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch --no-tags origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          rm -rf "$D"; mkdir -p "$D"
+          cp -a /tmp/treb_residual_gap_partition/. "$D/"
+          git add -f "$D"
+          git commit -m 'Persist TREB residual missing-game partition [skip ci]'
+          git push origin HEAD:agent/treb-final-exact-assembly
+
+      - name: Enforce PASS
+        run: test "$(cat /tmp/treb_residual_gap_partition/STATUS.txt)" = PASS
