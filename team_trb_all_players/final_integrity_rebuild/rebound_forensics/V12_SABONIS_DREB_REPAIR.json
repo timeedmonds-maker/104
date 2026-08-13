@@ -1,0 +1,44 @@
+{
+  "status": "PROMOTED",
+  "promotion": "Sabonis bracket DREB exact-row repair",
+  "engine_base": "production_rebound_v9",
+  "repair_rows": 1,
+  "evidence": {
+    "v11_audit": "V11_BRACKET_SIDE_AUDIT.json",
+    "v11_workflow_run_id": 31655389364,
+    "cached_sweep": "REBOUND_CACHED_RULE_SWEEP_V2.json",
+    "cache_recovery_workflow_run_id": 31656553237
+  },
+  "safe_controls": {
+    "resolved_dreb_clock_invariant": {
+      "applicable": 348,
+      "correct": 348,
+      "wrong": 0
+    },
+    "bracket_clock_named_dreb": {
+      "applicable": 52,
+      "correct": 52,
+      "wrong": 0
+    },
+    "bracket_endpoint_clock_named_dreb": {
+      "applicable": 51,
+      "correct": 51,
+      "wrong": 0
+    }
+  },
+  "repairs": [
+    {
+      "game_id": 22201076,
+      "pbp_index": 529,
+      "period": 2,
+      "start_time": "04:00",
+      "end_time": "03:43",
+      "pbp_description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+      "pbp_is_oreb": false,
+      "resolved_player_id": 1627734,
+      "real": true,
+      "resolution_method": "resolved_dreb_clock_invariant",
+      "lineup": [203084, 203482, 1627734, 1627739, 1630534, 1630556, 1630558, 1631099, 1631117, 1631323]
+    }
+  ]
+}
