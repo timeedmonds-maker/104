@@ -1,0 +1,141 @@
+name: TREB Stage2 payload schema audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/stage2-payload-schema-audit.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+          path: stage2
+          fetch-depth: 1
+      - name: Audit retained Stage2 payload
+        shell: bash
+        run: |
+          python - <<'PY'
+          import gzip,json,re
+          from collections import Counter,defaultdict
+          from pathlib import Path
+
+          src=Path('stage2/team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
+          out=Path('audit_output'); out.mkdir()
+          EXPECT_ROWS=15206; EXPECT_KEYS=14524
+
+          def flat(x,p=''):
+              z={}
+              if isinstance(x,dict):
+                  for k,v in x.items():
+                      q=f'{p}.{k}' if p else k
+                      if isinstance(v,dict): z.update(flat(v,q))
+                      else: z[q]=v
+              return z
+          def toks(p):
+              p=re.sub(r'([a-z0-9])([A-Z])',r'\1_\2',p).lower()
+              return set(x for x in re.split(r'[^a-z0-9]+',p) if x)
+
+          stats=defaultdict(lambda:{'present':0,'types':Counter(),'numeric':0,'integer_like':0,'samples':[]})
+          rows=[]; samples=[]
+          with gzip.open(src,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line); rows.append(r)
+                  if len(samples)<5: samples.append(r)
+                  for p,v in flat(r).items():
+                      s=stats[p]; s['present']+=1; s['types'][type(v).__name__]+=1
+                      if len(s['samples'])<4 and v not in s['samples']: s['samples'].append(v)
+                      if isinstance(v,(int,float)) and not isinstance(v,bool):
+                          s['numeric']+=1
+                          if float(v).is_integer(): s['integer_like']+=1
+
+          paths=sorted(stats)
+          def resolve(n):
+              if n in stats: return n
+              q=[p for p in paths if p.split('.')[-1]==n]
+              return q[0] if len(q)==1 else None
+          kf={n:resolve(n) for n in ('season','player_id','team_id')}
+          key_ok=all(kf.values())
+          kc=Counter()
+          if key_ok:
+              for r in rows:
+                  d=flat(r); key=tuple(d.get(kf[n]) for n in ('season','player_id','team_id'))
+                  if None not in key: kc[key]+=1
+
+          pct=[]; exact_numeric=[]
+          for p,s in stats.items():
+              t=toks(p)
+              if t & {'pct','percent','percentage','rate','ratio'}: pct.append(p)
+              elif s['present']==len(rows) and s['numeric']==len(rows) and s['integer_like']==len(rows): exact_numeric.append(p)
+
+          def find(role):
+              found=[]
+              for p in exact_numeric:
+                  t=toks(p)
+                  on=('on' in t or 'oncourt' in ''.join(t)) and 'off' not in t
+                  opp=bool(t & {'opp','opponent','against'})
+                  team=bool(t & {'team','tm','own'}) and not opp
+                  orb=bool(t & {'oreb','orb'}) or ('offensive' in t and ('reb' in t or 'rebound' in t))
+                  drb=bool(t & {'dreb','drb'}) or ('defensive' in t and ('reb' in t or 'rebound' in t))
+                  reb=bool(t & {'reb','trb','rebound','rebounds'})
+                  if role=='team_oreb' and on and team and orb: found.append(p)
+                  if role=='team_dreb' and on and team and drb: found.append(p)
+                  if role=='opp_oreb' and on and opp and orb: found.append(p)
+                  if role=='opp_dreb' and on and opp and drb: found.append(p)
+                  if role=='team_reb' and on and team and reb and not orb and not drb: found.append(p)
+                  if role=='opp_reb' and on and opp and reb and not orb and not drb: found.append(p)
+              return sorted(found)
+
+          cand={r:find(r) for r in ('team_oreb','team_dreb','opp_oreb','opp_dreb','team_reb','opp_reb')}
+          quartet=all(cand[r] for r in ('team_oreb','team_dreb','opp_oreb','opp_dreb'))
+          pair=all(cand[r] for r in ('team_reb','opp_reb'))
+          num=[p for p in exact_numeric if ('num' in toks(p) or 'numerator' in toks(p)) and bool(toks(p)&{'treb','reb','rebound'})]
+          den=[p for p in exact_numeric if ('den' in toks(p) or 'denominator' in toks(p)) and bool(toks(p)&{'treb','reb','rebound'})]
+          method='OREB_DREB_QUARTET' if quartet else ('TOTAL_REB_PAIR' if pair else ('EXACT_NUM_DEN' if num and den else None))
+          raw=method is not None
+          multi={ '|'.join(map(str,k)):v for k,v in kc.items() if v>1 }
+
+          schema={p:{'present':s['present'],'types':dict(s['types']),'numeric':s['numeric'],'integer_like':s['integer_like'],'samples':s['samples']} for p,s in sorted(stats.items())}
+          report={
+            'source_commit':'57ba237c36d75f7a3ef2cc998d91aa70a59b3c29','source_path':str(src.relative_to('stage2')),
+            'rows':len(rows),'expected_rows':EXPECT_ROWS,'row_count_pass':len(rows)==EXPECT_ROWS,
+            'key_fields':kf,'key_fields_pass':key_ok,'unique_canonical_keys':len(kc),'expected_canonical_keys':EXPECT_KEYS,
+            'canonical_count_pass':len(kc)==EXPECT_KEYS,'multi_window_keys':len(multi),'extra_windows':sum(v-1 for v in kc.values()),
+            'multiplicity':dict(Counter(kc.values())),'multi_window_examples':dict(list(sorted(multi.items()))[:20]),
+            'raw_exact_components_sufficient':raw,'exact_method':method,'raw_candidates':cand,
+            'numerator_candidates':num,'denominator_candidates':den,'percentage_like_fields':sorted(pct),
+            'rounded_percentage_only_invalid':bool(pct) and not raw,
+            'deterministic_canonical_aggregation':raw and key_ok and len(kc)==EXPECT_KEYS,
+            'aggregation_rule':'SUM raw accumulators across tenure windows; NEVER average percentages' if raw else None,
+            'schema':schema,'sample_rows':samples
+          }
+          (out/'stage2_payload_schema_exactness_audit.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          md=[
+            '# Stage2 payload schema/exactness audit','',
+            f'- Rows: **{len(rows):,} / {EXPECT_ROWS:,}** — {"PASS" if len(rows)==EXPECT_ROWS else "FAIL"}',
+            f'- Unique canonical keys: **{len(kc):,} / {EXPECT_KEYS:,}** — {"PASS" if len(kc)==EXPECT_KEYS else "FAIL"}',
+            f'- Multi-window keys: **{len(multi):,}**; extra windows: **{sum(v-1 for v in kc.values()):,}**',
+            f'- Raw exact components sufficient: **{raw}**; method: **{method}**',
+            f'- Deterministic raw aggregation to canonical key: **{report["deterministic_canonical_aggregation"]}**',
+            f'- Percentage/rate-like fields: **{len(pct):,}**; rounded-only invalid: **{report["rounded_percentage_only_invalid"]}**','',
+            '## Raw candidates','', '```json',json.dumps(cand,indent=2),'```','',
+            '## Schema / field types','', '```json',json.dumps(schema,indent=2,default=str),'```','',
+            '## Sample rows','', '```json',json.dumps(samples,indent=2,default=str),'```'
+          ]
+          (out/'stage2_payload_schema_exactness_audit.md').write_text('\n'.join(md)+'\n')
+          print(json.dumps({k:report[k] for k in ('rows','unique_canonical_keys','multi_window_keys','raw_exact_components_sufficient','exact_method','deterministic_canonical_aggregation')},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage2-payload-schema-exactness-audit-${{ github.run_id }}
+          path: audit_output/
+          retention-days: 30
+          if-no-files-found: error
