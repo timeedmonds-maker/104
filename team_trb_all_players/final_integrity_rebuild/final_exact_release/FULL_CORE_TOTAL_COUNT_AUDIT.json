@@ -1,0 +1,697 @@
+{
+  "status": "PASS",
+  "v2": {
+    "total": 14524,
+    "full": 9647,
+    "partial": 4877,
+    "segments": 5199
+  },
+  "metric_columns": [
+    "season",
+    "team_id",
+    "subject_player_id",
+    "subject_player",
+    "metric",
+    "minutes_on",
+    "minutes_off",
+    "on",
+    "off",
+    "on_off",
+    "source_extra",
+    "pid"
+  ],
+  "derived_columns": [
+    "def_rebound_pct_displayed",
+    "exact",
+    "minutes",
+    "off_rebound_pct_displayed",
+    "opponent_def_rebound_candidates",
+    "opponent_off_rebound_candidates",
+    "opponent_rebound_candidates",
+    "opponent_rebounds_exact",
+    "player",
+    "player_id",
+    "season",
+    "seconds",
+    "team_def_rebounds",
+    "team_id",
+    "team_off_rebounds",
+    "team_rebounds",
+    "error",
+    "pid"
+  ],
+  "full_rows": 9647,
+  "duplicate_metric_keys": 0,
+  "full_rows_with_exact_team_total_on_off": 0,
+  "full_rows_missing_exact_team_total_on_off": 9647,
+  "team_missing_examples": [
+    [
+      "2000-01",
+      "1000",
+      1610612745
+    ],
+    [
+      "2000-01",
+      "1005",
+      1610612745
+    ],
+    [
+      "2000-01",
+      "1023",
+      1610612760
+    ],
+    [
+      "2000-01",
+      "1032",
+      1610612749
+    ],
+    [
+      "2000-01",
+      "1035",
+      1610612759
+    ],
+    [
+      "2000-01",
+      "105",
+      1610612748
+    ],
+    [
+      "2000-01",
+      "1051",
+      1610612750
+    ],
+    [
+      "2000-01",
+      "1073",
+      1610612750
+    ],
+    [
+      "2000-01",
+      "1074",
+      1610612737
+    ],
+    [
+      "2000-01",
+      "1088",
+      1610612765
+    ],
+    [
+      "2000-01",
+      "109",
+      1610612747
+    ],
+    [
+      "2000-01",
+      "111",
+      1610612750
+    ],
+    [
+      "2000-01",
+      "1112",
+      1610612765
+    ],
+    [
+      "2000-01",
+      "1114",
+      1610612759
+    ],
+    [
+      "2000-01",
+      "1134",
+      1610612763
+    ],
+    [
+      "2000-01",
+      "120",
+      1610612757
+    ],
+    [
+      "2000-01",
+      "121",
+      1610612760
+    ],
+    [
+      "2000-01",
+      "123",
+      1610612743
+    ],
+    [
+      "2000-01",
+      "124",
+      1610612758
+    ],
+    [
+      "2000-01",
+      "128",
+      1610612762
+    ],
+    [
+      "2000-01",
+      "133",
+      1610612766
+    ],
+    [
+      "2000-01",
+      "136",
+      1610612766
+    ],
+    [
+      "2000-01",
+      "1425",
+      1610612751
+    ],
+    [
+      "2000-01",
+      "1434",
+      1610612741
+    ],
+    [
+      "2000-01",
+      "1444",
+      1610612758
+    ],
+    [
+      "2000-01",
+      "146",
+      1610612765
+    ],
+    [
+      "2000-01",
+      "147",
+      1610612754
+    ],
+    [
+      "2000-01",
+      "1477",
+      1610612748
+    ],
+    [
+      "2000-01",
+      "1495",
+      1610612759
+    ],
+    [
+      "2000-01",
+      "1496",
+      1610612751
+    ],
+    [
+      "2000-01",
+      "1497",
+      1610612750
+    ],
+    [
+      "2000-01",
+      "1498",
+      1610612759
+    ],
+    [
+      "2000-01",
+      "1499",
+      1610612738
+    ],
+    [
+      "2000-01",
+      "15",
+      1610612746
+    ],
+    [
+      "2000-01",
+      "1500",
+      1610612741
+    ],
+    [
+      "2000-01",
+      "1501",
+      1610612749
+    ],
+    [
+      "2000-01",
+      "1502",
+      1610612744
+    ],
+    [
+      "2000-01",
+      "1503",
+      1610612753
+    ],
+    [
+      "2000-01",
+      "1504",
+      1610612744
+    ],
+    [
+      "2000-01",
+      "1505",
+      1610612743
+    ],
+    [
+      "2000-01",
+      "1506",
+      1610612754
+    ],
+    [
+      "2000-01",
+      "1507",
+      1610612759
+    ],
+    [
+      "2000-01",
+      "1508",
+      1610612745
+    ],
+    [
+      "2000-01",
+      "1509",
+      1610612745
+    ],
+    [
+      "2000-01",
+      "1513",
+      1610612758
+    ],
+    [
+      "2000-01",
+      "1517",
+      1610612758
+    ],
+    [
+      "2000-01",
+      "1521",
+      1610612762
+    ],
+    [
+      "2000-01",
+      "1531",
+      1610612744
+    ],
+    [
+      "2000-01",
+      "1536",
+      1610612751
+    ],
+    [
+      "2000-01",
+      "1538",
+      1610612739
+    ]
+  ],
+  "opponent_rebound_columns": [
+    "opponent_def_rebound_candidates",
+    "opponent_off_rebound_candidates",
+    "opponent_rebound_candidates",
+    "opponent_rebounds_exact"
+  ],
+  "opponent_column_coverage": {
+    "opponent_def_rebound_candidates": {
+      "nonblank": 14521,
+      "numeric": 0,
+      "integer_nonnegative": 0
+    },
+    "opponent_off_rebound_candidates": {
+      "nonblank": 14521,
+      "numeric": 0,
+      "integer_nonnegative": 0
+    },
+    "opponent_rebound_candidates": {
+      "nonblank": 14521,
+      "numeric": 0,
+      "integer_nonnegative": 0
+    },
+    "opponent_rebounds_exact": {
+      "nonblank": 4451,
+      "numeric": 4451,
+      "integer_nonnegative": 4451
+    }
+  },
+  "full_key_exact_coverage_by_opponent_field": {
+    "opponent_def_rebound_candidates": 0,
+    "opponent_off_rebound_candidates": 0,
+    "opponent_rebound_candidates": 0,
+    "opponent_rebounds_exact": 1553
+  },
+  "adams_2016_derived": {
+    "opponent_def_rebound_candidates": "[1707,1708,1709,1710,1711,1712,1713,1714]",
+    "opponent_off_rebound_candidates": "[563,564,565]",
+    "opponent_rebound_candidates": "[2270,2271,2272,2273,2274,2275,2276,2277,2278,2279]",
+    "opponent_rebounds_exact": null
+  },
+  "adams_2016_core_metrics": {
+    "OffRebounds": null,
+    "DefRebounds": null
+  },
+  "safe_lock_policy_audit": {
+    "accepted_excluded_games": 40,
+    "exclusions": [
+      [
+        "2002-03",
+        20201160
+      ],
+      [
+        "2004-05",
+        20400335
+      ],
+      [
+        "2004-05",
+        20400736
+      ],
+      [
+        "2005-06",
+        20500090
+      ],
+      [
+        "2005-06",
+        20500102
+      ],
+      [
+        "2006-07",
+        20600887
+      ],
+      [
+        "2007-08",
+        20700319
+      ],
+      [
+        "2008-09",
+        20800032
+      ],
+      [
+        "2008-09",
+        20800142
+      ],
+      [
+        "2009-10",
+        20900113
+      ],
+      [
+        "2010-11",
+        21000431
+      ],
+      [
+        "2010-11",
+        21000997
+      ],
+      [
+        "2011-12",
+        21100842
+      ],
+      [
+        "2012-13",
+        21200919
+      ],
+      [
+        "2012-13",
+        21201167
+      ],
+      [
+        "2013-14",
+        21301048
+      ],
+      [
+        "2014-15",
+        21400968
+      ],
+      [
+        "2015-16",
+        21500711
+      ],
+      [
+        "2015-16",
+        21500903
+      ],
+      [
+        "2015-16",
+        21500916
+      ],
+      [
+        "2016-17",
+        21600358
+      ],
+      [
+        "2016-17",
+        21600655
+      ],
+      [
+        "2016-17",
+        21600668
+      ],
+      [
+        "2017-18",
+        21701085
+      ],
+      [
+        "2018-19",
+        21800143
+      ],
+      [
+        "2019-20",
+        21901316
+      ],
+      [
+        "2019-20",
+        21901317
+      ],
+      [
+        "2019-20",
+        21901318
+      ],
+      [
+        "2020-21",
+        22000485
+      ],
+      [
+        "2020-21",
+        22000853
+      ],
+      [
+        "2021-22",
+        22100688
+      ],
+      [
+        "2022-23",
+        22200140
+      ],
+      [
+        "2022-23",
+        22200182
+      ],
+      [
+        "2022-23",
+        22200207
+      ],
+      [
+        "2022-23",
+        22200234
+      ],
+      [
+        "2022-23",
+        22200778
+      ],
+      [
+        "2022-23",
+        22201040
+      ],
+      [
+        "2023-24",
+        22300452
+      ],
+      [
+        "2023-24",
+        22300599
+      ],
+      [
+        "2024-25",
+        22400433
+      ]
+    ],
+    "modern_2025": {
+      "engine": "modern_cdn_explicit_substitutions",
+      "policy": "accepted_bounded_modern_bridge_approximation"
+    },
+    "locks": [
+      {
+        "season": "2000-01",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 0
+      },
+      {
+        "season": "2001-02",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 0
+      },
+      {
+        "season": "2002-03",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2003-04",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 0
+      },
+      {
+        "season": "2004-05",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 2
+      },
+      {
+        "season": "2005-06",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 2
+      },
+      {
+        "season": "2006-07",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2007-08",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2008-09",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 2
+      },
+      {
+        "season": "2009-10",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2010-11",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 2
+      },
+      {
+        "season": "2011-12",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2012-13",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 2
+      },
+      {
+        "season": "2013-14",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2014-15",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2015-16",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 3
+      },
+      {
+        "season": "2016-17",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 3
+      },
+      {
+        "season": "2017-18",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2018-19",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2019-20",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 3
+      },
+      {
+        "season": "2020-21",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 2
+      },
+      {
+        "season": "2021-22",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2022-23",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 6
+      },
+      {
+        "season": "2023-24",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 2
+      },
+      {
+        "season": "2024-25",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 1
+      },
+      {
+        "season": "2025-26",
+        "status": "COMPLETE",
+        "exceptions": 0,
+        "unmatched": 0,
+        "accepted_excluded_games": 0
+      }
+    ]
+  },
+  "strict_release_blocked": true
+}
