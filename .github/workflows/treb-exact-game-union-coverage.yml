@@ -1,0 +1,82 @@
+name: TREB exact game-fact union coverage
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-exact-game-union-coverage.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Build exact union coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/stage2 refs/remotes/origin/treb-stage2-actions-live
+          python - <<'PY'
+          import gzip,io,json,subprocess,re
+          from pathlib import Path
+          import pandas as pd
+          ACCEPT={20201160,20400335,20400736,20500090,20500102,20600887,20700319,20800032,20800142,20900113,21000431,21000997,21100842,21200919,21201167,21301048,21400968,21500711,21500903,21500916,21600358,21600655,21600668,21701085,21800143,21901316,21901317,21901318,22000485,22000853,22100688,22200140,22200182,22200207,22200234,22200778,22201040,22300452,22300599,22400433}
+          def show(ref,path):
+            p=subprocess.run(['git','show',f'{ref}:{path}'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+            return p.stdout if p.returncode==0 else None
+          def csvgz(ref,path):
+            b=show(ref,path)
+            return None if b is None else pd.read_csv(io.BytesIO(b),compression='gzip',low_memory=False)
+          refs=subprocess.check_output(['git','for-each-ref','--format=%(refname)','refs/remotes/origin']).decode().splitlines()
+          batchrefs={}
+          for ref in refs:
+            m=re.search(r'/treb-game-facts-(\d{4})-batch-(\d{3})$',ref)
+            if m: batchrefs.setdefault(int(m.group(1)),[]).append(ref)
+          report={'years':{},'total_expected':0,'total_present':0,'total_missing':0,'missing_unaccepted':[]}
+          for y in range(2002,2025):
+            s=f'{y}-{(y+1)%100:02d}'; teams=[]; players=[]
+            for ref in sorted(batchrefs.get(y,[])):
+              # deterministic path from branch suffix
+              bi=int(ref.rsplit('-',1)[1]); base=f'team_trb_all_players/impact_database/exact_game_fact_batches/{s}/batch_{bi:03d}'
+              t=csvgz(ref,base+'/team_game_treb.csv.gz'); p=csvgz(ref,base+'/player_game_treb_on.csv.gz')
+              if t is not None and len(t): teams.append(t)
+              if p is not None and len(p): players.append(p)
+            for ref,base in [
+              ('refs/remotes/origin/treb-game-fact-repair-wave1',f'team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1/{y}'),
+              ('refs/remotes/origin/treb-fast-final-repair-wave',f'team_trb_all_players/final_integrity_rebuild/fast_final_repair_wave/{y}')]:
+              t=csvgz(ref,base+'/team_game_treb.csv.gz'); p=csvgz(ref,base+'/player_game_treb_on.csv.gz')
+              if t is not None and len(t): teams.append(t)
+              if p is not None and len(p): players.append(p)
+            t=pd.concat(teams,ignore_index=True).drop_duplicates(['game_id','team_id'],keep='last') if teams else pd.DataFrame()
+            p=pd.concat(players,ignore_index=True).drop_duplicates(['game_id','team_id','player_id'],keep='last') if players else pd.DataFrame()
+            sched=Path('/tmp/stage2/team_trb_all_players/impact_database/roster_tenure/regular_season_games_raw')/(s+'.json.gz')
+            with gzip.open(sched,'rt') as f: d=json.load(f)
+            expected={int(g['GameId']) for g in d['results']}
+            present=set(map(int,t.game_id.unique())) if len(t) else set()
+            missing=sorted(expected-present); unaccepted=sorted(set(missing)-ACCEPT)
+            report['years'][s]={'expected':len(expected),'present':len(present),'missing':len(missing),'accepted_missing':len(set(missing)&ACCEPT),'unaccepted_missing':len(unaccepted),'missing_ids':missing,'unaccepted_ids':unaccepted,'team_rows':len(t),'player_rows':len(p)}
+            report['total_expected']+=len(expected); report['total_present']+=len(present); report['total_missing']+=len(missing); report['missing_unaccepted']+=unaccepted
+          report['unique_missing_unaccepted']=len(set(report['missing_unaccepted']))
+          Path('/tmp/EXACT_GAME_UNION_COVERAGE.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps({'total_expected':report['total_expected'],'total_present':report['total_present'],'total_missing':report['total_missing'],'unique_missing_unaccepted':report['unique_missing_unaccepted'],'by_season':{k:{x:v[x] for x in ['expected','present','missing','accepted_missing','unaccepted_missing']} for k,v in report['years'].items()}},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: exact-game-union-coverage-${{ github.run_id }}
+          path: /tmp/EXACT_GAME_UNION_COVERAGE.json
+          retention-days: 90
+      - name: Persist audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release
+          git config user.name github-actions[bot]; git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin agent/treb-final-exact-assembly; git reset --hard origin/agent/treb-final-exact-assembly
+          mkdir -p "$D"; cp /tmp/EXACT_GAME_UNION_COVERAGE.json "$D/"
+          git add -f "$D/EXACT_GAME_UNION_COVERAGE.json"; git commit -m 'Persist exact game union coverage'; git push origin HEAD:agent/treb-final-exact-assembly
