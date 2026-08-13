@@ -1,0 +1,194 @@
+name: TREB independent retained recovery audit
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-retained-recovery-independent-audit.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-independent-retained-recovery-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RESIDUAL: team_trb_all_players/final_integrity_rebuild/final_exact_release/safe_lock_overlay/CANONICAL_UNRESOLVED_AFTER_SAFE_LOCK.csv
+      OUT: team_trb_all_players/final_integrity_rebuild/final_exact_release/retained_recovery_independent_audit
+      ARTROOT: /tmp/treb_retained_independent
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Install readers
+        run: python -m pip install --disable-pip-version-check pandas requests
+      - name: Download retained artifacts only
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$ARTROOT"
+          python - <<'PY'
+          import json, os, requests
+          from pathlib import Path
+          repo=os.environ['GITHUB_REPOSITORY']; token=os.environ['GH_TOKEN']; root=Path(os.environ['ARTROOT'])
+          runs=[31666990243,31656553237,31657564349,31637129009]
+          h={'Authorization':f'Bearer {token}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+          manifest=[]
+          for rid in runs:
+              r=requests.get(f'https://api.github.com/repos/{repo}/actions/runs/{rid}/artifacts?per_page=100',headers=h,timeout=30); r.raise_for_status()
+              for a in r.json().get('artifacts',[]):
+                  rec={'run_id':rid,'artifact_id':a['id'],'name':a['name'],'expired':bool(a.get('expired')),'downloaded':False}
+                  if not rec['expired']:
+                      d=requests.get(a['archive_download_url'],headers=h,timeout=120); d.raise_for_status()
+                      p=root/f"run_{rid}__artifact_{a['id']}__{a['name']}.zip"; p.write_bytes(d.content)
+                      rec['downloaded']=True; rec['local_file']=p.name
+                  manifest.append(rec)
+          (root/'artifact_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          print(json.dumps({'artifacts':len(manifest),'downloaded':sum(x['downloaded'] for x in manifest),'expired':sum(x['expired'] for x in manifest)},indent=2))
+          PY
+      - name: Audit genuinely independent retained evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,io,json,os,re,zipfile
+          from collections import defaultdict,Counter
+          from pathlib import Path
+          import pandas as pd
+
+          residual=pd.read_csv(os.environ['RESIDUAL'],dtype=str,low_memory=False)
+          if len(residual)!=4602: raise SystemExit(f'expected 4602 residual keys, got {len(residual)}')
+          def norm(v):
+              s='' if v is None else str(v).strip()
+              if s.endswith('.0') and s[:-2].isdigit(): s=s[:-2]
+              return s
+          def key(s,p,t): return f'{norm(s)}|{norm(p)}|{norm(t)}'
+          residual['canonical_key']=[key(s,p,t) for s,p,t in zip(residual.season,residual.player_id,residual.team_id)]
+          if residual.canonical_key.nunique()!=4602: raise SystemExit('residual keys not unique')
+          rkeys=set(residual.canonical_key)
+          base={r['canonical_key']:r for r in residual.to_dict('records')}
+          artroot=Path(os.environ['ARTROOT']); out=Path(os.environ['OUT']); out.mkdir(parents=True,exist_ok=True)
+
+          player_alias=['player_id','subject_player_id','person_id','nba_player_id','playerid']
+          team_alias=['team_id','subject_team_id','nba_team_id','teamid']
+          season_alias=['season','season_label']
+          game_alias=['game_id','gameid']
+          self_fragments=[
+              'CANONICAL_UNRESOLVED_AFTER_SAFE_LOCK.csv','SAFE_LOCK_CANONICAL_OVERLAY.csv',
+              'LOCKED_SEGMENT_CANONICAL_MAPPING.csv','CANONICAL_EXACT_SOURCE_OVERLAY_MAPPING.csv',
+              'CANONICAL_UNRESOLVED_AFTER_EXACT_OVERLAY.csv','retained_recovery_inventory',
+              'retained_recovery_independent_audit'
+          ]
+          evidence=defaultdict(lambda:{'sources':set(),'classes':set(),'games':set()})
+          source_rows=[]; parse_errors=[]
+
+          def lm(row): return {str(k).lower():k for k in row}
+          def alias(row,names):
+              m=lm(row)
+              for n in names:
+                  if n in m and row.get(m[n]) not in (None,''): return row.get(m[n])
+              return None
+          def season_from_game(v):
+              s=re.sub(r'\D','',norm(v))
+              if len(s)>=8 and s.startswith('2'):
+                  y=2000+int(s[1:3]); return f'{y}-{(y+1)%100:02d}'
+              return None
+          def classify(path,row):
+              cols={str(k).lower() for k in row}; low=path.lower()
+              if any(x in cols for x in game_alias) and any(x in cols for x in player_alias) and any(x in cols for x in team_alias): return 'player_game_fact'
+              if any(x in cols for x in game_alias) and any(x in cols for x in team_alias): return 'team_game_fact'
+              if 'repair' in low: return 'repair_evidence'
+              if any(x in low for x in ['forensic','audit','diagnostic','control','summary']): return 'diagnostic_or_control'
+              return 'provenance_or_other'
+          def records(obj):
+              if isinstance(obj,list):
+                  for x in obj: yield from records(x)
+              elif isinstance(obj,dict):
+                  yield obj
+                  for v in obj.values():
+                      if isinstance(v,(list,dict)): yield from records(v)
+          def consume(path,rows,origin):
+              if any(frag.lower() in path.lower() for frag in self_fragments): return
+              seen=0; mapped=set(); classes=Counter()
+              for row in rows:
+                  if not isinstance(row,dict): continue
+                  seen+=1; cls=classify(path,row); classes[cls]+=1
+                  p=alias(row,player_alias); t=alias(row,team_alias); s=alias(row,season_alias); g=alias(row,game_alias)
+                  if not s and g is not None: s=season_from_game(g)
+                  if s is None or p is None or t is None: continue
+                  k=key(s,p,t)
+                  if k not in rkeys: continue
+                  mapped.add(k); e=evidence[k]; e['sources'].add(path); e['classes'].add(cls)
+                  if g is not None: e['games'].add(norm(g))
+              source_rows.append({'source':path,'origin':origin,'rows_seen':seen,'mapped_residual_keys':len(mapped),'classes':json.dumps(dict(classes),sort_keys=True)})
+          def parse(name,data,origin,depth=0):
+              if depth>4: return
+              low=name.lower()
+              try:
+                  if low.endswith('.zip'):
+                      with zipfile.ZipFile(io.BytesIO(data)) as z:
+                          for zi in z.infolist():
+                              if not zi.is_dir() and zi.file_size<=250_000_000: parse(name+'::'+zi.filename,z.read(zi),origin,depth+1)
+                  elif low.endswith('.gz'): parse(name[:-3],gzip.decompress(data),origin,depth+1)
+                  elif low.endswith('.csv'):
+                      df=pd.read_csv(io.BytesIO(data),dtype=str,low_memory=False); consume(name,df.to_dict('records'),origin)
+                  elif low.endswith('.jsonl') or low.endswith('.ndjson'):
+                      consume(name,[json.loads(x) for x in data.decode('utf-8-sig','replace').splitlines() if x.strip()],origin)
+                  elif low.endswith('.json'): consume(name,records(json.loads(data.decode('utf-8-sig','replace'))),origin)
+              except Exception as e: parse_errors.append({'source':name,'origin':origin,'error':type(e).__name__+': '+str(e)[:400]})
+
+          for p in sorted(artroot.glob('*.zip')): parse(p.name,p.read_bytes(),'actions_artifact')
+          # Only genuinely independent committed diagnostics/manifests; exclude canonical overlays/mappings above.
+          for base_dir in [Path('team_trb_all_players/final_integrity_rebuild/rebound_forensics'),Path('team_trb_all_players/final_integrity_rebuild/final_exact_release')]:
+              if not base_dir.exists(): continue
+              for p in base_dir.rglob('*'):
+                  if p.is_file() and p.suffix.lower() in {'.json','.csv','.jsonl','.gz'} and p.stat().st_size<=50_000_000:
+                      parse(str(p),p.read_bytes(),'committed_repository')
+
+          rows=[]
+          for k in sorted(rkeys):
+              e=evidence[k]; b=base[k]
+              rows.append({'canonical_key':k,'season':b['season'],'player_id':b['player_id'],'team_id':b['team_id'],'canonical_classification':b.get('canonical_classification',''),'independent_source_count':len(e['sources']),'independent_game_count':len(e['games']),'independent_classes':'|'.join(sorted(e['classes'])),'has_independent_evidence':bool(e['sources'])})
+          covered=[r for r in rows if r['has_independent_evidence']]
+          by_class=Counter(r.get('canonical_classification','') for r in covered)
+          by_season=Counter(r['season'] for r in covered)
+          summary={'status':'PASS','operation':'independent_retained_evidence_audit_only','canonical_residual_keys':4602,'independent_evidence_keys':len(covered),'no_independent_evidence_keys':4602-len(covered),'independent_coverage_by_canonical_classification':dict(sorted(by_class.items())),'independent_coverage_by_season':dict(sorted(by_season.items())),'sources_scanned':len(source_rows),'parse_errors':len(parse_errors),'guards':{'game_reconstruction_run':False,'production_engine_changed':False,'candidate_auto_promoted':False,'self_referential_canonical_sources_excluded':True,'rounded_percentage_backsolve_used':False}}
+          def write(path,data,fields=None):
+              if fields is None:
+                  fields=[]
+                  for r in data:
+                      for k in r:
+                          if k not in fields: fields.append(k)
+              with open(path,'w',newline='',encoding='utf-8') as f:
+                  w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(data)
+          write(out/'INDEPENDENT_RESIDUAL_COVERAGE.csv',rows)
+          write(out/'INDEPENDENT_SOURCE_MANIFEST.csv',source_rows,['source','origin','rows_seen','mapped_residual_keys','classes'])
+          write(out/'PARSE_ERRORS.csv',parse_errors,['source','origin','error'])
+          (out/'SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-independent-retained-recovery-audit
+          path: team_trb_all_players/final_integrity_rebuild/final_exact_release/retained_recovery_independent_audit
+          retention-days: 90
+          if-no-files-found: error
+      - name: Persist audit checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$OUT"
+          git commit -m 'Persist independent retained TREB recovery audit [skip ci]' || exit 0
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
