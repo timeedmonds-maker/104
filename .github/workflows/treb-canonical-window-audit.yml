@@ -1,0 +1,193 @@
+name: TREB canonical window composition audit
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-canonical-window-audit.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout durable forensic branch with all refs
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install audit dependency
+        run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Regenerate canonical V2 roster universe without network
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2 /tmp/treb_locks /tmp/treb_audit
+          mkdir -p /tmp/treb_locks /tmp/treb_audit
+          git worktree add --detach /tmp/treb_stage2 refs/remotes/origin/treb-stage2-actions-live
+          python /tmp/treb_stage2/team_trb_all_players/build_roster_targets_v2.py
+          test -s /tmp/treb_stage2/team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+          test -s /tmp/treb_stage2/team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz
+
+      - name: Recover 26 validated safe-lock files
+        shell: bash
+        run: |
+          set -euo pipefail
+          LOCK_PATH=team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+          for y in $(seq 2000 2025); do
+            b="refs/remotes/origin/treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git show "${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+
+      - name: Audit canonical tenure rows versus partial segment locks
+        run: |
+          python - <<'PY'
+          import csv, gzip, json
+          from collections import Counter
+          from pathlib import Path
+
+          stage2 = Path('/tmp/treb_stage2/team_trb_all_players/impact_database/roster_tenure_v2')
+          locks_dir = Path('/tmp/treb_locks')
+          out = Path('/tmp/treb_audit')
+
+          def read_jsonl_gz(p):
+              rows=[]
+              with gzip.open(p,'rt',encoding='utf-8') as f:
+                  for line in f:
+                      if line.strip(): rows.append(json.loads(line))
+              return rows
+
+          canonical = read_jsonl_gz(stage2/'player_team_season_targets.jsonl.gz')
+          partial_expected = read_jsonl_gz(stage2/'wowy_partial_segments.jsonl.gz')
+
+          canon_key = lambda r: (str(r['season']), str(r['player_id']), int(r['team_id']))
+          seg_key = lambda r: (
+              str(r['season']), str(r['player_id']), int(r['team_id']),
+              int(r.get('segment_index') or 1), str(r.get('query_start_date') or ''), str(r.get('query_end_date') or '')
+          )
+
+          canonical_keys=[canon_key(r) for r in canonical]
+          if len(canonical_keys) != len(set(canonical_keys)):
+              raise SystemExit(f'duplicate canonical tenure keys: {len(canonical_keys)-len(set(canonical_keys))}')
+
+          full=[r for r in canonical if bool(r.get('full_core_reuse'))]
+          partial=[r for r in canonical if not bool(r.get('full_core_reuse'))]
+          partial_canon={canon_key(r) for r in partial}
+          expected_seg={seg_key(r) for r in partial_expected}
+
+          lock_rows=[]
+          lock_status=[]
+          for p in sorted(locks_dir.glob('*.json')):
+              d=json.loads(p.read_text())
+              lock_status.append((d.get('season'), d.get('status'), len(d.get('targets',[])), len(d.get('exceptions',[])), len(d.get('unmatched_rebound_rows',[]))))
+              lock_rows.extend(d.get('targets',[]))
+          lock_seg={seg_key(r) for r in lock_rows}
+          lock_canon={canon_key(r) for r in lock_rows}
+
+          missing_segments=sorted(expected_seg-lock_seg)
+          extra_segments=sorted(lock_seg-expected_seg)
+          missing_partial_tenures=sorted(partial_canon-lock_canon)
+          extra_partial_tenures=sorted(lock_canon-partial_canon)
+
+          season_rows=[]
+          seasons=sorted({r['season'] for r in canonical})
+          for s in seasons:
+              c=sum(1 for r in canonical if r['season']==s)
+              f=sum(1 for r in full if r['season']==s)
+              p=sum(1 for r in partial if r['season']==s)
+              es=sum(1 for r in partial_expected if r['season']==s)
+              ls=sum(1 for r in lock_rows if r['season']==s)
+              season_rows.append({'season':s,'canonical_tenures':c,'full_core_tenures':f,'partial_tenures':p,'expected_partial_segments':es,'locked_partial_segments':ls})
+
+          report={
+              'status':'PASS',
+              'method':'regenerate roster_repair_v2 canonical universe locally; exact-key compare against all 26 durable safe locks',
+              'network_used_for_data_reconstruction':False,
+              'canonical_tenure_rows':len(canonical),
+              'canonical_unique_tenure_keys':len(set(canonical_keys)),
+              'canonical_career_players':len({str(r['player_id']) for r in canonical}),
+              'full_core_reuse_tenures':len(full),
+              'partial_tenures':len(partial),
+              'expected_partial_segments':len(partial_expected),
+              'expected_partial_segment_unique_keys':len(expected_seg),
+              'locked_segment_rows':len(lock_rows),
+              'locked_segment_unique_keys':len(lock_seg),
+              'locked_partial_unique_tenures':len(lock_canon),
+              'missing_partial_segments':len(missing_segments),
+              'extra_partial_segments':len(extra_segments),
+              'missing_partial_tenures':len(missing_partial_tenures),
+              'extra_partial_tenures':len(extra_partial_tenures),
+              'projected_final_tenure_rows':len(full)+len(lock_canon),
+              'lock_files':len(lock_status),
+              'non_complete_locks':sum(1 for _,st,_,_,_ in lock_status if st!='COMPLETE'),
+              'lock_exceptions':sum(x[3] for x in lock_status),
+              'lock_unmatched_rebound_rows':sum(x[4] for x in lock_status),
+              'missing_segment_examples':[list(x) for x in missing_segments[:20]],
+              'extra_segment_examples':[list(x) for x in extra_segments[:20]],
+              'composition':'9647 unchanged full-team core tenure rows + 4877 partial tenure rows reconstructed from 5199 validated segment locks',
+          }
+
+          expected={
+              'canonical_tenure_rows':14524,
+              'canonical_career_players':3122,
+              'full_core_reuse_tenures':9647,
+              'partial_tenures':4877,
+              'expected_partial_segments':5199,
+              'locked_segment_rows':5199,
+              'locked_partial_unique_tenures':4877,
+              'projected_final_tenure_rows':14524,
+              'lock_files':26,
+              'non_complete_locks':0,
+              'lock_exceptions':0,
+              'lock_unmatched_rebound_rows':0,
+              'missing_partial_segments':0,
+              'extra_partial_segments':0,
+              'missing_partial_tenures':0,
+              'extra_partial_tenures':0,
+          }
+          failures={k:(report.get(k),v) for k,v in expected.items() if report.get(k)!=v}
+          if len(expected_seg)!=5199 or len(lock_seg)!=5199:
+              failures['segment_key_uniqueness']=(len(expected_seg),len(lock_seg))
+          if failures:
+              report['status']='FAIL'
+              report['failures']=failures
+
+          (out/'CANONICAL_WINDOW_AUDIT.json').write_text(json.dumps(report,indent=2)+'\n')
+          with (out/'CANONICAL_WINDOW_AUDIT_BY_SEASON.csv').open('w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=season_rows[0].keys()); w.writeheader(); w.writerows(season_rows)
+          print(json.dumps(report,indent=2))
+          if report['status']!='PASS': raise SystemExit(1)
+          PY
+
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-canonical-window-audit-${{ github.run_id }}
+          path: /tmp/treb_audit/
+          retention-days: 90
+
+      - name: Persist canonical audit to forensic branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_release
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812
+            git reset --hard origin/agent/treb-batched-game-facts-20260812
+            mkdir -p "$D"
+            cp /tmp/treb_audit/CANONICAL_WINDOW_AUDIT.json "$D/"
+            cp /tmp/treb_audit/CANONICAL_WINDOW_AUDIT_BY_SEASON.csv "$D/"
+            git add -f "$D/CANONICAL_WINDOW_AUDIT.json" "$D/CANONICAL_WINDOW_AUDIT_BY_SEASON.csv"
+            git commit -m 'Persist canonical TREB window audit' || exit 0
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
