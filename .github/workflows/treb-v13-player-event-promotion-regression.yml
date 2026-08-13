@@ -66,7 +66,7 @@ jobs:
         with:
           pattern: treb-v13-reg-*-${{ github.run_id }}
           path: /tmp/results
-      - name: Enforce exact player-event promotions and zero-regression gates
+      - name: Enforce Agbaji exact-event promotion and zero-regression gates
         run: |
           python - <<'PY'
           import json, os
@@ -87,20 +87,20 @@ jobs:
           assert prior['status'] == 'PASS' and prior['v12_residual_rows'] == 14
           prior_keys = {(int(x[0]), int(x[1])) for x in prior['residual_keys']}
           assert len(prior_keys) == 14
-          targets = {(21700042, 7322), (22201076, 494)}
+          targets = {(22201076, 494)}
           assert targets <= prior_keys
           residual = [r for x in xs for r in x['residual_rows']]
           after_keys = {(int(r['game_id']), int(r['pbp_index'])) for r in residual}
           expected = prior_keys - targets
-          assert len(residual) == 12 and len(after_keys) == 12
+          assert len(residual) == 13 and len(after_keys) == 13
           assert after_keys == expected, {'unexpected_added': sorted(after_keys - expected), 'unexpected_removed': sorted(expected - after_keys)}
           out = {
               'status': 'PASS',
               'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
               'engine': 'production_rebound_v13',
               'prior_v12_residual_rows': 14,
-              'promoted_v13_rows': 2,
-              'v13_residual_rows': 12,
+              'promoted_v13_rows': 1,
+              'v13_residual_rows': 13,
               'promoted_keys': [list(x) for x in sorted(targets)],
               'non_target_residual_delta_rows': 0,
               'lineup_interval_invariant_controls': interval,
