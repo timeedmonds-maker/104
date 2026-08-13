@@ -1,0 +1,404 @@
+name: TREB V14 GSW team rebound diagnostic
+
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-v14-gsw-team-rebound-diagnostic.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  SOURCE_RUN_ID: '31634201123'
+  SOURCE_YEAR: '2022'
+  OUT: team_trb_all_players/final_integrity_rebuild/rebound_forensics/V14_GSW_TEAM_REBOUND_DIAGNOSTIC.json
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-batched-game-facts-20260812
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - run: python -m pip install pandas numpy rapidfuzz
+
+      - name: Reuse 2022-23 source artifact only
+        uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ env.SOURCE_YEAR }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+
+      - name: Validate miss-type identity controls and exact GSW candidates
+        shell: bash
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+          import json
+          import os
+          import sys
+          import traceback
+          from pathlib import Path
+
+          import pandas as pd
+
+          ROOT = Path('.')
+          MOD = ROOT / 'team_trb_all_players'
+          sys.path.insert(0, str(MOD.resolve()))
+
+          import local_treb_rebuild as core
+          import production_rebound_v13 as rebound
+          import production_treb_engine_v3 as lineup_engine
+          import run_local_treb_production as io
+          import rebound_v5_source_only_audit as source_audit
+          import rebound_direct_team_identity_audit as team_audit
+
+          SOURCE_YEAR = int(os.environ['SOURCE_YEAR'])
+          SOURCE_RUN_ID = int(os.environ['SOURCE_RUN_ID'])
+          TARGET_GAME = 22201187
+          TARGETS = {1569: True, 1573: False}  # pbp_index -> expected PBP OREB flag
+          WARRIORS_ID = 1610612744
+          evidence_path = MOD / 'final_integrity_rebuild' / 'rebound_forensics' / 'DIRECT_TEAM_REBOUND_REPAIRS.json'
+          tmp_out = Path('/tmp/V14_GSW_TEAM_REBOUND_DIAGNOSTIC.json')
+
+          def miss_type(events: pd.DataFrame, idx: int):
+              r = events.loc[idx]
+              typ = int(r.EVENTMSGTYPE)
+              desc = source_audit.norm(r.DESCRIPTION_NORM)
+              if typ == 2:
+                  return 'field_goal_miss'
+              if typ == 3 and 'miss' in desc:
+                  return 'free_throw_miss'
+              return None
+
+          def exact_pbp_preceding_miss(events: pd.DataFrame, row: pd.Series):
+              prev = source_audit.norm(row.PREV_PBP_DESCRIPTION)
+              if not prev:
+                  raise AssertionError(f"missing PREV_PBP_DESCRIPTION pbp_index={int(row.name)}")
+              lo = min(int(row.START_ELAPSED), int(row.END_ELAPSED)) - 5
+              hi = max(int(row.START_ELAPSED), int(row.END_ELAPSED)) + 5
+              h = events[
+                  events.PERIOD.eq(int(row.PERIOD))
+                  & events.DESCRIPTION_NORM.eq(prev)
+                  & events.EVENTMSGTYPE.isin([2, 3])
+                  & events.ELAPSED.ge(lo)
+                  & events.ELAPSED.le(hi)
+              ]
+              keep = [int(i) for i in h.index if miss_type(events, int(i)) is not None]
+              if len(keep) != 1:
+                  raise AssertionError(
+                      f"preceding miss exact-match ambiguity pbp_index={int(row.name)} prev={prev!r} hits={keep}"
+                  )
+              i = keep[0]
+              return {
+                  'nba_index': i,
+                  'eventnum': int(events.loc[i, 'EVENTNUM']),
+                  'elapsed': int(events.loc[i, 'ELAPSED']),
+                  'type': miss_type(events, i),
+                  'description': str(events.loc[i, 'DESCRIPTION_NORM']),
+              }
+
+          def nba_preceding_miss(events: pd.DataFrame, rebound_idx: int):
+              rr = events.loc[rebound_idx]
+              h = events[
+                  events.PERIOD.eq(int(rr.PERIOD))
+                  & events.EVENTNUM.lt(int(rr.EVENTNUM))
+                  & events.EVENTMSGTYPE.isin([2, 3])
+              ].copy()
+              keep = [int(i) for i in h.index if miss_type(events, int(i)) is not None]
+              if not keep:
+                  raise AssertionError(f"no preceding NBA miss for rebound nba_index={rebound_idx}")
+              h = h.loc[keep].sort_values(['EVENTNUM', 'ELAPSED'], kind='stable')
+              i = int(h.index[-1])
+              return {
+                  'nba_index': i,
+                  'eventnum': int(events.loc[i, 'EVENTNUM']),
+                  'elapsed': int(events.loc[i, 'ELAPSED']),
+                  'type': miss_type(events, i),
+                  'description': str(events.loc[i, 'DESCRIPTION_NORM']),
+              }
+
+          def event_record(events: pd.DataFrame, idx: int):
+              r = events.loc[idx]
+              team_id = team_audit.nba_team_rebound_id(r)
+              return {
+                  'nba_index_audit_only': int(idx),
+                  'nba_eventnum': int(r.EVENTNUM),
+                  'nba_elapsed': int(r.ELAPSED),
+                  'nba_player1_id': int(r.PLAYER1_ID),
+                  'nba_player1_team_id': int(r.PLAYER1_TEAM_ID) if 'PLAYER1_TEAM_ID' in r.index and pd.notna(r.PLAYER1_TEAM_ID) else 0,
+                  'resolved_nba_team_id': None if team_id is None else int(team_id),
+                  'nba_description_norm': str(r.DESCRIPTION_NORM),
+                  'lineup': [int(x) for x in r.LINEUP],
+                  'real': bool(core._nba_real_rebound(events, int(idx))),
+                  'preceding_nba_miss': nba_preceding_miss(events, int(idx)),
+              }
+
+          try:
+              evidence = json.loads(evidence_path.read_text(encoding='utf-8'))
+              assert evidence['status'] == 'PROMOTED'
+              assert evidence['repair_rows'] == 50
+              assert evidence['repair_games'] == 7
+              assert evidence['direct_team_control_correct'] == 718
+              assert evidence['direct_team_control_wrong'] == 0
+              assert evidence['bracket_prefix_control_correct'] == 610
+              assert evidence['bracket_prefix_control_wrong'] == 0
+              repairs = evidence['repairs']
+              assert len(repairs) == 50
+              repair_games = sorted({int(r['game_id']) for r in repairs})
+              assert len(repair_games) == 7
+              assert all(g // 100000 == 222 for g in repair_games), repair_games
+              games_needed = sorted(set(repair_games) | {TARGET_GAME})
+
+              nba = io.normalize_nba(pd.read_csv(f'/tmp/source/nbastats_{SOURCE_YEAR}.csv', low_memory=False))
+              v3 = lineup_engine.normalize_v3(pd.read_csv(f'/tmp/source/nbastatsv3_{SOURCE_YEAR}.csv', low_memory=False))
+              pbp = io.normalize_pbp(pd.read_csv(f'/tmp/source/pbpstats_{SOURCE_YEAR}.csv', low_memory=False))
+              ng = {int(g): f.copy() for g, f in nba.groupby('GAME_ID', sort=False) if int(g) in games_needed}
+              vg = {int(g): f.copy() for g, f in v3.groupby('gameId', sort=False) if int(g) in games_needed}
+              pg = {int(g): f.copy() for g, f in pbp.groupby('GAMEID', sort=False) if int(g) in games_needed}
+              assert set(games_needed) == set(ng) == set(vg) == set(pg), {
+                  'needed': games_needed, 'nba': sorted(ng), 'v3': sorted(vg), 'pbp': sorted(pg)
+              }
+
+              reconstructed = {}
+              for gid in games_needed:
+                  lu = lineup_engine.reconstruct_game_lineups(ng[gid], vg[gid])
+                  joined, audit = rebound.join_pbp_rebounds(lu, pg[gid])
+                  reconstructed[gid] = {
+                      'lineups': lu,
+                      'events': lu.events,
+                      'joined': joined,
+                      'audit': audit,
+                      'rows': source_audit.rows_for_game(pg[gid]),
+                      'tricode': team_audit.tricode_map(vg[gid]),
+                      'exact_names': team_audit.exact_team_name_map(lu.events),
+                  }
+
+              control_records = []
+              control_counts = {
+                  'applicable': 0,
+                  'correct': 0,
+                  'wrong': 0,
+                  'field_goal_miss': 0,
+                  'free_throw_miss': 0,
+              }
+              for rec in repairs:
+                  gid = int(rec['game_id'])
+                  pi = int(rec['pbp_index'])
+                  x = reconstructed[gid]
+                  events, joined, rows = x['events'], x['joined'], x['rows']
+                  assert pi in rows.index, (gid, pi, 'missing PBP rebound row')
+                  assert pi in joined.index and pd.notna(joined.loc[pi, 'NBA_INDEX']), (gid, pi, 'not joined under V13')
+                  ni = int(joined.loc[pi, 'NBA_INDEX'])
+                  assert int(events.loc[ni, 'EVENTNUM']) == int(rec['nba_eventnum']), (gid, pi, 'eventnum drift')
+                  assert int(events.loc[ni, 'PLAYER1_ID']) == int(rec['nba_player1_id']), (gid, pi, 'player1 drift')
+                  assert int(events.loc[ni, 'ELAPSED']) == int(rec['nba_elapsed']), (gid, pi, 'elapsed drift')
+                  assert [int(v) for v in events.loc[ni, 'LINEUP']] == [int(v) for v in rec['lineup']], (gid, pi, 'lineup drift')
+                  assert bool(core._nba_real_rebound(events, ni)) == bool(rec['real']), (gid, pi, 'real/dead drift')
+
+                  pbp_miss = exact_pbp_preceding_miss(events, rows.loc[pi])
+                  nba_miss = nba_preceding_miss(events, ni)
+                  good = pbp_miss['type'] == nba_miss['type']
+                  control_counts['applicable'] += 1
+                  control_counts['correct' if good else 'wrong'] += 1
+                  control_counts[pbp_miss['type']] += 1
+                  control_records.append({
+                      'game_id': gid,
+                      'pbp_index': pi,
+                      'nba_eventnum': int(events.loc[ni, 'EVENTNUM']),
+                      'pbp_preceding_miss': pbp_miss,
+                      'nba_preceding_miss': nba_miss,
+                      'type_match': bool(good),
+                  })
+
+              expected_controls = {
+                  'applicable': 50,
+                  'correct': 50,
+                  'wrong': 0,
+                  'field_goal_miss': 30,
+                  'free_throw_miss': 20,
+              }
+              assert control_counts == expected_controls, {'actual': control_counts, 'expected': expected_controls}
+
+              x = reconstructed[TARGET_GAME]
+              events, joined, rows = x['events'], x['joined'], x['rows']
+              used = set(pd.to_numeric(joined.NBA_INDEX, errors='coerce').dropna().astype(int)) if 'NBA_INDEX' in joined.columns else set()
+              target_rows = []
+              candidate_union = set()
+              for pi, expected_oreb in TARGETS.items():
+                  assert pi in rows.index, (TARGET_GAME, pi, 'missing target PBP row')
+                  row = rows.loc[pi]
+                  assert str(row.DESCRIPTION) == '[GSW] Team Rebound', (pi, str(row.DESCRIPTION))
+                  assert bool(row.PBP_IS_OREB) is expected_oreb, (pi, bool(row.PBP_IS_OREB), expected_oreb)
+                  assert pi not in joined.index or pd.isna(joined.loc[pi, 'NBA_INDEX']), (pi, 'target already joined under V13')
+                  tid, method = team_audit.resolve_team(row.DESCRIPTION, x['tricode'], x['exact_names'])
+                  assert method == 'bracket_tricode' and int(tid) == WARRIORS_ID, (pi, tid, method)
+                  cand = team_audit.candidates(events, row, int(tid))
+                  unused = [int(i) for i in cand if int(i) not in used]
+                  assert len(unused) == 2, (pi, 'expected two unused GSW team rebound candidates', unused)
+                  candidate_union.update(unused)
+                  pbp_miss = exact_pbp_preceding_miss(events, row)
+                  target_rows.append({
+                      'pbp_index': int(pi),
+                      'period': int(row.PERIOD),
+                      'start_time': str(row.STARTTIME),
+                      'end_time': str(row.ENDTIME),
+                      'pbp_description': str(row.DESCRIPTION),
+                      'pbp_is_oreb': bool(row.PBP_IS_OREB),
+                      'resolved_team_id': int(tid),
+                      'pbp_preceding_miss': pbp_miss,
+                      'candidate_indices': unused,
+                  })
+
+              assert len(candidate_union) == 2, sorted(candidate_union)
+              assert len({(r['period'], r['start_time'], r['end_time']) for r in target_rows}) == 1, target_rows
+              assert {r['pbp_preceding_miss']['type'] for r in target_rows} == {'field_goal_miss', 'free_throw_miss'}, target_rows
+
+              candidate_records = {int(i): event_record(events, int(i)) for i in sorted(candidate_union)}
+              for ni, er in candidate_records.items():
+                  assert ni not in used, ('NBA event already assigned under V13', ni)
+                  assert int(events.loc[ni, 'EVENTMSGTYPE']) == 4, ni
+                  assert er['resolved_nba_team_id'] == WARRIORS_ID, er
+                  assert er['nba_player1_id'] == WARRIORS_ID, er
+                  assert er['real'] is False, er
+                  assert len(er['lineup']) == 10 and len(set(er['lineup'])) == 10, er
+              assert {er['preceding_nba_miss']['type'] for er in candidate_records.values()} == {'field_goal_miss', 'free_throw_miss'}, candidate_records
+
+              promotion_rows = []
+              selected = set()
+              for tr in target_rows:
+                  wanted = tr['pbp_preceding_miss']['type']
+                  hits = [ni for ni in tr['candidate_indices'] if candidate_records[ni]['preceding_nba_miss']['type'] == wanted]
+                  assert len(hits) == 1, {'pbp_index': tr['pbp_index'], 'wanted': wanted, 'hits': hits}
+                  ni = int(hits[0])
+                  assert ni not in selected, ('candidate NBA rebound would be reused across targets', ni)
+                  selected.add(ni)
+                  er = candidate_records[ni]
+                  promotion_rows.append({
+                      'game_id': TARGET_GAME,
+                      'pbp_index': tr['pbp_index'],
+                      'period': tr['period'],
+                      'start_time': tr['start_time'],
+                      'end_time': tr['end_time'],
+                      'pbp_description': tr['pbp_description'],
+                      'pbp_is_oreb': tr['pbp_is_oreb'],
+                      'resolved_team_id': WARRIORS_ID,
+                      'resolution_method': 'bracket_team_rebound_exact_preceding_miss_type_and_unassigned',
+                      'preceding_miss_type': wanted,
+                      **er,
+                  })
+              assert len(promotion_rows) == 2 and len(selected) == 2
+              assert all(r['real'] is False for r in promotion_rows)
+
+              report = {
+                  'status': 'PASS',
+                  'promotion_decision': 'CANDIDATE_FOR_EXACT_V14_PROMOTION',
+                  'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+                  'engine_under_test': 'production_rebound_v13',
+                  'source_run_id': SOURCE_RUN_ID,
+                  'source_year': SOURCE_YEAR,
+                  'method': 'bracket_team_rebound_preceding_miss_type_exact_identity',
+                  'prior_direct_team_evidence': {
+                      'repair_rows': 50,
+                      'repair_games': 7,
+                      'direct_team_control_correct': 718,
+                      'direct_team_control_wrong': 0,
+                      'bracket_prefix_control_correct': 610,
+                      'bracket_prefix_control_wrong': 0,
+                  },
+                  'preceding_miss_type_controls': control_counts,
+                  'preceding_miss_type_control_records': control_records,
+                  'target_game_id': TARGET_GAME,
+                  'target_keys': [[TARGET_GAME, i] for i in sorted(TARGETS)],
+                  'target_rows': target_rows,
+                  'candidate_events': [candidate_records[i] for i in sorted(candidate_records)],
+                  'repair_rows': len(promotion_rows),
+                  'repairs': sorted(promotion_rows, key=lambda r: r['pbp_index']),
+                  'safety': {
+                      'all_candidates_unassigned_under_v13': True,
+                      'distinct_nba_event_per_target': True,
+                      'warriors_team_placeholder_id_exact': True,
+                      'all_candidates_dead_ball': True,
+                      'expected_real_rebound_fact_delta': 0,
+                      'generic_team_credit_rule_used': False,
+                  },
+              }
+          except Exception as exc:
+              report = {
+                  'status': 'FAIL',
+                  'workflow_run_id': int(os.environ.get('GITHUB_RUN_ID', '0')),
+                  'engine_under_test': 'production_rebound_v13',
+                  'source_run_id': SOURCE_RUN_ID,
+                  'target_keys': [[TARGET_GAME, i] for i in sorted(TARGETS)],
+                  'error': f'{type(exc).__name__}: {exc}',
+                  'traceback': traceback.format_exc(),
+              }
+
+          tmp_out.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          print(json.dumps({k: v for k, v in report.items() if k not in {'preceding_miss_type_control_records', 'target_rows', 'candidate_events', 'repairs', 'traceback'}}, indent=2, sort_keys=True))
+          PY
+
+      - name: Upload diagnostic artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-v14-gsw-team-rebound-diagnostic-${{ github.run_id }}
+          path: /tmp/V14_GSW_TEAM_REBOUND_DIAGNOSTIC.json
+          retention-days: 90
+
+      - name: Persist durable diagnostic
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812
+            git reset --hard origin/agent/treb-batched-game-facts-20260812
+            mkdir -p "$(dirname "$OUT")"
+            cp /tmp/V14_GSW_TEAM_REBOUND_DIAGNOSTIC.json "$OUT"
+            git add -f "$OUT"
+            if git diff --cached --quiet; then break; fi
+            git commit -m 'Persist V14 GSW team rebound diagnostic'
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812; then break; fi
+            if [ "$attempt" -eq 5 ]; then exit 1; fi
+            sleep $((attempt * 2))
+          done
+
+      - name: Enforce diagnostic PASS
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          d = json.loads(Path(os.environ['OUT']).read_text())
+          assert d['status'] == 'PASS', d.get('error')
+          assert d['promotion_decision'] == 'CANDIDATE_FOR_EXACT_V14_PROMOTION'
+          assert d['preceding_miss_type_controls'] == {
+              'applicable': 50,
+              'correct': 50,
+              'wrong': 0,
+              'field_goal_miss': 30,
+              'free_throw_miss': 20,
+          }
+          assert d['repair_rows'] == 2
+          assert d['safety']['all_candidates_unassigned_under_v13'] is True
+          assert d['safety']['distinct_nba_event_per_target'] is True
+          assert d['safety']['warriors_team_placeholder_id_exact'] is True
+          assert d['safety']['all_candidates_dead_ball'] is True
+          assert d['safety']['expected_real_rebound_fact_delta'] == 0
+          print('V14_GSW_DIAGNOSTIC=PASS controls=50/50 wrong=0 targets=2 dead_ball=2 real_fact_delta=0')
+          PY
