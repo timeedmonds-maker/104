@@ -1,0 +1,135 @@
+name: TREB final canonical universe diagnostic
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-final-universe-diagnostic.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Recover candidate durable refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          refs=(
+            agent/treb-final-integrity-rebuild-20260812
+            treb-authoritative-final-repair-20260812
+            treb-final-production-20260812
+            treb-final-database-complete-20260812
+            treb-stage2-actions-live
+          )
+          for r in "${refs[@]}"; do
+            git fetch --no-tags origin "refs/heads/${r}:refs/remotes/origin/${r}" || true
+          done
+      - name: Diagnose canonical universes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,io,json,subprocess
+          from pathlib import Path
+          import pandas as pd
+
+          repo='.'
+          refs=[
+            'agent/treb-final-integrity-rebuild-20260812',
+            'treb-authoritative-final-repair-20260812',
+            'treb-final-production-20260812',
+            'treb-final-database-complete-20260812',
+            'treb-stage2-actions-live',
+          ]
+          report={'refs':{},'safe_locks':{}}
+          def show(ref,path):
+            p=subprocess.run(['git','show',f'refs/remotes/origin/{ref}:{path}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            return p.stdout if p.returncode==0 else None
+          def frame_info(b,path):
+            try:
+              if path.endswith('.csv.gz'): df=pd.read_csv(io.BytesIO(b),compression='gzip',low_memory=False)
+              elif path.endswith('.csv'): df=pd.read_csv(io.BytesIO(b),low_memory=False)
+              elif path.endswith('.jsonl.gz'):
+                rows=[]
+                with gzip.GzipFile(fileobj=io.BytesIO(b)) as fh:
+                  for line in fh:
+                    if line.strip(): rows.append(json.loads(line))
+                df=pd.DataFrame(rows)
+              else: return None
+              info={'rows':len(df),'columns':list(df.columns)}
+              for c in ['player_id','subject_player_id','pid']:
+                if c in df: info['player_col']=c; info['unique_players']=int(df[c].astype(str).nunique()); break
+              keycols=[c for c in ['season','player_id','team_id'] if c in df]
+              if len(keycols)==3: info['unique_tenure_keys']=int(df[keycols].astype(str).drop_duplicates().shape[0])
+              for c in ['full_core_reuse','reuse_full_core','needs_partial','partial']:
+                if c in df: info[c+'_counts']=df[c].astype(str).value_counts(dropna=False).to_dict()
+              return info
+            except Exception as e:
+              return {'error':f'{type(e).__name__}: {e}'}
+
+          explicit=[
+            'team_trb_all_players/impact_database/roster_tenure_v3/core_boxscore_reconciliation.csv.gz',
+            'team_trb_all_players/impact_database/roster_tenure_v3/canonical_player_team_seasons_v3.csv.gz',
+            'team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz',
+            'team_trb_all_players/impact_database/roster_tenure/player_team_season_windows.jsonl.gz',
+            'team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz',
+            'career_treb_detail.csv',
+            'team_trb_all_players/impact_database/final_export/career_treb_detail.csv',
+            'team_trb_all_players/final_integrity_rebuild/final_database/career_treb_detail.csv',
+          ]
+          for ref in refs:
+            rr={}
+            for path in explicit:
+              b=show(ref,path)
+              if b is not None: rr[path]=frame_info(b,path)
+            # inventory names that likely hold final/canonical key universes
+            p=subprocess.run(['git','ls-tree','-r','--name-only',f'refs/remotes/origin/{ref}'],stdout=subprocess.PIPE,text=True)
+            names=p.stdout.splitlines() if p.returncode==0 else []
+            rr['candidate_paths']=[x for x in names if any(k in x.lower() for k in ['canonical','reconciliation','player_team_season_targets','career_treb_detail']) and x.endswith(('.csv','.csv.gz','.jsonl.gz','.json'))][:250]
+            report['refs'][ref]=rr
+
+          # Safe lock segment aggregation truth.
+          seg_rows=[]
+          for y in range(2000,2026):
+            ref=f'treb-final-safe-lock-{y}'
+            subprocess.run(['git','fetch','--no-tags','origin',f'refs/heads/{ref}:refs/remotes/origin/{ref}'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+            season=f'{y}-{(y+1)%100:02d}'
+            b=show(ref,f'team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/{season}.json')
+            if b:
+              d=json.loads(b); seg_rows.extend(d.get('targets',[]))
+          sdf=pd.DataFrame(seg_rows)
+          report['safe_locks']={'segments':len(sdf)}
+          if not sdf.empty:
+            report['safe_locks']['players']=int(sdf.player_id.astype(str).nunique())
+            report['safe_locks']['unique_tenures']=int(sdf[['season','player_id','team_id']].astype(str).drop_duplicates().shape[0])
+
+          Path('/tmp/TREB_FINAL_UNIVERSE_DIAGNOSTIC.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          print(json.dumps(report,indent=2,default=str))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-universe-diagnostic-${{ github.run_id }}
+          path: /tmp/TREB_FINAL_UNIVERSE_DIAGNOSTIC.json
+          retention-days: 90
+      - name: Persist diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          mkdir -p "$D"
+          cp /tmp/TREB_FINAL_UNIVERSE_DIAGNOSTIC.json "$D/"
+          git add -f "$D/TREB_FINAL_UNIVERSE_DIAGNOSTIC.json"
+          git commit -m 'Persist final TREB universe diagnostic'
+          git push origin HEAD:agent/treb-final-exact-assembly
