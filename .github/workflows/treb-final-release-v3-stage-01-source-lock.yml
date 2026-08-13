@@ -1,0 +1,270 @@
+name: TREB final release v3 stage 01 - source lock
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-final-release-v3-stage-01
+  cancel-in-progress: false
+
+env:
+  CONTROL_BRANCH: agent/treb-batched-game-facts-20260812
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  OUT_BRANCH: treb-final-release-v3-stage-01-source-lock
+  OUT_DIR: team_trb_all_players/final_release_v3/stage_01_source_lock
+  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+
+jobs:
+  source-lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout release control branch with all refs
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CONTROL_BRANCH }}
+          fetch-depth: 0
+
+      - name: Pin and validate exact source versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          CONTROL_SHA="$(git rev-parse HEAD)"
+          test "$(git rev-parse refs/remotes/origin/treb-stage2-actions-live)" = "$STAGE2_SHA"
+
+          rm -rf /tmp/treb_stage2 /tmp/treb_stage01
+          mkdir -p /tmp/treb_stage01/locks
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+
+          # Rebuild the authoritative canonical manifests from the exact pinned Stage2 commit.
+          python /tmp/treb_stage2/team_trb_all_players/build_roster_targets_v2.py > /tmp/treb_stage01/roster_builder_stdout.txt
+
+          python - <<'PY'
+          from __future__ import annotations
+          import gzip, hashlib, json, os, subprocess
+          from pathlib import Path
+
+          repo = Path.cwd()
+          stage2 = Path('/tmp/treb_stage2/team_trb_all_players')
+          tmp = Path('/tmp/treb_stage01')
+          roster = stage2/'impact_database'/'roster_tenure_v2'
+          corrected = stage2/'impact_database'/'corrected_off'
+          lock_path = os.environ['LOCK_PATH']
+          stage2_sha = os.environ['STAGE2_SHA']
+          control_sha = subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip()
+
+          summary = json.loads((roster/'roster_repair_v2_summary.json').read_text())
+          assert summary['positive_core_rows_original'] == 14526, summary
+          assert summary['excluded_stale_core_artifacts'] == 2, summary
+          assert summary['validated_player_team_season_rows'] == 14524, summary
+          assert summary['full_core_reuse_rows'] == 9647, summary
+          assert summary['partial_player_team_season_rows'] == 4877, summary
+          assert summary['wowy_game_bearing_segments'] == 5199, summary
+          assert summary['cross_team_overlap_pairs'] == 0, summary
+          assert summary['impossible_minute_rows'] == 0, summary
+          assert summary['empty_played_tenures'] == 0, summary
+
+          with gzip.open(roster/'player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              canonical = [json.loads(x) for x in f if x.strip()]
+          with gzip.open(roster/'wowy_partial_segments.jsonl.gz','rt',encoding='utf-8') as f:
+              segments = [json.loads(x) for x in f if x.strip()]
+          assert len(canonical) == 14524
+          assert len(segments) == 5199
+          canonical_players = len({str(x['player_id']).removesuffix('.0') for x in canonical})
+          # This is a population diagnostic only. It must NOT replace the original final release gate.
+          assert canonical_players == 2584, canonical_players
+
+          zero = json.loads((corrected/'zero_minute_tail_report.json').read_text())
+          assert zero['total_excluded_zero_minute_windows'] == 221, zero
+          assert zero['indeterminate_windows'] == 0, zero
+          assert zero['remaining_retry_queue_windows'] == 0, zero
+
+          exact_windows = corrected/'tenure_segment_on_off.jsonl.gz'
+          with gzip.open(exact_windows,'rt',encoding='utf-8') as f:
+              window_count = sum(1 for x in f if x.strip())
+          assert window_count == 15206, window_count
+
+          def git(*args: str) -> str:
+              return subprocess.check_output(['git',*args], text=True).strip()
+
+          lock_manifest = []
+          target_total = 0
+          accepted_game_ids = set()
+          exception_total = 0
+          unmatched_total = 0
+          for y in range(2000, 2026):
+              season = f'{y}-{(y+1)%100:02d}'
+              branch = f'treb-final-safe-lock-{y}'
+              ref = f'refs/remotes/origin/{branch}'
+              sha = git('rev-parse', ref)
+              raw = subprocess.check_output(['git','show',f'{ref}:{lock_path}/{season}.json'], text=True)
+              d = json.loads(raw)
+              assert d['season'] == season
+              assert d.get('status') == 'COMPLETE', (season, d.get('status'))
+              exc = len(d.get('exceptions', []))
+              unmatched = len(d.get('unmatched_rebound_rows', []))
+              assert exc == 0, (season, exc)
+              assert unmatched == 0, (season, unmatched)
+              targets = len(d.get('targets', []))
+              target_total += targets
+              exception_total += exc
+              unmatched_total += unmatched
+              games = sorted({int(x['game_id']) for x in d.get('accepted_excluded_games', [])})
+              accepted_game_ids.update(games)
+              lock_manifest.append({
+                  'season': season,
+                  'branch': branch,
+                  'commit_sha': sha,
+                  'status': d.get('status'),
+                  'targets': targets,
+                  'accepted_excluded_games': games,
+                  'engine': d.get('engine'),
+                  'code_commit': d.get('code_commit'),
+              })
+          assert len(lock_manifest) == 26
+          assert target_total == 5199, target_total
+          assert len(accepted_game_ids) == 40, len(accepted_game_ids)
+          assert exception_total == 0
+          assert unmatched_total == 0
+
+          # Pin every remote ref so later stages never silently consume a moved branch.
+          refs = []
+          raw_refs = git('for-each-ref','--format=%(refname:short)\t%(objectname)','refs/remotes/origin')
+          for line in raw_refs.splitlines():
+              if not line.strip() or line.startswith('origin/HEAD'):
+                  continue
+              name, sha = line.split('\t',1)
+              refs.append({'ref': name, 'sha': sha})
+          refs.sort(key=lambda x: x['ref'])
+
+          game_fact_refs = [x for x in refs if x['ref'].startswith('origin/treb-game-facts-')]
+          repair_refs = [x for x in refs if any(k in x['ref'] for k in (
+              'treb-game-fact-repair',
+              'treb-authoritative-final-repair',
+              'treb-solved-engine-recovery',
+              'treb-solved-engine-cross-era-pass',
+              'treb-validated-',
+          ))]
+
+          tracked_files = [
+              '.github/workflows/treb-exact-game-fact-batch.yml',
+              '.github/workflows/treb-exact-game-fact-fanout.yml',
+              'team_trb_all_players/build_exact_game_fact_batch.py',
+              'team_trb_all_players/build_exact_game_fact_layer.py',
+              '.github/workflows/treb-final-canonical-assembly.yml',
+          ]
+          file_versions = []
+          for p in tracked_files:
+              data = (repo/p).read_bytes()
+              file_versions.append({
+                  'path': p,
+                  'blob_sha': git('rev-parse', f'HEAD:{p}'),
+                  'sha256': hashlib.sha256(data).hexdigest(),
+              })
+
+          exact_layer = (repo/'team_trb_all_players/build_exact_game_fact_layer.py').read_text()
+          for required in ('team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_game_treb.csv.gz','player_game_treb_on.csv.gz'):
+              assert required in exact_layer, required
+
+          legacy = (repo/'.github/workflows/treb-final-canonical-assembly.yml').read_text()
+          assert 'pct_candidates' in legacy
+          assert 'Solve exact opponent season OREB/DREB totals from all core player evidence.' in legacy
+
+          manifest = {
+              'status': 'PASS',
+              'purpose': 'Immutable source lock for checkpointed TREB final release v3',
+              'control_branch': os.environ['CONTROL_BRANCH'],
+              'control_commit_sha': control_sha,
+              'authoritative_stage2_branch': 'treb-stage2-actions-live',
+              'authoritative_stage2_commit_sha': stage2_sha,
+              'canonical_population': {
+                  'tenure_rows': 14524,
+                  'full_core_rows': 9647,
+                  'partial_tenure_rows': 4877,
+                  'partial_segments': 5199,
+                  'canonical_unique_players_diagnostic': canonical_players,
+                  'original_release_career_player_gate': 3122,
+                  'release_gate_status': 'DO_NOT_WEAKEN_OR_REPLACE_WITH_CANONICAL_UNIQUE_PLAYER_DIAGNOSTIC',
+              },
+              'corrected_off': {
+                  'complete_windows': window_count,
+                  'zero_minute_exclusions': 221,
+                  'indeterminate_zero_minute_windows': 0,
+              },
+              'safe_locks': {
+                  'seasons': 26,
+                  'segment_targets': target_total,
+                  'exceptions': exception_total,
+                  'unmatched_rebound_rows': unmatched_total,
+                  'accepted_excluded_unique_games': len(accepted_game_ids),
+                  'branches': lock_manifest,
+              },
+              'exact_game_fact_branch_count_snapshot': len(game_fact_refs),
+              'repair_branch_count_snapshot': len(repair_refs),
+              'tracked_file_versions': file_versions,
+              'legacy_final_canonical_assembly': {
+                  'status': 'QUARANTINED_DO_NOT_EXECUTE',
+                  'reason': 'contains rounded-percentage opponent rebound component inference via pct_candidates',
+              },
+              'next_stage_contract': {
+                  'stage_02_must_consume_this_manifest': True,
+                  'stage_02_must_use_pinned_refs_only': True,
+                  'stage_02_must_not_run_pbp_reconstruction': True,
+                  'stage_02_must_not_use_pct_candidates_or_percentage_derived_counts': True,
+              },
+          }
+
+          tmp.joinpath('SOURCE_LOCK_MANIFEST.json').write_text(json.dumps(manifest, indent=2)+'\n')
+          tmp.joinpath('SAFE_LOCK_COMMITS.json').write_text(json.dumps(lock_manifest, indent=2)+'\n')
+          tmp.joinpath('ALL_REMOTE_REFS.json').write_text(json.dumps(refs, indent=2)+'\n')
+          tmp.joinpath('GAME_FACT_REFS.json').write_text(json.dumps(game_fact_refs, indent=2)+'\n')
+          tmp.joinpath('REPAIR_REFS.json').write_text(json.dumps(repair_refs, indent=2)+'\n')
+          tmp.joinpath('CANONICAL_ROSTER_SUMMARY.json').write_text(json.dumps(summary, indent=2)+'\n')
+          tmp.joinpath('ZERO_MINUTE_REPORT.json').write_text(json.dumps(zero, indent=2)+'\n')
+          tmp.joinpath('DO_NOT_EXECUTE_LEGACY_ASSEMBLY.txt').write_text(
+              'QUARANTINED: .github/workflows/treb-final-canonical-assembly.yml\n'
+              'Reason: rounded-percentage opponent component inference remains in that legacy workflow.\n'
+              'Final release v3 stages must consume exact count artifacts only.\n'
+          )
+          print(json.dumps({
+              'status':'PASS',
+              'control_sha':control_sha,
+              'stage2_sha':stage2_sha,
+              'tenures':14524,
+              'full':9647,
+              'partial':4877,
+              'segments':5199,
+              'zero_minute_exclusions':221,
+              'safe_locks':26,
+              'accepted_excluded_games':40,
+              'game_fact_refs_snapshotted':len(game_fact_refs),
+          }, indent=2))
+          PY
+
+      - name: Persist immutable stage 01 checkpoint branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage01_commit
+          git worktree add --detach /tmp/treb_stage01_commit HEAD
+          cd /tmp/treb_stage01_commit
+          git checkout --orphan "$OUT_BRANCH"
+          git rm -rf . >/dev/null 2>&1 || true
+          mkdir -p "$OUT_DIR"
+          cp -a /tmp/treb_stage01/. "$OUT_DIR/"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$OUT_DIR"
+          git commit -m 'TREB final release v3 stage 01 source lock'
+          git push --force origin "HEAD:refs/heads/$OUT_BRANCH"
+
+      - name: Upload stage 01 checkpoint artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-final-release-v3-stage-01-source-lock
+          path: /tmp/treb_stage01/
+          retention-days: 30
