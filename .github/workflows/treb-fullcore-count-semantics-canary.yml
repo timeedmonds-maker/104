@@ -1,0 +1,174 @@
+name: TREB full-core count semantics canary
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-fullcore-count-semantics-canary.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch durable branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force origin '+refs/heads/*:refs/remotes/origin/*'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Rebuild exact V2 universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/treb_stage2 refs/remotes/origin/treb-stage2-actions-live
+          python /tmp/treb_stage2/team_trb_all_players/build_roster_targets_v2.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp/treb_stage2/team_trb_all_players/impact_database/roster_tenure_v2/roster_repair_v2_summary.json')
+          d=json.loads(p.read_text())
+          assert d['validated_player_team_season_rows']==14524, d
+          assert d['full_core_reuse_rows']==9647, d
+          assert d['partial_player_team_season_rows']==4877, d
+          assert d['wowy_game_bearing_segments']==5199, d
+          assert d['cross_team_overlap_pairs']==0, d
+          assert d['impossible_minute_rows']==0, d
+          assert d['empty_played_tenures']==0, d
+          print('V2_EXACT_GATE=PASS')
+          PY
+      - name: Diagnose 2016-17 full-core count semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip, io, json, subprocess
+          from collections import defaultdict
+          from pathlib import Path
+          import pandas as pd
+
+          SEASON='2016-17'
+          STAGE=Path('/tmp/treb_stage2/team_trb_all_players')
+          report=json.loads(Path('team_trb_all_players/final_integrity_rebuild/final_exact_release/FULLCORE_EXACT_SOURCE_MANIFEST_V3.json').read_text())
+          assert report['canonical']['tenure_rows']==14524
+          assert report['canonical']['full_core_rows']==9647
+          assert report['inventory']['team_conflict_keys']==0
+          assert report['inventory']['player_conflict_keys']==0
+
+          def blob(sha):
+              return subprocess.check_output(['git','cat-file','-p',sha])
+          def csvblob(sha):
+              return pd.read_csv(io.BytesIO(blob(sha)),compression='gzip',low_memory=False)
+          def pid(v):
+              s=str(v).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+
+          pairs=[x for x in report['exact_source_pairs'] if SEASON in x.get('seasons',[])]
+          assert pairs, 'no 2016 exact source pairs'
+          team_seen={}; player_seen={}; conflicts=[]
+          for rec in pairs:
+              t=csvblob(rec['team_blob_sha']); p=csvblob(rec['player_blob_sha'])
+              for r in t.itertuples(index=False):
+                  gid=int(r.game_id)
+                  if str(gid)[:3] != '216': continue
+                  k=(gid,int(r.team_id)); v=(int(r.team_oreb),int(r.team_dreb),int(r.opponent_oreb),int(r.opponent_dreb))
+                  if k in team_seen and team_seen[k]!=v: conflicts.append(('team',k,team_seen[k],v))
+                  team_seen[k]=v
+              for r in p.itertuples(index=False):
+                  gid=int(r.game_id)
+                  if str(gid)[:3] != '216': continue
+                  k=(gid,int(r.team_id),pid(r.player_id)); v=(round(float(r.seconds_on),6),int(r.team_oreb_on),int(r.team_dreb_on),int(r.opponent_oreb_on),int(r.opponent_dreb_on))
+                  if k in player_seen and player_seen[k]!=v: conflicts.append(('player',k,player_seen[k],v))
+                  player_seen[k]=v
+          assert not conflicts, conflicts[:10]
+
+          targets=[]
+          with gzip.open(STAGE/'impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if line.strip():
+                      r=json.loads(line)
+                      if r['season']==SEASON and bool(r['full_core_reuse']): targets.append(r)
+
+          sched=defaultdict(set)
+          with gzip.open(STAGE/f'impact_database/roster_tenure/regular_season_games_raw/{SEASON}.json.gz','rt',encoding='utf-8') as f:
+              d=json.load(f)
+          for g in d['results']:
+              gid=int(g['GameId']); sched[int(g['HomeTeamId'])].add(gid); sched[int(g['AwayTeamId'])].add(gid)
+
+          m=pd.read_csv(STAGE/f'impact_database/outputs/{SEASON}/team_on_off_metrics.csv.gz',compression='gzip',low_memory=False)
+          m=m[m.metric.astype(str).isin(['OffRebounds','DefRebounds'])].copy()
+          m['pid']=m.subject_player_id.map(pid); m['team_id']=pd.to_numeric(m.team_id).astype(int)
+          midx={(r.pid,int(r.team_id),str(r.metric)):r for r in m.itertuples(index=False)}
+
+          rows=[]
+          for r in targets:
+              who=pid(r['player_id']); tid=int(r['team_id']); games=sched[tid]
+              if any((gid,tid) not in team_seen for gid in games): continue
+              og=midx.get((who,tid,'OffRebounds')); dg=midx.get((who,tid,'DefRebounds'))
+              if og is None or dg is None: continue
+              team_oreb=sum(team_seen[(gid,tid)][0] for gid in games)
+              team_dreb=sum(team_seen[(gid,tid)][1] for gid in games)
+              pv=[player_seen.get((gid,tid,who)) for gid in games]
+              seconds=sum(x[0] for x in pv if x is not None)
+              on_o=sum(x[1] for x in pv if x is not None); on_d=sum(x[2] for x in pv if x is not None)
+              exact=(on_o,team_oreb-on_o,on_d,team_dreb-on_d,round(seconds,6))
+              core=(float(og.on),float(og.off),float(dg.on),float(dg.off),round(float(r['seconds_on']),6))
+              rounded=(round(core[0]),round(core[1]),round(core[2]),round(core[3]),core[4])
+              rows.append({'player_id':who,'player':r.get('player'),'team_id':tid,'exact':exact,'core_raw':core,'core_rounded':rounded,'delta':[exact[i]-rounded[i] for i in range(5)]})
+
+          assert rows, 'no comparable 2016 rows'
+          exact_count_matches=sum(x['exact'][:4]==x['core_rounded'][:4] for x in rows)
+          seconds_matches=sum(x['exact'][4]==x['core_rounded'][4] for x in rows)
+          full_matches=sum(x['exact']==x['core_rounded'] for x in rows)
+          adams=[x for x in rows if x['player_id']=='203500']
+          vals=[v for x in rows for v in x['core_raw'][:4]]
+          payload={
+              'season':SEASON,
+              'v2_gate':'PASS',
+              'exact_source_pairs':len(pairs),
+              'targets_full_core':len(targets),
+              'comparable_rows':len(rows),
+              'exact_rebound_count_matches':exact_count_matches,
+              'exact_seconds_matches':seconds_matches,
+              'full_matches':full_matches,
+              'core_metric_raw_min':min(vals),
+              'core_metric_raw_max':max(vals),
+              'steven_adams':adams,
+              'first_25':rows[:25],
+              'diagnostic_only':True,
+              'production_engine_changed':False,
+              'accepted_game_exclusion_bypass_used':False,
+          }
+          out=Path('/tmp/FULLCORE_COUNT_SEMANTICS_CANARY.json'); out.write_text(json.dumps(payload,indent=2)+'\n')
+          print(json.dumps(payload,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-fullcore-count-semantics-${{ github.run_id }}
+          path: /tmp/FULLCORE_COUNT_SEMANTICS_CANARY.json
+          retention-days: 90
+      - name: Persist diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          mkdir -p "$D"
+          cp /tmp/FULLCORE_COUNT_SEMANTICS_CANARY.json "$D/"
+          git add -f "$D/FULLCORE_COUNT_SEMANTICS_CANARY.json"
+          git commit -m 'Persist full-core count semantics canary'
+          git push origin HEAD:agent/treb-final-exact-assembly
