@@ -1,0 +1,273 @@
+name: TREB safe-lock canonical overlay
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-safe-lock-canonical-overlay.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-safe-lock-canonical-overlay
+  cancel-in-progress: false
+
+jobs:
+  overlay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout canonical assembly branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install analysis dependency
+        run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Map durable safe locks onto canonical universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, io, json, math, subprocess
+          from collections import defaultdict
+          from pathlib import Path
+          import pandas as pd
+
+          ROOT=Path('.')
+          TARGET=ROOT/'team_trb_all_players/impact_database/roster_tenure_v3_hybrid/player_team_season_targets.jsonl.gz'
+          CURRENT=ROOT/'team_trb_all_players/final_integrity_rebuild/final_exact_release/source_overlay_mapping/CANONICAL_EXACT_SOURCE_OVERLAY_MAPPING.csv'
+          OUT=ROOT/'team_trb_all_players/final_integrity_rebuild/final_exact_release/safe_lock_overlay'
+          OUT.mkdir(parents=True, exist_ok=True)
+          LOCK_PATH='team_trb_all_players/impact_database/final_local_rebuild/locked_seasons'
+          COUNT_COLS=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off']
+          TOL_PP=0.01
+
+          def norm(v):
+              s=str(v).strip()
+              if s.endswith('.0') and s[:-2].isdigit(): s=s[:-2]
+              return s
+
+          def key(season,player_id,team_id):
+              return f'{norm(season)}|{norm(player_id)}|{norm(team_id)}'
+
+          def show(ref,path):
+              p=subprocess.run(['git','show',f'{ref}:{path}'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+              return p.stdout if p.returncode==0 else None
+
+          def pct(a,b):
+              d=a+b
+              return a/d if d else None
+
+          # Canonical universe and current source-precedence checkpoint.
+          with gzip.open(TARGET,'rt',encoding='utf-8') as f:
+              targets=[json.loads(line) for line in f if line.strip()]
+          assert len(targets)==14524
+          canonical={key(r['season'],r['player_id'],r['team_id']):r for r in targets}
+          assert len(canonical)==14524
+          cur=pd.read_csv(CURRENT,dtype={'season':str,'player_id':str,'team_id':str})
+          cur['canonical_key']=[key(s,p,t) for s,p,t in zip(cur.season,cur.player_id,cur.team_id)]
+          assert len(cur)==14524 and cur.canonical_key.nunique()==14524
+          current_by={r['canonical_key']:r for r in cur.to_dict('records')}
+
+          # Recover only durable historical safe-lock branches. No reconstruction/replay.
+          safe_groups=defaultdict(list)
+          lock_manifest=[]
+          for y in range(2000,2025):
+              season=f'{y}-{(y+1)%100:02d}'
+              branch=f'treb-final-safe-lock-{y}'
+              ref=f'refs/remotes/origin/{branch}'
+              fetch=subprocess.run(['git','fetch','--no-tags','--depth=1','origin',f'refs/heads/{branch}:{ref}'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+              if fetch.returncode!=0:
+                  lock_manifest.append({'year':y,'season':season,'branch':branch,'status':'MISSING_BRANCH','target_rows':0})
+                  continue
+              raw=show(ref,f'{LOCK_PATH}/{season}.json')
+              if raw is None:
+                  lock_manifest.append({'year':y,'season':season,'branch':branch,'status':'MISSING_LOCK','target_rows':0})
+                  continue
+              try:
+                  d=json.loads(raw)
+              except Exception as e:
+                  lock_manifest.append({'year':y,'season':season,'branch':branch,'status':'INVALID_JSON','target_rows':0,'error':str(e)})
+                  continue
+              status=str(d.get('status'))
+              rows=d.get('targets') or []
+              lock_manifest.append({
+                  'year':y,'season':season,'branch':branch,'status':status,'target_rows':len(rows),
+                  'accepted_excluded_games':len(d.get('accepted_excluded_games',[])),
+                  'exceptions':len(d.get('exceptions',[])),
+                  'unmatched_rebound_rows':len(d.get('unmatched_rebound_rows',[])),
+                  'code_commit':d.get('code_commit')
+              })
+              if status!='COMPLETE':
+                  continue
+              for r in rows:
+                  k=key(r.get('season',season),r.get('player_id'),r.get('team_id'))
+                  safe_groups[k].append(r)
+
+          # Collapse any retained tenure segments to canonical player/team/season exact counts.
+          safe={}
+          invalid_safe=[]
+          for k,rows in safe_groups.items():
+              agg={c:0 for c in COUNT_COLS+['seconds_on','seconds_off','games_processed']}
+              numeric_ok=True
+              for r in rows:
+                  for c in agg:
+                      try:
+                          v=float(r.get(c,0))
+                          if not math.isfinite(v) or v<0 or abs(v-round(v))>1e-9:
+                              numeric_ok=False
+                          agg[c]+=v
+                      except Exception:
+                          numeric_ok=False
+              for c in agg:
+                  agg[c]=int(round(agg[c]))
+              on_team=agg['team_oreb_on']+agg['team_dreb_on']
+              on_opp=agg['opponent_oreb_on']+agg['opponent_dreb_on']
+              off_team=agg['team_oreb_off']+agg['team_dreb_off']
+              off_opp=agg['opponent_oreb_off']+agg['opponent_dreb_off']
+              on=pct(on_team,on_opp); off=pct(off_team,off_opp)
+              valid=bool(numeric_ok and on is not None and off is not None)
+              sample=rows[0]
+              out={
+                  'canonical_key':k,'season':norm(sample.get('season')),'player_id':norm(sample.get('player_id')),'team_id':norm(sample.get('team_id')),
+                  'player':sample.get('player'),'team_abbr':sample.get('team_abbr'),'safe_lock_segment_rows':len(rows),
+                  **agg,'safe_treb_on':on,'safe_treb_off':off,
+                  'safe_treb_swing_pp':((on-off)*100 if on is not None and off is not None else None),
+                  'safe_lock_value_valid':valid,
+              }
+              safe[k]=out
+              if not valid: invalid_safe.append(out)
+
+          # Numeric old-locked source for overlap checks where available.
+          locked_branch='treb-final-database-complete-20260812'
+          locked_ref='refs/remotes/origin/'+locked_branch
+          subprocess.run(['git','fetch','--no-tags','--depth=1','origin',f'refs/heads/{locked_branch}:{locked_ref}'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=True)
+          locked_raw=show(locked_ref,'team_trb_all_players/final_database_export/career_treb_detail.csv')
+          locked_groups=defaultdict(list)
+          if locked_raw:
+              for r in csv.DictReader(io.StringIO(locked_raw.decode('utf-8-sig'))):
+                  locked_groups[key(r.get('season'),r.get('player_id'),r.get('team_id'))].append(r)
+          locked_numeric={}
+          for k,rows in locked_groups.items():
+              agg={c:0.0 for c in COUNT_COLS}
+              ok=True
+              for r in rows:
+                  for c in COUNT_COLS:
+                      try: agg[c]+=float(r[c])
+                      except Exception: ok=False
+              if not ok: continue
+              on=pct(agg['team_oreb_on']+agg['team_dreb_on'],agg['opponent_oreb_on']+agg['opponent_dreb_on'])
+              off=pct(agg['team_oreb_off']+agg['team_dreb_off'],agg['opponent_oreb_off']+agg['opponent_dreb_off'])
+              if on is not None and off is not None:
+                  locked_numeric[k]={'locked_treb_on':on,'locked_treb_off':off,'locked_treb_swing_pp':(on-off)*100}
+
+          rows=[]; newly=[]; overlap=[]; conflicts=[]
+          for k,t in canonical.items():
+              c=current_by[k]
+              s=safe.get(k)
+              current_layer=str(c.get('selected_source_layer'))
+              current_covered=bool(c.get('covered_after_this_overlay'))
+              safe_valid=bool(s and s['safe_lock_value_valid'])
+              newly_resolved=(not current_covered) and safe_valid
+              final_layer=current_layer if current_covered else ('historical_safe_lock' if safe_valid else current_layer)
+              row={
+                  'season':norm(t['season']),'player_id':norm(t['player_id']),'team_id':norm(t['team_id']),'player':t.get('player'),
+                  'canonical_classification':c.get('canonical_classification'),'current_selected_source_layer':current_layer,
+                  'covered_before_safe_lock':current_covered,'safe_lock_source_supplied':s is not None,'safe_lock_value_valid':safe_valid,
+                  'newly_resolved_by_safe_lock':newly_resolved,'selected_source_layer_after_safe_lock':final_layer,
+                  'covered_after_safe_lock':current_covered or safe_valid,
+              }
+              if s:
+                  for field in COUNT_COLS+['seconds_on','seconds_off','games_processed','safe_treb_on','safe_treb_off','safe_treb_swing_pp','safe_lock_segment_rows']:
+                      row[field]=s.get(field)
+              ln=locked_numeric.get(k)
+              if ln:
+                  row.update(ln)
+                  if s and safe_valid:
+                      row['safe_vs_locked_on_diff_pp']=(s['safe_treb_on']-ln['locked_treb_on'])*100
+                      row['safe_vs_locked_off_diff_pp']=(s['safe_treb_off']-ln['locked_treb_off'])*100
+                      row['safe_vs_locked_swing_diff_pp']=s['safe_treb_swing_pp']-ln['locked_treb_swing_pp']
+                      maxdiff=max(abs(row['safe_vs_locked_on_diff_pp']),abs(row['safe_vs_locked_off_diff_pp']),abs(row['safe_vs_locked_swing_diff_pp']))
+                      row['safe_vs_locked_max_abs_diff_pp']=maxdiff
+                      row['material_numeric_conflict_gt_0_01pp']=maxdiff>TOL_PP
+                      overlap.append(dict(row))
+                      if maxdiff>TOL_PP: conflicts.append(dict(row))
+              if newly_resolved: newly.append(dict(row))
+              rows.append(row)
+
+          df=pd.DataFrame(rows).sort_values(['season','player_id','team_id'])
+          newdf=pd.DataFrame(newly)
+          ovdf=pd.DataFrame(overlap)
+          cfdf=pd.DataFrame(conflicts)
+          remaining=df[~df['covered_after_safe_lock']]
+          valid_locks=[x for x in lock_manifest if x['status']=='COMPLETE']
+
+          summary={
+              'status':'PASS',
+              'operation':'safe_lock_overlay_mapping_only_no_treb_reconstruction',
+              'canonical_rows':len(df),
+              'canonical_unique_keys':int(df[['season','player_id','team_id']].drop_duplicates().shape[0]),
+              'historical_safe_lock_seasons_complete':len(valid_locks),
+              'historical_safe_lock_seasons_expected':25,
+              'safe_lock_canonical_keys_supplied':len(safe),
+              'safe_lock_valid_numeric_keys':sum(1 for x in safe.values() if x['safe_lock_value_valid']),
+              'safe_lock_invalid_numeric_keys':len(invalid_safe),
+              'covered_before_safe_lock':int(df['covered_before_safe_lock'].sum()),
+              'newly_resolved_by_safe_lock':int(df['newly_resolved_by_safe_lock'].sum()),
+              'covered_after_safe_lock':int(df['covered_after_safe_lock'].sum()),
+              'unresolved_after_safe_lock':int((~df['covered_after_safe_lock']).sum()),
+              'numeric_overlap_with_older_locked_source':len(ovdf),
+              'material_safe_vs_locked_conflicts_gt_0_01pp':len(cfdf),
+              'numeric_conflict_threshold_pp':TOL_PP,
+              'exact_selected_rows_numeric_comparison_note':'Current exact-source checkpoint persists provenance/coverage, not a canonical selected numeric table; exact rows are therefore not overwritten here. Safe-lock values only fill previously unresolved keys.',
+              'source_precedence':['validated_exact_game_union_or_repair','older_locked_completed_export','historical_safe_lock_for_previously_unresolved_only'],
+              'lock_manifest':lock_manifest,
+          }
+          if len(df)!=14524 or summary['canonical_unique_keys']!=14524:
+              summary['status']='FAIL'
+          if summary['covered_before_safe_lock']!=9922:
+              summary['status']='FAIL'
+              summary.setdefault('failures',[]).append(f"covered-before mismatch {summary['covered_before_safe_lock']} != 9922")
+
+          df.to_csv(OUT/'SAFE_LOCK_CANONICAL_OVERLAY.csv',index=False)
+          newdf.to_csv(OUT/'SAFE_LOCK_NEWLY_RESOLVED.csv',index=False)
+          ovdf.to_csv(OUT/'SAFE_LOCK_OLDER_LOCKED_OVERLAP_COMPARISON.csv',index=False)
+          cfdf.to_csv(OUT/'SAFE_LOCK_NUMERIC_CONFLICTS_GT_0_01PP.csv',index=False)
+          pd.DataFrame(lock_manifest).to_csv(OUT/'SAFE_LOCK_SEASON_MANIFEST.csv',index=False)
+          pd.DataFrame(invalid_safe).to_csv(OUT/'SAFE_LOCK_INVALID_NUMERIC_KEYS.csv',index=False)
+          remaining.to_csv(OUT/'CANONICAL_UNRESOLVED_AFTER_SAFE_LOCK.csv',index=False)
+          (OUT/'SAFE_LOCK_OVERLAY_SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          (OUT/'STATUS.txt').write_text(summary['status']+'\n',encoding='utf-8')
+          (OUT/'README.md').write_text(
+              '# Safe-lock canonical overlay\n\n'
+              f"Status: **{summary['status']}**\n\n"
+              '**No TREB reconstruction or replay is performed.** Durable safe-lock target counts are mapped onto the 14,524 canonical keys.\n\n'
+              f"- Covered before safe-lock layer: **{summary['covered_before_safe_lock']:,} / 14,524**\n"
+              f"- Newly resolved by safe locks: **{summary['newly_resolved_by_safe_lock']:,}**\n"
+              f"- Covered after safe-lock layer: **{summary['covered_after_safe_lock']:,} / 14,524**\n"
+              f"- Residual unresolved: **{summary['unresolved_after_safe_lock']:,}**\n"
+              f"- >0.01 pp conflicts vs older locked numeric source: **{summary['material_safe_vs_locked_conflicts_gt_0_01pp']:,}**\n",
+              encoding='utf-8')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+
+      - name: Persist durable safe-lock overlay checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release/safe_lock_overlay
+          git add -f "$D"
+          git commit -m 'Persist safe-lock canonical overlay [skip ci]' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+
+      - name: Enforce overlay checkpoint status
+        shell: bash
+        run: test "$(cat team_trb_all_players/final_integrity_rebuild/final_exact_release/safe_lock_overlay/STATUS.txt)" = PASS
