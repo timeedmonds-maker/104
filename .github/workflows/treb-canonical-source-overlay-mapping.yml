@@ -1,0 +1,254 @@
+name: TREB canonical exact-source overlay mapping
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-canonical-source-overlay-mapping.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-canonical-exact-source-overlay-mapping
+  cancel-in-progress: false
+
+jobs:
+  map-exact-sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact assembly branch and retained refs
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install analysis dependency
+        run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Build canonical exact-source overlay mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip, io, json, re, subprocess
+          from collections import Counter
+          from pathlib import Path
+          import pandas as pd
+
+          ROOT = Path('.')
+          TARGET = ROOT / 'team_trb_all_players/impact_database/roster_tenure_v3_hybrid/player_team_season_targets.jsonl.gz'
+          LOCKMAP = ROOT / 'team_trb_all_players/final_integrity_rebuild/final_exact_release/locked_segment_mapping/LOCKED_SEGMENT_CANONICAL_MAPPING.csv'
+          OUT = ROOT / 'team_trb_all_players/final_integrity_rebuild/final_exact_release/source_overlay_mapping'
+          OUT.mkdir(parents=True, exist_ok=True)
+
+          def show(ref, path):
+              p = subprocess.run(['git','show',f'{ref}:{path}'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+              return p.stdout if p.returncode == 0 else None
+
+          def csvgz(ref, path):
+              b = show(ref, path)
+              if b is None:
+                  return None
+              return pd.read_csv(io.BytesIO(b), compression='gzip', low_memory=False)
+
+          with gzip.open(TARGET, 'rt', encoding='utf-8') as f:
+              target_rows = [json.loads(line) for line in f if line.strip()]
+          targets = pd.DataFrame(target_rows)
+          locked = pd.read_csv(LOCKMAP, dtype={'season':str,'player_id':str,'team_id':str})
+
+          # Normalize canonical key fields once.
+          for df in (targets,):
+              df['season'] = df['season'].astype(str)
+              df['player_id'] = df['player_id'].astype(str)
+              df['team_id'] = df['team_id'].astype(str)
+          targets['canonical_key'] = targets['season'] + '|' + targets['player_id'] + '|' + targets['team_id']
+          locked['canonical_key'] = locked['season'] + '|' + locked['player_id'] + '|' + locked['team_id']
+
+          failures = []
+          if len(targets) != 14524 or targets['canonical_key'].nunique() != 14524:
+              failures.append(f'canonical universe mismatch rows={len(targets)} unique={targets["canonical_key"].nunique()}')
+          if len(locked) != 14524 or locked['canonical_key'].nunique() != 14524:
+              failures.append(f'locked mapping mismatch rows={len(locked)} unique={locked["canonical_key"].nunique()}')
+
+          refs = subprocess.check_output(['git','for-each-ref','--format=%(refname)','refs/remotes/origin']).decode().splitlines()
+          batchrefs = {}
+          for ref in refs:
+              m = re.search(r'/treb-game-facts-(\d{4})-batch-(\d{3})$', ref)
+              if m:
+                  batchrefs.setdefault(int(m.group(1)), []).append(ref)
+
+          team_parts = []
+          player_parts = []
+          source_manifest = []
+
+          # Retained exact historical batch branches plus validated later repair overlays.
+          for y in range(2002, 2025):
+              season = f'{y}-{(y+1)%100:02d}'
+              teams = []
+              players = []
+              for ref in sorted(batchrefs.get(y, [])):
+                  bi = int(ref.rsplit('-',1)[1])
+                  base = f'team_trb_all_players/impact_database/exact_game_fact_batches/{season}/batch_{bi:03d}'
+                  t = csvgz(ref, base + '/team_game_treb.csv.gz')
+                  p = csvgz(ref, base + '/player_game_treb_on.csv.gz')
+                  if t is not None and len(t):
+                      teams.append(t)
+                      source_manifest.append({'season':season,'source_type':'historical_exact_batch','ref':ref,'file':'team_game_treb','rows':int(len(t))})
+                  if p is not None and len(p):
+                      players.append(p)
+                      source_manifest.append({'season':season,'source_type':'historical_exact_batch','ref':ref,'file':'player_game_treb_on','rows':int(len(p))})
+
+              repair_specs = [
+                  ('refs/remotes/origin/treb-game-fact-repair-wave1', f'team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1/{y}', 'exact_repair_wave1'),
+                  ('refs/remotes/origin/treb-fast-final-repair-wave', f'team_trb_all_players/final_integrity_rebuild/fast_final_repair_wave/{y}', 'exact_fast_final_repair'),
+              ]
+              for ref, base, source_type in repair_specs:
+                  t = csvgz(ref, base + '/team_game_treb.csv.gz')
+                  p = csvgz(ref, base + '/player_game_treb_on.csv.gz')
+                  if t is not None and len(t):
+                      teams.append(t)
+                      source_manifest.append({'season':season,'source_type':source_type,'ref':ref,'file':'team_game_treb','rows':int(len(t))})
+                  if p is not None and len(p):
+                      players.append(p)
+                      source_manifest.append({'season':season,'source_type':source_type,'ref':ref,'file':'player_game_treb_on','rows':int(len(p))})
+
+              if teams:
+                  t = pd.concat(teams, ignore_index=True)
+                  for c in ('game_id','team_id'):
+                      t[c] = t[c].astype(str).str.replace(r'\.0$','',regex=True)
+                  # Later appended repairs take precedence over historical batch duplicates.
+                  t = t.drop_duplicates(['game_id','team_id'], keep='last')
+                  t['season'] = season
+                  team_parts.append(t)
+              if players:
+                  p = pd.concat(players, ignore_index=True)
+                  for c in ('game_id','team_id','player_id'):
+                      p[c] = p[c].astype(str).str.replace(r'\.0$','',regex=True)
+                  p = p.drop_duplicates(['game_id','team_id','player_id'], keep='last')
+                  p['season'] = season
+                  player_parts.append(p)
+
+          if not team_parts or not player_parts:
+              failures.append('no retained exact game-fact union material loaded')
+              team = pd.DataFrame(columns=['season','game_id','team_id'])
+              player = pd.DataFrame(columns=['season','game_id','team_id','player_id'])
+          else:
+              team = pd.concat(team_parts, ignore_index=True)
+              player = pd.concat(player_parts, ignore_index=True)
+
+          # Unique exact game coverage per team-season and player-team-season.
+          if len(team):
+              team_counts = team.groupby(['season','team_id'])['game_id'].nunique().rename('exact_team_games').reset_index()
+          else:
+              team_counts = pd.DataFrame(columns=['season','team_id','exact_team_games'])
+          if len(player):
+              player_counts = player.groupby(['season','player_id','team_id'])['game_id'].nunique().rename('exact_player_games').reset_index()
+          else:
+              player_counts = pd.DataFrame(columns=['season','player_id','team_id','exact_player_games'])
+
+          m = targets.merge(
+              locked[['canonical_key','canonical_classification','locked_segment_count','locked_source_supplied']],
+              on='canonical_key', how='left', validate='one_to_one'
+          )
+          m = m.merge(team_counts, on=['season','team_id'], how='left')
+          m = m.merge(player_counts, on=['season','player_id','team_id'], how='left')
+          m['exact_team_games'] = m['exact_team_games'].fillna(0).astype(int)
+          m['exact_player_games'] = m['exact_player_games'].fillna(0).astype(int)
+          m['locked_source_supplied'] = m['locked_source_supplied'].fillna(0).astype(int)
+
+          m['expected_team_games'] = pd.to_numeric(m['total_team_games'], errors='coerce').fillna(0).astype(int)
+          m['expected_player_games'] = pd.to_numeric(m['core_games_played'], errors='coerce').fillna(0).astype(int)
+          is_full = m['canonical_classification'].eq('full_core')
+          m['exact_full_core_sufficient'] = (
+              is_full &
+              m['exact_team_games'].eq(m['expected_team_games']) &
+              m['exact_player_games'].eq(m['expected_player_games'])
+          )
+
+          # Precedence: validated exact game union/repairs > older locked export.
+          def resolution(row):
+              if bool(row['exact_full_core_sufficient']):
+                  return 'validated_exact_game_union_or_repair'
+              if int(row['locked_source_supplied']) == 1:
+                  return 'older_locked_completed_export'
+              return 'not_yet_supplied_after_exact_union_and_locked_layer'
+          m['selected_source_layer'] = m.apply(resolution, axis=1)
+          m['covered_after_this_overlay'] = m['selected_source_layer'].ne('not_yet_supplied_after_exact_union_and_locked_layer')
+          m['locked_source_superseded_by_exact'] = m['exact_full_core_sufficient'] & m['locked_source_supplied'].eq(1)
+
+          unresolved = m[~m['covered_after_this_overlay']].copy()
+          unresolved_class = Counter(unresolved['canonical_classification'].fillna('unknown'))
+          selected_counts = Counter(m['selected_source_layer'])
+
+          status = 'PASS' if not failures else 'FAIL'
+          summary = {
+              'status': status,
+              'failures': failures,
+              'operation': 'mapping_provenance_only_no_treb_reconstruction',
+              'canonical_rows': int(len(m)),
+              'canonical_unique_keys': int(m['canonical_key'].nunique()),
+              'locked_source_supplied_rows': int(m['locked_source_supplied'].sum()),
+              'exact_full_core_sufficient_rows': int(m['exact_full_core_sufficient'].sum()),
+              'locked_rows_superseded_by_exact': int(m['locked_source_superseded_by_exact'].sum()),
+              'covered_after_exact_and_locked_overlay': int(m['covered_after_this_overlay'].sum()),
+              'unresolved_after_exact_and_locked_overlay': int(len(unresolved)),
+              'unresolved_classification_counts': dict(sorted(unresolved_class.items())),
+              'selected_source_counts': dict(sorted(selected_counts.items())),
+              'exact_team_fact_rows_after_union': int(len(team)),
+              'exact_player_fact_rows_after_union': int(len(player)),
+              'historical_batch_refs_found': int(sum(len(v) for v in batchrefs.values())),
+              'source_manifest_entries': int(len(source_manifest)),
+              'source_precedence': [
+                  'validated exact game facts / later repair overlays',
+                  'older locked completed export',
+                  'unresolved for subsequent retained safe-lock/cache/recovery layer'
+              ],
+              'note': 'Partial-tenure rows are not declared resolved from raw game-fact presence alone; existing locked coverage is preserved conservatively.'
+          }
+
+          keep = [
+              'season','player_id','team_id','player','canonical_classification','locked_segment_count','locked_source_supplied',
+              'expected_team_games','exact_team_games','expected_player_games','exact_player_games',
+              'exact_full_core_sufficient','locked_source_superseded_by_exact','selected_source_layer','covered_after_this_overlay'
+          ]
+          m[keep].sort_values(['season','player_id','team_id']).to_csv(OUT / 'CANONICAL_EXACT_SOURCE_OVERLAY_MAPPING.csv', index=False)
+          unresolved[keep].sort_values(['season','player_id','team_id']).to_csv(OUT / 'CANONICAL_UNRESOLVED_AFTER_EXACT_OVERLAY.csv', index=False)
+          pd.DataFrame(source_manifest).to_csv(OUT / 'EXACT_SOURCE_MANIFEST.csv', index=False)
+          (OUT / 'CANONICAL_EXACT_SOURCE_OVERLAY_SUMMARY.json').write_text(json.dumps(summary, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          (OUT / 'STATUS.txt').write_text(status + '\n', encoding='utf-8')
+          (OUT / 'README.md').write_text(
+              '# Canonical exact-source overlay mapping\n\n'
+              f'Status: **{status}**\n\n'
+              'This checkpoint maps retained exact batch/repair facts and the older locked source onto the 14,524-row canonical universe. '
+              '**No TREB reconstruction or replay is performed.**\n\n'
+              f'- Exact full-core rows source-sufficient: **{summary["exact_full_core_sufficient_rows"]:,}**\n'
+              f'- Locked rows superseded by exact facts: **{summary["locked_rows_superseded_by_exact"]:,}**\n'
+              f'- Covered after exact + locked layers: **{summary["covered_after_exact_and_locked_overlay"]:,} / 14,524**\n'
+              f'- Residual for retained safe-lock/cache/recovery layers: **{summary["unresolved_after_exact_and_locked_overlay"]:,}**\n',
+              encoding='utf-8'
+          )
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          PY
+
+      - name: Persist durable source-overlay checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/final_integrity_rebuild/final_exact_release/source_overlay_mapping
+          if git diff --cached --quiet; then
+            echo 'No overlay changes to commit.'
+          else
+            git commit -m 'Persist canonical exact-source overlay mapping [skip ci]'
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Enforce mapping checkpoint status
+        shell: bash
+        run: |
+          test "$(cat team_trb_all_players/final_integrity_rebuild/final_exact_release/source_overlay_mapping/STATUS.txt)" = PASS
