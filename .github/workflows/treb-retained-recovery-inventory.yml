@@ -1,0 +1,322 @@
+name: TREB retained recovery inventory
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-retained-recovery-inventory.yml]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-retained-recovery-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RESIDUAL: team_trb_all_players/final_integrity_rebuild/final_exact_release/safe_lock_overlay/CANONICAL_UNRESOLVED_AFTER_SAFE_LOCK.csv
+      OUT: team_trb_all_players/final_integrity_rebuild/final_exact_release/retained_recovery_inventory
+      ARTROOT: /tmp/treb_retained_artifacts
+    steps:
+      - name: Checkout authoritative assembly branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - name: Install readers once
+        run: python -m pip install --disable-pip-version-check pandas pyarrow requests
+
+      - name: Download only specified retained artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$ARTROOT"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          import requests
+
+          repo=os.environ['GITHUB_REPOSITORY']
+          token=os.environ['GH_TOKEN']
+          root=Path(os.environ['ARTROOT'])
+          runs=[31666990243,31656553237,31657564349,31637129009]
+          headers={'Authorization':f'Bearer {token}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+          manifest=[]
+          for run_id in runs:
+              url=f'https://api.github.com/repos/{repo}/actions/runs/{run_id}/artifacts?per_page=100'
+              r=requests.get(url,headers=headers,timeout=30); r.raise_for_status()
+              arts=r.json().get('artifacts',[])
+              for a in arts:
+                  rec={'run_id':run_id,'artifact_id':a['id'],'name':a['name'],'size_in_bytes':a.get('size_in_bytes',0),'expired':bool(a.get('expired')),'downloaded':False}
+                  if not rec['expired']:
+                      d=requests.get(a['archive_download_url'],headers=headers,timeout=120)
+                      d.raise_for_status()
+                      p=root/f"run_{run_id}__artifact_{a['id']}__{a['name']}.zip"
+                      p.write_bytes(d.content)
+                      rec['downloaded']=True; rec['local_file']=p.name
+                  manifest.append(rec)
+          (root/'artifact_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+          print(json.dumps({'runs':runs,'artifacts_found':len(manifest),'downloaded':sum(x['downloaded'] for x in manifest),'expired':sum(x['expired'] for x in manifest)},indent=2))
+          PY
+
+      - name: Inventory retained evidence against 4,602 residual keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, io, json, math, os, re, zipfile
+          from collections import defaultdict
+          from pathlib import Path
+          import pandas as pd
+
+          residual_path=Path(os.environ['RESIDUAL'])
+          out=Path(os.environ['OUT']); out.mkdir(parents=True,exist_ok=True)
+          artroot=Path(os.environ['ARTROOT'])
+          residual=pd.read_csv(residual_path,dtype=str,low_memory=False)
+          required={'season','player_id','team_id'}
+          if len(residual)!=4602 or not required.issubset(residual.columns):
+              raise SystemExit(f'residual structural gate failed rows={len(residual)} cols={list(residual.columns)}')
+
+          def norm(v):
+              if v is None: return ''
+              s=str(v).strip()
+              if s.endswith('.0') and s[:-2].isdigit(): s=s[:-2]
+              return s
+          def ckey(s,p,t): return f'{norm(s)}|{norm(p)}|{norm(t)}'
+          residual['canonical_key']=[ckey(s,p,t) for s,p,t in zip(residual.season,residual.player_id,residual.team_id)]
+          if residual.canonical_key.nunique()!=4602: raise SystemExit('residual keys are not unique')
+          residual_keys=set(residual.canonical_key)
+          residual_base={r['canonical_key']:r for r in residual.to_dict('records')}
+
+          COUNT_COLS=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off']
+          NUM_COLS=COUNT_COLS+['seconds_on','seconds_off','games_processed']
+          player_alias=['player_id','subject_player_id','person_id','nba_player_id','playerid']
+          team_alias=['team_id','subject_team_id','nba_team_id','teamid']
+          season_alias=['season','season_label']
+          game_alias=['game_id','gameid']
+
+          def lower_map(row): return {str(k).lower():k for k in row.keys()}
+          def get_alias(row, aliases):
+              lm=lower_map(row)
+              for a in aliases:
+                  if a in lm and row.get(lm[a]) not in (None,''):
+                      return row.get(lm[a])
+              return None
+          def season_from_game(v):
+              s=re.sub(r'\D','',norm(v))
+              if len(s)>=8 and s.startswith('2'):
+                  yy=int(s[1:3]); year=2000+yy
+                  return f'{year}-{(year+1)%100:02d}'
+              return None
+          def to_nonneg_int(v):
+              try: x=float(v)
+              except Exception: return None
+              if not math.isfinite(x) or x<0 or abs(x-round(x))>1e-9: return None
+              return int(round(x))
+
+          def classify(path,row):
+              cols={str(k).lower() for k in row.keys()}
+              low=path.lower()
+              if set(COUNT_COLS).issubset(cols): return 'exact_canonical_accumulator'
+              if any(x in cols for x in game_alias) and any(x in cols for x in player_alias) and any(x in cols for x in team_alias): return 'player_game_fact'
+              if any(x in cols for x in game_alias) and any(x in cols for x in team_alias): return 'team_game_fact'
+              if 'repair' in low: return 'deterministic_repair_or_repair_evidence'
+              if any(x in low for x in ['forensic','audit','diagnostic','control','summary']): return 'diagnostic_or_control'
+              return 'provenance_or_other'
+
+          def json_records(obj):
+              if isinstance(obj,list):
+                  for x in obj: yield from json_records(x)
+              elif isinstance(obj,dict):
+                  yield obj
+                  for v in obj.values():
+                      if isinstance(v,(list,dict)): yield from json_records(v)
+
+          parse_errors=[]
+          sources=[]
+          mapped=[]
+          exact_by_source_key=defaultdict(lambda: {c:0 for c in NUM_COLS})
+          exact_valid=defaultdict(lambda: True)
+          exact_rows_seen=defaultdict(int)
+
+          def consume_table(source_path, rows, origin):
+              total=0; mapped_keys=set(); classes=defaultdict(int)
+              for row in rows:
+                  if not isinstance(row,dict): continue
+                  total+=1
+                  cls=classify(source_path,row); classes[cls]+=1
+                  pid=get_alias(row,player_alias); tid=get_alias(row,team_alias); season=get_alias(row,season_alias); gid=get_alias(row,game_alias)
+                  if not season and gid is not None: season=season_from_game(gid)
+                  key=ckey(season,pid,tid) if season is not None and pid is not None and tid is not None else None
+                  if key in residual_keys:
+                      mapped_keys.add(key)
+                      mapped.append({'canonical_key':key,'season':norm(season),'player_id':norm(pid),'team_id':norm(tid),'source':source_path,'origin':origin,'evidence_class':cls,'game_id':norm(gid) if gid is not None else ''})
+                      if cls=='exact_canonical_accumulator':
+                          sk=(source_path,key)
+                          lm=lower_map(row)
+                          exact_rows_seen[sk]+=1
+                          for c in NUM_COLS:
+                              if c in lm:
+                                  iv=to_nonneg_int(row.get(lm[c]))
+                                  if iv is None: exact_valid[sk]=False
+                                  else: exact_by_source_key[sk][c]+=iv
+                              elif c in COUNT_COLS:
+                                  exact_valid[sk]=False
+              sources.append({'source':source_path,'origin':origin,'rows_seen':total,'mapped_residual_keys':len(mapped_keys),'evidence_classes':json.dumps(dict(sorted(classes.items())),sort_keys=True)})
+
+          def parse_bytes(name,data,origin,depth=0):
+              if depth>4: return
+              low=name.lower()
+              try:
+                  if low.endswith('.zip'):
+                      with zipfile.ZipFile(io.BytesIO(data)) as z:
+                          for zi in z.infolist():
+                              if zi.is_dir() or zi.file_size>250_000_000: continue
+                              parse_bytes(name+'::'+zi.filename,z.read(zi),origin,depth+1)
+                  elif low.endswith('.gz'):
+                      parse_bytes(name[:-3],gzip.decompress(data),origin,depth+1)
+                  elif low.endswith('.csv'):
+                      df=pd.read_csv(io.BytesIO(data),dtype=str,low_memory=False)
+                      consume_table(name,df.to_dict('records'),origin)
+                  elif low.endswith('.jsonl') or low.endswith('.ndjson'):
+                      rows=[]
+                      for line in data.decode('utf-8-sig','replace').splitlines():
+                          if line.strip(): rows.append(json.loads(line))
+                      consume_table(name,rows,origin)
+                  elif low.endswith('.json'):
+                      obj=json.loads(data.decode('utf-8-sig','replace'))
+                      consume_table(name,json_records(obj),origin)
+                  elif low.endswith('.parquet'):
+                      df=pd.read_parquet(io.BytesIO(data))
+                      consume_table(name,df.astype(object).where(pd.notna(df),None).to_dict('records'),origin)
+              except Exception as e:
+                  parse_errors.append({'source':name,'origin':origin,'error':type(e).__name__+': '+str(e)[:500]})
+
+          # Downloaded Actions artifacts only: no broad historical fetch/replay.
+          for p in sorted(artroot.glob('*.zip')):
+              parse_bytes(p.name,p.read_bytes(),'actions_artifact')
+
+          # Small committed forensic/recovery set already present on the assembly branch.
+          committed=[]
+          for base in [Path('team_trb_all_players/final_integrity_rebuild/rebound_forensics'),Path('team_trb_all_players/final_integrity_rebuild/final_exact_release')]:
+              if not base.exists(): continue
+              for p in base.rglob('*'):
+                  if not p.is_file(): continue
+                  if 'retained_recovery_inventory' in str(p): continue
+                  if p.suffix.lower() in {'.json','.csv','.jsonl','.gz','.parquet'} and p.stat().st_size<=50_000_000:
+                      committed.append(p)
+          for p in sorted(set(committed)):
+              parse_bytes(str(p),p.read_bytes(),'committed_repository')
+
+          # Normalize exact accumulator candidates by source+canonical key; tenure segments within a source are summed.
+          exact_candidates=[]
+          per_key_vectors=defaultdict(list)
+          for (source,key),vals in exact_by_source_key.items():
+              if not exact_valid[(source,key)]: continue
+              rec={'canonical_key':key,'source':source,'segment_rows_summed':exact_rows_seen[(source,key)],**vals}
+              exact_candidates.append(rec)
+              vector=tuple(vals[c] for c in NUM_COLS)
+              per_key_vectors[key].append((source,vector))
+
+          conflicts=[]
+          for key,arr in per_key_vectors.items():
+              uniq={v for _,v in arr}
+              if len(uniq)>1:
+                  for source,vector in arr:
+                      conflicts.append({'canonical_key':key,'source':source,'count_vector':json.dumps(vector)})
+
+          evidence=defaultdict(lambda: {'classes':set(),'sources':set(),'game_ids':set()})
+          for r in mapped:
+              e=evidence[r['canonical_key']]; e['classes'].add(r['evidence_class']); e['sources'].add(r['source'])
+              if r['game_id']: e['game_ids'].add(r['game_id'])
+          exact_keys={r['canonical_key'] for r in exact_candidates}
+          conflict_keys={r['canonical_key'] for r in conflicts}
+
+          coverage=[]; partial=[]; none=[]
+          for key in sorted(residual_keys):
+              b=residual_base[key]; e=evidence[key]
+              classes=sorted(e['classes'])
+              row={'canonical_key':key,'season':b['season'],'player_id':b['player_id'],'team_id':b['team_id'],'canonical_classification':b.get('canonical_classification',''),'evidence_classes':'|'.join(classes),'source_count':len(e['sources']),'game_id_count':len(e['game_ids']),'exact_accumulator_candidate':key in exact_keys,'candidate_conflict':key in conflict_keys,'has_any_retained_evidence':bool(classes)}
+              coverage.append(row)
+              if not classes: none.append(row)
+              elif key not in exact_keys: partial.append(row)
+
+          artifact_manifest=json.loads((artroot/'artifact_manifest.json').read_text()) if (artroot/'artifact_manifest.json').exists() else []
+          summary={
+              'status':'PASS' if not conflicts else 'PASS_WITH_EXACT_CANDIDATE_CONFLICTS_REQUIRING_DIAGNOSIS',
+              'operation':'retained_source_inventory_only_no_game_reconstruction_no_auto_promotion',
+              'canonical_residual_rows':len(residual),
+              'canonical_residual_unique_keys':len(residual_keys),
+              'artifact_runs_requested':[31666990243,31656553237,31657564349,31637129009],
+              'artifacts_found':len(artifact_manifest),
+              'artifacts_downloaded':sum(bool(x.get('downloaded')) for x in artifact_manifest),
+              'artifacts_expired':sum(bool(x.get('expired')) for x in artifact_manifest),
+              'source_files_or_tables_scanned':len(sources),
+              'mapped_evidence_records':len(mapped),
+              'residual_keys_with_any_retained_evidence':sum(bool(evidence[k]['classes']) for k in residual_keys),
+              'residual_keys_with_exact_accumulator_candidates':len(exact_keys),
+              'residual_keys_with_partial_or_diagnostic_only':len(partial),
+              'residual_keys_with_no_retained_evidence':len(none),
+              'exact_candidate_conflict_keys':len(conflict_keys),
+              'parse_errors':len(parse_errors),
+              'guards':{'game_reconstruction_run':False,'candidate_evidence_auto_promoted':False,'rounded_percentage_backsolve_used':False,'scope_limited_to_current_4602_residual':True}
+          }
+
+          def write_csv(path,rows,fields=None):
+              if fields is None:
+                  fields=[]
+                  for r in rows:
+                      for k in r:
+                          if k not in fields: fields.append(k)
+              with open(path,'w',newline='',encoding='utf-8') as f:
+                  w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+
+          write_csv(out/'RETAINED_SOURCE_MANIFEST.csv',sources,['source','origin','rows_seen','mapped_residual_keys','evidence_classes'])
+          write_csv(out/'RETAINED_ARTIFACT_MANIFEST.csv',artifact_manifest)
+          write_csv(out/'RESIDUAL_SOURCE_COVERAGE.csv',coverage)
+          write_csv(out/'RESIDUAL_EXACT_CANDIDATES.csv',exact_candidates)
+          write_csv(out/'RESIDUAL_PARTIAL_EVIDENCE.csv',partial)
+          write_csv(out/'RESIDUAL_NO_RETAINED_EVIDENCE.csv',none)
+          write_csv(out/'RETAINED_SOURCE_CONFLICTS.csv',conflicts,['canonical_key','source','count_vector'])
+          write_csv(out/'PARSE_ERRORS.csv',parse_errors,['source','origin','error'])
+          (out/'RETAINED_RECOVERY_SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          (out/'STATUS.txt').write_text(summary['status']+'\n')
+          (out/'README.md').write_text(
+              '# TREB retained recovery inventory\n\n'
+              f"Status: **{summary['status']}**\n\n"
+              '**No game reconstruction, rounded-percentage backsolve, or automatic candidate promotion occurred.**\n\n'
+              f"- Current residual scoped: **{summary['canonical_residual_rows']:,}** canonical keys\n"
+              f"- Keys with any retained evidence: **{summary['residual_keys_with_any_retained_evidence']:,}**\n"
+              f"- Exact accumulator candidate keys: **{summary['residual_keys_with_exact_accumulator_candidates']:,}**\n"
+              f"- Partial/diagnostic-only keys: **{summary['residual_keys_with_partial_or_diagnostic_only']:,}**\n"
+              f"- No retained evidence: **{summary['residual_keys_with_no_retained_evidence']:,}**\n"
+              f"- Exact candidate conflict keys: **{summary['exact_candidate_conflict_keys']:,}**\n",
+              encoding='utf-8')
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+
+      - name: Upload durable inventory artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-retained-recovery-inventory
+          path: team_trb_all_players/final_integrity_rebuild/final_exact_release/retained_recovery_inventory
+          retention-days: 90
+
+      - name: Persist inventory checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$OUT"
+          git commit -m 'Persist retained TREB recovery inventory [skip ci]' || exit 0
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
