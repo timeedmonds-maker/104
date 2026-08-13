@@ -1,0 +1,259 @@
+name: TREB final production consolidation
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-final-production-consolidation.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+
+env:
+  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+  OUT: /tmp/treb_final
+  EXPECTED_DETAIL_ROWS: '14524'
+  EXPECTED_CAREER_PLAYERS: '3122'
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout authoritative forensic branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install final-export readers
+        run: python -m pip install --upgrade pandas pyarrow
+
+      - name: Recover all 26 durable season locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git fetch --no-tags --depth=1 origin "refs/heads/${b}:refs/remotes/origin/${b}"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+
+      - name: Consolidate locked database
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb_locks \
+            --output-dir "$OUT"
+
+      - name: Record captain's-call immaterial exception
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          out = Path(os.environ['OUT'])
+          residuals = [
+            [21700032, 4988],
+            [21700042, 7322],
+            [21700494, 7412],
+            [21800689, 1396],
+            [21800689, 1398],
+            [22101023, 256],
+            [22200322, 3388],
+            [22200331, 3717],
+            [22200331, 3912],
+            [22200733, 5955],
+            [22201187, 1569],
+            [22201187, 1573],
+            [22400072, 288],
+          ]
+          d = {
+            'status': 'ACCEPTED_IMMATERIAL_CAPTAINS_CALL',
+            'accepted_date': '2026-08-13',
+            'scope': 'exact V13 residual rebound-event keys only',
+            'residual_rebound_events': len(residuals),
+            'unique_games': len({x[0] for x in residuals}),
+            'residual_keys': residuals,
+            'rationale': 'User explicitly accepted 13 individual rebound discrepancies as immaterial after forensic isolation.',
+            'structural_gates_relaxed': False,
+            'generic_rebound_ordering_rule_introduced': False,
+            'notes': 'This acceptance closes rebound forensics. It is provenance, not a synthetic repair or a blanket tolerance.',
+          }
+          (out / 'captains_call_accepted_residuals.json').write_text(json.dumps(d, indent=2) + '\n')
+          PY
+
+      - name: Enforce original release totals and write Parquet
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          import pandas as pd
+
+          out = Path(os.environ['OUT'])
+          qa = json.loads((out/'qa_report.json').read_text())
+          detail = pd.read_csv(out/'career_treb_detail.csv', low_memory=False)
+          career = pd.read_csv(out/'career_treb_summary.csv', low_memory=False)
+          exp_d = int(os.environ['EXPECTED_DETAIL_ROWS'])
+          exp_c = int(os.environ['EXPECTED_CAREER_PLAYERS'])
+
+          assert qa['status'] == 'PASS', qa
+          assert qa['seasons_complete'] == 26, qa
+          assert qa['first_season'] == '2000-01' and qa['last_season'] == '2025-26', qa
+          assert len(detail) == exp_d, (len(detail), exp_d)
+          assert len(career) == exp_c, (len(career), exp_c)
+          assert qa['tenure_detail_rows'] == exp_d, qa
+          assert qa['career_players'] == exp_c, qa
+          assert qa['duplicate_tenure_keys'] == 0, qa
+          assert qa['unexpected_exceptions'] == 0, qa
+          assert qa['unmatched_rebound_rows'] == 0, qa
+          assert qa['accepted_exclusion_ledger_exact_match'] is True, qa
+
+          for c in ['player_id','season','team_id','seconds_on','seconds_off']:
+            assert c in detail.columns
+            assert detail[c].notna().all(), c
+          assert (pd.to_numeric(detail.seconds_on) >= 0).all()
+          assert (pd.to_numeric(detail.seconds_off) >= 0).all()
+          assert detail.season.nunique() == 26
+          assert career.player_id.nunique() == exp_c
+
+          detail.to_parquet(out/'career_treb_detail.parquet', index=False)
+          career.to_parquet(out/'career_treb_summary.parquet', index=False)
+          print(json.dumps({'status':'PASS','detail_rows':len(detail),'career_players':len(career),'seasons':detail.season.nunique()}, indent=2))
+          PY
+
+      - name: Independent CSV Parquet SQLite reader validation
+        run: |
+          python - <<'PY'
+          import json, os, sqlite3
+          from pathlib import Path
+          import pandas as pd
+
+          out = Path(os.environ['OUT'])
+          d_csv = pd.read_csv(out/'career_treb_detail.csv', low_memory=False)
+          c_csv = pd.read_csv(out/'career_treb_summary.csv', low_memory=False)
+          d_pq = pd.read_parquet(out/'career_treb_detail.parquet')
+          c_pq = pd.read_parquet(out/'career_treb_summary.parquet')
+          with sqlite3.connect(out/'treb_2000_01_to_2025_26.sqlite') as con:
+            d_sql = pd.read_sql_query('select * from tenure_detail', con)
+            c_sql = pd.read_sql_query('select * from career_summary', con)
+
+          assert len(d_csv) == len(d_pq) == len(d_sql) == int(os.environ['EXPECTED_DETAIL_ROWS'])
+          assert len(c_csv) == len(c_pq) == len(c_sql) == int(os.environ['EXPECTED_CAREER_PLAYERS'])
+
+          count_cols = [
+            'team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on',
+            'team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off',
+            'seconds_on','seconds_off','games_processed'
+          ]
+          checks = {}
+          for col in count_cols:
+            vals = [float(pd.to_numeric(x[col]).sum()) for x in (d_csv,d_pq,d_sql)]
+            assert max(vals) - min(vals) < 1e-6, (col, vals)
+            checks[col] = vals[0]
+
+          # Recompute TREB rates from stored counts independently.
+          for frame_name, frame in [('detail', d_csv), ('career', c_csv)]:
+            on_num = pd.to_numeric(frame.team_oreb_on) + pd.to_numeric(frame.team_dreb_on)
+            on_den = on_num + pd.to_numeric(frame.opponent_oreb_on) + pd.to_numeric(frame.opponent_dreb_on)
+            calc = on_num / on_den
+            stored = pd.to_numeric(frame.treb_on)
+            diff = (calc - stored).abs().dropna()
+            assert diff.max() < 1e-12, (frame_name, float(diff.max()))
+
+          report = {
+            'status':'PASS',
+            'csv_parquet_sqlite_row_counts_identical': True,
+            'detail_rows': len(d_csv),
+            'career_players': len(c_csv),
+            'count_and_second_totals_identical': True,
+            'treb_on_formula_recomputed': True,
+            'detail_totals': checks,
+          }
+          (out/'reader_validation.json').write_text(json.dumps(report, indent=2) + '\n')
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Package and hash final release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$OUT"
+          sha256sum \
+            career_treb_detail.csv career_treb_summary.csv \
+            career_treb_detail.parquet career_treb_summary.parquet \
+            treb_2000_01_to_2025_26.sqlite \
+            accepted_exclusions.csv season_lock_manifest.csv \
+            qa_report.json reader_validation.json \
+            captains_call_accepted_residuals.json README.txt \
+            > SHA256SUMS.txt
+          zip -9 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
+          sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip > /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+
+      - name: Build durable release report
+        run: |
+          python - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          out = Path(os.environ['OUT'])
+          z = Path('/tmp/TREB_final_database_2000-01_to_2025-26.zip')
+          qa = json.loads((out/'qa_report.json').read_text())
+          reader = json.loads((out/'reader_validation.json').read_text())
+          captain = json.loads((out/'captains_call_accepted_residuals.json').read_text())
+          report = {
+            'status':'PASS',
+            'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+            'source_branch': os.environ['GITHUB_REF_NAME'],
+            'source_commit': os.environ['GITHUB_SHA'],
+            'seasons': 26,
+            'season_range': ['2000-01','2025-26'],
+            'tenure_detail_rows': qa['tenure_detail_rows'],
+            'career_players': qa['career_players'],
+            'captains_call_residual_rebounds_accepted': captain['residual_rebound_events'],
+            'captains_call_unique_games': captain['unique_games'],
+            'structural_gates_relaxed': False,
+            'reader_validation': reader['status'],
+            'package': z.name,
+            'package_sha256': hashlib.sha256(z.read_bytes()).hexdigest(),
+          }
+          (out/'FINAL_PRODUCTION_BUILD_REPORT.json').write_text(json.dumps(report, indent=2) + '\n')
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Upload complete final database
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-${{ github.run_id }}
+          path: |
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+            /tmp/treb_final/FINAL_PRODUCTION_BUILD_REPORT.json
+            /tmp/treb_final/qa_report.json
+            /tmp/treb_final/reader_validation.json
+            /tmp/treb_final/captains_call_accepted_residuals.json
+          retention-days: 90
+
+      - name: Persist final release provenance to forensic branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_release
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812
+            git reset --hard origin/agent/treb-batched-game-facts-20260812
+            mkdir -p "$D"
+            cp "$OUT/FINAL_PRODUCTION_BUILD_REPORT.json" "$D/"
+            cp "$OUT/qa_report.json" "$D/FINAL_QA_REPORT.json"
+            cp "$OUT/reader_validation.json" "$D/FINAL_READER_VALIDATION.json"
+            cp "$OUT/captains_call_accepted_residuals.json" "$D/CAPTAINS_CALL_ACCEPTED_RESIDUALS.json"
+            cp "$OUT/SHA256SUMS.txt" "$D/FINAL_SHA256SUMS.txt"
+            git add -f "$D"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Persist final TREB production release provenance'
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
