@@ -1,0 +1,174 @@
+{
+  "accepted_overlap_game_ids": [
+    "20201160",
+    "20400335",
+    "21500916",
+    "21800143",
+    "21901316",
+    "21901317",
+    "21901318",
+    "22000853",
+    "22200234"
+  ],
+  "all_350_historical_missing_games_remain_recovery_targets": true,
+  "by_season": {
+    "2000-01": {
+      "edge_recovery": 1189,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 1189,
+      "strict_historical_recovery": 0
+    },
+    "2001-02": {
+      "edge_recovery": 1189,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 1189,
+      "strict_historical_recovery": 0
+    },
+    "2002-03": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 1,
+      "missing_games": 66,
+      "strict_historical_recovery": 65
+    },
+    "2003-04": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 58,
+      "strict_historical_recovery": 58
+    },
+    "2004-05": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 1,
+      "missing_games": 68,
+      "strict_historical_recovery": 67
+    },
+    "2005-06": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 51,
+      "strict_historical_recovery": 51
+    },
+    "2008-09": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 1,
+      "strict_historical_recovery": 1
+    },
+    "2009-10": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 2,
+      "strict_historical_recovery": 2
+    },
+    "2010-11": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 2,
+      "strict_historical_recovery": 2
+    },
+    "2012-13": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 16,
+      "strict_historical_recovery": 16
+    },
+    "2013-14": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 1,
+      "strict_historical_recovery": 1
+    },
+    "2015-16": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 1,
+      "missing_games": 2,
+      "strict_historical_recovery": 1
+    },
+    "2016-17": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 1,
+      "strict_historical_recovery": 1
+    },
+    "2017-18": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 23,
+      "strict_historical_recovery": 23
+    },
+    "2018-19": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 1,
+      "missing_games": 6,
+      "strict_historical_recovery": 5
+    },
+    "2019-20": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 3,
+      "missing_games": 9,
+      "strict_historical_recovery": 6
+    },
+    "2020-21": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 1,
+      "missing_games": 4,
+      "strict_historical_recovery": 3
+    },
+    "2021-22": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 6,
+      "strict_historical_recovery": 6
+    },
+    "2022-23": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 1,
+      "missing_games": 19,
+      "strict_historical_recovery": 18
+    },
+    "2023-24": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 3,
+      "strict_historical_recovery": 3
+    },
+    "2024-25": {
+      "edge_recovery": 0,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 12,
+      "strict_historical_recovery": 12
+    },
+    "2025-26": {
+      "edge_recovery": 1230,
+      "legacy_accepted_overlap_recovery": 0,
+      "missing_games": 1230,
+      "strict_historical_recovery": 0
+    }
+  },
+  "current_missing_games_total": 3958,
+  "edge_season_recovery_games": 3608,
+  "edge_seasons": [
+    "2000-01",
+    "2001-02",
+    "2025-26"
+  ],
+  "guards": {
+    "accepted_exclusions_not_treated_as_release_waivers": true,
+    "current_missing_legacy_accepted_overlap_equals_9": true,
+    "current_missing_scope_unique_games_equals_3958": true,
+    "edge_missing_scope_equals_3608": true,
+    "game_reconstruction_run": false,
+    "historical_missing_scope_equals_350": true,
+    "historical_strict_recovery_equals_341": true,
+    "legacy_accepted_manifest_equals_40": true,
+    "rounded_percentage_backsolve_used": false
+  },
+  "historical_legacy_accepted_exclusion_overlap_recovery_games": 9,
+  "historical_missing_games_2002_03_to_2024_25": 350,
+  "historical_strict_recovery_games": 341,
+  "legacy_accepted_exclusion_manifest_count": 40,
+  "legacy_accepted_exclusions_are_production_waivers": false,
+  "legacy_accepted_exclusions_not_in_current_missing_scope": 31,
+  "operation": "partition_current_residual_missing_games_only_no_reconstruction",
+  "status": "PASS"
+}
