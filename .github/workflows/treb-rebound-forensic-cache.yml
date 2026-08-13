@@ -2,7 +2,9 @@ name: TREB optimized rebound forensic cache
 on:
   push:
     branches: [agent/treb-batched-game-facts-20260812]
-    paths: [.github/workflows/treb-rebound-forensic-cache.yml]
+    paths:
+      - .github/workflows/treb-rebound-forensic-cache.yml
+      - team_trb_all_players/rebound_forensic_feature_cache.py
   workflow_dispatch:
 permissions:
   contents: write
