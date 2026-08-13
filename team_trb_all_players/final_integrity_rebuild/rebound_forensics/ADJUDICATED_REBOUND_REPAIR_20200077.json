@@ -1,0 +1,27 @@
+{
+  "status": "ADJUDICATED_FOR_CANARY",
+  "adjudication_run_id": 31726024619,
+  "source_artifact_id": 9191278776,
+  "source_commit": "213b0ffc157cf830b22bcc925a825f1e1afb68da",
+  "repair_games": 1,
+  "repair_rows": 1,
+  "production_promoted": false,
+  "policy": "Finite game-specific evidence only. No matcher widening. Runtime must assert exact PBP identity, NBA event identity, player identity, elapsed time, lineup, real rebound status, and event non-reuse before application.",
+  "repairs": [
+    {
+      "game_id": 20200077,
+      "period": 2,
+      "start_time": "11:42",
+      "end_time": "11:26",
+      "pbp_description": "Richardson REBOUND (Off:1 Def:1)",
+      "nba_eventnum": 110,
+      "nba_elapsed": 773,
+      "nba_clock": "11:07",
+      "nba_description": "Richardson REBOUND (Off:1 Def:1)",
+      "nba_player1_id": 2202,
+      "lineup": [133, 248, 278, 1502, 1714, 2042, 2202, 2211, 2240, 2412],
+      "real": true,
+      "method": "unique_player_counter_identity_with_source_clock_displacement_adjudicated"
+    }
+  ]
+}
