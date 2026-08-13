@@ -1,0 +1,124 @@
+name: TREB full-core exact scope diagnostic v2
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-fullcore-exact-scope-diagnostic-v2.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Generate authoritative V2 targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/treb_stage2 refs/remotes/origin/treb-stage2-actions-live
+          python /tmp/treb_stage2/team_trb_all_players/build_roster_targets_v2.py
+      - name: Diagnose exact game-fact scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,io,json,subprocess
+          from pathlib import Path
+          import pandas as pd
+          STAGE='refs/remotes/origin/treb-stage2-actions-live'
+          W1='refs/remotes/origin/treb-game-fact-repair-wave1'
+          FF='refs/remotes/origin/treb-fast-final-repair-wave'
+          def show(ref,path):
+            p=subprocess.run(['git','show',f'{ref}:{path}'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            return p.stdout if p.returncode==0 else None
+          def csvgz(ref,path):
+            b=show(ref,path); return None if b is None else pd.read_csv(io.BytesIO(b),compression='gzip',low_memory=False)
+          def ids(x):
+            s=str(x).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          canon=[]
+          with gzip.open('/tmp/treb_stage2/team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt') as f:
+            canon=[json.loads(x) for x in f if x.strip()]
+          full=[r for r in canon if bool(r['full_core_reuse'])]
+          assert (len(canon),len(full),len({ids(r['player_id']) for r in canon}))==(14524,9647,2584)
+          report={'canonical_rows':14524,'full_rows':9647,'unique_players':2584,'core_evidence':{},'exact_scope':{}}
+          # Report exact opponent evidence columns for every season.
+          for y in range(2000,2026):
+            s=f'{y}-{(y+1)%100:02d}'
+            d=csvgz(STAGE,f'team_trb_all_players/impact_database/outputs/{s}/team_rebound_derived.csv.gz')
+            info={'full_rows':sum(str(r['season'])==s for r in full)}
+            if d is not None:
+              info['columns']=list(d.columns)
+              for c in d.columns:
+                if 'opponent' in c.lower() or 'rebound' in c.lower():
+                  info[c+'_nonnull']=int(d[c].notna().sum())
+            report['core_evidence'][s]=info
+          # Base exact batches + known exact repair overlays; inspect all years that have batch refs.
+          remote_refs=subprocess.check_output(['git','for-each-ref','--format=%(refname)','refs/remotes/origin/treb-game-facts-']).decode().splitlines()
+          years=sorted({int(ref.split('treb-game-facts-')[1][:4]) for ref in remote_refs})
+          report['game_fact_years']=years
+          for y in years:
+            s=f'{y}-{(y+1)%100:02d}'; tp=[]; pp=[]
+            refs=[r for r in remote_refs if f'treb-game-facts-{y}-batch-' in r]
+            for ref in refs:
+              names=subprocess.check_output(['git','ls-tree','-r','--name-only',ref]).decode().splitlines()
+              for nm in names:
+                if f'exact_game_fact_batches/{s}/' not in nm: continue
+                if nm.endswith('/team_game_treb.csv.gz'):
+                  x=csvgz(ref,nm); tp.append(x) if x is not None and len(x) else None
+                elif nm.endswith('/player_game_treb_on.csv.gz'):
+                  x=csvgz(ref,nm); pp.append(x) if x is not None and len(x) else None
+            for ref,base in [(W1,f'team_trb_all_players/final_integrity_rebuild/game_fact_repair_wave1/{y}'),(FF,f'team_trb_all_players/final_integrity_rebuild/fast_final_repair_wave/{y}')]:
+              x=csvgz(ref,base+'/team_game_treb.csv.gz'); p=csvgz(ref,base+'/player_game_treb_on.csv.gz')
+              if x is not None and len(x): tp.append(x)
+              if p is not None and len(p): pp.append(p)
+            if not tp or not pp: continue
+            t=pd.concat(tp,ignore_index=True).drop_duplicates(['game_id','team_id'],keep='last')
+            p=pd.concat(pp,ignore_index=True).drop_duplicates(['game_id','team_id','player_id'],keep='last')
+            m=csvgz(STAGE,f'team_trb_all_players/impact_database/outputs/{s}/team_on_off_metrics.csv.gz')
+            xinfo={'games':int(t.game_id.nunique()),'team_game_rows':len(t),'player_game_rows':len(p)}
+            if m is not None:
+              m=m[m.metric.astype(str).isin(['OffRebounds','DefRebounds'])].copy(); m['pid']=m.subject_player_id.map(ids); m['team_id']=pd.to_numeric(m.team_id).astype(int)
+              midx={(r.pid,int(r.team_id),str(r.metric)):r for _,r in m.iterrows()}
+              tgrp=t.groupby('team_id')[['team_oreb','team_dreb']].sum(); p['pid']=p.player_id.map(ids); p['team_id']=pd.to_numeric(p.team_id).astype(int)
+              pgrp=p.groupby(['pid','team_id'])[['team_oreb_on','team_dreb_on']].sum()
+              total=match=0; examples=[]
+              for r in full:
+                if str(r['season'])!=s: continue
+                pid=ids(r['player_id']); tid=int(r['team_id'])
+                if tid not in tgrp.index or (pid,tid) not in pgrp.index: continue
+                if (pid,tid,'OffRebounds') not in midx or (pid,tid,'DefRebounds') not in midx: continue
+                og=midx[(pid,tid,'OffRebounds')]; dg=midx[(pid,tid,'DefRebounds')]; pg=pgrp.loc[(pid,tid)]; tg=tgrp.loc[tid]
+                vals=(int(pg.team_oreb_on),int(tg.team_oreb-pg.team_oreb_on),int(pg.team_dreb_on),int(tg.team_dreb-pg.team_dreb_on))
+                core=(int(round(float(og['on']))),int(round(float(og['off']))),int(round(float(dg['on']))),int(round(float(dg['off']))))
+                total+=1
+                if vals==core: match+=1
+                elif len(examples)<5: examples.append({'player_id':pid,'team_id':tid,'exact':vals,'core':core})
+              xinfo.update({'full_compared':total,'full_matches':match,'match_pct':round(100*match/max(1,total),4),'mismatch_examples':examples})
+            report['exact_scope'][s]=xinfo
+          Path('/tmp/FULLCORE_EXACT_SCOPE_DIAGNOSTIC_V2.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          print(json.dumps(report,indent=2,default=str))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-fullcore-exact-scope-v2-${{ github.run_id }}
+          path: /tmp/FULLCORE_EXACT_SCOPE_DIAGNOSTIC_V2.json
+          retention-days: 90
+      - name: Persist diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          mkdir -p "$D"; cp /tmp/FULLCORE_EXACT_SCOPE_DIAGNOSTIC_V2.json "$D/"
+          git add -f "$D/FULLCORE_EXACT_SCOPE_DIAGNOSTIC_V2.json"
+          git commit -m 'Persist full-core exact scope diagnostic v2'
+          git push origin HEAD:agent/treb-final-exact-assembly
