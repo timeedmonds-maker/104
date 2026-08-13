@@ -1,0 +1,82 @@
+{
+  "status": "DIAGNOSTIC_ONLY",
+  "workflow_run_id": 31654304377,
+  "engine_under_test": "production_rebound_v8",
+  "starting_v8b_residual_rows": 16,
+  "controls": {
+    "nonbracket_dreb_counter_endpoint_named": {
+      "applicable": 279,
+      "correct": 279,
+      "wrong": 0
+    },
+    "nonbracket_dreb_counter_clock_named": {
+      "applicable": 296,
+      "correct": 296,
+      "wrong": 0
+    },
+    "nonbracket_dreb_counter_endpoint_clock_named": {
+      "applicable": 279,
+      "correct": 279,
+      "wrong": 0
+    }
+  },
+  "zero_error_rules": [
+    "nonbracket_dreb_counter_endpoint_named",
+    "nonbracket_dreb_counter_clock_named",
+    "nonbracket_dreb_counter_endpoint_clock_named"
+  ],
+  "wrong_records": {
+    "nonbracket_dreb_counter_endpoint_named": [],
+    "nonbracket_dreb_counter_clock_named": [],
+    "nonbracket_dreb_counter_endpoint_clock_named": []
+  },
+  "residual_candidates": [
+    {
+      "game_id": 21700032,
+      "pbp_index": 5033,
+      "period": 1,
+      "start_time": "04:45",
+      "end_time": "04:01",
+      "description": "Harden REBOUND (Off:0 Def:1)",
+      "resolved_player_id": 201935,
+      "strategies": {
+        "nonbracket_dreb_counter_endpoint_named": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ],
+        "nonbracket_dreb_counter_clock_named": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ],
+        "nonbracket_dreb_counter_endpoint_clock_named": [
+          2772,
+          200782,
+          200826,
+          201601,
+          201935,
+          202083,
+          203084,
+          203457,
+          204028,
+          1627812
+        ]
+      }
+    }
+  ]
+}
