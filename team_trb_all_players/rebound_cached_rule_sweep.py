@@ -5,7 +5,7 @@ Diagnostic only.  This deliberately does not mutate production.  It searches a
 fixed, interpretable grid of lineup-anchor x rebound-side x description-format x
 identity classes, validates every class on matched historical controls, and
 reports only zero-error classes with meaningful control support that cover a
-current residual.
+current production residual.
 """
 from __future__ import annotations
 
@@ -82,7 +82,17 @@ def main():
     payload = read_cache(z.cache)
     records = payload["records"]
     matched = [r for r in records if r.get("matched")]
-    residual = [r for r in records if not r.get("matched")]
+
+    # Schema v2+ explicitly marks the exact durable production residual set.
+    # Fallback is retained only for older diagnostic caches.
+    if any("production_residual" in r for r in records):
+        residual = [r for r in records if r.get("production_residual") is True]
+    else:
+        residual = [r for r in records if not r.get("matched")]
+
+    expected = payload.get("current_residual_rows")
+    if expected is not None:
+        assert len(residual) == int(expected), (len(residual), expected)
 
     tested = 0
     safe = []
@@ -129,13 +139,13 @@ def main():
                         ],
                     })
 
-    # Prefer rules with more historical support, then broader residual coverage.
     safe.sort(key=lambda x: (-x["applicable_controls"], -len(x["residual_candidates"]), x["anchor"], x["side"], x["format"], x["identity"]))
     out = {
         "status": "DIAGNOSTIC_ONLY",
         "cache_schema_version": payload.get("schema_version"),
         "engine_under_test": payload.get("engine"),
         "matched_control_rows": len(matched),
+        "generic_unmatched_rows": payload.get("generic_unmatched_rows"),
         "current_residual_rows": len(residual),
         "predeclared_rule_classes_tested": tested,
         "minimum_control_support": z.min_controls,
@@ -144,6 +154,7 @@ def main():
     z.output.write_text(json.dumps(out, indent=2) + "\n")
     print(json.dumps({
         "matched_control_rows": len(matched),
+        "generic_unmatched_rows": payload.get("generic_unmatched_rows"),
         "current_residual_rows": len(residual),
         "predeclared_rule_classes_tested": tested,
         "zero_error_rules_covering_residuals": len(safe),
