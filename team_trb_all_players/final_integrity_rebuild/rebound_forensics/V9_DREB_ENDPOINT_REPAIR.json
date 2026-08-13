@@ -1,0 +1,38 @@
+{
+  "status": "PROMOTED",
+  "method": "nonbracket_dreb_counter_endpoint_clock_named",
+  "source_audit_run_id": 31654304377,
+  "repair_rows": 1,
+  "safe_controls": {
+    "nonbracket_dreb_counter_endpoint_named": {
+      "applicable": 279,
+      "correct": 279,
+      "wrong": 0
+    },
+    "nonbracket_dreb_counter_clock_named": {
+      "applicable": 296,
+      "correct": 296,
+      "wrong": 0
+    },
+    "nonbracket_dreb_counter_endpoint_clock_named": {
+      "applicable": 279,
+      "correct": 279,
+      "wrong": 0
+    }
+  },
+  "repairs": [
+    {
+      "game_id": 21700032,
+      "pbp_index": 5033,
+      "period": 1,
+      "start_time": "04:45",
+      "end_time": "04:01",
+      "pbp_description": "Harden REBOUND (Off:0 Def:1)",
+      "resolved_player_id": 201935,
+      "lineup": [2772, 200782, 200826, 201601, 201935, 202083, 203084, 203457, 204028, 1627812],
+      "real": true,
+      "pbp_is_oreb": false,
+      "resolution_method": "nonbracket_dreb_counter_endpoint_clock_named"
+    }
+  ]
+}
