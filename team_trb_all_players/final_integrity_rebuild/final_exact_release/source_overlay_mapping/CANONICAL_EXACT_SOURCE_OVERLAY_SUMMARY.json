@@ -1,0 +1,31 @@
+{
+  "canonical_rows": 14524,
+  "canonical_unique_keys": 14524,
+  "covered_after_exact_and_locked_overlay": 9922,
+  "exact_full_core_sufficient_rows": 5046,
+  "exact_player_fact_rows_after_union": 567583,
+  "exact_team_fact_rows_after_union": 54592,
+  "failures": [],
+  "historical_batch_refs_found": 290,
+  "locked_rows_superseded_by_exact": 1,
+  "locked_source_supplied_rows": 4877,
+  "note": "Partial-tenure rows are not declared resolved from raw game-fact presence alone; existing locked coverage is preserved conservatively.",
+  "operation": "mapping_provenance_only_no_treb_reconstruction",
+  "selected_source_counts": {
+    "not_yet_supplied_after_exact_union_and_locked_layer": 4602,
+    "older_locked_completed_export": 4876,
+    "validated_exact_game_union_or_repair": 5046
+  },
+  "source_manifest_entries": 656,
+  "source_precedence": [
+    "validated exact game facts / later repair overlays",
+    "older locked completed export",
+    "unresolved for subsequent retained safe-lock/cache/recovery layer"
+  ],
+  "status": "PASS",
+  "unresolved_after_exact_and_locked_overlay": 4602,
+  "unresolved_classification_counts": {
+    "full_core": 4488,
+    "partial": 114
+  }
+}
