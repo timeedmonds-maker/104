@@ -1,0 +1,257 @@
+{
+  "status": "DIAGNOSTIC_ONLY",
+  "workflow_run_id": 31655389364,
+  "engine_under_test": "production_rebound_v8",
+  "starting_v8b_residual_rows": 16,
+  "controls": {
+    "bracket_clock_named_oreb": {
+      "applicable": 117,
+      "correct": 113,
+      "wrong": 4
+    },
+    "bracket_clock_named_dreb": {
+      "applicable": 52,
+      "correct": 52,
+      "wrong": 0
+    },
+    "bracket_endpoint_clock_named_oreb": {
+      "applicable": 110,
+      "correct": 109,
+      "wrong": 1
+    },
+    "bracket_endpoint_clock_named_dreb": {
+      "applicable": 51,
+      "correct": 51,
+      "wrong": 0
+    }
+  },
+  "zero_error_rules": [
+    "bracket_clock_named_dreb",
+    "bracket_endpoint_clock_named_dreb"
+  ],
+  "wrong_records": {
+    "bracket_clock_named_oreb": [
+      {
+        "game_id": 22201018,
+        "pbp_index": 47,
+        "description": "[SAS] Bassey Rebound (Off:1 Def:3)",
+        "pbp_is_oreb": true,
+        "actual_real": true,
+        "actual": [
+          203926,
+          203967,
+          1629641,
+          1629646,
+          1630322,
+          1630572,
+          1630598,
+          1631104,
+          1631114,
+          1631172
+        ],
+        "predicted": [
+          203926,
+          203967,
+          1629641,
+          1629646,
+          1630198,
+          1630322,
+          1630572,
+          1631104,
+          1631114,
+          1631172
+        ]
+      },
+      {
+        "game_id": 22201168,
+        "pbp_index": 835,
+        "description": "[NYK] Hartenstein Rebound (Off:1 Def:4)",
+        "pbp_is_oreb": true,
+        "actual_real": true,
+        "actual": [
+          1626153,
+          1628392,
+          1628973,
+          1629655,
+          1629656,
+          1630166,
+          1630167,
+          1630193,
+          1630557,
+          1631098
+        ],
+        "predicted": [
+          1628392,
+          1628973,
+          1629656,
+          1630167,
+          1630193,
+          1630264,
+          1630557,
+          1630692,
+          1631098,
+          1641645
+        ]
+      },
+      {
+        "game_id": 22201187,
+        "pbp_index": 1638,
+        "description": "[GSW] Kuminga Rebound (Off:4 Def:2)",
+        "pbp_is_oreb": true,
+        "actual_real": true,
+        "actual": [
+          201939,
+          203110,
+          1628978,
+          1628983,
+          1629652,
+          1630228,
+          1630541,
+          1630581,
+          1631114,
+          1631119
+        ],
+        "predicted": [
+          201939,
+          203110,
+          1628978,
+          1628983,
+          1629652,
+          1630198,
+          1630228,
+          1630541,
+          1630598,
+          1631119
+        ]
+      },
+      {
+        "game_id": 22201218,
+        "pbp_index": 2021,
+        "description": "[CLE] Green Rebound (Off:1 Def:2)",
+        "pbp_is_oreb": true,
+        "actual_real": true,
+        "actual": [
+          201577,
+          201980,
+          203526,
+          1629004,
+          1630177,
+          1630241,
+          1630547,
+          1630550,
+          1630600,
+          1631109
+        ],
+        "predicted": [
+          201577,
+          201980,
+          203526,
+          1630177,
+          1630241,
+          1630547,
+          1630550,
+          1630600,
+          1631109,
+          1631121
+        ]
+      }
+    ],
+    "bracket_clock_named_dreb": [],
+    "bracket_endpoint_clock_named_oreb": [
+      {
+        "game_id": 22201218,
+        "pbp_index": 2021,
+        "description": "[CLE] Green Rebound (Off:1 Def:2)",
+        "pbp_is_oreb": true,
+        "actual_real": true,
+        "actual": [
+          201577,
+          201980,
+          203526,
+          1629004,
+          1630177,
+          1630241,
+          1630547,
+          1630550,
+          1630600,
+          1631109
+        ],
+        "predicted": [
+          201577,
+          201980,
+          203526,
+          1630177,
+          1630241,
+          1630547,
+          1630550,
+          1630600,
+          1631109,
+          1631121
+        ]
+      }
+    ],
+    "bracket_endpoint_clock_named_dreb": []
+  },
+  "residual_candidates": [
+    {
+      "game_id": 22201076,
+      "pbp_index": 494,
+      "period": 3,
+      "start_time": "06:14",
+      "end_time": "05:53",
+      "description": "[UTA] Agbaji Rebound (Off:1 Def:3)",
+      "pbp_is_oreb": true,
+      "resolved_player_id": 1630534,
+      "strategies": {
+        "bracket_clock_named_oreb": [
+          200752,
+          1626168,
+          1627734,
+          1627739,
+          1628368,
+          1628370,
+          1630534,
+          1630548,
+          1631099,
+          1631117
+        ],
+        "bracket_endpoint_clock_named_oreb": [
+          200752,
+          1626168,
+          1627734,
+          1627739,
+          1628368,
+          1628370,
+          1630534,
+          1630548,
+          1631099,
+          1631117
+        ]
+      }
+    },
+    {
+      "game_id": 22201076,
+      "pbp_index": 529,
+      "period": 2,
+      "start_time": "04:00",
+      "end_time": "03:43",
+      "description": "[SAC] Sabonis Rebound (Off:0 Def:6)",
+      "pbp_is_oreb": false,
+      "resolved_player_id": 1627734,
+      "strategies": {
+        "bracket_clock_named_dreb": [
+          203084,
+          203482,
+          1627734,
+          1627739,
+          1630534,
+          1630556,
+          1630558,
+          1631099,
+          1631117,
+          1631323
+        ]
+      }
+    }
+  ]
+}
