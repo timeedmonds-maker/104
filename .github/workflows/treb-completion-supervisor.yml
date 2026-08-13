@@ -1,0 +1,280 @@
+name: TREB completion supervisor
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-completion-supervisor.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-final-completion-supervisor
+  cancel-in-progress: false
+
+jobs:
+  supervise:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout controller branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: control
+          fetch-depth: 1
+
+      - name: Checkout authoritative Stage2 source
+        uses: actions/checkout@v4
+        with:
+          ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+          path: stage2
+          fetch-depth: 1
+
+      - name: Reconcile canonical population and inventory next evidence
+        id: audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p supervisor_output
+          python - <<'PY'
+          import csv, gzip, json, re, subprocess
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          stage2_root = Path('stage2/team_trb_all_players/impact_database')
+          payload = stage2_root / 'corrected_off/tenure_segment_on_off.jsonl.gz'
+          seasons = [f'{y}-{str(y+1)[-2:]}' for y in range(2000, 2026)]
+          season_set = set(seasons)
+
+          def norm(v):
+              if v is None:
+                  return ''
+              s = str(v).strip()
+              if s.endswith('.0'):
+                  try:
+                      return str(int(float(s)))
+                  except Exception:
+                      pass
+              return s
+
+          metric_rows = 0
+          windows = {}
+          metrics = set()
+          collection_sources = Counter()
+          with gzip.open(payload, 'rt', encoding='utf-8') as f:
+              for line in f:
+                  row = json.loads(line)
+                  season = norm(row.get('season'))
+                  if season not in season_set:
+                      continue
+                  metric_rows += 1
+                  pid = norm(row.get('player_id'))
+                  tid = norm(row.get('team_id'))
+                  key = (season, pid, tid)
+                  wkey = key + (norm(row.get('tenure_start')), norm(row.get('tenure_end')))
+                  if wkey not in windows:
+                      try:
+                          minutes_on = float(row.get('minutes_on') or 0)
+                      except Exception:
+                          minutes_on = 0.0
+                      windows[wkey] = {
+                          'key': key,
+                          'minutes_on': minutes_on,
+                          'collection_source': norm(row.get('collection_source')),
+                      }
+                  metric = norm(row.get('metric'))
+                  if metric:
+                      metrics.add(metric)
+                  src = norm(row.get('collection_source'))
+                  if src:
+                      collection_sources[src] += 1
+
+          stage2_keys = {v['key'] for v in windows.values()}
+          positive_keys = {v['key'] for v in windows.values() if v['minutes_on'] > 0}
+          zero_windows = [v for v in windows.values() if v['minutes_on'] <= 0]
+          zero_only_keys = stage2_keys - positive_keys
+          zero_only_sources = Counter(
+              v['collection_source'] for v in windows.values()
+              if v['key'] in zero_only_keys
+          )
+
+          totals_keys = set()
+          totals_schemas = {}
+          for season in seasons:
+              path = stage2_root / 'outputs' / season / 'player_team_totals.csv.gz'
+              with gzip.open(path, 'rt', encoding='utf-8-sig', newline='') as f:
+                  reader = csv.DictReader(f)
+                  fields = reader.fieldnames or []
+                  totals_schemas[season] = fields
+                  def canonical_field(target):
+                      for col in fields:
+                          if col.lower().replace('_','') == target:
+                              return col
+                      raise RuntimeError(f'{season}: missing {target}; fields={fields}')
+                  pc = canonical_field('playerid')
+                  tc = canonical_field('teamid')
+                  for row in reader:
+                      totals_keys.add((season, norm(row.get(pc)), norm(row.get(tc))))
+
+          all_only_stage2 = sorted(stage2_keys - totals_keys)
+          all_only_totals = sorted(totals_keys - stage2_keys)
+          pos_only_stage2 = sorted(positive_keys - totals_keys)
+          pos_only_totals = sorted(totals_keys - positive_keys)
+
+          # Hard integrity gate: the historical 14,524 population must be
+          # exactly the positive-minute Stage2 population and exactly the
+          # retained player_team_totals population. No tolerance here.
+          population_gate = (
+              len(stage2_keys) == 14600 and
+              len(windows) == 15206 and
+              metric_rows == 1353334 and
+              len(totals_keys) == 14524 and
+              len(positive_keys) == 14524 and
+              positive_keys == totals_keys and
+              len(zero_only_keys) == 76
+          )
+
+          rebound_metrics = sorted(
+              m for m in metrics
+              if re.search(r'(^|[^a-z])(reb|trb|oreb|dreb)(%|[^a-z]|$)', m, flags=re.I)
+              or 'rebound' in m.lower()
+          )
+
+          # Inventory existing exact-assembly evidence on the controller branch.
+          git_hits = []
+          patterns = r'14524|14,524|14600|14,600|7241|7,241|2681|2,681|9922|9,922|4602|4,602'
+          try:
+              out = subprocess.run(
+                  ['git', '-C', 'control', 'grep', '-n', '-E', patterns],
+                  text=True, capture_output=True, check=False
+              ).stdout
+              git_hits = out.splitlines()[:500]
+          except Exception as e:
+              git_hits = [f'git grep failed: {e}']
+
+          candidate_paths = []
+          keywords = ('canonical','population','lock','overlay','residual','assembly','v13','exact')
+          for p in Path('control').rglob('*'):
+              if not p.is_file() or '.git' in p.parts:
+                  continue
+              low = p.name.lower()
+              if any(k in low for k in keywords):
+                  candidate_paths.append(str(p.relative_to('control')))
+          candidate_paths = sorted(candidate_paths)[:1000]
+
+          report = {
+              'status': 'PASS' if population_gate else 'FAIL',
+              'source_commit_stage2': '57ba237c36d75f7a3ef2cc998d91aa70a59b3c29',
+              'controller_trigger_sha': '${{ github.sha }}',
+              'season_range': [seasons[0], seasons[-1]],
+              'stage2_metric_rows': metric_rows,
+              'stage2_tenure_windows': len(windows),
+              'stage2_all_keys': len(stage2_keys),
+              'stage2_positive_minute_keys': len(positive_keys),
+              'stage2_zero_minute_windows': len(zero_windows),
+              'stage2_zero_only_keys': len(zero_only_keys),
+              'player_team_totals_keys': len(totals_keys),
+              'all_stage2_only_count': len(all_only_stage2),
+              'all_totals_only_count': len(all_only_totals),
+              'positive_stage2_only_count': len(pos_only_stage2),
+              'positive_totals_only_count': len(pos_only_totals),
+              'all_stage2_only_keys': ['|'.join(x) for x in all_only_stage2],
+              'all_totals_only_keys': ['|'.join(x) for x in all_only_totals],
+              'positive_stage2_only_keys': ['|'.join(x) for x in pos_only_stage2],
+              'positive_totals_only_keys': ['|'.join(x) for x in pos_only_totals],
+              'zero_only_keys': ['|'.join(x) for x in sorted(zero_only_keys)],
+              'zero_only_collection_sources': dict(sorted(zero_only_sources.items())),
+              'collection_source_metric_rows': dict(sorted(collection_sources.items())),
+              'rebound_metric_names': rebound_metrics,
+              'controller_evidence_paths': candidate_paths,
+              'controller_count_references': git_hits,
+              'population_resolution': (
+                  'CONFIRMED_14524_POSITIVE_MINUTE_CANONICAL_KEYS'
+                  if population_gate else
+                  'UNRESOLVED_STOP_REQUIRED'
+              ),
+              'automatic_progression_policy': {
+                  'reconstruction_permitted': False,
+                  'rounded_metric_promotion_permitted': False,
+                  'accepted_v13_residuals_reopened': False,
+                  'continue_on_population_gate_failure': False,
+              },
+          }
+
+          outdir = Path('supervisor_output')
+          (outdir / 'treb_completion_supervisor.json').write_text(
+              json.dumps(report, indent=2) + '\n', encoding='utf-8'
+          )
+          md = [
+              '# TREB completion supervisor', '',
+              f"- Status: **{report['status']}**",
+              f"- Stage2 metric rows: **{metric_rows:,}**",
+              f"- Stage2 tenure windows: **{len(windows):,}**",
+              f"- Stage2 all keys: **{len(stage2_keys):,}**",
+              f"- Stage2 positive-minute keys: **{len(positive_keys):,}**",
+              f"- Stage2 zero-minute windows: **{len(zero_windows):,}**",
+              f"- Stage2 zero-only keys: **{len(zero_only_keys):,}**",
+              f"- player_team_totals keys: **{len(totals_keys):,}**",
+              f"- Positive Stage2-only: **{len(pos_only_stage2):,}**",
+              f"- Positive totals-only: **{len(pos_only_totals):,}**",
+              f"- Population resolution: **{report['population_resolution']}**", '',
+              '## Rebound metric names', '',
+              *[f'- {m}' for m in rebound_metrics], '',
+              '## Zero-only key sources', '',
+              *[f'- {k}: {v}' for k,v in sorted(zero_only_sources.items())], '',
+              '## Automatic policy', '',
+              '- No reconstruction.',
+              '- No promotion of rounded percentages.',
+              '- Accepted V13 immaterial residuals stay closed.',
+              '- Stop automatically on any failed hard gate.',
+          ]
+          (outdir / 'TREB_COMPLETION_SUPERVISOR.md').write_text('\n'.join(md) + '\n', encoding='utf-8')
+
+          # Emit gate for subsequent shell steps.
+          Path('supervisor_output/population_gate.txt').write_text(
+              'PASS\n' if population_gate else 'FAIL\n', encoding='utf-8'
+          )
+          print(json.dumps({
+              k: report[k] for k in (
+                  'status','stage2_metric_rows','stage2_tenure_windows','stage2_all_keys',
+                  'stage2_positive_minute_keys','stage2_zero_minute_windows',
+                  'stage2_zero_only_keys','player_team_totals_keys',
+                  'positive_stage2_only_count','positive_totals_only_count',
+                  'population_resolution'
+              )
+          }, indent=2))
+          PY
+
+      - name: Persist supervisor artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-completion-supervisor-${{ github.run_id }}
+          path: supervisor_output/
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Commit durable supervisor checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p control/treb_automation/status
+          cp supervisor_output/treb_completion_supervisor.json control/treb_automation/status/latest.json
+          cp supervisor_output/TREB_COMPLETION_SUPERVISOR.md control/treb_automation/status/LATEST.md
+          cd control
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add treb_automation/status/latest.json treb_automation/status/LATEST.md
+          if git diff --cached --quiet; then
+            echo 'No checkpoint changes to commit.'
+          else
+            git commit -m 'Persist TREB completion supervisor checkpoint [skip ci]'
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Enforce population gate after checkpoint persistence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(tr -d '\r\n' < supervisor_output/population_gate.txt)" = PASS
