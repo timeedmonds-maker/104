@@ -1,0 +1,75 @@
+name: TREB Stage2 key reconciliation v2
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/stage2-key-reconcile-v2.yml]
+permissions:
+  contents: read
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+          path: stage2
+          fetch-depth: 1
+      - name: Reconcile Stage2 against retained player-team totals
+        run: |
+          python - <<'PY'
+          import csv,gzip,json
+          from collections import Counter,defaultdict
+          from pathlib import Path
+          root=Path('stage2/team_trb_all_players/impact_database')
+          seasons={f'{y}-{str(y+1)[-2:]}' for y in range(2000,2026)}
+          p=root/'corrected_off/tenure_segment_on_off.jsonl.gz'
+          S=set(); W=set(); detail=defaultdict(lambda:{'sources':Counter(),'minutes_on':set(),'minutes_off':set()}); rows=0
+          with gzip.open(p,'rt',encoding='utf-8') as f:
+            for line in f:
+              r=json.loads(line); s=r.get('season')
+              if s not in seasons: continue
+              rows+=1
+              key=(str(s),str(r.get('player_id')),str(r.get('team_id')))
+              S.add(key); W.add(key+(str(r.get('tenure_start')),str(r.get('tenure_end'))))
+              d=detail[key]; d['sources'][str(r.get('collection_source'))]+=1
+              if r.get('minutes_on') is not None: d['minutes_on'].add(r.get('minutes_on'))
+              if r.get('minutes_off') is not None: d['minutes_off'].add(r.get('minutes_off'))
+          T=set()
+          def norm(x): return x.lower().replace('_','').replace(' ','')
+          for s in sorted(seasons):
+            q=root/'outputs'/s/'player_team_totals.csv.gz'
+            with gzip.open(q,'rt',encoding='utf-8-sig',newline='') as f:
+              rd=csv.DictReader(f); fields=rd.fieldnames or []
+              pc=next(c for c in fields if norm(c)=='playerid')
+              tc=next(c for c in fields if norm(c)=='teamid')
+              for r in rd: T.add((s,str(r[pc]),str(r[tc])))
+          only_s=sorted(S-T); only_t=sorted(T-S)
+          bys=Counter(k[0] for k in only_s); byt=Counter(k[0] for k in only_t)
+          report={
+            'source_commit':'57ba237c36d75f7a3ef2cc998d91aa70a59b3c29',
+            'stage2_metric_rows':rows,'stage2_windows':len(W),'stage2_keys':len(S),
+            'player_team_totals_keys':len(T),'intersection':len(S&T),
+            'stage2_only_count':len(only_s),'totals_only_count':len(only_t),
+            'stage2_only_by_season':dict(sorted(bys.items())),'totals_only_by_season':dict(sorted(byt.items())),
+            'stage2_only_keys':['|'.join(k) for k in only_s],
+            'totals_only_keys':['|'.join(k) for k in only_t],
+            'stage2_only_detail':[{'key':'|'.join(k),'sources':dict(detail[k]['sources']),
+              'minutes_on':sorted(detail[k]['minutes_on'],key=str),'minutes_off':sorted(detail[k]['minutes_off'],key=str)} for k in only_s]
+          }
+          out=Path('reconcile_output'); out.mkdir()
+          (out/'stage2_key_reconciliation_v2.json').write_text(json.dumps(report,indent=2)+'\n')
+          md=['# Stage2 key reconciliation v2','',f'- Stage2 metric rows: **{rows:,}**',f'- Stage2 windows: **{len(W):,}**',
+              f'- Stage2 keys: **{len(S):,}**',f'- player_team_totals keys: **{len(T):,}**',f'- Intersection: **{len(S&T):,}**',
+              f'- Stage2-only: **{len(only_s):,}**',f'- Totals-only: **{len(only_t):,}**','',
+              '## Stage2-only by season','',json.dumps(dict(sorted(bys.items())),indent=2),'','## Totals-only by season','',json.dumps(dict(sorted(byt.items())),indent=2)]
+          (out/'stage2_key_reconciliation_v2.md').write_text('\n'.join(md)+'\n')
+          print(json.dumps({k:report[k] for k in ['stage2_metric_rows','stage2_windows','stage2_keys','player_team_totals_keys','intersection','stage2_only_count','totals_only_count']},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage2-key-reconciliation-v2-${{ github.run_id }}
+          path: reconcile_output/
+          retention-days: 30
+          if-no-files-found: error
