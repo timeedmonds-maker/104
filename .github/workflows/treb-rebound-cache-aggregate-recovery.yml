@@ -1,0 +1,76 @@
+name: TREB optimized cache aggregate recovery
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths:
+      - .github/workflows/treb-rebound-cache-aggregate-recovery.yml
+      - team_trb_all_players/rebound_cache_aggregate.py
+      - team_trb_all_players/rebound_cached_rule_sweep.py
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  CACHE_RUN_ID: '31656025634'
+  SOURCE_RUN_ID: '31634201123'
+  V9_PROOF: team_trb_all_players/final_integrity_rebuild/rebound_forensics/V9_PROMOTION_REGRESSION.json
+jobs:
+  aggregate-and-sweep-existing-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-rebound-cache-*-${{ env.CACHE_RUN_ID }}
+          path: /tmp/cache-parts
+          github-token: ${{ github.token }}
+          run-id: ${{ env.CACHE_RUN_ID }}
+      - name: Aggregate exact V9 production residual subset
+        run: |
+          python team_trb_all_players/rebound_cache_aggregate.py \
+            --parts-root /tmp/cache-parts \
+            --v9-proof "$V9_PROOF" \
+            --workflow-run-id "$GITHUB_RUN_ID" \
+            --source-run-id "$SOURCE_RUN_ID" \
+            --output-cache /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V2.json.gz \
+            --output-summary /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V2_SUMMARY.json
+      - name: Run cached zero-error rule sweep
+        run: |
+          python team_trb_all_players/rebound_cached_rule_sweep.py \
+            --cache /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V2.json.gz \
+            --output /tmp/REBOUND_CACHED_RULE_SWEEP_V2.json \
+            --min-controls 25
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-rebound-forensic-cache-v2-${{ github.run_id }}
+          path: |
+            /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V2.json.gz
+            /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V2_SUMMARY.json
+            /tmp/REBOUND_CACHED_RULE_SWEEP_V2.json
+          compression-level: 0
+          retention-days: 90
+      - name: Persist durable cache and sweep
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812
+            git reset --hard origin/agent/treb-batched-game-facts-20260812
+            cp /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V2.json.gz "$D/"
+            cp /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V2_SUMMARY.json "$D/"
+            cp /tmp/REBOUND_CACHED_RULE_SWEEP_V2.json "$D/"
+            git add -f \
+              "$D/REBOUND_FORENSIC_FEATURE_CACHE_V2.json.gz" \
+              "$D/REBOUND_FORENSIC_FEATURE_CACHE_V2_SUMMARY.json" \
+              "$D/REBOUND_CACHED_RULE_SWEEP_V2.json"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Persist exact V9 residual forensic cache V2'
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
