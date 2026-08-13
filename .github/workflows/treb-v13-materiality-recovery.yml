@@ -1,0 +1,327 @@
+name: TREB V13 residual materiality recovery
+
+on:
+  push:
+    branches:
+      - agent/treb-batched-game-facts-20260812
+    paths:
+      - .github/workflows/treb-v13-materiality-recovery.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-v13-materiality-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout authoritative forensic branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-batched-game-facts-20260812
+          fetch-depth: 1
+
+      - name: Reuse successful forensic caches from run 31659111313
+        uses: actions/download-artifact@v4
+        with:
+          pattern: treb-rebound-cache-*-31659111313
+          path: /tmp/cache-parts
+          merge-multiple: false
+          repository: timeedmonds-maker/104
+          run-id: "31659111313"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Aggregate exact V13 residuals and audit materiality inputs
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import csv
+          import gzip
+          import json
+          import math
+
+          ROOT = Path('.')
+          FORENSICS = ROOT / 'team_trb_all_players' / 'final_integrity_rebuild' / 'rebound_forensics'
+          V13 = FORENSICS / 'V13_PROMOTION_REGRESSION.json'
+          POLICY = ROOT / 'team_trb_all_players' / 'final_integrity_rebuild' / 'PRODUCTION_QA_TOLERANCE_POLICY.json'
+          CACHE_ROOT = Path('/tmp/cache-parts')
+          OUT_JSON = FORENSICS / 'V13_RESIDUAL_MATERIALITY_RECOVERY.json'
+          OUT_CSV = FORENSICS / 'V13_RESIDUAL_MATERIALITY_RECOVERY.csv'
+          OUT_MD = FORENSICS / 'V13_RESIDUAL_MATERIALITY_RECOVERY.md'
+
+          expected_keys = {
+              (21700032, 4988), (21700042, 7322), (21700494, 7412),
+              (21800689, 1396), (21800689, 1398), (22101023, 256),
+              (22201187, 1569), (22201187, 1573), (22200322, 3388),
+              (22200331, 3717), (22200331, 3912), (22200733, 5955),
+              (22400072, 288),
+          }
+
+          with V13.open(encoding='utf-8') as f:
+              v13 = json.load(f)
+          with POLICY.open(encoding='utf-8') as f:
+              policy = json.load(f)
+
+          v13_keys = {tuple(map(int, x)) for x in v13['residual_keys']}
+          assert v13.get('engine') == 'production_rebound_v13', v13.get('engine')
+          assert int(v13.get('v13_residual_rows', -1)) == 13, v13.get('v13_residual_rows')
+          assert v13_keys == expected_keys, {'v13_only': sorted(v13_keys-expected_keys), 'expected_only': sorted(expected_keys-v13_keys)}
+
+          cache_files = sorted(CACHE_ROOT.glob('**/REBOUND_CACHE_*.json.gz'))
+          assert len(cache_files) == 24, len(cache_files)
+          parts = []
+          for path in cache_files:
+              with gzip.open(path, 'rt', encoding='utf-8') as f:
+                  parts.append(json.load(f))
+          games = {int(g) for p in parts for g in p.get('games', [])}
+          assert len(games) == 58, len(games)
+          records = [r for p in parts for r in p.get('records', [])]
+
+          # Cache v2 deliberately distinguishes current-production joining from
+          # independent NBA-backed controls. `matched` is NOT a residual flag.
+          cache_production_residual = [r for r in records if r.get('production_residual') is True]
+          cache_nba_controls = [r for r in records if r.get('nba_backed_control') is True]
+          deprecated_not_matched = [r for r in records if not r.get('matched')]
+
+          by_key = {}
+          for r in records:
+              try:
+                  k = (int(r['game_id']), int(r['pbp_index']))
+              except Exception:
+                  continue
+              by_key.setdefault(k, []).append(r)
+
+          missing = sorted(k for k in v13_keys if k not in by_key)
+          duplicate = sorted(k for k in v13_keys if len(by_key.get(k, [])) != 1)
+          assert not missing, missing
+          assert not duplicate, duplicate
+
+          # Read durable deterministic evidence. These are evidence files, not
+          # generic ordering heuristics; the broad ordering rule remains banned.
+          invariance_path = FORENSICS / 'ATTRIBUTION_INVARIANCE_SUMMARY.json'
+          dreb_path = FORENSICS / 'PLAYER_DREB_ANCHOR_V2_SUMMARY.json'
+          invariance = json.load(invariance_path.open(encoding='utf-8')) if invariance_path.exists() else None
+          dreb = json.load(dreb_path.open(encoding='utf-8')) if dreb_path.exists() else None
+
+          # Find exact-key evidence recursively without assuming an old report shape.
+          def find_key_nodes(obj, target, out):
+              if isinstance(obj, dict):
+                  g = obj.get('game_id', obj.get('GAME_ID'))
+                  i = obj.get('pbp_index', obj.get('PBP_INDEX'))
+                  try:
+                      if g is not None and i is not None and (int(g), int(i)) == target:
+                          out.append(obj)
+                  except Exception:
+                      pass
+                  for value in obj.values():
+                      find_key_nodes(value, target, out)
+              elif isinstance(obj, list):
+                  for value in obj:
+                      find_key_nodes(value, target, out)
+
+          # Discover any committed authoritative published-detail candidate.
+          # We do not use old packaged exports or silently substitute stale data.
+          pct_aliases = {'on_reb_pct','off_reb_pct','swing_pp','treb_on','treb_off','treb_impact'}
+          numerator_aliases = {
+              'on_team_rebounds','off_team_rebounds','team_rebounds_on','team_rebounds_off',
+              'on_team_reb','off_team_reb','on_trb','off_trb'
+          }
+          denominator_aliases = {
+              'on_rebportunities','off_rebportunities','on_reb_opportunities','off_reb_opportunities',
+              'team_reb_opportunities_on','team_reb_opportunities_off','on_reb_denom','off_reb_denom'
+          }
+          detail_candidates = []
+          for path in (ROOT / 'team_trb_all_players').rglob('*.csv'):
+              s = str(path).lower()
+              if 'final_integrity_rebuild/rebound_forensics' in s:
+                  continue
+              try:
+                  with path.open('r', encoding='utf-8-sig', newline='') as f:
+                      header = next(csv.reader(f), [])
+              except Exception:
+                  continue
+              cols = {c.strip().lower() for c in header}
+              if (cols & pct_aliases) and (cols & (numerator_aliases | denominator_aliases)):
+                  detail_candidates.append({'path': str(path), 'columns': sorted(cols)})
+
+          # Current policy threshold, asserted rather than redefined here.
+          threshold = float(policy['production_rebounds']['irreducible_uncertainty_max_metric_effect_pp'])
+          assert math.isclose(threshold, 0.01, rel_tol=0, abs_tol=1e-12), threshold
+
+          rows = []
+          deterministic_count = 0
+          materiality_ready = bool(detail_candidates)
+          for key in sorted(v13_keys):
+              r = by_key[key][0]
+              inv_nodes = []
+              dreb_nodes = []
+              if invariance is not None:
+                  find_key_nodes(invariance, key, inv_nodes)
+              if dreb is not None:
+                  find_key_nodes(dreb, key, dreb_nodes)
+
+              classification = 'materiality_pending'
+              evidence = []
+              max_effect = None
+
+              # This exact row has durable one-candidate / one-signature / real
+              # rebound proof. It must be repaired/classified deterministically,
+              # not waved through as irreducible uncertainty.
+              if key == (21700032, 4988):
+                  proven = any(
+                      bool(n.get('attribution_invariant'))
+                      and int(n.get('feasible_candidate_count', 0)) == 1
+                      and int(n.get('attribution_signature_count', 0)) == 1
+                      and bool(n.get('real'))
+                      for n in inv_nodes
+                  )
+                  if proven:
+                      classification = 'deterministic_repair_required'
+                      deterministic_count += 1
+                      evidence.append('durable attribution-invariance proof: one real candidate, one attribution signature')
+                  else:
+                      classification = 'evidence_recheck_required'
+                      evidence.append('expected durable invariance node was not recovered')
+
+              if key == (21700042, 7322):
+                  evidence.append('V13 rejected apparent NBA event 180 because it is already assigned to PBP row 7324; event reuse forbidden')
+
+              cache_desc = r.get('description') or r.get('DESCRIPTION') or ''
+              if cache_desc:
+                  evidence.append(f'cache description: {cache_desc}')
+
+              rows.append({
+                  'game_id': key[0],
+                  'pbp_index': key[1],
+                  'classification': classification,
+                  'max_possible_metric_error_pp': max_effect,
+                  'materiality_threshold_pp': threshold,
+                  'evidence_note': '; '.join(evidence),
+                  'feature_cache_engine': r.get('engine', 'production_rebound_v9'),
+                  'feature_cache_production_residual': r.get('production_residual'),
+                  'feature_cache_nba_backed_control': r.get('nba_backed_control'),
+              })
+
+          # A denominator-bearing committed detail file is necessary but not by
+          # itself sufficient to accept a residual: exact affected aggregate
+          # membership must also be proven. Therefore this recovery never labels
+          # a case accepted_immaterial unless that full bound is available.
+          accepted = [r for r in rows if r['classification'] == 'accepted_immaterial']
+          repair = [r for r in rows if 'repair_required' in r['classification']]
+          pending = [r for r in rows if r['classification'] not in {'accepted_immaterial','deterministic_repair_required'}]
+
+          if repair:
+              audit_status = 'REPAIR_REQUIRED'
+          elif pending:
+              audit_status = 'MATERIALITY_INPUT_REQUIRED' if not materiality_ready else 'MATERIALITY_MAPPING_REQUIRED'
+          else:
+              audit_status = 'PASS_MATERIALITY_ACCEPTED'
+
+          report = {
+              'status': audit_status,
+              'source_v13_report': str(V13),
+              'source_cache_run_id': 31659111313,
+              'source_cache_files': len(cache_files),
+              'source_cache_games': len(games),
+              'feature_cache_engine': parts[0].get('engine') if parts else None,
+              'v13_engine': v13.get('engine'),
+              'v13_residual_rows': len(v13_keys),
+              'v13_residual_keys': [list(k) for k in sorted(v13_keys)],
+              'cache_semantics_recovery': {
+                  'production_residual_rows_v9_cache': len(cache_production_residual),
+                  'nba_backed_control_rows': len(cache_nba_controls),
+                  'deprecated_not_matched_rows': len(deprecated_not_matched),
+                  'note': '`matched` is an independent-control flag in cache v2 and must not be used as a production-residual predicate.'
+              },
+              'policy_threshold_pp': threshold,
+              'committed_detail_candidates': detail_candidates,
+              'materiality_input_status': 'candidate_found_requires_exact_aggregate_mapping' if detail_candidates else 'missing_authoritative_published_denominators',
+              'counts': {
+                  'deterministic_repair_required': len(repair),
+                  'accepted_immaterial': len(accepted),
+                  'remaining_for_materiality_or_repair': len(pending),
+              },
+              'rows': rows,
+              'integrity_note': 'No generic event-ordering rule was introduced and no tolerance threshold was weakened.'
+          }
+
+          FORENSICS.mkdir(parents=True, exist_ok=True)
+          with OUT_JSON.open('w', encoding='utf-8') as f:
+              json.dump(report, f, indent=2, sort_keys=True)
+              f.write('\n')
+
+          fields = ['game_id','pbp_index','classification','max_possible_metric_error_pp','materiality_threshold_pp','evidence_note','feature_cache_engine','feature_cache_production_residual','feature_cache_nba_backed_control']
+          with OUT_CSV.open('w', encoding='utf-8', newline='') as f:
+              w = csv.DictWriter(f, fieldnames=fields)
+              w.writeheader()
+              w.writerows(rows)
+
+          md = []
+          md.append('# V13 residual materiality recovery')
+          md.append('')
+          md.append(f"- Audit status: **{audit_status}**")
+          md.append(f"- Current V13 residuals: **{len(v13_keys)}**")
+          md.append(f"- Reused cache chunks: **{len(cache_files)}/24** across **{len(games)} games**")
+          md.append(f"- Deprecated `not matched` count: **{len(deprecated_not_matched)}** (not used as residual truth)")
+          md.append(f"- Deterministic repair required: **{len(repair)}**")
+          md.append(f"- Accepted immaterial: **{len(accepted)}**")
+          md.append(f"- Remaining for materiality/repair: **{len(pending)}**")
+          md.append(f"- Policy threshold: **{threshold:.2f} pp**")
+          md.append(f"- Materiality input: **{report['materiality_input_status']}**")
+          md.append('')
+          md.append('The V13 durable report is authoritative for the 13 current residual keys. The reused forensic cache is a V9 feature cache and is used only for diagnostics; its residual flag is not substituted for V13 truth.')
+          md.append('')
+          md.append('| game_id | pbp_index | classification | max effect pp | evidence |')
+          md.append('|---:|---:|---|---:|---|')
+          for x in rows:
+              eff = '' if x['max_possible_metric_error_pp'] is None else f"{x['max_possible_metric_error_pp']:.6f}"
+              ev = x['evidence_note'].replace('|','\\|')
+              md.append(f"| {x['game_id']} | {x['pbp_index']} | {x['classification']} | {eff} | {ev} |")
+          md.append('')
+          md.append('No generic event-ordering rule was introduced. No integrity gate or 0.01 pp tolerance was weakened.')
+          OUT_MD.write_text('\n'.join(md) + '\n', encoding='utf-8')
+
+          print(json.dumps({
+              'status': audit_status,
+              'v13_residuals': len(v13_keys),
+              'cache_files': len(cache_files),
+              'cache_games': len(games),
+              'deprecated_not_matched': len(deprecated_not_matched),
+              'deterministic_repair_required': len(repair),
+              'accepted_immaterial': len(accepted),
+              'remaining': len(pending),
+              'materiality_input_status': report['materiality_input_status'],
+          }, indent=2))
+          PY
+
+      - name: Upload durable recovery report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-v13-residual-materiality-recovery-${{ github.run_id }}
+          path: |
+            team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_RESIDUAL_MATERIALITY_RECOVERY.json
+            team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_RESIDUAL_MATERIALITY_RECOVERY.csv
+            team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_RESIDUAL_MATERIALITY_RECOVERY.md
+          if-no-files-found: error
+
+      - name: Persist recovery report to forensic branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_RESIDUAL_MATERIALITY_RECOVERY.json \
+            team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_RESIDUAL_MATERIALITY_RECOVERY.csv \
+            team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_RESIDUAL_MATERIALITY_RECOVERY.md
+          if git diff --cached --quiet; then
+            echo "No report change to commit"
+            exit 0
+          fi
+          git commit -m "Persist V13 residual materiality recovery"
+          git push origin HEAD:agent/treb-batched-game-facts-20260812
