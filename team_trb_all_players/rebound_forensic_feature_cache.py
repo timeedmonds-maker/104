@@ -55,6 +55,22 @@ def getv(row, name, default=None):
         return default
 
 
+def possession_key(row):
+    """Return the local engine's composite possession identity as JSON-safe scalars."""
+    values = []
+    for col in core.POSSESSION_ID:
+        value = getv(row, col)
+        if value is None:
+            return None
+        try:
+            if pd.isna(value):
+                return None
+        except Exception:
+            pass
+        values.append(clean_scalar(value))
+    return values
+
+
 def lineup_json(v):
     if v is None:
         return None
@@ -92,11 +108,16 @@ def nearby_events(events: pd.DataFrame, row, exclude=None):
 
 
 def possession_context(pbp_game: pd.DataFrame, row):
-    pid_col = core.POSSESSION_ID
-    pid = getv(row, pid_col)
-    if pid_col not in pbp_game.columns or pd.isna(pid):
+    cols = list(core.POSSESSION_ID)
+    if any(col not in pbp_game.columns for col in cols):
         return []
-    x = pbp_game[pbp_game[pid_col].eq(pid)]
+    key = possession_key(row)
+    if key is None:
+        return []
+    mask = pd.Series(True, index=pbp_game.index)
+    for col, value in zip(cols, key):
+        mask &= pbp_game[col].eq(value)
+    x = pbp_game[mask]
     out = []
     for idx, r in x.iterrows():
         out.append({
@@ -160,7 +181,7 @@ def main():
                 "end_elapsed": int(row.END_ELAPSED),
                 "description": str(row.DESCRIPTION),
                 "previous_pbp_description": clean_scalar(getv(row, "PREV_PBP_DESCRIPTION")),
-                "possession_id": clean_scalar(getv(row, core.POSSESSION_ID)),
+                "possession_id": possession_key(row),
                 "rebound_number": clean_scalar(getv(row, "REBOUND_NUMBER")),
                 "offensive_rebounds": clean_scalar(getv(row, "OFFENSIVEREBOUNDS")),
                 "pbp_is_oreb": bool(row.PBP_IS_OREB),
