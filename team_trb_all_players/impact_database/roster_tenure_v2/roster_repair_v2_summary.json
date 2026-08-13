@@ -1,0 +1,20 @@
+{
+  "version": "roster_repair_v2",
+  "positive_core_rows_original": 14526,
+  "excluded_stale_core_artifacts": 2,
+  "validated_player_team_season_rows": 14524,
+  "full_core_reuse_rows": 9647,
+  "partial_player_team_season_rows": 4877,
+  "wowy_game_bearing_segments": 5199,
+  "cross_team_overlap_pairs": 0,
+  "impossible_minute_rows": 0,
+  "empty_played_tenures": 0,
+  "transaction_identity_filter": "core player-id name + explicit safe aliases",
+  "trade_day_policy": "outgoing team retains transaction date; incoming trade starts next calendar day",
+  "ordinary_signing_policy": "same-day start; same-day prior-team expiry trimmed to previous date",
+  "notes": [
+    "Offseason transactions do not directly cut regular-season windows.",
+    "Contract extensions and re-sign continuations do not create new roster-entry boundaries.",
+    "Two stale core affiliation artifacts are excluded and retained in audit documentation."
+  ]
+}

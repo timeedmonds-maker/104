@@ -1,0 +1,36 @@
+{
+  "overlay_checked": true,
+  "overlay_keys_outside_v2": 0,
+  "overlay_rows": 14524,
+  "overlay_unique_keys": 14524,
+  "policy": {
+    "canonical_roster_source": "roster_tenure_v2",
+    "v3_hybrid_authoritative": false
+  },
+  "residual_checked": true,
+  "residual_keys_outside_v2": 0,
+  "residual_rows": 4602,
+  "status": "PASS",
+  "v2_keys_missing_overlay": 0,
+  "v2_summary": {
+    "cross_team_overlap_pairs": 0,
+    "empty_played_tenures": 0,
+    "excluded_stale_core_artifacts": 2,
+    "full_core_reuse_rows": 9647,
+    "impossible_minute_rows": 0,
+    "notes": [
+      "Offseason transactions do not directly cut regular-season windows.",
+      "Contract extensions and re-sign continuations do not create new roster-entry boundaries.",
+      "Two stale core affiliation artifacts are excluded and retained in audit documentation."
+    ],
+    "ordinary_signing_policy": "same-day start; same-day prior-team expiry trimmed to previous date",
+    "partial_player_team_season_rows": 4877,
+    "positive_core_rows_original": 14526,
+    "trade_day_policy": "outgoing team retains transaction date; incoming trade starts next calendar day",
+    "transaction_identity_filter": "core player-id name + explicit safe aliases",
+    "validated_player_team_season_rows": 14524,
+    "version": "roster_repair_v2",
+    "wowy_game_bearing_segments": 5199
+  },
+  "v2_unique_keys": 14524
+}
