@@ -1,0 +1,155 @@
+name: TREB optimized rebound forensic cache
+on:
+  push:
+    branches: [agent/treb-batched-game-facts-20260812]
+    paths: [.github/workflows/treb-rebound-forensic-cache.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+env:
+  MANIFEST: team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json
+  SOURCE_RUN_ID: '31634201123'
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.p.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          m = json.loads(Path(os.environ['MANIFEST']).read_text())
+          assert len(m['chunks']) == 24 and m['target_games'] == 58
+          x = {'include': [
+              {'chunk_id': c['chunk_id'], 'year': int(c['year']), 'games': ','.join(map(str, c['game_ids']))}
+              for c in m['chunks']
+          ]}
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('matrix=' + json.dumps(x, separators=(',', ':')) + '\n')
+          PY
+  build-cache:
+    needs: plan
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: treb-residual-source-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/source
+          github-token: ${{ github.token }}
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - name: Reconstruct once and cache reusable forensic evidence
+        run: |
+          python -u team_trb_all_players/rebound_forensic_feature_cache.py \
+            --year '${{ matrix.year }}' \
+            --games '${{ matrix.games }}' \
+            --chunk-id '${{ matrix.chunk_id }}' \
+            --nba '/tmp/source/nbastats_${{ matrix.year }}.csv' \
+            --v3 '/tmp/source/nbastatsv3_${{ matrix.year }}.csv' \
+            --pbp '/tmp/source/pbpstats_${{ matrix.year }}.csv' \
+            --output '/tmp/REBOUND_CACHE_${{ matrix.chunk_id }}.json.gz'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-rebound-cache-${{ matrix.chunk_id }}-${{ github.run_id }}
+          path: /tmp/REBOUND_CACHE_${{ matrix.chunk_id }}.json.gz
+          compression-level: 0
+          retention-days: 90
+  aggregate-and-sweep:
+    needs: [plan, build-cache]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: treb-rebound-cache-*-${{ github.run_id }}
+          path: /tmp/cache-parts
+      - name: Merge cache and enforce current-engine invariants
+        run: |
+          python - <<'PY'
+          import gzip, json, os
+          from pathlib import Path
+          ps = sorted(Path('/tmp/cache-parts').rglob('REBOUND_CACHE_*.json.gz'))
+          assert len(ps) == 24, [str(p) for p in ps]
+          parts = []
+          for p in ps:
+              with gzip.open(p, 'rt', encoding='utf-8') as f:
+                  parts.append(json.load(f))
+          assert all(x['engine'] == 'production_rebound_v9' for x in parts)
+          games = [g for x in parts for g in x['games']]
+          assert len(games) == 58 and len(set(games)) == 58, (len(games), len(set(games)))
+          records = [r for x in parts for r in x['records']]
+          residual = [r for r in records if not r['matched']]
+          assert len(residual) == 15, len(residual)
+          out = {
+              'status': 'FORENSIC_FEATURE_CACHE',
+              'schema_version': 1,
+              'workflow_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'engine': 'production_rebound_v9',
+              'source_run_id': int(os.environ['SOURCE_RUN_ID']),
+              'chunks': 24,
+              'target_games': 58,
+              'record_count': len(records),
+              'matched_control_rows': sum(1 for r in records if r['matched']),
+              'current_residual_rows': 15,
+              'records': records,
+          }
+          with gzip.open('/tmp/REBOUND_FORENSIC_FEATURE_CACHE_V1.json.gz', 'wt', encoding='utf-8') as f:
+              json.dump(out, f, separators=(',', ':'))
+          summary = {k: v for k, v in out.items() if k != 'records'}
+          Path('/tmp/REBOUND_FORENSIC_FEATURE_CACHE_V1_SUMMARY.json').write_text(json.dumps(summary, indent=2) + '\n')
+          print(json.dumps(summary, indent=2))
+          PY
+      - name: Run predeclared rule grid from cache without reconstruction
+        run: |
+          python team_trb_all_players/rebound_cached_rule_sweep.py \
+            --cache /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V1.json.gz \
+            --output /tmp/REBOUND_CACHED_RULE_SWEEP_V1.json \
+            --min-controls 25
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-rebound-forensic-cache-${{ github.run_id }}
+          path: |
+            /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V1.json.gz
+            /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V1_SUMMARY.json
+            /tmp/REBOUND_CACHED_RULE_SWEEP_V1.json
+          compression-level: 0
+          retention-days: 90
+      - name: Persist durable cache and sweep
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/rebound_forensics
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          for attempt in 1 2 3 4 5; do
+            git fetch origin agent/treb-batched-game-facts-20260812
+            git reset --hard origin/agent/treb-batched-game-facts-20260812
+            cp /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V1.json.gz "$D/"
+            cp /tmp/REBOUND_FORENSIC_FEATURE_CACHE_V1_SUMMARY.json "$D/"
+            cp /tmp/REBOUND_CACHED_RULE_SWEEP_V1.json "$D/"
+            git add -f \
+              "$D/REBOUND_FORENSIC_FEATURE_CACHE_V1.json.gz" \
+              "$D/REBOUND_FORENSIC_FEATURE_CACHE_V1_SUMMARY.json" \
+              "$D/REBOUND_CACHED_RULE_SWEEP_V1.json"
+            if git diff --cached --quiet; then exit 0; fi
+            git commit -m 'Persist optimized rebound forensic cache and rule sweep'
+            if git push origin HEAD:agent/treb-batched-game-facts-20260812; then exit 0; fi
+            sleep $((attempt * 2))
+          done
+          exit 1
