@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "workflow_run_id": 31657564349,
+  "source_v13_run_id": 31657395380,
+  "engine": "production_rebound_v13",
+  "prior_v12_residual_rows": 14,
+  "promoted_v13_rows": 1,
+  "v13_residual_rows": 13,
+  "promoted_keys": [[22201076, 494]],
+  "rejected_candidate_keys": [[21700042, 7322]],
+  "rejected_candidate_reason": "NBA event 180 already assigned to PBP row 7324; event reuse forbidden",
+  "non_target_residual_delta_rows": 0,
+  "lineup_interval_invariant_controls": {"applicable": 4682, "correct": 4682, "wrong": 0},
+  "named_player_live_controls": {"applicable": 5035, "correct": 5035, "wrong": 0},
+  "counter_credited_player_live_controls": {"applicable": 5164, "correct": 5164, "wrong": 0},
+  "prior_control_wrong_delta": 0,
+  "newly_added_correct_named_controls": 1,
+  "newly_added_correct_counter_controls": 1,
+  "existing_control_regressions": 0,
+  "residual_keys": [[21700032,4988],[21700042,7322],[21700494,7412],[21800689,1396],[21800689,1398],[22101023,256],[22201187,1569],[22201187,1573],[22200322,3388],[22200331,3717],[22200331,3912],[22200733,5955],[22400072,288]]
+}
