@@ -1,0 +1,123 @@
+name: TREB 2002 exact adjudication
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2002-exact-adjudication.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  adjudicate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz requests
+      - name: Download exact 2002 source layers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          raw=Path('/tmp/treb2002adj'); raw.mkdir(parents=True,exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for key in ('nbastats_2002','nbastatsv3_2002','pbpstats_2002'):
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Build independent adjudication evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re,requests
+          from pathlib import Path
+          import pandas as pd
+
+          raw=Path('/tmp/treb2002adj'); out=raw/'out'; out.mkdir(exist_ok=True)
+          nba=pd.read_csv(raw/'nbastats_2002.csv',low_memory=False)
+          v3=pd.read_csv(raw/'nbastatsv3_2002.csv',low_memory=False)
+          pbp=pd.read_csv(raw/'pbpstats_2002.csv',low_memory=False)
+          cases=[
+            (20200077,None,None),
+            (20200169,6,1610612737),(20200200,5,1610612737),(20200261,3,1610612758),
+            (20200344,5,1610612745),(20200359,5,1610612739),(20200373,5,1610612765),
+            (20200464,5,1610612754),(20200619,5,1610612737),(20200839,5,1610612763),
+          ]
+          def jclean(v):
+              if pd.isna(v): return None
+              if hasattr(v,'item'):
+                  try:return v.item()
+                  except:pass
+              return v
+          def records(df):
+              return [{str(k):jclean(v) for k,v in r.items()} for r in df.to_dict('records')]
+          evidence=[]
+          for gid,period,team in cases:
+              graw=nba[pd.to_numeric(nba.GAME_ID,errors='coerce').eq(gid)].copy()
+              gv3=v3[pd.to_numeric(v3.gameId,errors='coerce').eq(gid)].copy()
+              gpbp=pbp[pd.to_numeric(pbp.GAMEID,errors='coerce').eq(gid)].copy()
+              rec={'game_id':gid,'period':period,'team_id':team,'pbp_columns':list(gpbp.columns),'v3_columns':list(gv3.columns)}
+              padded=f'{gid:010d}'
+              # NBA liveData is independent evidence when historical coverage exists; failures remain diagnostic only.
+              for kind,url in {
+                  'live_boxscore':f'https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{padded}.json',
+                  'live_pbp':f'https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{padded}.json',
+              }.items():
+                  try:
+                      rr=requests.get(url,timeout=20,headers={'User-Agent':'Mozilla/5.0'}); rec[kind+'_status']=rr.status_code
+                      if rr.ok: rec[kind]=rr.json()
+                  except Exception as exc: rec[kind+'_error']=repr(exc)
+              if period is not None:
+                  npd=graw[pd.to_numeric(graw.PERIOD,errors='coerce').eq(period)].copy()
+                  vpd=gv3[pd.to_numeric(gv3.period,errors='coerce').eq(period)].copy()
+                  ppd=gpbp[pd.to_numeric(gpbp.PERIOD,errors='coerce').eq(period)].copy()
+                  # retain every field for the exact period; this lets us use any source-carried lineup/possession identity not selected by v2 diagnostic.
+                  rec['legacy_period_rows']=records(npd)
+                  rec['v3_period_rows']=records(vpd)
+                  rec['pbp_period_rows']=records(ppd)
+                  # independent floor-required candidates before the team's first recorded substitution.
+                  team_sub=npd[pd.to_numeric(npd.EVENTMSGTYPE,errors='coerce').eq(8) & (pd.to_numeric(npd.PLAYER1_TEAM_ID,errors='coerce').eq(team)|pd.to_numeric(npd.PLAYER2_TEAM_ID,errors='coerce').eq(team))]
+                  first_sub_clock=None if team_sub.empty else str(team_sub.iloc[0].PCTIMESTRING)
+                  rec['first_team_substitution']=None if team_sub.empty else records(team_sub.head(1))[0]
+                  # V3 first action for every team player appearing in the period, preserving jump-ball tip evidence.
+                  if 'teamId' in vpd and 'personId' in vpd:
+                      tv=vpd[pd.to_numeric(vpd.teamId,errors='coerce').eq(team)].copy()
+                      tv=tv[pd.to_numeric(tv.personId,errors='coerce').fillna(0).gt(0)]
+                      first=[]
+                      for pid,grp in tv.groupby(pd.to_numeric(tv.personId,errors='coerce').astype('Int64'),dropna=True):
+                          first.append(records(grp.head(1))[0])
+                      rec['v3_first_team_player_actions']=first
+              else:
+                  # exhaustive rebound context for the single unmatched game.
+                  ore=pd.to_numeric(gpbp['OFFENSIVEREBOUNDS'],errors='coerce').fillna(0) if 'OFFENSIVEREBOUNDS' in gpbp else pd.Series(0,index=gpbp.index)
+                  dre=pd.to_numeric(gpbp['DEFENSIVEREBOUNDS'],errors='coerce').fillna(0) if 'DEFENSIVEREBOUNDS' in gpbp else pd.Series(0,index=gpbp.index)
+                  rec['pbp_rebound_rows']=records(gpbp[(ore>0)|(dre>0)])
+                  rec['legacy_game_rows']=records(graw)
+                  rec['v3_game_rows']=records(gv3)
+              evidence.append(rec)
+          (out/'adjudication_evidence.json').write_text(json.dumps(evidence,indent=2,default=str)+'\n')
+          summary=[{'game_id':r['game_id'],'period':r['period'],'team_id':r['team_id'],'live_boxscore_status':r.get('live_boxscore_status'),'live_pbp_status':r.get('live_pbp_status'),'pbp_column_count':len(r['pbp_columns']),'v3_column_count':len(r['v3_columns'])} for r in evidence]
+          (out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2002-exact-adjudication-${{ github.sha }}
+          path: /tmp/treb2002adj/out/**
+          retention-days: 90
+          if-no-files-found: error
