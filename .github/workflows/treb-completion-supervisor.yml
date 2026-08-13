@@ -40,7 +40,7 @@ jobs:
           mkdir -p supervisor_output
           python - <<'PY'
           import csv, gzip, json, re, subprocess
-          from collections import Counter, defaultdict
+          from collections import Counter
           from pathlib import Path
 
           stage2_root = Path('stage2/team_trb_all_players/impact_database')
@@ -108,13 +108,17 @@ jobs:
                   reader = csv.DictReader(f)
                   fields = reader.fieldnames or []
                   totals_schemas[season] = fields
-                  def canonical_field(target):
-                      for col in fields:
-                          if col.lower().replace('_','') == target:
-                              return col
-                      raise RuntimeError(f'{season}: missing {target}; fields={fields}')
-                  pc = canonical_field('playerid')
-                  tc = canonical_field('teamid')
+
+                  def find_field(*targets):
+                      normalized = {col.lower().replace('_','').replace(' ',''): col for col in fields}
+                      for target in targets:
+                          key = target.lower().replace('_','').replace(' ','')
+                          if key in normalized:
+                              return normalized[key]
+                      raise RuntimeError(f'{season}: missing any of {targets}; fields={fields}')
+
+                  pc = find_field('player_id', 'playerid', 'EntityId')
+                  tc = find_field('team_id', 'teamid', 'TeamId')
                   for row in reader:
                       totals_keys.add((season, norm(row.get(pc)), norm(row.get(tc))))
 
@@ -123,9 +127,6 @@ jobs:
           pos_only_stage2 = sorted(positive_keys - totals_keys)
           pos_only_totals = sorted(totals_keys - positive_keys)
 
-          # Hard integrity gate: the historical 14,524 population must be
-          # exactly the positive-minute Stage2 population and exactly the
-          # retained player_team_totals population. No tolerance here.
           population_gate = (
               len(stage2_keys) == 14600 and
               len(windows) == 15206 and
@@ -142,7 +143,6 @@ jobs:
               or 'rebound' in m.lower()
           )
 
-          # Inventory existing exact-assembly evidence on the controller branch.
           git_hits = []
           patterns = r'14524|14,524|14600|14,600|7241|7,241|2681|2,681|9922|9,922|4602|4,602'
           try:
@@ -232,7 +232,6 @@ jobs:
           ]
           (outdir / 'TREB_COMPLETION_SUPERVISOR.md').write_text('\n'.join(md) + '\n', encoding='utf-8')
 
-          # Emit gate for subsequent shell steps.
           Path('supervisor_output/population_gate.txt').write_text(
               'PASS\n' if population_gate else 'FAIL\n', encoding='utf-8'
           )
