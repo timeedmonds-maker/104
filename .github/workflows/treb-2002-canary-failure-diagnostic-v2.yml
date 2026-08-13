@@ -1,0 +1,125 @@
+name: TREB 2002 canary failure diagnostic v2
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2002-canary-failure-diagnostic-v2.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download 2002 source layers
+        shell: bash
+        run: |
+          set -euo pipefail
+          RAW=/tmp/treb2002diag; mkdir -p "$RAW"
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          raw=Path('/tmp/treb2002diag')
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for key in ('nbastats_2002','nbastatsv3_2002','pbpstats_2002'):
+              url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Dump exact evidence for ten failed canary games
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as lineup_engine
+          import build_exact_game_fact_layer as base
+
+          raw=Path('/tmp/treb2002diag'); out=raw/'canary_failures'; out.mkdir(exist_ok=True)
+          nba_raw=pd.read_csv(raw/'nbastats_2002.csv',low_memory=False)
+          v3_raw=pd.read_csv(raw/'nbastatsv3_2002.csv',low_memory=False)
+          pbp_raw=pd.read_csv(raw/'pbpstats_2002.csv',low_memory=False)
+          nba=io.normalize_nba(nba_raw.copy()); v3=lineup_engine.normalize_v3(v3_raw.copy()); pbp=io.normalize_pbp(pbp_raw.copy())
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+
+          cases=[
+            {'game_id':20200077,'kind':'unmatched_rebound'},
+            {'game_id':20200169,'period':6,'team_id':1610612737,'candidates':[299,673,689,949,1023,1032,1544,1891,1901,1956]},
+            {'game_id':20200200,'period':5,'team_id':1610612737,'candidates':[299,673,949,1074,1891,1901,1956]},
+            {'game_id':20200261,'period':3,'team_id':1610612758,'candidates':[57,124,185,1517,1800,2222]},
+            {'game_id':20200344,'period':5,'team_id':1610612745,'candidates':[779,983,1038,1509,1749,1883,1903,2204,2397]},
+            {'game_id':20200359,'period':5,'team_id':1610612739,'candidates':[980,1729,1908,1960,2032,2205,2402,2470]},
+            {'game_id':20200373,'period':5,'team_id':1610612765,'candidates':[93,361,468,688,1088,1112,1442,1497,1888]},
+            {'game_id':20200464,'period':5,'team_id':1610612754,'candidates':[397,979,1065,1500,1733,1802,1902,2224,2410]},
+            {'game_id':20200619,'period':5,'team_id':1610612737,'candidates':[299,689,949,1736,1737,1891,1901,2424]},
+            {'game_id':20200839,'period':5,'team_id':1610612763,'candidates':[445,953,1510,1715,2031,2200,2203,2248,2471]},
+          ]
+          ncols=[c for c in ['GAME_ID','EVENTNUM','EVENTMSGTYPE','EVENTMSGACTIONTYPE','PERIOD','PCTIMESTRING','PERSON1TYPE','PLAYER1_ID','PLAYER1_NAME','PLAYER1_TEAM_ID','PERSON2TYPE','PLAYER2_ID','PLAYER2_NAME','PLAYER2_TEAM_ID','PERSON3TYPE','PLAYER3_ID','PLAYER3_NAME','PLAYER3_TEAM_ID','HOMEDESCRIPTION','NEUTRALDESCRIPTION','VISITORDESCRIPTION'] if c in nba_raw]
+          vcols=[c for c in ['gameId','actionNumber','period','clock','actionType','subType','description','personId','playerName','teamId','teamTricode'] if c in v3_raw]
+          pcols=[c for c in ['GAMEID','PERIOD','STARTTIME','ENDTIME','TEAMID','OPPONENTID','OFFENSIVEREBOUNDS','DEFENSIVEREBOUNDS','DESCRIPTION'] if c in pbp_raw]
+          def clean(df,cols):
+              h=df[cols].copy(); return h.where(pd.notna(h),None).to_dict('records')
+          def numcol(df,name):
+              if name in df.columns:
+                  return pd.to_numeric(df[name],errors='coerce').fillna(0)
+              return pd.Series(0,index=df.index,dtype=float)
+
+          evidence=[]
+          for c in cases:
+              gid=c['game_id']; rec={'game_id':gid,'kind':c.get('kind','starter_ambiguity')}
+              try:
+                  tr,pr,a=base.build_game(gid,ng[gid],vg[gid],pg[gid]); rec['unexpected_build_pass']=True; rec['audit']=a
+              except Exception as exc:
+                  rec['build_error_type']=type(exc).__name__; rec['build_error']=str(exc)
+              nraw=nba_raw[pd.to_numeric(nba_raw.GAME_ID,errors='coerce').eq(gid)].copy()
+              vraw=v3_raw[pd.to_numeric(v3_raw.gameId,errors='coerce').eq(gid)].copy()
+              praw=pbp_raw[pd.to_numeric(pbp_raw.GAMEID,errors='coerce').eq(gid)].copy()
+              if rec['kind']=='starter_ambiguity':
+                  p=c['period']; cands=c['candidates']; rec.update({'period':p,'team_id':c['team_id'],'candidates':cands})
+                  npd=nraw[pd.to_numeric(nraw.PERIOD,errors='coerce').eq(p)].copy()
+                  prev=nraw[pd.to_numeric(nraw.PERIOD,errors='coerce').eq(p-1)].tail(100)
+                  vpd=vraw[pd.to_numeric(vraw.period,errors='coerce').eq(p)].copy()
+                  p1=pd.to_numeric(npd.PLAYER1_ID,errors='coerce'); p2=pd.to_numeric(npd.PLAYER2_ID,errors='coerce'); p3=pd.to_numeric(npd.PLAYER3_ID,errors='coerce')
+                  vp=pd.to_numeric(vpd.personId,errors='coerce') if 'personId' in vpd else pd.Series(index=vpd.index,dtype=float)
+                  rec['candidate_legacy_rows']={str(pid):clean(npd[p1.eq(pid)|p2.eq(pid)|p3.eq(pid)],ncols) for pid in cands}
+                  rec['candidate_v3_rows']={str(pid):clean(vpd[vp.eq(pid)],vcols) for pid in cands}
+                  rec['legacy_prior_period_tail']=clean(prev,ncols)
+                  rec['legacy_target_period_substitutions']=clean(npd[pd.to_numeric(npd.EVENTMSGTYPE,errors='coerce').eq(8)],ncols)
+                  rec['v3_target_period_rows']=clean(vpd,vcols)
+              else:
+                  rec['legacy_game_rows']=clean(nraw,ncols)
+                  rec['v3_game_rows']=clean(vraw,vcols)
+                  mask=(numcol(praw,'OFFENSIVEREBOUNDS')>0)|(numcol(praw,'DEFENSIVEREBOUNDS')>0)
+                  rec['pbp_rebound_bearing_rows']=clean(praw[mask],pcols)
+              evidence.append(rec)
+          (out/'exact_failure_evidence.json').write_text(json.dumps(evidence,indent=2,default=str)+'\n')
+          summary=[{k:r.get(k) for k in ('game_id','kind','period','team_id','build_error_type','build_error','unexpected_build_pass')} for r in evidence]
+          (out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2002-canary-failure-diagnostic-v2-${{ github.sha }}
+          path: /tmp/treb2002diag/canary_failures/**
+          retention-days: 90
+          if-no-files-found: error
