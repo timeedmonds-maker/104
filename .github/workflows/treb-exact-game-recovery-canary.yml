@@ -41,14 +41,16 @@ jobs:
           schedule=Path('team_trb_all_players/impact_database/roster_tenure/regular_season_games_raw/2002-03.json.gz')
           out=Path('/tmp/treb-recovery-canary')
 
-          m=pd.read_csv(manifest,dtype={'game_id':str,'game_id_numeric':str})
+          m=pd.read_csv(manifest,dtype={'game_id':str})
           m=m[m['season'].astype(str).eq(season)].copy()
-          if 'partition_bucket' not in m or not m['partition_bucket'].astype(str).eq('strict_recovery').all():
-              raise SystemExit('strict manifest partition guard failed')
+          if 'partition_class' not in m or not m['partition_class'].astype(str).eq('strict_historical_recovery_required').all():
+              raise SystemExit('strict manifest partition-class guard failed')
+          if 'production_recovery_required' not in m or not m['production_recovery_required'].astype(str).str.lower().eq('true').all():
+              raise SystemExit('strict manifest production-recovery guard failed')
           if 'cross_snapshot_overlap' in m:
               bad=~m['cross_snapshot_overlap'].astype(str).str.lower().isin(['false','0','0.0','nan',''])
               if bad.any(): raise SystemExit('strict manifest unexpectedly contains cross-snapshot overlap')
-          m['canonical_game_id']=m['game_id_numeric'].map(lambda x:str(int(str(x).strip().removesuffix('.0'))))
+          m['canonical_game_id']=m['game_id'].map(lambda x:str(int(str(x).strip().removesuffix('.0'))))
           m['canonical_sort']=m['canonical_game_id'].astype(int)
           m=m.sort_values('canonical_sort',kind='stable').head(n).drop(columns=['canonical_sort'])
           if len(m)!=n or m['canonical_game_id'].nunique()!=n:
@@ -110,7 +112,7 @@ jobs:
           import build_exact_game_fact_layer as base
 
           out=Path(os.environ['OUT']); season='2002-03'
-          requested=pd.read_csv(out/'requested_games.csv',dtype={'game_id':str,'game_id_numeric':str,'canonical_game_id':str})
+          requested=pd.read_csv(out/'requested_games.csv',dtype={'game_id':str,'canonical_game_id':str})
           target_ids=[int(x) for x in requested['canonical_game_id']]
           if len(target_ids)!=50 or len(set(target_ids))!=50:
               raise SystemExit('requested-game cardinality changed before build')
