@@ -1,0 +1,236 @@
+name: TREB canonical locked-segment mapping
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-canonical-locked-segment-mapping.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-canonical-locked-segment-mapping
+  cancel-in-progress: false
+
+jobs:
+  map-locked-segments:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout current assembly branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          path: current
+          fetch-depth: 1
+
+      - name: Checkout completed locked database branch
+        uses: actions/checkout@v4
+        with:
+          ref: treb-final-database-complete-20260812
+          path: locked
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Build deterministic mapping manifest
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv, gzip, hashlib, json, os
+          from collections import Counter, defaultdict
+          from pathlib import Path
+
+          current = Path('current')
+          locked = Path('locked')
+          target_path = current / 'team_trb_all_players/impact_database/roster_tenure_v3_hybrid/player_team_season_targets.jsonl.gz'
+          source_path = locked / 'team_trb_all_players/final_database_export/career_treb_detail.csv'
+          summary_path = current / 'team_trb_all_players/impact_database/roster_tenure_v3_hybrid/roster_repair_v3_hybrid_summary.json'
+          out = current / 'team_trb_all_players/final_integrity_rebuild/final_exact_release/locked_segment_mapping'
+          out.mkdir(parents=True, exist_ok=True)
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with open(path, 'rb') as f:
+                  for chunk in iter(lambda: f.read(1024 * 1024), b''):
+                      h.update(chunk)
+              return h.hexdigest()
+
+          with gzip.open(target_path, 'rt', encoding='utf-8') as f:
+              targets = [json.loads(line) for line in f if line.strip()]
+          with open(source_path, newline='', encoding='utf-8-sig') as f:
+              source = list(csv.DictReader(f))
+          with open(summary_path, encoding='utf-8') as f:
+              universe_summary = json.load(f)
+
+          player_candidates = ['player_id','PLAYER_ID','playerId','person_id','PERSON_ID','personId','nba_player_id']
+          team_candidates = ['team_id','TEAM_ID','teamId','nba_team_id']
+          season_candidates = ['season','SEASON','season_label','season_id','SEASON_ID']
+
+          def pick_field(rows, candidates, label):
+              keys = set()
+              for r in rows[:50]:
+                  keys.update(r.keys())
+              for c in candidates:
+                  if c in keys:
+                      return c
+              raise RuntimeError(f'Cannot find {label} field. Available keys: {sorted(keys)}')
+
+          t_player = pick_field(targets, player_candidates, 'target player')
+          t_team = pick_field(targets, team_candidates, 'target team')
+          t_season = pick_field(targets, season_candidates, 'target season')
+          s_player = pick_field(source, player_candidates, 'source player')
+          s_team = pick_field(source, team_candidates, 'source team')
+          s_season = pick_field(source, season_candidates, 'source season')
+
+          def norm(v):
+              if v is None:
+                  return ''
+              s = str(v).strip()
+              if s.endswith('.0') and s[:-2].isdigit():
+                  s = s[:-2]
+              return s
+
+          def key(row, pf, tf, sf):
+              return (norm(row[sf]), norm(row[pf]), norm(row[tf]))
+
+          target_keys = [key(r, t_player, t_team, t_season) for r in targets]
+          target_counter = Counter(target_keys)
+          target_by_key = {k:r for k,r in zip(target_keys, targets)}
+          source_groups = defaultdict(list)
+          for r in source:
+              source_groups[key(r, s_player, s_team, s_season)].append(r)
+
+          target_key_set = set(target_keys)
+          source_key_set = set(source_groups)
+          matched_keys = sorted(target_key_set & source_key_set)
+          unmatched_source_keys = sorted(source_key_set - target_key_set)
+          missing_from_source_keys = sorted(target_key_set - source_key_set)
+          aggregation_keys = sorted(k for k, rows in source_groups.items() if len(rows) > 1)
+
+          def classify_target(row):
+              for k in ('is_full_core','full_core','full_core_reuse','core_reuse'):
+                  if k in row:
+                      v = row[k]
+                      if isinstance(v, bool):
+                          return 'full_core' if v else 'partial'
+                      sv = str(v).strip().lower()
+                      if sv in ('true','1','yes','full','full_core'):
+                          return 'full_core'
+                      if sv in ('false','0','no','partial'):
+                          return 'partial'
+              for k,v in row.items():
+                  if isinstance(v, str):
+                      sv = v.strip().lower().replace('-', '_').replace(' ', '_')
+                      if 'partial' in sv:
+                          return 'partial'
+                      if 'full_core' in sv or sv in ('full','core','core_reuse','full_core_reuse'):
+                          return 'full_core'
+              return 'unknown'
+
+          classification = {k: classify_target(target_by_key[k]) for k in target_key_set}
+          class_counts = Counter(classification.values())
+          matched_class_counts = Counter(classification[k] for k in matched_keys)
+          missing_class_counts = Counter(classification[k] for k in missing_from_source_keys)
+
+          unmatched_segments = sum(len(source_groups[k]) for k in unmatched_source_keys)
+          matched_segments = sum(len(source_groups[k]) for k in matched_keys)
+          source_unique_keys = len(source_key_set)
+          collapsed_segment_count = len(source) - source_unique_keys
+
+          expected_target_rows = universe_summary.get('validated_player_team_season_rows')
+          expected_source_rows = 5199
+          status = 'PASS'
+          failures = []
+          if len(targets) != expected_target_rows:
+              status = 'FAIL'; failures.append(f'target rows {len(targets)} != summary {expected_target_rows}')
+          if len(targets) != 14524:
+              status = 'FAIL'; failures.append(f'target rows {len(targets)} != checkpoint 14524')
+          if any(v != 1 for v in target_counter.values()):
+              status = 'FAIL'; failures.append('canonical target keys are not unique')
+          if len(source) != expected_source_rows:
+              status = 'FAIL'; failures.append(f'locked source rows {len(source)} != checkpoint {expected_source_rows}')
+          if unmatched_source_keys:
+              status = 'FAIL'; failures.append(f'{len(unmatched_source_keys)} locked source keys do not map to canonical universe')
+
+          summary = {
+              'status': status,
+              'failures': failures,
+              'operation': 'mapping_only_no_reconstruction',
+              'canonical_source': str(target_path.relative_to(current)),
+              'locked_source_branch': 'treb-final-database-complete-20260812',
+              'locked_source': str(source_path.relative_to(locked)),
+              'canonical_target_rows': len(targets),
+              'canonical_unique_keys': len(target_key_set),
+              'locked_source_segments': len(source),
+              'locked_source_unique_player_team_season_keys': source_unique_keys,
+              'matched_canonical_keys': len(matched_keys),
+              'matched_locked_segments': matched_segments,
+              'locked_keys_requiring_segment_aggregation': len(aggregation_keys),
+              'extra_segments_collapsed_by_player_team_season': collapsed_segment_count,
+              'unmatched_locked_source_keys': len(unmatched_source_keys),
+              'unmatched_locked_source_segments': unmatched_segments,
+              'canonical_keys_not_supplied_by_locked_source': len(missing_from_source_keys),
+              'canonical_classification_counts': dict(sorted(class_counts.items())),
+              'matched_classification_counts': dict(sorted(matched_class_counts.items())),
+              'missing_classification_counts': dict(sorted(missing_class_counts.items())),
+              'target_key_fields': {'season':t_season,'player_id':t_player,'team_id':t_team},
+              'source_key_fields': {'season':s_season,'player_id':s_player,'team_id':s_team},
+              'canonical_source_sha256': sha256(target_path),
+              'locked_source_sha256': sha256(source_path),
+              'universe_summary': universe_summary,
+              'target_schema': sorted(targets[0].keys()) if targets else [],
+              'source_schema': list(source[0].keys()) if source else [],
+          }
+
+          with open(out / 'LOCKED_SEGMENT_CANONICAL_MAPPING_SUMMARY.json', 'w', encoding='utf-8') as f:
+              json.dump(summary, f, indent=2, sort_keys=True)
+              f.write('\n')
+
+          with open(out / 'LOCKED_SEGMENT_CANONICAL_MAPPING.csv', 'w', newline='', encoding='utf-8') as f:
+              w = csv.writer(f)
+              w.writerow(['season','player_id','team_id','canonical_classification','locked_segment_count','locked_source_supplied'])
+              for k in sorted(target_key_set):
+                  w.writerow([k[0],k[1],k[2],classification[k],len(source_groups.get(k,[])),1 if k in source_key_set else 0])
+
+          with open(out / 'LOCKED_SEGMENT_AGGREGATION_KEYS.csv', 'w', newline='', encoding='utf-8') as f:
+              w = csv.writer(f)
+              w.writerow(['season','player_id','team_id','locked_segment_count'])
+              for k in aggregation_keys:
+                  w.writerow([k[0],k[1],k[2],len(source_groups[k])])
+
+          with open(out / 'LOCKED_SEGMENT_UNMATCHED_SOURCE.csv', 'w', newline='', encoding='utf-8') as f:
+              w = csv.writer(f)
+              w.writerow(['season','player_id','team_id','locked_segment_count'])
+              for k in unmatched_source_keys:
+                  w.writerow([k[0],k[1],k[2],len(source_groups[k])])
+
+          md = f'''# Locked-segment → canonical mapping\n\nStatus: **{status}**\n\nThis checkpoint performs mapping/provenance only. **No TREB reconstruction or replay occurred.**\n\n- Canonical target rows: **{len(targets):,}**\n- Canonical unique player/team/season keys: **{len(target_key_set):,}**\n- Locked source segments read: **{len(source):,}**\n- Locked source unique player/team/season keys: **{source_unique_keys:,}**\n- Canonical keys represented by locked source: **{len(matched_keys):,}**\n- Locked keys requiring aggregation of >1 segment: **{len(aggregation_keys):,}**\n- Extra segments collapsed by player/team/season grouping: **{collapsed_segment_count:,}**\n- Unmatched locked source keys: **{len(unmatched_source_keys):,}**\n- Canonical keys not supplied by this locked source: **{len(missing_from_source_keys):,}**\n\nClassification observed: `{dict(sorted(class_counts.items()))}`.\n\nNext step after this checkpoint: overlay/current-source precedence mapping against the already-retained exact full-core/game-fact sources.\n'''
+          with open(out / 'README.md', 'w', encoding='utf-8') as f:
+              f.write(md)
+
+          print(json.dumps(summary, indent=2, sort_keys=True))
+          with open(out / 'STATUS.txt', 'w', encoding='utf-8') as f:
+              f.write(status + '\n')
+          PY
+
+      - name: Persist mapping checkpoint
+        working-directory: current
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/final_integrity_rebuild/final_exact_release/locked_segment_mapping
+          if git diff --cached --quiet; then
+            echo 'No mapping changes to commit.'
+          else
+            git commit -m 'Persist locked-segment canonical mapping checkpoint [skip ci]'
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Enforce mapping integrity after persistence
+        shell: bash
+        run: |
+          test "$(cat current/team_trb_all_players/final_integrity_rebuild/final_exact_release/locked_segment_mapping/STATUS.txt)" = PASS
