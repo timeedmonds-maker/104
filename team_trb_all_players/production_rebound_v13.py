@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Production rebound layer V13 under test: V12 plus two exact nearby real-NBA player rebound identities."""
+"""Production rebound layer V13 under test: V12 plus one exact Agbaji real-NBA rebound identity."""
 from __future__ import annotations
 import json
 from pathlib import Path
@@ -12,18 +12,18 @@ _EVIDENCE = Path(__file__).resolve().parent / 'final_integrity_rebuild' / 'rebou
 
 def _load():
     d = json.loads(_EVIDENCE.read_text())
-    assert d['status'] == 'CANDIDATE_FOR_PROMOTION' and d['repair_rows'] == 2
+    assert d['status'] == 'CANDIDATE_FOR_PROMOTION' and d['repair_rows'] == 1
     ctl = d['safe_controls']['unique_nearest_real_nba_player_rebound_exact_name_within_3s']
     assert ctl == {'applicable': 4888, 'exact_nba_event_identity_correct': 4888, 'exact_lineup_correct': 4888, 'wrong': 0}
     by_game = {}
     keys = set()
     for r in d['repairs']:
-        assert r['resolution_method'] == 'unique_nearest_real_nba_player_rebound_exact_name_within_3s'
+        assert r['resolution_method'] == 'unique_nearest_real_nba_player_rebound_exact_name_within_3s_and_unassigned'
         assert r['real'] is True
         key = (int(r['game_id']), int(r['pbp_index']))
         keys.add(key)
         by_game.setdefault(int(r['game_id']), []).append(r)
-    assert keys == {(21700042, 7322), (22201076, 494)}
+    assert keys == {(22201076, 494)}
     return by_game
 
 
@@ -91,7 +91,7 @@ def join_pbp_rebounds(lineups, pbp_game, alpha: int = 5):
         for col in ('EVENTMSGTYPE', 'EVENTMSGACTIONTYPE', 'PLAYER1_ID', 'ELAPSED', 'EVENTNUM'):
             add['NBA_' + col] = nba.loc[ni, col]
         add['NBA_IS_REAL_REBOUND'] = True
-        add['REBOUND_LINEAGE'] = 'v13_exact_nearby_player_event_identity'
+        add['REBOUND_LINEAGE'] = 'v13_exact_nearby_player_event_identity_unassigned'
         additions.append(add)
         used.add(ni)
         applied.append({'pbp_index': pi, 'nba_index': ni, 'nba_eventnum': int(rec['nba_eventnum']), 'nba_player1_id': int(rec['nba_player1_id'])})
