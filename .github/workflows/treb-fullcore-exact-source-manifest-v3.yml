@@ -1,0 +1,508 @@
+name: TREB full-core exact source manifest v3
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-fullcore-exact-source-manifest-v3.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch every durable branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --force origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: Install audit dependencies
+        run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Generate authoritative V2 universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/treb_stage2 refs/remotes/origin/treb-stage2-actions-live
+          python /tmp/treb_stage2/team_trb_all_players/build_roster_targets_v2.py
+
+      - name: Build pinned exact-source manifest and full-core scope audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip
+          import io
+          import json
+          import re
+          import subprocess
+          from collections import defaultdict
+          from pathlib import Path
+
+          import pandas as pd
+
+          ACCEPT = {
+              20201160,
+              20400335, 20400736,
+              20500090, 20500102,
+              20600887,
+              20700319,
+              20800032, 20800142,
+              20900113,
+              21000431, 21000997,
+              21100842,
+              21200919, 21201167,
+              21301048,
+              21400968,
+              21500711, 21500903, 21500916,
+              21600358, 21600655, 21600668,
+              21701085,
+              21800143,
+              21901316, 21901317, 21901318,
+              22000485, 22000853,
+              22100688,
+              22200140, 22200182, 22200207, 22200234, 22200778, 22201040,
+              22300452, 22300599,
+              22400433,
+          }
+          assert len(ACCEPT) == 40
+
+          STAGE = Path('/tmp/treb_stage2/team_trb_all_players')
+          TARGETS = STAGE / 'impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          OUT = Path('/tmp/FULLCORE_EXACT_SOURCE_MANIFEST_V3.json')
+          MD = Path('/tmp/FULLCORE_EXACT_SOURCE_MANIFEST_V3.md')
+
+          def run(*args, text=True):
+              return subprocess.check_output(list(args), text=text)
+
+          def norm_id(v):
+              s = str(v).strip()
+              if s.endswith('.0') and s[:-2].isdigit():
+                  s = s[:-2]
+              return s
+
+          def season_from_game_id(v):
+              s = norm_id(v).zfill(8)
+              # NBA regular-season IDs in this project are 00[YY]xxxxx, rendered as integers 2YYxxxxx.
+              prefix = s[:3] if len(s) == 8 else str(int(s))[:3]
+              if prefix.startswith('2') and len(prefix) == 3:
+                  y = 2000 + int(prefix[1:])
+                  if 2000 <= y <= 2025:
+                      return f'{y}-{(y + 1) % 100:02d}'
+              n = int(float(v))
+              p = int(str(n)[:3])
+              y = 2000 + (p - 200)
+              return f'{y}-{(y + 1) % 100:02d}'
+
+          def blob_bytes(sha):
+              return run('git', 'cat-file', '-p', sha, text=False)
+
+          def read_csv_blob(sha):
+              return pd.read_csv(io.BytesIO(blob_bytes(sha)), compression='gzip', low_memory=False)
+
+          # Authoritative canonical universe.
+          canon = []
+          with gzip.open(TARGETS, 'rt', encoding='utf-8') as f:
+              for line in f:
+                  if line.strip():
+                      canon.append(json.loads(line))
+          full = [r for r in canon if bool(r['full_core_reuse'])]
+          assert len(canon) == 14524, len(canon)
+          assert len(full) == 9647, len(full)
+          assert len({norm_id(r['player_id']) for r in canon}) == 2584
+
+          # Authoritative regular-season schedule by team. This is used only for source coverage,
+          # never to infer rebound counts.
+          schedule = defaultdict(set)
+          schedule_files = sorted((STAGE / 'impact_database/roster_tenure/regular_season_games_raw').glob('*.json.gz'))
+          for p in schedule_files:
+              season = p.name.replace('.json.gz', '')
+              with gzip.open(p, 'rt', encoding='utf-8') as f:
+                  d = json.load(f)
+              for g in d['results']:
+                  gid = int(g['GameId'])
+                  schedule[(season, int(g['HomeTeamId']))].add(gid)
+                  schedule[(season, int(g['AwayTeamId']))].add(gid)
+
+          # Scan every durable remote branch head. We scan each unique commit tree once, but retain
+          # every branch name and exact head SHA as provenance. No PBP or reconstruction is run.
+          ref_lines = run('git', 'for-each-ref', '--format=%(refname) %(objectname)', 'refs/remotes/origin').splitlines()
+          refs_by_commit = defaultdict(list)
+          for line in ref_lines:
+              if not line.strip():
+                  continue
+              ref, sha = line.split(' ', 1)
+              if ref.endswith('/HEAD'):
+                  continue
+              refs_by_commit[sha.strip()].append(ref)
+
+          unique_pairs = {}
+          incomplete_dirs = []
+          scanned_commits = 0
+          exact_commit_heads = 0
+
+          for commit_sha, refs in sorted(refs_by_commit.items()):
+              scanned_commits += 1
+              raw = run('git', 'ls-tree', '-r', commit_sha)
+              by_dir = defaultdict(dict)
+              for line in raw.splitlines():
+                  try:
+                      left, path = line.split('\t', 1)
+                      _, typ, blob_sha = left.split(' ', 2)
+                  except ValueError:
+                      continue
+                  if typ != 'blob':
+                      continue
+                  name = path.rsplit('/', 1)[-1]
+                  if name in {'team_game_treb.csv.gz', 'player_game_treb_on.csv.gz'}:
+                      base = path.rsplit('/', 1)[0]
+                      by_dir[base][name] = {'path': path, 'blob_sha': blob_sha}
+              if not by_dir:
+                  continue
+              exact_commit_heads += 1
+              for base, files in by_dir.items():
+                  if set(files) != {'team_game_treb.csv.gz', 'player_game_treb_on.csv.gz'}:
+                      incomplete_dirs.append({
+                          'commit_sha': commit_sha,
+                          'refs': sorted(refs),
+                          'base': base,
+                          'files': files,
+                      })
+                      continue
+                  key = (files['team_game_treb.csv.gz']['blob_sha'], files['player_game_treb_on.csv.gz']['blob_sha'])
+                  rec = unique_pairs.setdefault(key, {
+                      'team_blob_sha': key[0],
+                      'player_blob_sha': key[1],
+                      'origins': [],
+                  })
+                  rec['origins'].append({
+                      'commit_sha': commit_sha,
+                      'refs': sorted(refs),
+                      'base': base,
+                      'team_path': files['team_game_treb.csv.gz']['path'],
+                      'player_path': files['player_game_treb_on.csv.gz']['path'],
+                  })
+
+          # Build a union of exact successful outputs. Presence and disagreements are recorded;
+          # differing exact rows are never silently resolved by date, branch name or percentages.
+          team_values = defaultdict(set)
+          player_values = defaultdict(set)
+          team_sources = defaultdict(set)
+          player_sources = defaultdict(set)
+          pair_records = []
+          read_errors = []
+          seasons_with_sources = defaultdict(int)
+
+          for pair_index, ((team_sha, player_sha), rec) in enumerate(sorted(unique_pairs.items()), 1):
+              pair_id = f'pair_{pair_index:04d}'
+              try:
+                  t = read_csv_blob(team_sha)
+                  p = read_csv_blob(player_sha)
+                  required_t = {'game_id','team_id','team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+                  required_p = {'game_id','team_id','player_id','seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+                  if not required_t.issubset(t.columns) or not required_p.issubset(p.columns):
+                      raise RuntimeError(f'schema mismatch team={sorted(t.columns)} player={sorted(p.columns)}')
+
+                  pair_seasons = set()
+                  for r in t.itertuples(index=False):
+                      gid = int(r.game_id); tid = int(r.team_id); season = season_from_game_id(gid)
+                      pair_seasons.add(season)
+                      key = (season, gid, tid)
+                      val = (int(r.team_oreb), int(r.team_dreb), int(r.opponent_oreb), int(r.opponent_dreb))
+                      team_values[key].add(val); team_sources[key].add(pair_id)
+                  for r in p.itertuples(index=False):
+                      gid = int(r.game_id); tid = int(r.team_id); pid = norm_id(r.player_id); season = season_from_game_id(gid)
+                      pair_seasons.add(season)
+                      key = (season, gid, tid, pid)
+                      val = (
+                          round(float(r.seconds_on), 6),
+                          int(r.team_oreb_on), int(r.team_dreb_on),
+                          int(r.opponent_oreb_on), int(r.opponent_dreb_on),
+                      )
+                      player_values[key].add(val); player_sources[key].add(pair_id)
+                  for s in pair_seasons:
+                      seasons_with_sources[s] += 1
+                  pair_records.append({
+                      'pair_id': pair_id,
+                      'team_blob_sha': team_sha,
+                      'player_blob_sha': player_sha,
+                      'team_rows': int(len(t)),
+                      'player_rows': int(len(p)),
+                      'seasons': sorted(pair_seasons),
+                      'origins': rec['origins'],
+                  })
+              except Exception as e:
+                  read_errors.append({
+                      'pair_id': pair_id,
+                      'team_blob_sha': team_sha,
+                      'player_blob_sha': player_sha,
+                      'error': repr(e),
+                      'origins': rec['origins'],
+                  })
+
+          team_conflicts = {k: sorted(v) for k, v in team_values.items() if len(v) > 1}
+          player_conflicts = {k: sorted(v) for k, v in player_values.items() if len(v) > 1}
+
+          # For unconflicted keys, exact rows are authoritative integer evidence.
+          team_one = {k: next(iter(v)) for k, v in team_values.items() if len(v) == 1}
+          player_one = {k: next(iter(v)) for k, v in player_values.items() if len(v) == 1}
+
+          # Count-only core evidence for independent sufficiency checks. We deliberately do not read
+          # displayed rebound percentages or infer opponent counts from any percentage.
+          core_by_season = {}
+          for y in range(2000, 2026):
+              season = f'{y}-{(y + 1) % 100:02d}'
+              path = STAGE / f'impact_database/outputs/{season}/team_on_off_metrics.csv.gz'
+              m = pd.read_csv(path, compression='gzip', low_memory=False)
+              m = m[m['metric'].astype(str).isin(['OffRebounds','DefRebounds'])].copy()
+              m['pid'] = m['subject_player_id'].map(norm_id)
+              m['team_id'] = pd.to_numeric(m['team_id']).astype(int)
+              core_by_season[season] = {
+                  (r.pid, int(r.team_id), str(r.metric)): (float(r.on), float(r.off))
+                  for r in m.itertuples(index=False)
+              }
+
+          by_season = {}
+          problem_examples = []
+          totals = defaultdict(int)
+
+          for y in range(2000, 2026):
+              season = f'{y}-{(y + 1) % 100:02d}'
+              rows = [r for r in full if str(r['season']) == season]
+              s = defaultdict(int)
+              s['full_rows'] = len(rows)
+              s['source_pairs'] = seasons_with_sources.get(season, 0)
+              s['team_game_keys'] = sum(1 for k in team_values if k[0] == season)
+              s['player_game_keys'] = sum(1 for k in player_values if k[0] == season)
+              s['team_conflict_keys'] = sum(1 for k in team_conflicts if k[0] == season)
+              s['player_conflict_keys'] = sum(1 for k in player_conflicts if k[0] == season)
+              s['expected_team_game_keys_effective'] = len({
+                  (gid, tid)
+                  for (ss, tid), gids in schedule.items() if ss == season
+                  for gid in gids if gid not in ACCEPT
+              })
+              s['present_team_game_keys_effective'] = sum(1 for (ss,gid,tid) in team_values if ss == season and gid not in ACCEPT)
+
+              for r in rows:
+                  pid = norm_id(r['player_id']); tid = int(r['team_id'])
+                  expected_all = set(schedule[(season, tid)])
+                  accepted_touch = sorted(expected_all & ACCEPT)
+                  expected = expected_all - ACCEPT
+                  missing = sorted(gid for gid in expected if (season, gid, tid) not in team_values)
+                  tconf = sorted(gid for gid in expected if (season, gid, tid) in team_conflicts)
+                  pconf = sorted(gid for gid in expected if (season, gid, tid, pid) in player_conflicts)
+                  game_coverage_ok = not missing
+                  conflict_free = not tconf and not pconf
+                  if accepted_touch:
+                      s['rows_touching_accepted_exclusion'] += 1
+
+                  # Aggregate the effective exact game set. Missing player rows are correctly zero for
+                  # games where the player did not appear; paired successful game files generated both
+                  # team and player outputs in the same reconstruction pass.
+                  exact_seconds = 0.0
+                  on_oreb = on_dreb = 0
+                  team_oreb = team_dreb = 0
+                  aggregate_possible = game_coverage_ok and conflict_free
+                  if aggregate_possible:
+                      for gid in expected:
+                          tv = team_one.get((season, gid, tid))
+                          if tv is None:
+                              aggregate_possible = False
+                              break
+                          team_oreb += tv[0]; team_dreb += tv[1]
+                          pv = player_one.get((season, gid, tid, pid))
+                          if pv is not None:
+                              exact_seconds += pv[0]
+                              on_oreb += pv[1]; on_dreb += pv[2]
+
+                  count_verification = 'not_tested'
+                  count_match = None
+                  diffs = None
+                  # Core counts include all core games, so direct equality is valid only when this
+                  # tenure does not touch one of the explicitly accepted 40 excluded games.
+                  if aggregate_possible and not accepted_touch:
+                      mi = core_by_season[season]
+                      og = mi.get((pid, tid, 'OffRebounds'))
+                      dg = mi.get((pid, tid, 'DefRebounds'))
+                      if og is None or dg is None:
+                          count_verification = 'core_count_rows_missing'
+                      else:
+                          core_vals = (
+                              round(og[0]), round(og[1]), round(dg[0]), round(dg[1]), round(float(r['seconds_on']), 6)
+                          )
+                          exact_vals = (
+                              on_oreb, team_oreb - on_oreb, on_dreb, team_dreb - on_dreb, round(exact_seconds, 6)
+                          )
+                          diffs = {
+                              'team_oreb_on': exact_vals[0] - core_vals[0],
+                              'team_oreb_off': exact_vals[1] - core_vals[1],
+                              'team_dreb_on': exact_vals[2] - core_vals[2],
+                              'team_dreb_off': exact_vals[3] - core_vals[3],
+                              'seconds_on': round(exact_vals[4] - core_vals[4], 6),
+                          }
+                          count_match = all(v == 0 for v in diffs.values())
+                          count_verification = 'match' if count_match else 'mismatch'
+
+                  source_sufficient = game_coverage_ok and conflict_free and aggregate_possible
+                  verified_ready = source_sufficient and (bool(accepted_touch) or count_match is True)
+
+                  s['rows_game_coverage_ok'] += int(game_coverage_ok)
+                  s['rows_conflict_free'] += int(conflict_free)
+                  s['rows_source_sufficient'] += int(source_sufficient)
+                  s['rows_count_match'] += int(count_match is True)
+                  s['rows_count_mismatch'] += int(count_match is False)
+                  s['rows_verified_ready'] += int(verified_ready)
+                  s['missing_team_games_total'] += len(missing)
+                  s['relevant_team_conflicts_total'] += len(tconf)
+                  s['relevant_player_conflicts_total'] += len(pconf)
+
+                  if not verified_ready and len(problem_examples) < 200:
+                      problem_examples.append({
+                          'season': season,
+                          'player_id': pid,
+                          'player': r.get('player'),
+                          'team_id': tid,
+                          'accepted_exclusion_games': accepted_touch,
+                          'missing_team_games': missing[:25],
+                          'team_conflict_games': tconf[:25],
+                          'player_conflict_games': pconf[:25],
+                          'count_verification': count_verification,
+                          'count_diffs': diffs,
+                      })
+
+              by_season[season] = dict(s)
+              for k, v in s.items():
+                  if isinstance(v, int) and k not in {'source_pairs','team_game_keys','player_game_keys','team_conflict_keys','player_conflict_keys','expected_team_game_keys_effective','present_team_game_keys_effective'}:
+                      totals[k] += v
+
+          report = {
+              'version': 'fullcore_exact_source_manifest_v3',
+              'purpose': 'Pin all durable exact game-fact sources and prove source sufficiency for the 9,647 canonical full-core tenures without percentage inference or PBP reconstruction.',
+              'audit_branch': 'agent/treb-final-exact-assembly',
+              'audit_trigger_sha': run('git','rev-parse','HEAD').strip(),
+              'canonical': {
+                  'tenure_rows': len(canon),
+                  'full_core_rows': len(full),
+                  'partial_rows': len(canon) - len(full),
+                  'unique_players_in_positive_minute_universe': len({norm_id(r['player_id']) for r in canon}),
+              },
+              'accepted_game_exclusions': sorted(ACCEPT),
+              'accepted_game_exclusion_count': len(ACCEPT),
+              'method_guards': {
+                  'pbp_reconstruction_run': False,
+                  'rounded_percentage_opponent_inference_used': False,
+                  'opponent_counts_source': 'exact team_game_treb/player_game_treb_on integer fields only',
+                  'duplicate_exact_disagreement_policy': 'flag conflict; never silently choose a source',
+              },
+              'inventory': {
+                  'remote_refs_seen': len(ref_lines),
+                  'unique_commit_heads_scanned': scanned_commits,
+                  'commit_heads_with_exact_files': exact_commit_heads,
+                  'unique_exact_file_pairs': len(unique_pairs),
+                  'readable_exact_file_pairs': len(pair_records),
+                  'incomplete_exact_directories': len(incomplete_dirs),
+                  'read_errors': len(read_errors),
+                  'seasons_with_any_exact_source': sorted(seasons_with_sources),
+                  'team_exact_keys': len(team_values),
+                  'player_exact_keys': len(player_values),
+                  'team_conflict_keys': len(team_conflicts),
+                  'player_conflict_keys': len(player_conflicts),
+              },
+              'full_core_totals': dict(totals),
+              'release_scope_gate': {
+                  'expected_full_core_rows': 9647,
+                  'source_sufficient_rows': totals.get('rows_source_sufficient', 0),
+                  'verified_ready_rows': totals.get('rows_verified_ready', 0),
+                  'pass': totals.get('rows_verified_ready', 0) == 9647,
+              },
+              'explicit_edge_seasons': {
+                  s: by_season[s] for s in ['2000-01','2001-02','2025-26']
+              },
+              'by_season': by_season,
+              'exact_source_pairs': pair_records,
+              'incomplete_exact_directories': incomplete_dirs,
+              'read_errors': read_errors,
+              'team_conflict_examples': [
+                  {'season': k[0], 'game_id': k[1], 'team_id': k[2], 'values': v, 'sources': sorted(team_sources[k])}
+                  for k, v in list(team_conflicts.items())[:100]
+              ],
+              'player_conflict_examples': [
+                  {'season': k[0], 'game_id': k[1], 'team_id': k[2], 'player_id': k[3], 'values': v, 'sources': sorted(player_sources[k])}
+                  for k, v in list(player_conflicts.items())[:100]
+              ],
+              'problem_examples': problem_examples,
+          }
+          OUT.write_text(json.dumps(report, indent=2, default=str) + '\n', encoding='utf-8')
+
+          gate = report['release_scope_gate']
+          edge = report['explicit_edge_seasons']
+          lines = [
+              '# TREB Full-Core Exact Source Manifest V3',
+              '',
+              f"- Canonical tenures: **{len(canon):,}**",
+              f"- Full-core tenures audited: **{len(full):,}**",
+              f"- Unique exact file pairs: **{len(unique_pairs):,}**",
+              f"- Exact team keys: **{len(team_values):,}**",
+              f"- Exact player keys: **{len(player_values):,}**",
+              f"- Team-key conflicts: **{len(team_conflicts):,}**",
+              f"- Player-key conflicts: **{len(player_conflicts):,}**",
+              f"- Source-sufficient full-core rows: **{gate['source_sufficient_rows']:,} / 9,647**",
+              f"- Verified-ready full-core rows: **{gate['verified_ready_rows']:,} / 9,647**",
+              f"- Scope gate: **{'PASS' if gate['pass'] else 'FAIL'}**",
+              '',
+              '## Edge seasons',
+          ]
+          for season in ['2000-01','2001-02','2025-26']:
+              x = edge[season]
+              lines.append(
+                  f"- **{season}:** source_pairs={x.get('source_pairs',0)}, "
+                  f"source_sufficient={x.get('rows_source_sufficient',0)}/{x.get('full_rows',0)}, "
+                  f"verified_ready={x.get('rows_verified_ready',0)}/{x.get('full_rows',0)}, "
+                  f"missing_team_games={x.get('missing_team_games_total',0)}"
+              )
+          lines += [
+              '',
+              'No PBP reconstruction was run. No opponent rebound component was inferred from a displayed percentage. Duplicate exact-source disagreements are surfaced as conflicts rather than silently resolved.',
+          ]
+          MD.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+
+          print(json.dumps({
+              'canonical': report['canonical'],
+              'inventory': report['inventory'],
+              'release_scope_gate': report['release_scope_gate'],
+              'explicit_edge_seasons': report['explicit_edge_seasons'],
+          }, indent=2))
+          PY
+
+      - name: Upload V3 manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-fullcore-exact-source-manifest-v3-${{ github.run_id }}
+          path: |
+            /tmp/FULLCORE_EXACT_SOURCE_MANIFEST_V3.json
+            /tmp/FULLCORE_EXACT_SOURCE_MANIFEST_V3.md
+          retention-days: 90
+
+      - name: Persist V3 manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          mkdir -p "$D"
+          cp /tmp/FULLCORE_EXACT_SOURCE_MANIFEST_V3.json "$D/"
+          cp /tmp/FULLCORE_EXACT_SOURCE_MANIFEST_V3.md "$D/"
+          git add -f "$D/FULLCORE_EXACT_SOURCE_MANIFEST_V3.json" "$D/FULLCORE_EXACT_SOURCE_MANIFEST_V3.md"
+          git commit -m 'Persist full-core exact source manifest v3'
+          git push origin HEAD:agent/treb-final-exact-assembly
