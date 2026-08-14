@@ -1,0 +1,272 @@
+name: TREB raw rebound count coverage audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-raw-rebound-count-coverage-audit.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-raw-rebound-count-coverage-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+      OUT: /tmp/treb_raw_rebound_audit
+      STATUS_DIR: treb_automation/status
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install audit reader
+        run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Rebuild exact-key support only
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          python -u team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb_locks \
+            --output-dir "$OUT"
+          python - <<'PY'
+          import os, pandas as pd
+          from pathlib import Path
+          out=Path(os.environ['OUT'])
+          d=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
+          assert len(d)==5199, len(d)
+          assert d.groupby(['season','team_id','player_id']).ngroups==4877
+          print({'exact_support':'PASS','segments':5199,'exact_pts':4877})
+          PY
+
+      - name: Audit raw rebound counts across canonical universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip, json, math, os, re
+          from pathlib import Path
+          import pandas as pd
+
+          root=Path('team_trb_all_players')
+          out=Path(os.environ['OUT'])
+          keys=['season','team_id','player_id']
+          expected_canonical=14524
+          expected_exact=4877
+          expected_complement=9647
+
+          def ids(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+
+          def canon(df):
+              x=df.copy()
+              x['season']=x['season'].astype(str)
+              x['team_id']=pd.to_numeric(x['team_id'],errors='raise').astype('int64')
+              x['player_id']=x['player_id'].map(ids).astype('string')
+              return x
+
+          # Immutable canonical V2 universe.
+          target_path=root/'impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          rows=[]
+          with gzip.open(target_path,'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if line.strip(): rows.append(json.loads(line))
+          canonical=canon(pd.DataFrame(rows))[keys].drop_duplicates()
+          assert len(canonical)==expected_canonical, len(canonical)
+
+          # Exact subset already reconstructed and locked.
+          exact_detail=canon(pd.read_csv(out/'career_treb_detail.csv',low_memory=False))
+          exact_keys=exact_detail[keys].drop_duplicates()
+          assert len(exact_keys)==expected_exact, len(exact_keys)
+          complement=(canonical.merge(exact_keys.assign(_exact=True),on=keys,how='left')
+                      .query('_exact != True').drop(columns='_exact'))
+          assert len(complement)==expected_complement, len(complement)
+
+          # Retained rebound-derived source. Read every season so this is a full-universe audit.
+          frames=[]
+          schemas={}
+          missing_files=[]
+          for y in range(2000,2026):
+              season=f'{y}-{(y+1)%100:02d}'
+              p=root/'impact_database/outputs'/season/'team_rebound_derived.csv.gz'
+              if not p.exists():
+                  missing_files.append(str(p)); continue
+              d=pd.read_csv(p,low_memory=False)
+              schemas[season]=list(d.columns)
+              if 'season' not in d.columns: d['season']=season
+              frames.append(d)
+          source=canon(pd.concat(frames,ignore_index=True,sort=False)) if frames else pd.DataFrame(columns=keys)
+          source_keys=source[keys].drop_duplicates() if len(source) else pd.DataFrame(columns=keys)
+          canonical_source=canonical.merge(source,on=keys,how='left',indicator=False)
+          canonical_intersection=canonical.merge(source_keys,on=keys,how='inner')
+          complement_source=complement.merge(source,on=keys,how='left',indicator=False)
+          complement_intersection=complement.merge(source_keys,on=keys,how='inner')
+
+          required=[
+              'team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on',
+              'team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off',
+          ]
+          all_columns=sorted(set().union(*(set(v) for v in schemas.values()))) if schemas else []
+          required_present=[c for c in required if c in source.columns]
+          required_missing=[c for c in required if c not in source.columns]
+
+          report={
+              'status':'PASS',
+              'source':'impact_database/outputs/<season>/team_rebound_derived.csv.gz',
+              'seasons_found':len(frames),
+              'missing_files':missing_files,
+              'all_columns':all_columns,
+              'source_rows':int(len(source)),
+              'source_unique_keys':int(len(source_keys)),
+              'canonical_keys':int(len(canonical)),
+              'canonical_source_coverage_keys':int(len(canonical_intersection)),
+              'exact_keys':int(len(exact_keys)),
+              'complement_keys':int(len(complement)),
+              'complement_source_coverage_keys':int(len(complement_intersection)),
+              'required_raw_count_columns':required,
+              'required_raw_count_columns_present':required_present,
+              'required_raw_count_columns_missing':required_missing,
+              'duplicate_source_keys':int(source.duplicated(keys).sum()) if len(source) else 0,
+              'raw_count_quality':{},
+              'treb_computability':{},
+              'release_candidate':False,
+              'failures':[],
+          }
+
+          if missing_files: report['failures'].append(f'missing season source files: {len(missing_files)}')
+          if len(canonical_intersection)!=expected_canonical:
+              report['failures'].append(f'canonical source coverage {len(canonical_intersection)} != {expected_canonical}')
+          if len(complement_intersection)!=expected_complement:
+              report['failures'].append(f'complement source coverage {len(complement_intersection)} != {expected_complement}')
+          if required_missing:
+              report['failures'].append('missing required raw count columns: '+','.join(required_missing))
+          if len(source) and source.duplicated(keys).any():
+              report['failures'].append(f'duplicate retained source keys: {int(source.duplicated(keys).sum())}')
+
+          if not required_missing and len(complement_source)==expected_complement:
+              bad_any=pd.Series(False,index=complement_source.index)
+              for c in required:
+                  v=pd.to_numeric(complement_source[c],errors='coerce')
+                  missing=int(v.isna().sum())
+                  negative=int((v<0).fillna(False).sum())
+                  noninteger=int(((v-v.round()).abs()>1e-9).fillna(False).sum())
+                  report['raw_count_quality'][c]={
+                      'missing':missing,'negative':negative,'noninteger':noninteger,
+                      'min':float(v.min()) if v.notna().any() else None,
+                      'max':float(v.max()) if v.notna().any() else None,
+                  }
+                  bad_any |= v.isna() | (v<0) | ((v-v.round()).abs()>1e-9)
+              report['complement_keys_with_any_invalid_raw_count']=int(bad_any.sum())
+              if bad_any.any():
+                  report['failures'].append(f'complement keys with invalid raw counts: {int(bad_any.sum())}')
+
+              ton=pd.to_numeric(complement_source.team_oreb_on,errors='coerce')+pd.to_numeric(complement_source.team_dreb_on,errors='coerce')
+              oon=pd.to_numeric(complement_source.opponent_oreb_on,errors='coerce')+pd.to_numeric(complement_source.opponent_dreb_on,errors='coerce')
+              toff=pd.to_numeric(complement_source.team_oreb_off,errors='coerce')+pd.to_numeric(complement_source.team_dreb_off,errors='coerce')
+              ooff=pd.to_numeric(complement_source.opponent_oreb_off,errors='coerce')+pd.to_numeric(complement_source.opponent_dreb_off,errors='coerce')
+              den_on=ton+oon; den_off=toff+ooff
+              treb_on=ton/den_on.where(den_on.ne(0))
+              treb_off=toff/den_off.where(den_off.ne(0))
+              report['treb_computability']={
+                  'formula':'(team_oreb + team_dreb) / (team_oreb + team_dreb + opponent_oreb + opponent_dreb)',
+                  'complement_on_positive_denominator':int(den_on.gt(0).sum()),
+                  'complement_on_zero_denominator':int(den_on.eq(0).sum()),
+                  'complement_off_positive_denominator':int(den_off.gt(0).sum()),
+                  'complement_off_zero_denominator':int(den_off.eq(0).sum()),
+                  'complement_on_finite_treb':int(treb_on.notna().sum()),
+                  'complement_off_finite_treb':int(treb_off.notna().sum()),
+              }
+
+              calc=complement_source[keys].copy()
+              calc['team_oreb_on']=pd.to_numeric(complement_source.team_oreb_on,errors='coerce')
+              calc['team_dreb_on']=pd.to_numeric(complement_source.team_dreb_on,errors='coerce')
+              calc['opponent_oreb_on']=pd.to_numeric(complement_source.opponent_oreb_on,errors='coerce')
+              calc['opponent_dreb_on']=pd.to_numeric(complement_source.opponent_dreb_on,errors='coerce')
+              calc['team_oreb_off']=pd.to_numeric(complement_source.team_oreb_off,errors='coerce')
+              calc['team_dreb_off']=pd.to_numeric(complement_source.team_dreb_off,errors='coerce')
+              calc['opponent_oreb_off']=pd.to_numeric(complement_source.opponent_oreb_off,errors='coerce')
+              calc['opponent_dreb_off']=pd.to_numeric(complement_source.opponent_dreb_off,errors='coerce')
+              calc['treb_on_from_raw_counts']=treb_on
+              calc['treb_off_from_raw_counts']=treb_off
+              calc['treb_swing_from_raw_counts']=treb_on-treb_off
+              calc.to_csv(out/'COMPLEMENT_RAW_TREB_CALCULATION.csv.gz',index=False,compression='gzip')
+
+          report['release_candidate']=(len(report['failures'])==0)
+          report['status']='PASS' if report['release_candidate'] else 'FAIL'
+          (out/'RAW_REBOUND_COUNT_COVERAGE_AUDIT.json').write_text(json.dumps(report,indent=2)+'\n')
+          md=[
+              '# Raw rebound count coverage audit','',
+              f"- Status: **{report['status']}**",
+              f"- Canonical coverage: **{report['canonical_source_coverage_keys']}/{expected_canonical}**",
+              f"- Exact subset: **{expected_exact}**",
+              f"- Full-core complement coverage: **{report['complement_source_coverage_keys']}/{expected_complement}**",
+              f"- Required raw count columns present: **{len(required_present)}/8**",
+              f"- Duplicate retained-source keys: **{report['duplicate_source_keys']}**",
+              f"- Release candidate from raw counts: **{report['release_candidate']}**",
+              '', 'Formula:',
+              '`TREB% = (team OREB + team DREB) / (team OREB + team DREB + opponent OREB + opponent DREB)`',
+              '', 'Failures:',
+          ] + ([f'- {x}' for x in report['failures']] or ['- None'])
+          (out/'RAW_REBOUND_COUNT_COVERAGE_AUDIT.md').write_text('\n'.join(md)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+
+      - name: Upload audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-raw-rebound-count-coverage-audit
+          path: |
+            /tmp/treb_raw_rebound_audit/RAW_REBOUND_COUNT_COVERAGE_AUDIT.json
+            /tmp/treb_raw_rebound_audit/RAW_REBOUND_COUNT_COVERAGE_AUDIT.md
+            /tmp/treb_raw_rebound_audit/COMPLEMENT_RAW_TREB_CALCULATION.csv.gz
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Persist audit status
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$STATUS_DIR"
+          cp "$OUT/RAW_REBOUND_COUNT_COVERAGE_AUDIT.json" "$STATUS_DIR/RAW_REBOUND_COUNT_COVERAGE_LATEST.json"
+          cp "$OUT/RAW_REBOUND_COUNT_COVERAGE_AUDIT.md" "$STATUS_DIR/RAW_REBOUND_COUNT_COVERAGE_LATEST.md"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$STATUS_DIR/RAW_REBOUND_COUNT_COVERAGE_LATEST.json" "$STATUS_DIR/RAW_REBOUND_COUNT_COVERAGE_LATEST.md"
+          if ! git diff --cached --quiet; then
+            git commit -m "Persist raw rebound count coverage audit [skip ci]"
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Enforce audit result
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          q=json.loads((Path(os.environ['OUT'])/'RAW_REBOUND_COUNT_COVERAGE_AUDIT.json').read_text())
+          if q['status']!='PASS':
+              raise SystemExit('RAW REBOUND COUNT AUDIT FAIL: '+' | '.join(q['failures']))
+          print('RAW REBOUND COUNT AUDIT PASS')
+          PY
