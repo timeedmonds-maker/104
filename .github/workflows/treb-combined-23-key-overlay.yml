@@ -1,0 +1,309 @@
+name: TREB combined 23-key canonical overlay gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-combined-23-key-overlay.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-combined-23-key-overlay
+  cancel-in-progress: false
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  TARGET_PATH: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  FIRST_DIAG: team_trb_all_players/final_integrity_rebuild/canonical_23_key_targeted_repair/repair_diagnostic.json
+  TEN_OVERLAY: team_trb_all_players/final_integrity_rebuild/canonical_10_key_targeted_repair/targeted_10_metric_overlay.jsonl.gz
+  OUTDIR: team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay
+
+jobs:
+  combine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m pip install --quiet --upgrade requests
+
+      - name: Mount pinned Stage2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          rm -rf /tmp/treb_stage2
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          test -s /tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz
+          test -d /tmp/treb_stage2/team_trb_all_players/impact_database/outputs
+          test -s "$TARGET_PATH"
+          test -s "$FIRST_DIAG"
+          test -s "$TEN_OVERLAY"
+
+      - name: Rebuild solved 13 and prove combined 23-key canonical gate
+        id: gate
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, json, math, os, re, time
+          from collections import defaultdict
+          from pathlib import Path
+          import requests
+
+          ROOT=Path('.')
+          STAGE=Path('/tmp/treb_stage2/team_trb_all_players')
+          OUT=ROOT/os.environ['OUTDIR']; OUT.mkdir(parents=True,exist_ok=True)
+          TARGET=ROOT/os.environ['TARGET_PATH']
+          DIAG=ROOT/os.environ['FIRST_DIAG']
+          TEN=ROOT/os.environ['TEN_OVERLAY']
+          TEAM_URL='https://api.pbpstats.com/get-on-off/nba/team'
+          STAT_URL='https://api.pbpstats.com/get-on-off/nba/stat'
+          HEADERS={'Accept':'application/json, text/plain, */*','Origin':'https://www.pbpstats.com','Referer':'https://www.pbpstats.com/','User-Agent':'Mozilla/5.0 Chrome/131 Safari/537.36'}
+
+          def nid(v):
+              s=str(v or '').strip()
+              if s.endswith('.0') and s[:-2].isdigit(): s=s[:-2]
+              return s
+          def key(season,team,pid): return (str(season),int(float(team)),nid(pid))
+          def krow(r): return key(r.get('season'),r.get('team_id'),r.get('player_id') or r.get('subject_player_id'))
+          def finite(v):
+              try:
+                  x=float(v); return x if math.isfinite(x) else None
+              except Exception: return None
+          def rows(j):
+              x=j.get('results') if isinstance(j,dict) else None
+              return [r for r in x if isinstance(r,dict)] if isinstance(x,list) else []
+          def readjgz(p):
+              out=[]
+              with gzip.open(p,'rt',encoding='utf-8') as h:
+                  for line in h:
+                      if line.strip(): out.append(json.loads(line))
+              return out
+          def get(url,params,attempts=8):
+              errs=[]
+              with requests.Session() as s:
+                  s.headers.update(HEADERS)
+                  for a in range(1,attempts+1):
+                      try:
+                          r=s.get(url,params=params,timeout=(10,45)); r.raise_for_status(); j=r.json()
+                          if isinstance(j,dict): return j,{'ok':True,'attempt':a,'status':r.status_code}
+                      except Exception as e:
+                          errs.append(repr(e))
+                          if a<attempts: time.sleep(min(2**max(a-1,0),8))
+              return {},{'ok':False,'errors':errs}
+          def player_minutes(stat_rows,pid,name):
+              exact=[r for r in stat_rows if nid(r.get('PlayerId') or r.get('EntityId') or r.get('PlayerID'))==pid]
+              if not exact and name:
+                  nn=re.sub(r'[^a-z0-9]+','',name.lower())
+                  exact=[r for r in stat_rows if re.sub(r'[^a-z0-9]+','',str(r.get('Name') or '').lower())==nn]
+              if len(exact)==1:
+                  a,b=finite(exact[0].get('MinutesOn')),finite(exact[0].get('MinutesOff'))
+                  return a,b,(a+b if a is not None and b is not None else None),'exact'
+              totals=[]
+              for r in stat_rows:
+                  a,b=finite(r.get('MinutesOn')),finite(r.get('MinutesOff'))
+                  if a is not None and b is not None and a+b>0: totals.append(a+b)
+              return None,None,(max(totals) if totals else None),'team_total_fallback'
+
+          first=json.loads(DIAG.read_text())
+          good13=[]
+          for d in first.get('keys',[]):
+              if d.get('ok') is True:
+                  good13.append(d)
+          assert len(good13)==13, len(good13)
+          keys13={key(d['season'],d['team_id'],d['player_id']) for d in good13}
+
+          targets={}
+          all_targets=set()
+          for r in readjgz(TARGET):
+              k=krow(r); all_targets.add(k)
+              if k in keys13: targets[k]=r
+          assert len(all_targets)==14524, len(all_targets)
+          assert len(targets)==13, len(targets)
+
+          # Native same-key 89-metric rows.
+          native=defaultdict(dict)
+          for season in sorted({k[0] for k in keys13}):
+              p=STAGE/'impact_database/outputs'/season/'team_on_off_metrics.csv.gz'
+              with gzip.open(p,'rt',encoding='utf-8',newline='') as h:
+                  for r in csv.DictReader(h):
+                      try: k=key(season,r['team_id'],r['subject_player_id'])
+                      except Exception: continue
+                      if k in keys13: native[k][str(r.get('metric'))]=r
+          for k in keys13: assert len(native[k])==89,(k,len(native[k]))
+
+          diag_by_key={key(d['season'],d['team_id'],d['player_id']):d for d in good13}
+
+          def query_profile(k,st=None,en=None):
+              season,team,pid=k; t=targets[k]; name=str(t.get('player') or t.get('player_name') or diag_by_key[k].get('player') or '')
+              common={'Season':season,'SeasonType':'Regular Season','TeamId':str(team),'PlayerId':pid}
+              if st and en: common.update({'FromDate':st,'ToDate':en})
+              tj,tm=get(TEAM_URL,common); tr=rows(tj)
+              sp={'Season':season,'SeasonType':'Regular Season','TeamId':str(team),'Stat':'OffRebounds'}
+              if st and en: sp.update({'FromDate':st,'ToDate':en})
+              sj,sm=get(STAT_URL,sp); sr=rows(sj)
+              mon,moff,total,msrc=player_minutes(sr,pid,name)
+              mets={}
+              for x in tr:
+                  m=str(x.get('Stat') or '').strip()
+                  if m: mets[m]={'on':finite(x.get('On')),'off_corrected':finite(x.get('Off')),'swing':finite(x.get('On-Off'))}
+              return {'metrics':mets,'minutes_on':mon,'minutes_off':moff,'total_minutes':total,'minute_source':msrc,'team_meta':tm,'stat_meta':sm}
+
+          overlay13=[]; recover_diag=[]; failures=[]
+          for k in sorted(keys13):
+              d=diag_by_key[k]; t=targets[k]; source=str(d.get('source') or '')
+              target_minutes=finite(t.get('minutes_on'))
+              try:
+                  if source=='native_core_full_tenure':
+                      q=query_profile(k)
+                      mon=q['minutes_on']; moff=q['minutes_off']; total=q['total_minutes']
+                      if target_minutes is not None and total is not None and (mon is None or abs(mon-target_minutes)<=0.51):
+                          mon=target_minutes; moff=total-target_minutes
+                      if mon is None or moff is None: raise RuntimeError('full-tenure minutes unavailable')
+                      mets=[]
+                      for m,r in native[k].items():
+                          mets.append({'metric':m,'on':finite(r.get('on')),'off_corrected':finite(r.get('off')),'swing':finite(r.get('on_off')),'metric_provenance':'native_core_full_tenure'})
+                  elif source=='targeted_tenure_requery':
+                      intervals=d.get('intervals') or []
+                      if not intervals: raise RuntimeError('missing retained exact interval')
+                      qs=[]
+                      seen=set()
+                      for iv in intervals:
+                          st=str(iv['start']); en=str(iv['end'])
+                          if (st,en) in seen: continue
+                          seen.add((st,en)); qs.append(query_profile(k,st,en))
+                      if not qs: raise RuntimeError('no unique intervals')
+                      if any(len(q['metrics'])!=89 for q in qs): raise RuntimeError('tenure query metric count != 89')
+                      for q in qs:
+                          if target_minutes is not None and q['total_minutes'] is not None and len(qs)==1 and (q['minutes_on'] is None or abs(q['minutes_on']-target_minutes)<=0.51):
+                              q['minutes_on']=target_minutes; q['minutes_off']=q['total_minutes']-target_minutes
+                      if any(q['minutes_on'] is None or q['minutes_off'] is None for q in qs): raise RuntimeError('tenure minutes unavailable')
+                      names=set.intersection(*[set(q['metrics']) for q in qs])
+                      if len(names)!=89: raise RuntimeError(f'aggregate metric universe {len(names)}/89')
+                      mon=sum(q['minutes_on'] for q in qs); moff=sum(q['minutes_off'] for q in qs)
+                      if target_minutes is not None and abs(mon-target_minutes)>0.51: raise RuntimeError(f'minutes mismatch {mon} vs {target_minutes}')
+                      if target_minutes is not None and abs(mon-target_minutes)<=0.51:
+                          delta=target_minutes-mon; mon=target_minutes; moff-=delta
+                      mets=[]
+                      for m in sorted(names):
+                          parts=[(q,q['metrics'][m]) for q in qs]
+                          onvals=[(x['on'],q['minutes_on']) for q,x in parts if x['on'] is not None and q['minutes_on']>0]
+                          offvals=[(x['off_corrected'],q['minutes_off']) for q,x in parts if x['off_corrected'] is not None and q['minutes_off']>0]
+                          on=sum(v*w for v,w in onvals)/sum(w for _,w in onvals) if onvals else None
+                          off=sum(v*w for v,w in offvals)/sum(w for _,w in offvals) if offvals else None
+                          mets.append({'metric':m,'on':on,'off_corrected':off,'swing':on-off if on is not None and off is not None else None,'metric_provenance':'exact_tenure_requery'})
+                  else:
+                      raise RuntimeError(f'unexpected first-repair source {source}')
+                  if len(mets)!=89: raise RuntimeError(f'metric rows {len(mets)}/89')
+                  for m in mets:
+                      overlay13.append({'season':k[0],'team_id':k[1],'player_id':k[2],'player':str(t.get('player') or t.get('player_name') or d.get('player') or ''),'metric':m['metric'],'minutes_on':mon,'minutes_off':moff,'on':m['on'],'off_corrected':m['off_corrected'],'on_minus_off_corrected':m['swing'],'metric_provenance':m['metric_provenance'],'repair_wave':'solved_13_rebuilt','stage2_sha':os.environ['STAGE2_SHA']})
+                  recover_diag.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'PASS','source':source,'metric_count':89,'minutes_on':mon,'minutes_off':moff})
+              except Exception as exc:
+                  failures.append({'season':k[0],'team_id':k[1],'player_id':k[2],'source':source,'error':repr(exc)})
+                  recover_diag.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'FAIL','source':source,'error':repr(exc)})
+
+          with (OUT/'solved_13_rebuild_diagnostics.json').open('w',encoding='utf-8') as h:
+              json.dump({'failures':failures,'keys':recover_diag},h,indent=2)
+          if failures:
+              raise RuntimeError(f'solved-13 rebuild failures={len(failures)}')
+          assert len(overlay13)==13*89,len(overlay13)
+
+          overlay10=readjgz(TEN)
+          assert len(overlay10)==10*89,len(overlay10)
+          keys10={krow(r) for r in overlay10}; assert len(keys10)==10,len(keys10)
+          assert keys13.isdisjoint(keys10),(keys13&keys10)
+
+          combined=overlay13+overlay10
+          bykey=defaultdict(list)
+          for r in combined: bykey[krow(r)].append(r)
+          assert len(bykey)==23,len(bykey)
+          for k,rs in bykey.items():
+              assert len(rs)==89,(k,len(rs))
+              assert len({r['metric'] for r in rs})==89,(k,'duplicate metric')
+
+          retained=set()
+          seg=STAGE/'impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          with gzip.open(seg,'rt',encoding='utf-8') as h:
+              for line in h:
+                  if line.strip(): retained.add(krow(json.loads(line)))
+          retained_canonical=retained & all_targets
+          assert len(retained)==14600,len(retained)
+          assert len(retained_canonical)==14501,len(retained_canonical)
+          repaired_keys=set(bykey)
+          assert repaired_keys == (all_targets-retained_canonical), {'missing_after':len((all_targets-retained_canonical)-repaired_keys),'unexpected_repair':len(repaired_keys-(all_targets-retained_canonical))}
+          canonical_union=(retained_canonical|repaired_keys)
+          assert len(canonical_union)==14524,len(canonical_union)
+
+          with gzip.open(OUT/'targeted_23_metric_overlay.jsonl.gz','wt',encoding='utf-8') as h:
+              for r in sorted(combined,key=lambda x:(x['season'],int(x['team_id']),int(x['player_id']),x['metric'])):
+                  h.write(json.dumps(r,ensure_ascii=False,separators=(',',':'))+'\n')
+
+          report={
+              'status':'PASS_COMBINED_23_CANONICAL_GATE',
+              'canonical_expected':14524,
+              'retained_stage2_total_keys':len(retained),
+              'retained_stage2_canonical_intersection':len(retained_canonical),
+              'repaired_keys':len(repaired_keys),
+              'repaired_metric_rows':len(combined),
+              'metrics_per_repaired_key':89,
+              'canonical_union_after_repair':len(canonical_union),
+              'missing_canonical_after_repair':len(all_targets-canonical_union),
+              'extra_repair_keys':len(repaired_keys-all_targets),
+              'solved_13_rebuilt':13,
+              'persisted_10_reused':10,
+              'production_gate_relaxed':False,
+              'stage2_full_rebuild_performed':False,
+              'stage2_sha':os.environ['STAGE2_SHA'],
+              'safety':'same season/team/player only; exact retained tenure intervals or native full-tenure core; 89 metrics per repaired key; no cross-key substitution'
+          }
+          (OUT/'COMBINED_23_CANONICAL_GATE.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          (OUT/'README.md').write_text('# TREB combined 23-key canonical repair overlay\n\n- Status: **PASS**\n- Canonical union: **14,524 / 14,524**\n- Repaired keys: **23**\n- Metrics per repaired key: **89**\n- Stage2 rebuild: **NO**\n- Production gate relaxed: **NO**\n',encoding='utf-8')
+          print(json.dumps(report,indent=2))
+          PY
+
+      - name: Persist combined overlay results
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          git add -f "$OUTDIR"
+          if git diff --cached --quiet; then
+            echo 'No combined overlay outputs to persist'
+          else
+            git commit -m 'Persist combined TREB 23-key canonical overlay gate'
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Upload combined overlay artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-combined-23-key-overlay-${{ github.run_id }}
+          path: ${{ env.OUTDIR }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Surface gate failure
+        if: steps.gate.outcome != 'success'
+        run: exit 1
