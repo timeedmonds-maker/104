@@ -138,7 +138,21 @@ jobs:
           # expects the equivalent legacy field impact_windows_requested.
           d['impact_windows_requested']=d['impact_windows_total']
           p.write_text(json.dumps(d,indent=2)+'\n')
-          print(json.dumps({'status':'PASS','stage2_schema_compatibility':'impact_windows_requested <- impact_windows_total','windows':expected_windows,'metric_rows':expected_rows},indent=2))
+
+          # Compatibility only: PyArrow cannot write an all-empty struct column.
+          # Preserve source_extra exactly as canonical JSON text in the temporary
+          # detached Stage2 worktree; this changes no metric values or source data.
+          fp=Path('/tmp/treb_stage2/team_trb_all_players/finalize_corrected_off_package.py')
+          s=fp.read_text()
+          needle='    segments = jsonl_frame(SEGMENTS)\n'
+          replacement=(
+            needle
+            + '    if "source_extra" in segments.columns:\n'
+            + '        segments["source_extra"] = segments["source_extra"].map(lambda v: json.dumps(v, sort_keys=True, separators=(",", ":")) if isinstance(v, (dict, list)) else v)\n'
+          )
+          assert needle in s
+          fp.write_text(s.replace(needle,replacement,1))
+          print(json.dumps({'status':'PASS','stage2_schema_compatibility':'impact_windows_requested <- impact_windows_total','parquet_compatibility':'source_extra structured values -> canonical JSON text','windows':expected_windows,'metric_rows':expected_rows},indent=2))
           PY
           python -u /tmp/treb_stage2/team_trb_all_players/finalize_corrected_off_package.py
           python -u team_trb_all_players/finalize_treb_full_89_database.py \
