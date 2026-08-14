@@ -1,0 +1,163 @@
+name: TREB repo-wide historical direct source scan
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-repo-wide-direct-treb-source-scan.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: treb-repo-wide-direct-source-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout all history
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Fetch every durable branch and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
+
+      - name: Scan all reachable historical blobs for direct TREB data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, io, json, os, re, subprocess
+          from pathlib import Path
+
+          OUT=Path('/tmp/treb_repo_wide_source_scan')
+          OUT.mkdir(parents=True, exist_ok=True)
+          path_re=re.compile(r'(treb|trb|rebound|on.?off|impact|career)', re.I)
+          signatures=[
+              'On TRB%','Off TRB%','TRB% Swing','TotalReboundPct','Total Rebound',
+              'OffRebounds','DefRebounds','MinutesOff','MinutesOn','team_rebounds',
+              'opponent_rebounds','opponent_rebounds_exact','TeamRebounds','OpponentRebounds'
+          ]
+
+          def sh(*args, text=True):
+              return subprocess.check_output(args, text=text, stderr=subprocess.DEVNULL)
+
+          # Every object/path pair ever reachable from any branch/tag.
+          lines=sh('git','rev-list','--objects','--all').splitlines()
+          objs=[]
+          for line in lines:
+              if ' ' not in line: continue
+              sha,path=line.split(' ',1)
+              if path_re.search(path): objs.append((sha,path))
+
+          # Deduplicate sha/path pairs; many historical names can point to same blob.
+          seen=set(); candidates=[]
+          for sha,path in objs:
+              key=(sha,path)
+              if key in seen: continue
+              seen.add(key); candidates.append(key)
+
+          hits=[]
+          scanned=0
+          for sha,path in candidates:
+              try:
+                  typ=sh('git','cat-file','-t',sha).strip()
+                  if typ!='blob': continue
+                  size=int(sh('git','cat-file','-s',sha).strip())
+                  if size>80_000_000: continue
+                  raw=sh('git','cat-file','blob',sha,text=False)
+                  scanned+=1
+                  data=raw
+                  compression='plain'
+                  if path.endswith('.gz') or raw[:2]==b'\x1f\x8b':
+                      try:
+                          data=gzip.decompress(raw); compression='gzip'
+                      except Exception:
+                          continue
+                  # ZIP archives: record name-level candidates separately; do not explode huge archives here.
+                  if data[:4]==b'PK\x03\x04':
+                      import zipfile
+                      try:
+                          with zipfile.ZipFile(io.BytesIO(data)) as z:
+                              names=z.namelist()
+                              sig_names=[n for n in names if path_re.search(n)]
+                              if sig_names:
+                                  hits.append({'sha':sha,'path':path,'size':size,'compression':'zip','matched_signatures':['ZIP_PATH_MATCH'],'header':'','line_count':None,'zip_candidate_names':sig_names[:100]})
+                      except Exception: pass
+                      continue
+                  try:
+                      text=data.decode('utf-8-sig',errors='replace')
+                  except Exception:
+                      continue
+                  matched=[s for s in signatures if s.lower() in text.lower()]
+                  if not matched: continue
+                  first=text.splitlines()[0] if text.splitlines() else ''
+                  line_count=text.count('\n') + (1 if text and not text.endswith('\n') else 0)
+                  # Count likely data rows for CSVs, and capture a tiny sample only.
+                  sample='\n'.join(text.splitlines()[:4])[:4000]
+                  hits.append({'sha':sha,'path':path,'size':size,'compression':compression,'matched_signatures':matched,'header':first[:2000],'line_count':line_count,'sample':sample})
+
+          # Enrich strongest data hits with commits/branches that can recover them.
+          strong=[]
+          for h in hits:
+              m=set(h.get('matched_signatures') or [])
+              if {'On TRB%','Off TRB%'} <= m or ('OffRebounds' in m and 'DefRebounds' in m and ('MinutesOff' in m or 'MinutesOn' in m)) or 'TotalReboundPct' in m:
+                  try:
+                      commits=sh('git','log','--all',f'--find-object={h["sha"]}','--format=%H').splitlines()[:20]
+                  except Exception:
+                      commits=[]
+                  branches=set()
+                  for c in commits[:5]:
+                      try:
+                          for b in sh('git','branch','-r','--contains',c).splitlines():
+                              b=b.strip()
+                              if b and '->' not in b: branches.add(b)
+                      except Exception: pass
+                  hh=dict(h); hh['commits']=commits; hh['branches']=sorted(branches)
+                  strong.append(hh)
+
+          # Sort likely full datasets first: direct ON/OFF TRB then row count.
+          def score(h):
+              m=set(h.get('matched_signatures') or [])
+              return (10*({'On TRB%','Off TRB%'} <= m) + 6*('TotalReboundPct' in m) + 4*('OffRebounds' in m and 'DefRebounds' in m), h.get('line_count') or 0, h.get('size') or 0)
+          strong=sorted(strong,key=score,reverse=True)
+          hits=sorted(hits,key=score,reverse=True)
+
+          report={
+              'status':'PASS',
+              'reachable_object_path_pairs':len(lines),
+              'candidate_rebound_paths':len(candidates),
+              'candidate_blobs_scanned':scanned,
+              'matching_blobs':len(hits),
+              'strong_direct_treb_or_raw_onoff_blobs':len(strong),
+              'strong_hits':strong[:200],
+              'all_hits':hits[:1000],
+          }
+          (OUT/'TREB_REPO_WIDE_DIRECT_SOURCE_SCAN.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          md=['# TREB repo-wide historical direct source scan','',f"- Candidate rebound/on-off paths: **{len(candidates)}**",f"- Blobs scanned: **{scanned}**",f"- Matching blobs: **{len(hits)}**",f"- Strong direct/raw hits: **{len(strong)}**",'', '## Top strong hits']
+          for h in strong[:50]:
+              md += ['',f"### `{h['path']}`",f"- Blob: `{h['sha']}`",f"- Size: {h.get('size')}",f"- Lines: {h.get('line_count')}",f"- Signatures: {', '.join(h.get('matched_signatures') or [])}",f"- Branches: {', '.join(h.get('branches') or []) or 'not resolved'}",f"- Header: `{h.get('header','')[:500]}`"]
+          (OUT/'TREB_REPO_WIDE_DIRECT_SOURCE_SCAN.md').write_text('\n'.join(md)+'\n')
+          print(json.dumps({k:report[k] for k in ['status','candidate_rebound_paths','candidate_blobs_scanned','matching_blobs','strong_direct_treb_or_raw_onoff_blobs']},indent=2))
+          print('TOP_STRONG_HITS')
+          for h in strong[:20]:
+              print(json.dumps({k:h.get(k) for k in ['path','sha','size','line_count','matched_signatures','branches','header']},default=str))
+          PY
+
+      - name: Upload source scan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-repo-wide-direct-source-scan
+          path: /tmp/treb_repo_wide_source_scan/
+          if-no-files-found: error
+          retention-days: 30
