@@ -1,0 +1,237 @@
+name: TREB 23-key repairability audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-23-key-repairability.yml
+
+permissions:
+  contents: write
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  TARGET_PATH: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  MISSING_PATH: team_trb_all_players/final_integrity_rebuild/canonical_23_key_reconciliation/missing_23_keys.csv
+  RESULT_DIR: team_trb_all_players/final_integrity_rebuild/canonical_23_key_repairability
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Mount pinned Stage2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          rm -rf /tmp/treb_stage2
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          test -d /tmp/treb_stage2/team_trb_all_players/impact_database/outputs
+          test -s /tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz
+
+      - name: Build exact 23-key repairability matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, json, os, re
+          from collections import defaultdict
+          from pathlib import Path
+
+          root=Path('.')
+          stage_root=Path('/tmp/treb_stage2/team_trb_all_players')
+          core_root=stage_root/'impact_database'/'outputs'
+          seg_path=stage_root/'impact_database'/'corrected_off'/'tenure_segment_on_off.jsonl.gz'
+          target_path=root/os.environ['TARGET_PATH']
+          missing_path=root/os.environ['MISSING_PATH']
+          out=root/os.environ['RESULT_DIR']
+          out.mkdir(parents=True,exist_ok=True)
+
+          def norm_id(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def norm_name(v):
+              return re.sub(r'[^a-z0-9]+','',str(v or '').lower())
+          def to_int(v):
+              return int(float(v))
+          def key3(season,team,pid):
+              return (str(season),to_int(team),norm_id(pid))
+          def scalar_subset(d):
+              keep={}
+              for k,v in d.items():
+                  lk=k.lower()
+                  if any(x in lk for x in ('minute','start','end','date','game','window','segment','player','team','season','source','status','reason')) and isinstance(v,(str,int,float,bool,type(None))):
+                      keep[k]=v
+              return keep
+
+          missing=[]
+          with missing_path.open(newline='',encoding='utf-8') as fh:
+              for r in csv.DictReader(fh):
+                  r['team_id']=to_int(r['team_id'])
+                  r['player_id']=norm_id(r['player_id'])
+                  missing.append(r)
+          assert len(missing)==23
+          missing_keys={key3(r['season'],r['team_id'],r['player_id']) for r in missing}
+
+          targets={}
+          with gzip.open(target_path,'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  k=key3(r.get('season'),r.get('team_id'),r.get('player_id'))
+                  if k in missing_keys:
+                      targets[k]=r
+          assert len(targets)==23,(len(targets),'missing target rows found')
+
+          # Retained corrected-off source: collect only evidence touching a missing player's exact season,
+          # exact player-team in other seasons, or same name/team/season. Never promote these as replacements.
+          stage_exact=defaultdict(lambda:{'metrics':set(),'minutes_on':0.0,'minutes_off':0.0,'segments':set()})
+          stage_same_player_season=defaultdict(set)
+          stage_same_player_team=defaultdict(set)
+          missing_pids={k[2] for k in missing_keys}
+          with gzip.open(seg_path,'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  pid=norm_id(r.get('player_id'))
+                  if pid not in missing_pids: continue
+                  season=str(r.get('season'))
+                  team=to_int(r.get('team_id'))
+                  k=(season,team,pid)
+                  stage_same_player_season[(pid,season)].add(team)
+                  stage_same_player_team[(pid,team)].add(season)
+                  if k in missing_keys:
+                      x=stage_exact[k]
+                      x['metrics'].add(str(r.get('metric')))
+                      try: x['minutes_on']+=float(r.get('minutes_on') or 0)
+                      except: pass
+                      try: x['minutes_off']+=float(r.get('minutes_off') or 0)
+                      except: pass
+                      x['segments'].add((str(r.get('query_start_date','')),str(r.get('query_end_date',''))))
+
+          # Original Stage2 native 780-team-season core. This is useful evidence/source for ON and native metric existence,
+          # but whole-season OFF is NOT automatically safe for late signings/trades.
+          core_info=defaultdict(lambda:{'metrics':set(),'on_nonnull':0,'off_nonnull':0,'names':set(),'rows':0})
+          seasons=sorted({k[0] for k in missing_keys})
+          for season in seasons:
+              p=core_root/season/'team_on_off_metrics.csv.gz'
+              if not p.exists(): continue
+              with gzip.open(p,'rt',encoding='utf-8',newline='') as fh:
+                  for r in csv.DictReader(fh):
+                      try: k=key3(season,r.get('team_id'),r.get('subject_player_id'))
+                      except Exception: continue
+                      if k not in missing_keys: continue
+                      x=core_info[k]
+                      x['rows']+=1
+                      x['metrics'].add(str(r.get('metric')))
+                      if str(r.get('on','')).strip() not in ('','nan','None'): x['on_nonnull']+=1
+                      if str(r.get('off','')).strip() not in ('','nan','None'): x['off_nonnull']+=1
+                      if r.get('subject_player'): x['names'].add(str(r.get('subject_player')))
+
+          # Recover exact zero-tail reason objects where possible.
+          zero_details=defaultdict(list)
+          def walk(obj,source):
+              if isinstance(obj,dict):
+                  if {'season','team_id','player_id'} <= set(obj):
+                      try:
+                          k=key3(obj['season'],obj['team_id'],obj['player_id'])
+                          if k in missing_keys:
+                              zero_details[k].append({'source':source,'record':scalar_subset(obj)})
+                      except Exception: pass
+                  for v in obj.values(): walk(v,source)
+              elif isinstance(obj,list):
+                  for v in obj: walk(v,source)
+          for fn in ('zero_minute_tail_exclusions.json','tail_materiality_report.json','deferred_failure_queue.json'):
+              p=stage_root/'impact_database'/'corrected_off'/fn
+              if p.exists():
+                  try: walk(json.loads(p.read_text()),fn)
+                  except Exception: pass
+
+          rows=[]
+          counts=defaultdict(int)
+          for r in missing:
+              k=key3(r['season'],r['team_id'],r['player_id'])
+              t=targets[k]
+              c=core_info[k]
+              s=stage_exact[k]
+              core_metric_count=len(c['metrics'])
+              exact_stage_metric_count=len(s['metrics'])
+              target_meta=scalar_subset(t)
+              zero=zero_details.get(k,[])
+
+              # Conservative repair class. Native core proves the metric layer exists but does not prove corrected OFF.
+              if exact_stage_metric_count==89:
+                  repair='RETAINED_CORRECTED_STAGE2_EXACT_AVAILABLE'
+                  action='Use retained corrected Stage2 exact key; assembler key normalization bug only.'
+              elif zero:
+                  repair='ZERO_MINUTE_TARGET_REQUIRES_EXPLICIT_CANONICAL_POLICY'
+                  action='Do not fabricate ON/OFF. Confirm canonical zero-minute representation and material gate policy.'
+              elif core_metric_count==89:
+                  repair='TARGETED_TENURE_REQUERY_FROM_EXISTING_V2_TARGET'
+                  action='Use V2 target tenure interval(s) to query only this player-team-season; native core confirms all 89 metric names exist. Do not substitute whole-season OFF.'
+              elif core_metric_count>0:
+                  repair='TARGETED_REQUERY_CORE_PARTIAL'
+                  action=f'Targeted tenure-scoped requery required; original core has only {core_metric_count}/89 metrics.'
+              else:
+                  repair='TARGETED_REQUERY_NO_NATIVE_CORE_ROW'
+                  action='Targeted tenure-scoped requery required; no exact original-core row exists. Do not borrow another season/team.'
+              counts[repair]+=1
+              rows.append({
+                  'season':k[0],'team_id':k[1],'player_id':k[2],'player':r.get('player',''),
+                  'prior_classification':r.get('classification',''),
+                  'repair_class':repair,'recommended_action':action,
+                  'native_core_metric_count':core_metric_count,
+                  'native_core_on_nonnull':c['on_nonnull'],'native_core_off_nonnull':c['off_nonnull'],
+                  'retained_corrected_exact_metric_count':exact_stage_metric_count,
+                  'same_player_season_stage2_teams':';'.join(map(str,sorted(stage_same_player_season.get((k[2],k[0]),set())))),
+                  'same_player_team_stage2_seasons':';'.join(sorted(stage_same_player_team.get((k[2],k[1]),set()))),
+                  'target_metadata_json':json.dumps(target_meta,sort_keys=True,separators=(',',':')),
+                  'zero_tail_evidence_json':json.dumps(zero,sort_keys=True,separators=(',',':')),
+              })
+
+          csv_path=out/'repairability_23_keys.csv'
+          with csv_path.open('w',newline='',encoding='utf-8') as fh:
+              w=csv.DictWriter(fh,fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+
+          report={
+              'status':'PASS_REPAIRABILITY_AUDIT',
+              'stage2_sha':os.environ['STAGE2_SHA'],
+              'keys_audited':len(rows),
+              'repair_class_counts':dict(sorted(counts.items())),
+              'production_gate_relaxed':False,
+              'stage2_full_rebuild_required_by_this_audit':False,
+              'rows':rows,
+          }
+          (out/'repairability_report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+
+          md=['# TREB 23-key repairability audit','',f'- Keys audited: **{len(rows)}**','- Production gate relaxed: **NO**','- Full Stage2 rebuild required by this audit: **NO**','','## Repair classes','']
+          md += [f'- {kk}: **{vv}**' for kk,vv in sorted(counts.items())]
+          md += ['','## Per-key result','','| season | team | player | core metrics | corrected exact metrics | repair class |','|---|---:|---|---:|---:|---|']
+          for x in rows:
+              md.append(f"| {x['season']} | {x['team_id']} | {x['player']} ({x['player_id']}) | {x['native_core_metric_count']} | {x['retained_corrected_exact_metric_count']} | {x['repair_class']} |")
+          md += ['','## Safety rule','','No row from another season or team is promoted as a replacement. Original-core whole-season OFF is evidence only and is not used as a tenure-corrected substitute. Missing non-zero rows require only targeted tenure-scoped recovery from their authoritative V2 target intervals; this audit does not justify rebuilding Stage2.']
+          (out/'README.md').write_text('\n'.join(md)+'\n',encoding='utf-8')
+          print(json.dumps({k:v for k,v in report.items() if k!='rows'},indent=2))
+          PY
+
+      - name: Persist repairability audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          git add -f "$RESULT_DIR"
+          git commit -m 'Persist TREB 23-key repairability audit'
+          git push origin HEAD:agent/treb-final-exact-assembly
