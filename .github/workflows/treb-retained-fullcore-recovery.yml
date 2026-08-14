@@ -1,0 +1,297 @@
+name: TREB retained full-core direct REB_PCT recovery
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-retained-fullcore-recovery.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-retained-fullcore-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout production branch with full history
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Fetch retained TREB branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune --no-tags
+          git for-each-ref --format='%(refname:short) %(objectname)' refs/remotes/origin \
+            | grep -i treb \
+            | sort \
+            | tee /tmp/treb_refs.txt
+
+      - name: Recover and validate retained direct full-core layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import csv
+          import gzip
+          import io
+          import json
+          import math
+          import os
+          import re
+          import shutil
+          import subprocess
+          import tempfile
+          import zipfile
+          from pathlib import Path
+
+          import pandas as pd
+
+          REPO = os.environ['GITHUB_REPOSITORY']
+          OUT = Path('team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery')
+          OUT.mkdir(parents=True, exist_ok=True)
+          TMP = Path(tempfile.mkdtemp(prefix='treb-retained-'))
+          TARGET = 9647
+          PATH_RX = re.compile(r'(treb|rebound|on.?off|stage2|impact|database|final|canonical|direct|lock|core)', re.I)
+          DATA_RX = re.compile(r'\.(csv|jsonl|json)(\.gz)?$', re.I)
+          ZIP_RX = re.compile(r'\.zip$', re.I)
+          SIGS = [b'REB_PCT', b'TotalReboundPct', b'teamplayeronoffdetails', b'PlayersOnCourtTeamPlayerOnOffDetails', b'full_core_reuse']
+          inventory = []
+          exact = []
+
+          def sh(*args, text=True, check=True):
+              return subprocess.run(args, check=check, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=text).stdout
+
+          def clean_id(v):
+              s = str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+
+          def truthy(s):
+              return str(s).strip().lower() in {'1','true','t','yes','y'}
+
+          def pct_series(s):
+              x = pd.to_numeric(s, errors='coerce')
+              x = x.where(x <= 1.5, x / 100.0)
+              return x
+
+          def first(cols, names):
+              low = {str(c).lower(): c for c in cols}
+              for n in names:
+                  if n in low:
+                      return low[n]
+              return None
+
+          def inspect_df(df, label, origin):
+              if df is None or df.empty:
+                  return
+              cols = list(df.columns)
+              season = first(cols, ['season','season_id','season_label'])
+              team = first(cols, ['team_id','teamid'])
+              player = first(cols, ['player_id','playerid','person_id'])
+              if not all([season, team, player]):
+                  return
+              metric = first(cols, ['metric','metric_name','stat','stat_name'])
+              source = first(cols, ['source','provenance','treb_source','source_semantics'])
+              full = first(cols, ['full_core_reuse','full_core','is_full_core'])
+              on = first(cols, ['direct_treb_on','treb_on','on_value','value_on','on','on_court','on_pct','on_court_value'])
+              off = first(cols, ['direct_treb_off','treb_off','off_value','value_off','off','off_court','off_pct','off_court_value'])
+
+              work = df.copy()
+              if metric:
+                  m = work[metric].astype(str).str.lower().str.replace(r'[^a-z0-9]+','',regex=True)
+                  work = work[m.isin({'totalreboundpct','rebpct','teamreboundpct'})]
+              if work.empty:
+                  return
+              if full:
+                  work = work[work[full].map(truthy)]
+              elif source:
+                  src = work[source].astype(str).str.lower()
+                  directmask = src.str.contains('teamplayeronoffdetails|direct nba|nba stats.*reb_pct', regex=True)
+                  if directmask.any():
+                      work = work[directmask]
+              if work.empty or on is None or off is None:
+                  return
+
+              norm = pd.DataFrame({
+                  'season': work[season].astype(str),
+                  'team_id': work[team].map(clean_id),
+                  'player_id': work[player].map(clean_id),
+                  'direct_treb_on': pct_series(work[on]),
+                  'direct_treb_off': pct_series(work[off]),
+                  'source': work[source].astype(str) if source else 'retained_direct_REB_PCT',
+              })
+              norm = norm.dropna(subset=['direct_treb_on','direct_treb_off'])
+              norm = norm.drop_duplicates(['season','team_id','player_id'], keep='last')
+              plausible = norm['direct_treb_on'].between(.25,.75) & norm['direct_treb_off'].between(.25,.75)
+              keys = len(norm)
+              entry = {
+                  'origin': origin, 'label': label, 'structured_rows': int(len(df)),
+                  'candidate_keys': int(keys), 'plausible_keys': int(plausible.sum()),
+                  'has_metric_column': bool(metric), 'has_source_column': bool(source),
+                  'has_full_core_flag': bool(full),
+              }
+              inventory.append(entry)
+              if keys == TARGET and plausible.all():
+                  direct_semantics = True
+                  if source:
+                      ss = norm['source'].str.lower()
+                      direct_semantics = bool(ss.str.contains('teamplayeronoffdetails|direct nba|nba stats|reb_pct', regex=True).all())
+                  if direct_semantics:
+                      path = OUT / f'exact_candidate_{len(exact)+1:02d}.csv'
+                      norm.sort_values(['season','team_id','player_id']).to_csv(path, index=False)
+                      exact.append({**entry, 'normalized_path': str(path), 'direct_semantics': True})
+
+          def inspect_bytes(data: bytes, label: str, origin: str):
+              hits = [s.decode() for s in SIGS if s in data]
+              inventory.append({'origin': origin, 'label': label, 'bytes': len(data), 'signature_hits': hits})
+              lname = label.lower()
+              try:
+                  if lname.endswith('.csv'):
+                      inspect_df(pd.read_csv(io.BytesIO(data), low_memory=False), label, origin)
+                  elif lname.endswith('.jsonl'):
+                      rows = [json.loads(x) for x in data.decode('utf-8', errors='replace').splitlines() if x.strip()]
+                      inspect_df(pd.DataFrame(rows), label, origin)
+                  elif lname.endswith('.json'):
+                      obj = json.loads(data.decode('utf-8', errors='replace'))
+                      if isinstance(obj, list): inspect_df(pd.DataFrame(obj), label, origin)
+                      elif isinstance(obj, dict):
+                          for k,v in obj.items():
+                              if isinstance(v, list) and v and isinstance(v[0], dict):
+                                  inspect_df(pd.DataFrame(v), label + '#' + str(k), origin)
+              except Exception as e:
+                  inventory.append({'origin': origin, 'label': label, 'parse_error': repr(e)[:500]})
+
+          def inspect_blob(data: bytes, label: str, origin: str):
+              ll = label.lower()
+              try:
+                  if ll.endswith('.gz'):
+                      inspect_bytes(gzip.decompress(data), label[:-3], origin)
+                  elif ll.endswith('.zip'):
+                      with zipfile.ZipFile(io.BytesIO(data)) as z:
+                          members = [n for n in z.namelist() if DATA_RX.search(n) and PATH_RX.search(n)]
+                          inventory.append({'origin': origin, 'label': label, 'zip_members_relevant': members[:200], 'zip_member_count': len(z.namelist())})
+                          for n in members:
+                              info = z.getinfo(n)
+                              if info.file_size <= 250_000_000:
+                                  inspect_blob(z.read(n), n, origin + '::' + label)
+                  else:
+                      inspect_bytes(data, label, origin)
+              except Exception as e:
+                  inventory.append({'origin': origin, 'label': label, 'inspect_error': repr(e)[:500]})
+
+          refs = [line.split()[0] for line in Path('/tmp/treb_refs.txt').read_text().splitlines() if line.strip()]
+          priority = ['origin/treb-final-database-complete-20260812', 'origin/agent/treb-final-exact-assembly']
+          refs = [r for r in priority if r in refs] + [r for r in refs if r not in priority]
+          seen_blobs = set()
+          for ref in refs:
+              try:
+                  paths = sh('git','ls-tree','-r','--name-only',ref).splitlines()
+              except Exception:
+                  continue
+              candidates = [p for p in paths if PATH_RX.search(p) and (DATA_RX.search(p) or ZIP_RX.search(p))]
+              for p in candidates:
+                  try:
+                      spec = f'{ref}:{p}'
+                      size = int(sh('git','cat-file','-s',spec).strip())
+                      blob = sh('git','rev-parse',spec).strip()
+                      inventory.append({'origin': ref, 'label': p, 'git_blob': blob, 'git_size': size})
+                      if blob in seen_blobs or size > 250_000_000:
+                          continue
+                      seen_blobs.add(blob)
+                      data = sh('git','show',spec,text=False)
+                      # Inspect any plausibly relevant data file. Signatures inside compressed files are checked after decompression.
+                      inspect_blob(data, p, ref)
+                      if exact:
+                          break
+                  except Exception as e:
+                      inventory.append({'origin': ref, 'label': p, 'git_error': repr(e)[:500]})
+              if exact:
+                  break
+
+          # If branch data did not prove the exact retained layer, inspect recent retained Actions artifacts.
+          artifact_rows = []
+          if not exact:
+              raw = sh('gh','api',f'repos/{REPO}/actions/artifacts?per_page=100')
+              obj = json.loads(raw)
+              arts = obj.get('artifacts', [])
+              token_rx = re.compile(r'(treb|rebound|on.?off|stage2|final|exact|impact|database|lock|core|direct)', re.I)
+              arts = [a for a in arts if not a.get('expired') and token_rx.search(a.get('name','')) and int(a.get('size_in_bytes',0)) <= 300_000_000]
+              arts.sort(key=lambda a: a.get('created_at',''), reverse=True)
+              for a in arts[:50]:
+                  artifact_rows.append({k:a.get(k) for k in ['id','name','size_in_bytes','created_at','expires_at']})
+              with (OUT/'artifact_inventory.json').open('w') as f:
+                  json.dump(artifact_rows, f, indent=2)
+              for a in arts[:30]:
+                  aid = str(a['id'])
+                  dest = TMP / f'artifact_{aid}.zip'
+                  try:
+                      with dest.open('wb') as fh:
+                          cp = subprocess.run(['gh','api',f'repos/{REPO}/actions/artifacts/{aid}/zip'], stdout=fh, stderr=subprocess.PIPE)
+                      if cp.returncode != 0:
+                          raise RuntimeError(cp.stderr.decode(errors='replace')[-500:])
+                      inspect_blob(dest.read_bytes(), a.get('name',aid)+'.zip', 'actions_artifact:'+aid)
+                      if exact:
+                          break
+                  except Exception as e:
+                      inventory.append({'origin':'actions_artifact:'+aid,'label':a.get('name',aid),'artifact_error':repr(e)[:500]})
+
+          (OUT/'candidate_inventory.json').write_text(json.dumps(inventory, indent=2) + '\n')
+          (OUT/'exact_candidates.json').write_text(json.dumps(exact, indent=2) + '\n')
+          report = []
+          report.append('# Retained full-core direct REB_PCT recovery')
+          report.append('')
+          report.append(f'- Target canonical full-core keys: **{TARGET}**')
+          report.append(f'- Exact validated candidates: **{len(exact)}**')
+          report.append(f'- TREB branches inspected: **{len(refs)}**')
+          report.append(f'- Unique Git blobs inspected: **{len(seen_blobs)}**')
+          report.append(f'- Rounded percentage backsolve used: **NO**')
+          report.append(f'- Opponent rebound inference used: **NO**')
+          report.append(f'- Live NBA Stats fetch used: **NO**')
+          report.append('')
+          if exact:
+              report.append('## PASS')
+              e = exact[0]
+              report.append(f"Recovered an exact {TARGET}-key direct full-core layer from `{e['origin']}` / `{e['label']}`.")
+              report.append(f"Normalized retained layer: `{e['normalized_path']}`")
+          else:
+              report.append('## NOT YET PROVED')
+              report.append('No inspected retained candidate independently satisfied all exact acceptance conditions in this run. See candidate_inventory.json for the durable search inventory; no substitute source was promoted.')
+          (OUT/'report.md').write_text('\n'.join(report) + '\n')
+          print('\n'.join(report), flush=True)
+          shutil.rmtree(TMP, ignore_errors=True)
+          PY
+
+      - name: Persist recovery inventory to production branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery/
+          if git diff --cached --quiet; then
+            echo 'No recovery output to commit'
+          else
+            git commit -m 'TREB: persist retained full-core REB_PCT recovery inventory'
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Upload recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-retained-fullcore-recovery-${{ github.run_id }}
+          path: team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery/
+          if-no-files-found: error
