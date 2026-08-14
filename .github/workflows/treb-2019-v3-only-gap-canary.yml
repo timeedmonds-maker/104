@@ -1,0 +1,95 @@
+name: TREB 2019 v3-only source-gap canary
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-2019-v3-only-gap-canary.yml]
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy
+      - name: Download 2019 source trio
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          raw=Path('/tmp/treb2019v3'); raw.mkdir(parents=True,exist_ok=True)
+          txt=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in txt.splitlines() if '=' in x}
+          for key in ('nbastats_2019','nbastatsv3_2019','pbpstats_2019'):
+            arc=raw/urls[key].rsplit('/',1)[-1]
+            subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--output',str(arc),urls[key]],check=True)
+            with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Audit v3-only semantic sufficiency and controls
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          import pandas as pd
+          raw=Path('/tmp/treb2019v3')
+          nba=pd.read_csv(raw/'nbastats_2019.csv',low_memory=False)
+          v3=pd.read_csv(raw/'nbastatsv3_2019.csv',low_memory=False)
+          pbp=pd.read_csv(raw/'pbpstats_2019.csv',low_memory=False)
+          targets=[21901316,21901317,21901318]
+          def gi(df,col,g): return df[pd.to_numeric(df[col],errors='coerce').eq(g)].copy()
+          def summarize(g):
+            vg=gi(v3,'gameId',g); ng=gi(nba,'GAME_ID',g); pg=gi(pbp,'GAMEID',g)
+            at=vg['actionType'].astype('string').str.lower() if not vg.empty else pd.Series(dtype='string')
+            reb=vg[at.eq('rebound')].copy() if not vg.empty else vg
+            subs=vg[at.eq('substitution')].copy() if not vg.empty else vg
+            periods=sorted(pd.to_numeric(vg.get('period'),errors='coerce').dropna().astype(int).unique().tolist()) if not vg.empty else []
+            teams=sorted(pd.to_numeric(vg.get('teamId'),errors='coerce').dropna().astype(int).loc[lambda s:s>0].unique().tolist()) if not vg.empty else []
+            player_reb=reb[pd.to_numeric(reb.get('personId'),errors='coerce').fillna(0).gt(0)] if not reb.empty else reb
+            counter_pat=re.compile(r'\(\s*Off\s*:\s*\d+\s+Def\s*:\s*\d+\s*\)',re.I)
+            counter_rows=int(player_reb.get('description',pd.Series(dtype='string')).astype('string').fillna('').str.contains(counter_pat).sum()) if not player_reb.empty else 0
+            return {'game_id':g,'nba_rows':len(ng),'v3_rows':len(vg),'pbp_rows':len(pg),'v3_rebounds':len(reb),'v3_player_rebounds':len(player_reb),'v3_player_rebound_counter_rows':counter_rows,'v3_substitutions':len(subs),'v3_periods':periods,'v3_team_ids':teams,'two_teams':len(teams)==2,'has_complete_period_chronology':bool(periods and periods[0]==1 and periods==list(range(1,max(periods)+1))),'all_player_rebounds_countered':len(player_reb)==counter_rows}
+          target=[summarize(g) for g in targets]
+          # Compare v3 semantic completeness on nearby games where legacy + pbp are both present.
+          candidate=[]
+          gids=sorted(pd.to_numeric(v3.gameId,errors='coerce').dropna().astype(int).unique())
+          for g in gids:
+            if g in targets or not (21901280 <= g <= 21901330): continue
+            s=summarize(g)
+            if s['nba_rows']>0 and s['pbp_rows']>0 and s['v3_rows']>0: candidate.append(s)
+          controls=candidate[:20]
+          assert len(controls)>=10,len(controls)
+          qa={'status':'PASS','targets':target,'control_count':len(controls),'controls':controls,'target_v3_semantically_complete':[x['game_id'] for x in target if x['two_teams'] and x['has_complete_period_chronology'] and x['v3_rebounds']>0 and x['v3_substitutions']>0 and x['all_player_rebounds_countered']],'policy':'Diagnostic only. No production promotion without a separate exact count/lineup equivalence proof against controls.'}
+          out=Path('team_trb_all_players/impact_database/2019_v3_only_gap_canary'); out.mkdir(parents=True,exist_ok=True)
+          (out/'QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps({'status':qa['status'],'target_v3_semantically_complete':qa['target_v3_semantically_complete'],'control_count':qa['control_count']},indent=2))
+          PY
+      - name: Reassert V2 and persist
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          r=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          assert len(r)==14524
+          assert len({(str(x['season']),str(x['player_id']).removesuffix('.0'),int(x['team_id'])) for x in r})==14524
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/2019_v3_only_gap_canary
+          git commit -m 'Persist 2019 v3-only source-gap canary' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2019-v3-only-gap-canary-${{ github.run_id }}
+          path: team_trb_all_players/impact_database/2019_v3_only_gap_canary
+          retention-days: 90
