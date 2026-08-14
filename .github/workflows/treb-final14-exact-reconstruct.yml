@@ -1,0 +1,105 @@
+name: TREB final14 strict exact reconstruction
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-final14-exact-reconstruct.yml]
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download only affected full-source years and reconstruct exact games
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,subprocess,tarfile,urllib.request,sys,gzip
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import build_exact_game_fact_layer as base
+          import production_treb_engine_v3 as lineup_engine
+          import run_local_treb_production as io
+
+          tri=json.loads(Path('team_trb_all_players/impact_database/final14_source_triage/FINAL14_SOURCE_TRIAGE.json').read_text())
+          targets=[r for r in tri['games'] if r['all_three_present']]
+          assert len(targets)==11, len(targets)
+          missing=[r for r in tri['games'] if not r['all_three_present']]
+          assert len(missing)==3, len(missing)
+          years=sorted({int(r['year']) for r in targets})
+          raw=Path('/tmp/final14exact'); raw.mkdir(parents=True,exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for y in years:
+            yd=raw/str(y); yd.mkdir(exist_ok=True)
+            for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'; url=urls[key]; arc=yd/url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','6','--retry-all-errors','--retry-delay','2','--output',str(arc),url],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(yd)
+
+          outdir=Path('team_trb_all_players/impact_database/final14_exact_reconstruction'); outdir.mkdir(parents=True,exist_ok=True)
+          team_rows=[]; player_rows=[]; audits=[]; failures=[]
+          by_year={}
+          for y in years:
+            yd=raw/str(y)
+            nba=io.normalize_nba(pd.read_csv(yd/f'nbastats_{y}.csv',low_memory=False))
+            v3=lineup_engine.normalize_v3(pd.read_csv(yd/f'nbastatsv3_{y}.csv',low_memory=False))
+            pbp=io.normalize_pbp(pd.read_csv(yd/f'pbpstats_{y}.csv',low_memory=False))
+            ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+            vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+            pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+            ids=[int(r['game_id']) for r in targets if int(r['year'])==y]
+            yr={'requested':ids,'success':[],'failures':[]}
+            for gid in ids:
+              assert gid in ng and gid in vg and gid in pg, gid
+              try:
+                tr,pr,a=base.build_game(gid,ng[gid],vg[gid],pg[gid])
+                assert len(tr)==2,(gid,len(tr))
+                team_rows.extend(tr); player_rows.extend(pr); audits.append(a); yr['success'].append(gid)
+              except Exception as exc:
+                rec={'game_id':gid,'error':f'{type(exc).__name__}: {exc}'}
+                failures.append(rec); yr['failures'].append(rec)
+            by_year[str(y)]=yr
+
+          pd.DataFrame(team_rows).to_csv(outdir/'team_game_treb.csv.gz',index=False,compression='gzip')
+          pd.DataFrame(player_rows).to_csv(outdir/'player_game_treb_on.csv.gz',index=False,compression='gzip')
+          (outdir/'game_audit.json').write_text(json.dumps(audits,indent=2)+'\n')
+          (outdir/'failures.json').write_text(json.dumps(failures,indent=2)+'\n')
+          qa={'status':'PASS' if not failures else 'REPAIR_REQUIRED','requested_full_source_games':11,'successful_games':len(audits),'failed_games':len(failures),'source_gap_games':[{k:r[k] for k in ('game_id','year')} for r in missing],'by_year':by_year,'production_values_changed':False}
+          (outdir/'QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - name: Reassert immutable V2 population and persist diagnostic checkpoint
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          rows=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          assert len(rows)==14524
+          keys={(str(r['season']),str(r['player_id']).removesuffix('.0'),int(r['team_id'])) for r in rows}
+          assert len(keys)==14524
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f team_trb_all_players/impact_database/final14_exact_reconstruction
+          git commit -m 'Persist strict final-14 exact reconstruction diagnostic' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-final14-exact-${{ github.run_id }}
+          path: team_trb_all_players/impact_database/final14_exact_reconstruction
+          retention-days: 90
+          if-no-files-found: error
