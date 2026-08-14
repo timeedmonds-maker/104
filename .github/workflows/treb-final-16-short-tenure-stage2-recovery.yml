@@ -1,0 +1,218 @@
+name: TREB final 16 short-tenure Stage2 recovery
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-final-16-short-tenure-stage2-recovery.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-final-16-short-tenure-stage2-recovery
+  cancel-in-progress: false
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  DIAG: team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/STAGE2_MISSING_23_DIAGNOSTIC.json
+  OUT: team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/recovered_short_tenure_16
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact-assembly branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Stage2 request dependency
+        run: python -m pip install --disable-pip-version-check requests
+
+      - name: Recover exact 16 short-tenure windows
+        id: recover
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2 "$OUT"
+          mkdir -p "$OUT"
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          python - <<'PY'
+          import csv, gzip, json, os, sys, traceback
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          from pathlib import Path
+
+          ROOT=Path.cwd()
+          OUT=ROOT/os.environ['OUT']
+          DIAG=ROOT/os.environ['DIAG']
+          S2=Path('/tmp/treb_stage2/team_trb_all_players')
+          sys.path.insert(0,str(S2))
+          import build_corrected_tenure_off as core
+
+          diag=json.loads(DIAG.read_text())
+          targets=[d for d in diag['missing_keys'] if d.get('full_core_reuse') is False]
+          if len(targets)!=16:
+              raise RuntimeError(f'expected exactly 16 non-full-core missing keys, found {len(targets)}')
+
+          windows=[]
+          for d in targets:
+              intervals=d.get('intervals') or []
+              if len(intervals)!=1:
+                  raise RuntimeError(f"expected one authoritative interval for {d['season']}|{d['team_id']}|{d['player_id']}, got {len(intervals)}")
+              iv=intervals[0]
+              start=str(iv['start']); end=str(iv['end'])
+              windows.append({
+                  'season':str(d['season']),
+                  'team_id':int(d['team_id']),
+                  'player_id':str(d['player_id']),
+                  'player':str(d['player']),
+                  'tenure_start':start,
+                  'tenure_end':end,
+                  'query_start_date':start,
+                  'query_end_date':end,
+                  'schedule_boundary_status':'resolved',
+                  'zero_game_window':False,
+                  'zero_minute_only':False,
+                  'team_games_in_window':int(d.get('team_games_in_tenure') or 0),
+                  'transaction_day_policy':'authoritative_v2_effective_interval_exact',
+                  'source':'authoritative_v2_target_manifest_missing23_recovery',
+                  'tenure_confidence':'authoritative_v2',
+                  'target_minutes_on':float(d.get('minutes_on') or 0.0),
+                  'target_seconds_on':float(d.get('seconds_on') or 0.0),
+                  'interval_reason':str(iv.get('reason') or ''),
+              })
+
+          results=[]; failures=[]
+          def collect(w):
+              try:
+                  r=core.collect_window(w)
+                  return w,r,None
+              except Exception as exc:
+                  return w,None,{'window':w,'error':repr(exc),'traceback':traceback.format_exc()}
+
+          with ThreadPoolExecutor(max_workers=4,thread_name_prefix='treb16') as pool:
+              futs=[pool.submit(collect,w) for w in windows]
+              for i,f in enumerate(as_completed(futs),1):
+                  w,r,e=f.result()
+                  if e is not None:
+                      failures.append(e)
+                  elif not r.get('complete'):
+                      failures.append({'window':w,'result':r})
+                      results.append(r)
+                  else:
+                      results.append(r)
+                  print(f'recovery {i}/16 complete={sum(bool(x.get("complete")) for x in results)} failures={len(failures)}',flush=True)
+
+          results=sorted(results,key=lambda r:(str(r.get('season')),int(r.get('team_id') or 0),str(r.get('player_id'))))
+          long=[]
+          key_reports=[]
+          metric_sets=[]
+          for r in results:
+              metrics=r.get('metrics') or []
+              names=[str(m.get('metric') or '') for m in metrics]
+              metric_sets.append(set(names))
+              key_reports.append({
+                  'season':r.get('season'),'team_id':r.get('team_id'),'player_id':r.get('player_id'),'player':r.get('player'),
+                  'query_start_date':r.get('query_start_date'),'query_end_date':r.get('query_end_date'),
+                  'complete':bool(r.get('complete')),'metric_count':len(metrics),
+                  'unique_metric_count':len(set(names)),'minutes_on':r.get('minutes_on'),'minutes_off':r.get('minutes_off'),
+                  'collection_source':r.get('collection_source') or 'pbpstats_tenure_scoped_direct',
+                  'requests':r.get('requests'),
+              })
+              base={k:v for k,v in r.items() if k not in {'metrics','minute_source_row','requests'}}
+              for m in metrics:
+                  long.append({**base,**m})
+
+          complete=sum(bool(r.get('complete')) for r in results)
+          distinct_keys={(str(r.get('season')),int(r.get('team_id') or 0),str(r.get('player_id'))) for r in results if r.get('complete')}
+          duplicate_long=len(long)-len({(str(r.get('season')),int(r.get('team_id') or 0),str(r.get('player_id')),str(r.get('metric'))) for r in long})
+          common_metrics=set.intersection(*metric_sets) if metric_sets else set()
+          all_metric_sets_identical=bool(metric_sets) and all(s==metric_sets[0] for s in metric_sets)
+          status='PASS' if (
+              not failures and complete==16 and len(distinct_keys)==16 and len(long)==1424 and duplicate_long==0
+              and all_metric_sets_identical and len(common_metrics)==89
+              and all(k['metric_count']==89 and k['unique_metric_count']==89 for k in key_reports)
+          ) else 'FAIL'
+          qa={
+              'status':status,
+              'stage2_sha':os.environ['STAGE2_SHA'],
+              'scope':'exact recovery of the 16 authoritative V2 short-tenure keys missing from pinned Stage2',
+              'target_keys':16,
+              'complete_keys':complete,
+              'distinct_complete_keys':len(distinct_keys),
+              'expected_metrics_per_key':89,
+              'metric_rows':len(long),
+              'expected_metric_rows':1424,
+              'duplicate_metric_keys':duplicate_long,
+              'all_metric_sets_identical':all_metric_sets_identical,
+              'common_metric_count':len(common_metrics),
+              'failed_keys':len(failures),
+              'failures':failures,
+              'keys':key_reports,
+              'historical_stage2_rebuild':False,
+              'collector':'pinned build_corrected_tenure_off.collect_window',
+              'source_endpoint':'PBP Stats tenure-scoped get-on-off team/stat',
+          }
+          (OUT/'RECOVERY_QA.json').write_text(json.dumps(qa,indent=2,ensure_ascii=False,default=str)+'\n')
+          with gzip.open(OUT/'recovered_short_tenure_16.jsonl.gz','wt',encoding='utf-8') as fh:
+              for r in results:
+                  fh.write(json.dumps(r,ensure_ascii=False,default=str)+'\n')
+          fieldnames=sorted({k for row in long for k in row.keys()}) if long else []
+          if fieldnames:
+              with open(OUT/'recovered_short_tenure_16_metrics.csv','w',newline='',encoding='utf-8') as fh:
+                  wr=csv.DictWriter(fh,fieldnames=fieldnames,extrasaction='ignore')
+                  wr.writeheader()
+                  for row in long:
+                      wr.writerow({k:(json.dumps(v,sort_keys=True,separators=(',',':')) if isinstance(v,(dict,list)) else v) for k,v in row.items()})
+          (OUT/'README.md').write_text(
+              '# Targeted Stage2 short-tenure recovery\n\n'
+              f'- Status: **{status}**\n'
+              f'- Keys requested: **16**\n'
+              f'- Keys complete: **{complete}**\n'
+              f'- Metric rows: **{len(long)} / 1,424**\n'
+              f'- Common metric count: **{len(common_metrics)} / 89**\n'
+              f'- Failed keys: **{len(failures)}**\n'
+              '- Historical Stage2 rebuild: **No**\n'
+              '- Collector: pinned Stage2 `build_corrected_tenure_off.collect_window`\n',encoding='utf-8')
+          print(json.dumps({k:qa[k] for k in ['status','target_keys','complete_keys','metric_rows','duplicate_metric_keys','common_metric_count','failed_keys','historical_stage2_rebuild']},indent=2))
+          if status!='PASS':
+              raise RuntimeError(f'targeted 16-key recovery failed QA: {json.dumps({k:qa[k] for k in ["complete_keys","metric_rows","duplicate_metric_keys","common_metric_count","failed_keys"]})}')
+          PY
+
+      - name: Persist recovery evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ -d "$OUT" ]; then
+            git add -f "$OUT"
+            if git diff --cached --quiet; then
+              echo 'No recovery evidence changes to commit'
+            else
+              git commit -m 'Persist targeted 16-key Stage2 recovery'
+              git push origin HEAD:agent/treb-final-exact-assembly
+            fi
+          fi
+
+      - name: Upload targeted recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-16-short-tenure-recovery-${{ github.run_id }}
+          path: ${{ env.OUT }}
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Surface targeted recovery failure
+        if: steps.recover.outcome == 'failure'
+        run: |
+          echo 'Targeted 16-key recovery did not pass; evidence was persisted for one-shot diagnosis.'
+          exit 1
