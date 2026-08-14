@@ -1,0 +1,113 @@
+name: TREB 2019 V3 clock normalization canary
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-2019-v3-clock-normalization-canary.yml]
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy
+      - name: Download 2019 source trio
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import subprocess,tarfile,urllib.request
+          from pathlib import Path
+          raw=Path('/tmp/treb2019clock'); raw.mkdir(parents=True,exist_ok=True)
+          txt=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in txt.splitlines() if '=' in x}
+          for key in ('nbastats_2019','nbastatsv3_2019','pbpstats_2019'):
+            arc=raw/urls[key].rsplit('/',1)[-1]
+            subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--output',str(arc),urls[key]],check=True)
+            with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          PY
+      - name: Test clock-normalized rebound identity on healthy controls
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,math,re
+          from collections import Counter
+          from pathlib import Path
+          import pandas as pd
+
+          raw=Path('/tmp/treb2019clock')
+          nba=pd.read_csv(raw/'nbastats_2019.csv',low_memory=False)
+          v3=pd.read_csv(raw/'nbastatsv3_2019.csv',low_memory=False)
+          pbp=pd.read_csv(raw/'pbpstats_2019.csv',low_memory=False)
+          targets={21901316,21901317,21901318}
+
+          def gi(df,col,g): return df[pd.to_numeric(df[col],errors='coerce').eq(g)].copy()
+          def int0(v):
+            n=pd.to_numeric(v,errors='coerce'); return 0 if pd.isna(n) else int(n)
+          def parse_clock(v):
+            s=str(v or '').strip()
+            m=re.fullmatch(r'PT(?:(\d+)M)?([0-9]+(?:\.[0-9]+)?)S',s,re.I)
+            if m: return (int(m.group(1) or 0)*60)+float(m.group(2))
+            m=re.fullmatch(r'(\d+):(\d+(?:\.\d+)?)',s)
+            if m: return int(m.group(1))*60+float(m.group(2))
+            return None
+          def legacy_clock(v):
+            x=parse_clock(v); return None if x is None else int(x)
+          def v3_clock_floor(v):
+            x=parse_clock(v); return None if x is None else math.floor(x+1e-9)
+          def v3_clock_round(v):
+            x=parse_clock(v); return None if x is None else int(round(x))
+
+          def keys_legacy(g):
+            x=gi(nba,'GAME_ID',g)
+            x=x[pd.to_numeric(x['EVENTMSGTYPE'],errors='coerce').eq(4)].copy()
+            return Counter((int0(r.get('PERIOD')),legacy_clock(r.get('PCTIMESTRING')),int0(r.get('PLAYER1_ID')),int0(r.get('PLAYER1_TEAM_ID'))) for _,r in x.iterrows())
+          def keys_v3(g,clock_fn):
+            x=gi(v3,'gameId',g)
+            x=x[x['actionType'].astype('string').str.lower().eq('rebound')].copy()
+            return Counter((int0(r.get('period')),clock_fn(r.get('clock')),int0(r.get('personId')),int0(r.get('teamId'))) for _,r in x.iterrows())
+
+          gids=[int(x) for x in sorted(pd.to_numeric(v3.gameId,errors='coerce').dropna().astype(int).unique())]
+          controls=[]
+          for g in gids:
+            if g in targets or not (21901280 <= g <= 21901330): continue
+            if len(gi(nba,'GAME_ID',g)) and len(gi(pbp,'GAMEID',g)) and len(gi(v3,'gameId',g)):
+              lk=keys_legacy(g); rf=keys_v3(g,v3_clock_floor); rr=keys_v3(g,v3_clock_round)
+              controls.append({'game_id':g,'legacy_rebounds':sum(lk.values()),'v3_rebounds':sum(rf.values()),'floor_exact':rf==lk,'round_exact':rr==lk,'floor_v3_only':sum((rf-lk).values()),'floor_legacy_only':sum((lk-rf).values()),'round_v3_only':sum((rr-lk).values()),'round_legacy_only':sum((lk-rr).values())})
+            if len(controls)>=20: break
+          assert len(controls)==20,len(controls)
+          floor_wrong=[x for x in controls if not x['floor_exact']]
+          round_wrong=[x for x in controls if not x['round_exact']]
+          qa={'status':'PASS','control_count':20,'floor_exact_games':20-len(floor_wrong),'floor_wrong_games':len(floor_wrong),'round_exact_games':20-len(round_wrong),'round_wrong_games':len(round_wrong),'floor_normalization_safe_candidate':len(floor_wrong)==0,'controls':controls,'policy':'Diagnostic only. No production promotion. A clock normalization is eligible for further lineup-equivalence testing only if all healthy controls are exact after normalization.'}
+          out=Path('team_trb_all_players/impact_database/2019_v3_clock_normalization_canary'); out.mkdir(parents=True,exist_ok=True)
+          (out/'QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps({k:qa[k] for k in ('status','control_count','floor_exact_games','floor_wrong_games','round_exact_games','round_wrong_games','floor_normalization_safe_candidate')},indent=2))
+          PY
+      - name: Reassert V2 and persist diagnostic
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          r=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          assert len(r)==14524
+          assert len({(str(x['season']),str(x['player_id']).removesuffix('.0'),int(x['team_id'])) for x in r})==14524
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/2019_v3_clock_normalization_canary
+          git commit -m 'Persist 2019 V3 clock normalization audit' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2019-v3-clock-normalization-${{ github.run_id }}
+          path: team_trb_all_players/impact_database/2019_v3_clock_normalization_canary
+          retention-days: 90
