@@ -1,4 +1,4 @@
-# Production release: all 89 Stage2 metrics plus exact-count TREB/OREB/DREB overlay.
+# Production release: 89 Stage2 metrics, exact-count overlay on validated partial tenures, direct Stage2 full-core values.
 name: TREB final 89-metric exact production release
 
 on:
@@ -19,6 +19,9 @@ env:
   LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
   OUT: /tmp/treb_final_exact
   STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  EXPECTED_EXACT_SEGMENTS: '5199'
+  EXPECTED_PARTIAL_ROWS: '4877'
+  EXPECTED_FULL_CORE_ROWS: '9647'
   EXPECTED_DETAIL_ROWS: '14524'
   EXPECTED_CAREER_PLAYERS: '3122'
   EXPECTED_METRICS: '89'
@@ -54,7 +57,7 @@ jobs:
           done
           test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
 
-      - name: Consolidate exact locked rebound counts
+      - name: Consolidate exact locked partial rebound counts
         shell: bash
         run: |
           set -euo pipefail
@@ -62,7 +65,7 @@ jobs:
             --locks-dir /tmp/treb_locks \
             --output-dir "$OUT"
 
-      - name: Enforce exact-count rebound gate
+      - name: Enforce exact partial rebound gate
         shell: bash
         run: |
           set -euo pipefail
@@ -77,8 +80,8 @@ jobs:
           assert qa['status']=='PASS' and qa['seasons_complete']==26, qa
           assert qa['duplicate_tenure_keys']==0 and qa['unexpected_exceptions']==0 and qa['unmatched_rebound_rows']==0, qa
           assert qa['accepted_exclusion_ledger_exact_match'] is True, qa
-          assert len(detail)==int(os.environ['EXPECTED_DETAIL_ROWS']), len(detail)
-          assert len(career)==int(os.environ['EXPECTED_CAREER_PLAYERS']), len(career)
+          assert len(detail)==int(os.environ['EXPECTED_EXACT_SEGMENTS']), len(detail)
+          assert len(career)==qa['career_players'], (len(career),qa['career_players'])
           counts=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off']
           for col in counts+['seconds_on','seconds_off','games_processed']:
             s=pd.to_numeric(detail[col],errors='raise')
@@ -98,12 +101,20 @@ jobs:
             assert d.empty or float(d.max())<1e-12,(col,float(d.max()))
           detail.to_parquet(out/'career_treb_detail.parquet',index=False)
           career.to_parquet(out/'career_treb_summary.parquet',index=False)
-          gate={'status':'PASS','exact_count_only':True,'rounded_percentage_backsolve_used':False,'detail_rows':len(detail),'career_players':len(career),'seasons':detail.season.nunique(),'rates_recomputed_from_exact_counts':True}
+          gate={
+            'status':'PASS',
+            'scope':'validated_partial_tenure_segments',
+            'exact_count_segment_rows':len(detail),
+            'exact_partial_career_support_players':len(career),
+            'seasons':detail.season.nunique(),
+            'rounded_percentage_backsolve_used':False,
+            'rates_recomputed_from_exact_counts':True
+          }
           (out/'EXACT_COUNT_RELEASE_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
           print(json.dumps(gate,indent=2))
           PY
 
-      - name: Assemble all 89 established Stage2 metrics with exact rebound overlay
+      - name: Assemble all 89 established Stage2 metrics with exact partial rebound overlay
         shell: bash
         run: |
           set -euo pipefail
@@ -130,10 +141,15 @@ jobs:
           assert q['stage2_windows']==int(os.environ['EXPECTED_STAGE2_WINDOWS'])==15206,q
           assert q['stage2_source_metric_rows']==int(os.environ['EXPECTED_STAGE2_METRIC_ROWS'])==1353334,q
           assert q['canonical_player_team_season_rows']==int(os.environ['EXPECTED_DETAIL_ROWS'])==14524,q
+          assert q['exact_count_segment_rows']==int(os.environ['EXPECTED_EXACT_SEGMENTS'])==5199,q
+          assert q['exact_count_partial_player_team_rows']==int(os.environ['EXPECTED_PARTIAL_ROWS'])==4877,q
+          assert q['full_core_stage2_direct_rows']==int(os.environ['EXPECTED_FULL_CORE_ROWS'])==9647,q
           assert q['player_team_season_metric_rows']==int(os.environ['EXPECTED_PLAYER_TEAM_METRIC_ROWS'])==1292636,q
           assert q['career_players']==int(os.environ['EXPECTED_CAREER_PLAYERS'])==3122,q
           assert q['career_metric_rows']==int(os.environ['EXPECTED_CAREER_METRIC_ROWS'])==277858,q
           assert set(q['exact_count_overlay_metrics'])=={'TotalReboundPct','OffReboundPct','DefReboundPct'},q
+          assert q['exact_count_overlay_metric_rows']==4877*3,q
+          assert q['stage2_direct_rebound_metric_rows']==9647*3,q
           assert q['all_89_metrics_present_for_every_canonical_key'] is True,q
           assert q['career_89_metrics_present_for_every_player'] is True,q
           assert q['rounded_percentage_backsolve_used'] is False,q
@@ -151,7 +167,7 @@ jobs:
           Path(os.environ['OUT'],'captains_call_accepted_residuals.json').write_text(json.dumps(d,indent=2)+'\n')
           PY
 
-      - name: Independent exact and all-metric reader validation
+      - name: Independent supporting exact and complete all-metric reader validation
         shell: bash
         run: |
           set -euo pipefail
@@ -160,12 +176,13 @@ jobs:
           from pathlib import Path
           import pandas as pd
           out=Path(os.environ['OUT'])
+          qa=json.loads((out/'qa_report.json').read_text())
           d_csv=pd.read_csv(out/'career_treb_detail.csv',low_memory=False); d_pq=pd.read_parquet(out/'career_treb_detail.parquet')
           c_csv=pd.read_csv(out/'career_treb_summary.csv',low_memory=False); c_pq=pd.read_parquet(out/'career_treb_summary.parquet')
           with sqlite3.connect(out/'treb_2000_01_to_2025_26.sqlite') as con:
             d_sql=int(pd.read_sql_query('select count(*) n from tenure_detail',con).iloc[0,0]); c_sql=int(pd.read_sql_query('select count(*) n from career_summary',con).iloc[0,0])
-          assert len(d_csv)==len(d_pq)==d_sql==int(os.environ['EXPECTED_DETAIL_ROWS'])
-          assert len(c_csv)==len(c_pq)==c_sql==int(os.environ['EXPECTED_CAREER_PLAYERS'])
+          assert len(d_csv)==len(d_pq)==d_sql==int(os.environ['EXPECTED_EXACT_SEGMENTS'])
+          assert len(c_csv)==len(c_pq)==c_sql==qa['career_players']
           m_csv=pd.read_csv(out/'all_metrics_player_team_season.csv.gz',compression='gzip',low_memory=False)
           m_pq=pd.read_parquet(out/'all_metrics_player_team_season.parquet')
           mc_csv=pd.read_csv(out/'all_metrics_career.csv.gz',compression='gzip',low_memory=False)
@@ -179,7 +196,16 @@ jobs:
           n3=con.execute('select count(*) from metric_dictionary').fetchone()[0]
           con.close()
           assert n1==len(m_csv) and n2==len(mc_csv) and n3==89,(n1,n2,n3)
-          report={'status':'PASS','exact_csv_parquet_sqlite_rows_identical':True,'all_metrics_csv_parquet_duckdb_rows_identical':True,'metric_count':89,'player_team_metric_rows':len(m_csv),'career_metric_rows':len(mc_csv)}
+          report={
+            'status':'PASS',
+            'supporting_exact_csv_parquet_sqlite_rows_identical':True,
+            'all_metrics_csv_parquet_duckdb_rows_identical':True,
+            'metric_count':89,
+            'canonical_player_team_seasons':int(os.environ['EXPECTED_DETAIL_ROWS']),
+            'player_team_metric_rows':len(m_csv),
+            'career_players':int(os.environ['EXPECTED_CAREER_PLAYERS']),
+            'career_metric_rows':len(mc_csv)
+          }
           (out/'reader_validation.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
@@ -200,8 +226,28 @@ jobs:
           import hashlib,json,os
           from pathlib import Path
           out=Path(os.environ['OUT']); z=Path('/tmp/TREB_final_database_2000-01_to_2025-26.zip')
-          qa=json.loads((out/'qa_report.json').read_text()); gate=json.loads((out/'EXACT_COUNT_RELEASE_GATE.json').read_text()); all89=json.loads((out/'ALL_89_METRICS_QA.json').read_text()); reader=json.loads((out/'reader_validation.json').read_text())
-          report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_branch':os.environ['GITHUB_REF_NAME'],'source_commit':os.environ['GITHUB_SHA'],'seasons':26,'season_range':['2000-01','2025-26'],'canonical_player_team_seasons':qa['tenure_detail_rows'],'career_players':qa['career_players'],'metric_count':all89['metric_count'],'player_team_metric_rows':all89['player_team_season_metric_rows'],'career_metric_rows':all89['career_metric_rows'],'stage2_source_metric_rows':all89['stage2_source_metric_rows'],'exact_count_gate':gate['status'],'all_89_metric_gate':all89['status'],'reader_validation':reader['status'],'rounded_percentage_backsolve_used':False,'captains_call_residual_rebounds_accepted':13,'package':z.name,'package_sha256':hashlib.sha256(z.read_bytes()).hexdigest()}
+          support=json.loads((out/'qa_report.json').read_text())
+          gate=json.loads((out/'EXACT_COUNT_RELEASE_GATE.json').read_text())
+          all89=json.loads((out/'ALL_89_METRICS_QA.json').read_text())
+          reader=json.loads((out/'reader_validation.json').read_text())
+          report={
+            'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+            'source_branch':os.environ['GITHUB_REF_NAME'],'source_commit':os.environ['GITHUB_SHA'],
+            'seasons':26,'season_range':['2000-01','2025-26'],
+            'canonical_player_team_seasons':all89['canonical_player_team_season_rows'],
+            'full_core_rows':all89['full_core_stage2_direct_rows'],
+            'partial_player_team_season_rows':all89['exact_count_partial_player_team_rows'],
+            'exact_partial_segments':all89['exact_count_segment_rows'],
+            'career_players':all89['career_players'],'metric_count':all89['metric_count'],
+            'player_team_metric_rows':all89['player_team_season_metric_rows'],
+            'career_metric_rows':all89['career_metric_rows'],
+            'stage2_source_metric_rows':all89['stage2_source_metric_rows'],
+            'exact_partial_gate':gate['status'],'all_89_metric_gate':all89['status'],'reader_validation':reader['status'],
+            'rounded_percentage_backsolve_used':False,
+            'captains_call_residual_rebounds_accepted':13,
+            'supporting_exact_lock_qa':support['status'],
+            'package':z.name,'package_sha256':hashlib.sha256(z.read_bytes()).hexdigest()
+          }
           (out/'FINAL_EXACT_PRODUCTION_BUILD_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
