@@ -1,0 +1,77 @@
+name: TREB ON/OFF subtraction proof
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-onoff-subtraction-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: treb-onoff-subtraction-proof
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install audit readers
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow
+
+      - name: Rebuild exact-key support only
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/treb_exact_support
+          LOCK_PATH=team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+          rm -rf /tmp/treb_locks "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          python -u team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb_locks \
+            --output-dir "$OUT"
+          python - <<'PY'
+          import pandas as pd
+          d=pd.read_csv('/tmp/treb_exact_support/career_treb_detail.csv',low_memory=False)
+          assert len(d)==5199, len(d)
+          assert d.groupby(['season','team_id','player_id']).ngroups==4877
+          print({'exact_support':'PASS','segments':5199,'exact_pts':4877})
+          PY
+
+      - name: Prove retained ON semantics and OFF subtraction path
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_subtraction_proof
+          mkdir -p /tmp/treb_subtraction_proof
+          python -u team_trb_all_players/audit_treb_onoff_subtraction_proof.py \
+            --canonical team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            --exact-detail /tmp/treb_exact_support/career_treb_detail.csv \
+            --root team_trb_all_players \
+            --out /tmp/treb_subtraction_proof
+
+      - name: Upload proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-onoff-subtraction-proof
+          path: |
+            /tmp/treb_subtraction_proof/TREB_ONOFF_SUBTRACTION_PROOF.json
+            /tmp/treb_subtraction_proof/TREB_ONOFF_SUBTRACTION_PROOF.md
+            /tmp/treb_subtraction_proof/TEAM_SEASON_TOTAL_ROWS.csv.gz
+          if-no-files-found: warn
+          retention-days: 30
