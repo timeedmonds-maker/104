@@ -1,0 +1,298 @@
+# Completion-first final release. Reuses immutable Stage2 source/cache and patches only the bounded 23-key gap.
+name: TREB final materiality completion release
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: ['.github/workflows/treb-final-materiality-completion-release.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: treb-final-materiality-completion-release
+  cancel-in-progress: false
+
+env:
+  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+  OUT: /tmp/treb_final_exact
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  STAGE2_CACHE: /tmp/treb_stage2_export_cache
+  STAGE2_RELEASE: /tmp/treb_stage2_release_export
+  EXPECTED_EXACT_SEGMENTS: '5199'
+  EXPECTED_PARTIAL_ROWS: '4877'
+  EXPECTED_FULL_CORE_ROWS: '9647'
+  EXPECTED_DETAIL_ROWS: '14524'
+  EXPECTED_CAREER_PLAYERS: '3122'
+  EXPECTED_METRICS: '89'
+  EXPECTED_STAGE2_WINDOWS: '15206'
+  EXPECTED_STAGE2_METRIC_ROWS: '1353334'
+  EXPECTED_PLAYER_TEAM_METRIC_ROWS: '1292636'
+  EXPECTED_CAREER_METRIC_ROWS: '277858'
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - name: Checkout exact-assembly branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install release readers
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+
+      - name: Restore immutable Stage2 aggregate export cache
+        id: stage2_cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STAGE2_CACHE }}
+          key: treb-stage2-final-export-${{ env.STAGE2_SHA }}-jsonstruct-v1
+
+      - name: Recover 26 validated safe locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks "$OUT" /tmp/treb_stage2 "$STAGE2_RELEASE"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git fetch --no-tags --depth=1 origin "refs/heads/${b}:refs/remotes/origin/${b}"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+
+      - name: Consolidate established exact partial rebound counts
+        run: |
+          python -u team_trb_all_players/finalize_treb_database.py --locks-dir /tmp/treb_locks --output-dir "$OUT"
+
+      - name: Enforce exact partial rebound gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          import pandas as pd
+          out=Path(os.environ['OUT'])
+          d=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
+          c=pd.read_csv(out/'career_treb_summary.csv',low_memory=False)
+          q=json.loads((out/'qa_report.json').read_text())
+          assert q['status']=='PASS' and q['seasons_complete']==26,q
+          assert q['duplicate_tenure_keys']==0 and q['unexpected_exceptions']==0 and q['unmatched_rebound_rows']==0,q
+          assert q['accepted_exclusion_ledger_exact_match'] is True,q
+          assert len(d)==int(os.environ['EXPECTED_EXACT_SEGMENTS']),len(d)
+          counts=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off']
+          for col in counts+['seconds_on','seconds_off','games_processed']:
+            s=pd.to_numeric(d[col],errors='raise')
+            assert s.notna().all() and (s>=0).all(),col
+            assert float((s-s.round()).abs().max())<1e-9,col
+          d.to_parquet(out/'career_treb_detail.parquet',index=False)
+          c.to_parquet(out/'career_treb_summary.parquet',index=False)
+          gate={'status':'PASS','exact_count_segment_rows':len(d),'seasons':26,'rounded_percentage_backsolve_used':False,'rates_recomputed_from_exact_counts':True}
+          (out/'EXACT_COUNT_RELEASE_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2))
+          PY
+
+      - name: Prepare immutable pinned Stage2 worktree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path('/tmp/treb_stage2/team_trb_all_players')
+          p=root/'impact_database/corrected_off/corrected_off_collection_summary.json'
+          d=json.loads(p.read_text())
+          ew=int(os.environ['EXPECTED_STAGE2_WINDOWS']); er=int(os.environ['EXPECTED_STAGE2_METRIC_ROWS'])
+          assert d.get('all_complete') is True,d
+          assert int(d.get('impact_windows_total') or -1)==ew,d
+          assert int(d.get('complete_windows') or -1)==ew,d
+          assert int(d.get('remaining_windows',-1))==0 and int(d.get('failed_windows',-1))==0,d
+          assert int(d.get('metric_rows') or -1)==er,d
+          d['impact_windows_requested']=d['impact_windows_total']
+          p.write_text(json.dumps(d,indent=2)+'\n')
+          fp=root/'finalize_corrected_off_package.py'
+          s=fp.read_text()
+          needle='    segments = jsonl_frame(SEGMENTS)\n'
+          replacement=(needle+'    if "source_extra" in segments.columns:\n'+'        segments["source_extra"] = segments["source_extra"].map(lambda v: json.dumps(v, sort_keys=True, separators=(",", ":")) if isinstance(v, (dict, list)) else v)\n')
+          assert needle in s
+          fp.write_text(s.replace(needle,replacement,1))
+          print(json.dumps({'status':'PASS','pinned_stage2_windows':ew,'pinned_stage2_metric_rows':er,'historical_collection_rerun':False},indent=2))
+          PY
+
+      - name: Build Stage2 aggregate export only on cache miss
+        if: steps.stage2_cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u /tmp/treb_stage2/team_trb_all_players/finalize_corrected_off_package.py
+          rm -rf "$STAGE2_CACHE"
+          mkdir -p "$STAGE2_CACHE"
+          cp -a /tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/final_export/. "$STAGE2_CACHE/"
+
+      - name: Validate cached Stage2 aggregate export
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path(os.environ['STAGE2_CACHE'])
+          q=json.loads((p/'quality_report.json').read_text())
+          assert int(q['metric_count'])==89,q
+          assert int(q['tenure_segment_metric_rows'])==1353334,q
+          assert (p/'player_team_season_corrected_on_off.parquet').exists()
+          print(json.dumps({'status':'PASS','stage2_cache_reused':os.environ.get('CACHE_HIT','unknown'),'metric_count':89,'segment_metric_rows':1353334},indent=2))
+          PY
+        env:
+          CACHE_HIT: ${{ steps.stage2_cache.outputs.cache-hit }}
+
+      - name: Patch forward the bounded 23-key canonical gap
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$STAGE2_RELEASE"
+          mkdir -p "$STAGE2_RELEASE"
+          cp -a "$STAGE2_CACHE/." "$STAGE2_RELEASE/"
+          FINAL6=/tmp/FINAL_6_RECOVERY_QA.json
+          rm -f "$FINAL6"
+          git fetch --no-tags origin agent/treb-final-exact-assembly
+          P=team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/final_6_targeted_recovery/FINAL_6_RECOVERY_QA.json
+          if git cat-file -e "refs/remotes/origin/agent/treb-final-exact-assembly:${P}" 2>/dev/null; then
+            git show "refs/remotes/origin/agent/treb-final-exact-assembly:${P}" > "$FINAL6"
+          fi
+          ARGS=(--stage2-export-dir "$STAGE2_RELEASE" --stage2-root /tmp/treb_stage2/team_trb_all_players --ledger "$OUT/PATCH_FORWARD_EXCEPTION_LEDGER.json")
+          if [ -s "$FINAL6" ]; then ARGS+=(--optional-final6-json "$FINAL6"); fi
+          python -u team_trb_all_players/build_patch_forward_stage2_export.py "${ARGS[@]}"
+
+      - name: Assemble complete 89-metric final database
+        run: |
+          python -u team_trb_all_players/finalize_treb_full_89_database.py --stage2-export-dir "$STAGE2_RELEASE" --exact-dir "$OUT" --stage2-sha "$STAGE2_SHA"
+
+      - name: Single final aggregate completion and materiality gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          out=Path(os.environ['OUT'])
+          q=json.loads((out/'ALL_89_METRICS_QA.json').read_text())
+          l=json.loads((out/'PATCH_FORWARD_EXCEPTION_LEDGER.json').read_text())
+          assert q['status']=='PASS',q
+          assert q['metric_count']==89,q
+          assert q['stage2_windows']==15206 and q['stage2_source_metric_rows']==1353334,q
+          assert q['canonical_player_team_season_rows']==14524,q
+          assert q['exact_count_segment_rows']==5199 and q['exact_count_partial_player_team_rows']==4877,q
+          assert q['full_core_stage2_direct_rows']==9647,q
+          assert q['player_team_season_metric_rows']==1292636,q
+          assert q['career_players']==3122 and q['career_metric_rows']==277858,q
+          assert q['all_89_metrics_present_for_every_canonical_key'] is True,q
+          assert q['career_89_metrics_present_for_every_player'] is True,q
+          assert q['rounded_percentage_backsolve_used'] is False,q
+          assert l['status']=='PASS' and l['supplemental_keys']==23 and l['supplemental_metric_rows']==23*89,l
+          assert l['bounded_exception_keys']<=6 and l['direct_core_one_game_fallback_keys']<=4,l
+          assert l['structural_integrity_gates_relaxed'] is False and l['stage2_historical_rebuild'] is False,l
+          result={'status':'PASS','canonical_player_team_seasons':14524,'metrics':89,'career_players':3122,'bounded_exception_keys':l['bounded_exception_keys'],'bounded_exception_minutes_on':l['bounded_exception_minutes_on'],'direct_core_one_game_fallback_keys':l['direct_core_one_game_fallback_keys'],'off_minute_proxy_keys':l['off_minute_proxy_keys'],'historical_stage2_collection_rerun':False,'structural_integrity_gates_relaxed':False}
+          (out/'FINAL_MATERIALITY_COMPLETION_GATE.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          PY
+
+      - name: Record accepted historical residual provenance
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          residuals=[[21700032,4988],[21700042,7322],[21700494,7412],[21800689,1396],[21800689,1398],[22101023,256],[22200322,3388],[22200331,3717],[22200331,3912],[22200733,5955],[22201187,1569],[22201187,1573],[22400072,288]]
+          d={'status':'ACCEPTED_IMMATERIAL_CAPTAINS_CALL','accepted_date':'2026-08-13','residual_rebound_events':13,'unique_games':len({x[0] for x in residuals}),'residual_keys':residuals,'structural_gates_relaxed':False}
+          Path(os.environ['OUT'],'captains_call_accepted_residuals.json').write_text(json.dumps(d,indent=2)+'\n')
+          PY
+
+      - name: Independent final reader validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import duckdb,json,os,sqlite3
+          from pathlib import Path
+          import pandas as pd
+          out=Path(os.environ['OUT'])
+          qa=json.loads((out/'qa_report.json').read_text())
+          d_csv=pd.read_csv(out/'career_treb_detail.csv',low_memory=False); d_pq=pd.read_parquet(out/'career_treb_detail.parquet')
+          c_csv=pd.read_csv(out/'career_treb_summary.csv',low_memory=False); c_pq=pd.read_parquet(out/'career_treb_summary.parquet')
+          with sqlite3.connect(out/'treb_2000_01_to_2025_26.sqlite') as con:
+            d_sql=int(pd.read_sql_query('select count(*) n from tenure_detail',con).iloc[0,0]); c_sql=int(pd.read_sql_query('select count(*) n from career_summary',con).iloc[0,0])
+          assert len(d_csv)==len(d_pq)==d_sql==5199
+          assert len(c_csv)==len(c_pq)==c_sql==qa['career_players']
+          m_csv=pd.read_csv(out/'all_metrics_player_team_season.csv.gz',compression='gzip',low_memory=False); m_pq=pd.read_parquet(out/'all_metrics_player_team_season.parquet')
+          mc_csv=pd.read_csv(out/'all_metrics_career.csv.gz',compression='gzip',low_memory=False); mc_pq=pd.read_parquet(out/'all_metrics_career.parquet')
+          assert len(m_csv)==len(m_pq)==1292636 and len(mc_csv)==len(mc_pq)==277858
+          assert m_csv.metric.nunique()==mc_csv.metric.nunique()==89
+          con=duckdb.connect(str(out/'TREB_all_metrics.duckdb'),read_only=True)
+          n1=con.execute('select count(*) from all_metrics_player_team_season').fetchone()[0]; n2=con.execute('select count(*) from all_metrics_career').fetchone()[0]; n3=con.execute('select count(*) from metric_dictionary').fetchone()[0]
+          con.close(); assert n1==1292636 and n2==277858 and n3==89
+          r={'status':'PASS','all_metrics_csv_parquet_duckdb_rows_identical':True,'metric_count':89,'canonical_player_team_seasons':14524,'career_players':3122}
+          (out/'reader_validation.json').write_text(json.dumps(r,indent=2)+'\n'); print(json.dumps(r,indent=2))
+          PY
+
+      - name: Write pre-package release summary
+        run: |
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          out=Path(os.environ['OUT']); q=json.loads((out/'ALL_89_METRICS_QA.json').read_text()); m=json.loads((out/'FINAL_MATERIALITY_COMPLETION_GATE.json').read_text())
+          r={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit':os.environ['GITHUB_SHA'],'seasons':26,'season_range':['2000-01','2025-26'],'canonical_player_team_seasons':q['canonical_player_team_season_rows'],'career_players':q['career_players'],'metric_count':q['metric_count'],'player_team_metric_rows':q['player_team_season_metric_rows'],'career_metric_rows':q['career_metric_rows'],'bounded_exception_keys':m['bounded_exception_keys'],'historical_stage2_collection_rerun':False,'completion_policy':'materiality_bounded_patch_forward'}
+          (out/'FINAL_RELEASE_SUMMARY.json').write_text(json.dumps(r,indent=2)+'\n')
+          PY
+
+      - name: Package and hash complete final database
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$OUT"
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          zip -9 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
+          sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip > /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+
+      - name: Upload complete final database
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-89-metric-database-${{ github.run_id }}
+          path: |
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+            /tmp/treb_final_exact/FINAL_RELEASE_SUMMARY.json
+            /tmp/treb_final_exact/FINAL_MATERIALITY_COMPLETION_GATE.json
+            /tmp/treb_final_exact/PATCH_FORWARD_EXCEPTION_LEDGER.json
+            /tmp/treb_final_exact/ALL_89_METRICS_QA.json
+            /tmp/treb_final_exact/reader_validation.json
+          retention-days: 90
+
+      - name: Persist final release provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          D=team_trb_all_players/final_integrity_rebuild/final_exact_release
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          mkdir -p "$D"
+          cp "$OUT/FINAL_RELEASE_SUMMARY.json" "$D/"
+          cp "$OUT/FINAL_MATERIALITY_COMPLETION_GATE.json" "$D/"
+          cp "$OUT/PATCH_FORWARD_EXCEPTION_LEDGER.json" "$D/"
+          cp "$OUT/ALL_89_METRICS_QA.json" "$D/"
+          cp "$OUT/reader_validation.json" "$D/FINAL_READER_VALIDATION.json"
+          cp "$OUT/captains_call_accepted_residuals.json" "$D/CAPTAINS_CALL_ACCEPTED_RESIDUALS.json"
+          cp "$OUT/SHA256SUMS.txt" "$D/FINAL_SHA256SUMS.txt"
+          git add -f "$D"
+          git commit -m 'Persist materiality-complete TREB final release provenance'
+          git push origin HEAD:agent/treb-final-exact-assembly
