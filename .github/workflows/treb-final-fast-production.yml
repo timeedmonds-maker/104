@@ -1,0 +1,307 @@
+name: TREB final fast production release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-final-fast-production.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-final-fast-production
+  cancel-in-progress: false
+
+env:
+  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+  OUT: /tmp/treb_final_fast
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  REPAIR_OVERLAY: team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/targeted_23_metric_overlay.jsonl.gz
+  EXPECTED_EXACT_SEGMENTS: '5199'
+  EXPECTED_EXACT_PTS: '4877'
+  EXPECTED_FULL_CORE_ROWS: '9647'
+  EXPECTED_CANONICAL_ROWS: '14524'
+  EXPECTED_METRICS: '89'
+  EXPECTED_STAGE2_WINDOWS: '15206'
+  EXPECTED_STAGE2_METRIC_ROWS: '1353334'
+  EXPECTED_PLAYER_TEAM_METRIC_ROWS: '1292636'
+  EXPECTED_CAREER_PLAYERS: '3122'
+  EXPECTED_CAREER_METRIC_ROWS: '277858'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install production readers
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+
+      - name: Recover 26 validated locks
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks /tmp/treb_stage2_fast "$OUT"
+          mkdir -p /tmp/treb_locks /tmp/treb_stage2_fast/final_export "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git fetch --no-tags --depth=1 origin "refs/heads/${b}:refs/remotes/origin/${b}"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+
+      - name: Build exact count layer
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/finalize_treb_database.py --locks-dir /tmp/treb_locks --output-dir "$OUT"
+
+      - name: MATERIAL GATE exact reconstruction
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          import pandas as pd
+          out=Path(os.environ['OUT'])
+          d=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
+          q=json.loads((out/'qa_report.json').read_text())
+          keys=d[['season','player_id','team_id']].drop_duplicates()
+          assert q['status']=='PASS',q
+          assert q['seasons_complete']==26,q
+          assert q['duplicate_tenure_keys']==0,q
+          assert q['unexpected_exceptions']==0,q
+          assert q['unmatched_rebound_rows']==0,q
+          assert q['accepted_exclusion_ledger_exact_match'] is True,q
+          assert len(d)==int(os.environ['EXPECTED_EXACT_SEGMENTS'])
+          assert len(keys)==int(os.environ['EXPECTED_EXACT_PTS'])
+          counts=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off','seconds_on','seconds_off','games_processed']
+          for col in counts:
+            s=pd.to_numeric(d[col],errors='raise')
+            assert s.notna().all() and (s>=0).all(),col
+          gate={'status':'PASS','exact_segments':len(d),'exact_pts':len(keys),'seasons':26,'rounded_percentage_backsolve_used':False}
+          (out/'MATERIAL_EXACT_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2))
+          PY
+
+      - name: FAST aggregate pinned Stage2 segments and inject 23 repairs
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2_source "$STAGE2_SHA"
+          python - <<'PY'
+          import gzip, json, math, os, re
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+
+          base=Path('/tmp/treb_stage2_source/team_trb_all_players')
+          segp=base/'impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          out=Path('/tmp/treb_stage2_fast/final_export')
+          overlay_path=Path(os.environ['REPAIR_OVERLAY'])
+          target_path=Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          assert segp.is_file() and overlay_path.is_file() and target_path.is_file()
+
+          seg=pd.read_json(segp,lines=True,compression='gzip')
+          assert len(seg)==int(os.environ['EXPECTED_STAGE2_METRIC_ROWS']),len(seg)
+          for c in ['team_id','minutes_on','minutes_off','on','off_corrected']:
+            seg[c]=pd.to_numeric(seg[c],errors='coerce')
+          seg['player_id']=seg['player_id'].astype('string').str.replace(r'\.0$','',regex=True)
+          seg['metric']=seg['metric'].astype(str)
+          dup=seg.duplicated(['season','team_id','player_id','query_start_date','query_end_date','metric'],keep=False)
+          assert int(dup.sum())==0,int(dup.sum())
+
+          keys=['season','team_id','player_id','player','metric']
+          onmask=seg['on'].notna() & seg['minutes_on'].notna() & (seg['minutes_on']>0)
+          offmask=seg['off_corrected'].notna() & seg['minutes_off'].notna() & (seg['minutes_off']>0)
+          seg['_on_num']=np.where(onmask,seg['on']*seg['minutes_on'],0.0)
+          seg['_on_den']=np.where(onmask,seg['minutes_on'],0.0)
+          seg['_off_num']=np.where(offmask,seg['off_corrected']*seg['minutes_off'],0.0)
+          seg['_off_den']=np.where(offmask,seg['minutes_off'],0.0)
+          seg['_minutes_on']=seg['minutes_on'].fillna(0.0)
+          seg['_minutes_off']=seg['minutes_off'].fillna(0.0)
+
+          agg=seg.groupby(keys,dropna=False,sort=True).agg(
+              segment_count=('metric','size'),
+              minutes_on=('_minutes_on','sum'),
+              minutes_off=('_minutes_off','sum'),
+              on_num=('_on_num','sum'),on_den=('_on_den','sum'),
+              off_num=('_off_num','sum'),off_den=('_off_den','sum'),
+              tenure_start=('query_start_date','min'),tenure_end=('query_end_date','max'),
+          ).reset_index()
+          agg['on']=agg['on_num']/agg['on_den'].where(agg['on_den']>0)
+          agg['off_corrected']=agg['off_num']/agg['off_den'].where(agg['off_den']>0)
+          agg['on_minus_off_corrected']=agg['on']-agg['off_corrected']
+          agg['aggregation_method']=np.where(agg['segment_count'].eq(1),'exact_tenure_segment','minutes_weighted_across_exact_tenure_segments')
+          agg['aggregation_confidence']=np.where(agg['segment_count'].eq(1),'high','moderate')
+          agg=agg.drop(columns=['on_num','on_den','off_num','off_den'])
+          assert not agg.duplicated(['season','team_id','player_id','metric']).any()
+
+          def norm(s): return re.sub(r'[^a-z0-9]+','',str(s).lower())
+          names=sorted(agg['metric'].unique())
+          assert len(names)==89,(len(names),names)
+          alias_sets={
+            'TotalReboundPct': {'totalreboundpct','totalreboundpercentage','reboundpct','reboundpercentage','trebpct','trbpct','teamreboundpct','teamreboundpercentage','reboundspct'},
+            'OffReboundPct': {'offreboundpct','offensivereboundpct','offensivereboundpercentage','oreboundpct','orebpct','orbpct','offreboundpercentage'},
+            'DefReboundPct': {'defreboundpct','defensivereboundpct','defensivereboundpercentage','dreboundpct','drebpct','drbpct','defreboundpercentage'},
+          }
+          rename={}
+          for canonical,aliases in alias_sets.items():
+            hits=[n for n in names if norm(n) in aliases]
+            if canonical in names:
+              hits=[canonical]
+            assert len(hits)==1,(canonical,hits,names)
+            rename[hits[0]]=canonical
+          assert len(set(rename.values()))==3,rename
+          agg['metric']=agg['metric'].replace(rename)
+          assert agg['metric'].nunique()==89
+          assert {'TotalReboundPct','OffReboundPct','DefReboundPct'}.issubset(set(agg['metric']))
+          assert not agg.duplicated(['season','team_id','player_id','metric']).any()
+
+          def read_jsonl_gz(p):
+            rows=[]
+            with gzip.open(p,'rt',encoding='utf-8') as h:
+              for line in h:
+                if line.strip(): rows.append(json.loads(line))
+            return pd.DataFrame(rows)
+          def canon(df):
+            x=df.copy(); x['season']=x['season'].astype(str)
+            x['team_id']=pd.to_numeric(x['team_id'],errors='raise').astype('int64')
+            x['player_id']=x['player_id'].astype(str).str.replace(r'\.0$','',regex=True).astype('string')
+            return x
+
+          agg=canon(agg)
+          rep=canon(read_jsonl_gz(overlay_path))
+          rep['metric']=rep['metric'].astype(str)
+          assert len(rep)==2047 and rep[['season','team_id','player_id']].drop_duplicates().shape[0]==23
+          assert not rep.duplicated(['season','team_id','player_id','metric']).any()
+          assert int(rep.groupby(['season','team_id','player_id'])['metric'].nunique().min())==89
+          if 'off' not in rep.columns: rep['off']=rep['off_corrected']
+          if 'swing' not in rep.columns: rep['swing']=rep['on_minus_off_corrected']
+          rep['aggregation_method']='validated_targeted_canonical_23_repair'
+          rep['aggregation_confidence']='validated_repair'
+          rep['segment_count']=1
+          rep['tenure_start']=pd.NA; rep['tenure_end']=pd.NA
+
+          targets=canon(read_jsonl_gz(target_path))
+          target_keys=targets[['season','team_id','player_id']].drop_duplicates()
+          assert len(target_keys)==14524
+          source_keys=agg[['season','team_id','player_id']].drop_duplicates()
+          intersection=target_keys.merge(source_keys,on=['season','team_id','player_id'],how='inner')
+          assert len(intersection)==14501,len(intersection)
+          missing=target_keys.merge(source_keys,on=['season','team_id','player_id'],how='left',indicator=True)
+          missing_keys=missing[missing['_merge']=='left_only'][['season','team_id','player_id']]
+          rep_keys=rep[['season','team_id','player_id']].drop_duplicates()
+          chk=missing_keys.merge(rep_keys,on=['season','team_id','player_id'],how='outer',indicator=True)
+          assert len(chk)==23 and (chk['_merge']=='both').all(),chk
+
+          overlap=agg[['season','team_id','player_id','metric']].merge(rep[['season','team_id','player_id','metric']],on=['season','team_id','player_id','metric'],how='inner')
+          assert len(overlap)==0,len(overlap)
+          allcols=list(agg.columns)+[c for c in rep.columns if c not in agg.columns]
+          for c in allcols:
+            if c not in agg.columns: agg[c]=pd.NA
+            if c not in rep.columns: rep[c]=pd.NA
+          merged=pd.concat([agg[allcols],rep[allcols]],ignore_index=True)
+          merged_keys=merged[['season','team_id','player_id']].drop_duplicates()
+          canonical=target_keys.merge(merged_keys,on=['season','team_id','player_id'],how='inner')
+          assert len(canonical)==14524,len(canonical)
+          assert not merged.duplicated(['season','team_id','player_id','metric']).any()
+
+          merged.to_parquet(out/'player_team_season_corrected_on_off.parquet',index=False,compression='zstd')
+          dictionary=pd.DataFrame({'metric':sorted(merged['metric'].unique())})
+          dictionary['source']='Pinned Stage2 tenure segments; vectorized exact-equivalent PTS aggregation'
+          dictionary.to_parquet(out/'metric_dictionary.parquet',index=False)
+          quality={'stage1_exact_ready':True,'tenure_segment_metric_rows':len(seg),'player_team_season_metric_rows':len(agg),'metric_count':int(merged['metric'].nunique()),'fast_vectorized_pts_aggregation':True,'canonical_23_overlay_injected':True,'canonical_union_after_repair':14524,'missing_canonical_after_repair':0,'stage2_sha':os.environ['STAGE2_SHA'],'production_gate_relaxed':False,'stage2_full_rebuild_performed':False,'rebound_metric_aliases':rename}
+          (out/'quality_report.json').write_text(json.dumps(quality,indent=2)+'\n')
+          Path(os.environ['OUT'],'FAST_STAGE2_GATE.json').write_text(json.dumps(quality,indent=2)+'\n')
+          print(json.dumps(quality,indent=2))
+          PY
+
+      - name: Assemble final 89-metric canonical database
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/finalize_treb_full_89_database.py --stage2-export-dir /tmp/treb_stage2_fast/final_export --exact-dir "$OUT" --stage2-sha "$STAGE2_SHA"
+
+      - name: MATERIAL GATE complete canonical database and Adams
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          import pandas as pd
+          out=Path(os.environ['OUT'])
+          q=json.loads((out/'ALL_89_METRICS_QA.json').read_text())
+          assert q['status']=='PASS',q
+          assert q['metric_count']==89,q
+          assert q['canonical_player_team_season_rows']==14524,q
+          assert q['exact_count_segment_rows']==5199,q
+          assert q['exact_count_partial_player_team_rows']==4877,q
+          assert q['full_core_stage2_direct_rows']==9647,q
+          assert q['player_team_season_metric_rows']==1292636,q
+          assert q['career_players']==3122,q
+          assert q['career_metric_rows']==277858,q
+          assert set(q['exact_count_overlay_metrics'])=={'TotalReboundPct','OffReboundPct','DefReboundPct'},q
+          assert q['exact_count_overlay_metric_rows']==4877*3,q
+          assert q['stage2_direct_rebound_metric_rows']==9647*3,q
+          assert q['all_89_metrics_present_for_every_canonical_key'] is True,q
+          assert q['career_89_metrics_present_for_every_player'] is True,q
+          assert q['rounded_percentage_backsolve_used'] is False,q
+          career=pd.read_parquet(out/'all_metrics_career.parquet')
+          pid=career['player_id'].astype(str).str.replace('.0','',regex=False)
+          ad=career[(pid=='203500') & (career['metric'].astype(str)=='TotalReboundPct')]
+          assert len(ad)==1,f'Steven Adams TotalReboundPct rows={len(ad)}'
+          mins=float(pd.to_numeric(ad.iloc[0]['minutes_on'],errors='raise'))
+          assert 20460.0 <= mins <= 20485.0,f'Adams minutes={mins}'
+          treb=career[career['metric'].astype(str)=='TotalReboundPct'].copy()
+          pop=int((pd.to_numeric(treb['minutes_on'],errors='coerce')>=10000.0).sum())
+          assert 540 <= pop <= 565,f'>=10k population={pop}'
+          gate={'status':'PASS','canonical_pts':14524,'exact_pts':4877,'full_core_pts':9647,'metric_count':89,'player_team_metric_rows':1292636,'career_players':3122,'career_metric_rows':277858,'steven_adams_minutes':mins,'total_rebound_pct_players_10000_minutes':pop,'material_release_ready':True}
+          (out/'MATERIAL_RELEASE_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2))
+          PY
+
+      - name: Write production report and package ZIP
+        id: package
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          out=Path(os.environ['OUT'])
+          full=json.loads((out/'MATERIAL_RELEASE_GATE.json').read_text())
+          residuals=[[21700032,4988],[21700042,7322],[21700494,7412],[21800689,1396],[21800689,1398],[22101023,256],[22200322,3388],[22200331,3717],[22200331,3912],[22200733,5955],[22201187,1569],[22201187,1573],[22400072,288]]
+          (out/'captains_call_accepted_residuals.json').write_text(json.dumps({'status':'ACCEPTED_IMMATERIAL_CAPTAINS_CALL','residual_rebound_events':13,'residual_keys':residuals,'structural_gates_relaxed':False},indent=2)+'\n')
+          report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit':os.environ['GITHUB_SHA'],'stage2_sha':os.environ['STAGE2_SHA'],'material_integrity_gate':'PASS','canonical_pts':14524,'exact_pts':4877,'full_core_pts':9647,'metrics':89,'steven_adams_minutes':full['steven_adams_minutes'],'total_rebound_pct_players_10000_minutes':full['total_rebound_pct_players_10000_minutes'],'captains_call_residual_rebounds_accepted':13,'rounded_percentage_backsolve_used':False,'fast_vectorized_stage2_pts_aggregation':True}
+          (out/'FINAL_MATERIAL_PRODUCTION_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
+          PY
+          cd "$OUT"
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          zip -9 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
+          sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip | tee /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+          unzip -t /tmp/TREB_final_database_2000-01_to_2025-26.zip
+
+      - name: Upload final database ZIP
+        if: ${{ steps.package.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-fast-production-${{ github.run_id }}
+          path: |
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+            /tmp/treb_final_fast/FINAL_MATERIAL_PRODUCTION_REPORT.json
+            /tmp/treb_final_fast/MATERIAL_EXACT_GATE.json
+            /tmp/treb_final_fast/FAST_STAGE2_GATE.json
+            /tmp/treb_final_fast/MATERIAL_RELEASE_GATE.json
+            /tmp/treb_final_fast/ALL_89_METRICS_QA.json
+          retention-days: 90
