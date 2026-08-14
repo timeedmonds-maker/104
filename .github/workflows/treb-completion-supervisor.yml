@@ -13,282 +13,65 @@ concurrency:
   group: treb-final-completion-supervisor
   cancel-in-progress: false
 
-env:
-  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
-  RETAINED_SHA: aecbcdde7a0efe9e162f0030032b1d1c16f5b8c3
-  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
-
 jobs:
-  exact-source-semantic-lock:
+  rebound-semantics-2025-canary:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
-      - name: Checkout final assembly controller
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-          path: control
           fetch-depth: 1
-
-      - name: Checkout pinned retained forensic lineage
-        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          ref: ${{ env.RETAINED_SHA }}
-          path: evidence
-          fetch-depth: 0
-
-      - name: Checkout pinned authoritative Stage2
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.STAGE2_SHA }}
-          path: stage2
-          fetch-depth: 1
-
-      - name: Validate exact source semantics and frozen lineage
+          python-version: '3.12'
+      - run: python -m pip install pandas
+      - name: Download static 2025 source pair
         shell: bash
         run: |
           set -euo pipefail
-          git -C evidence fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
-          mkdir -p semantic_lock_output
+          mkdir -p /tmp/treb2025
           python - <<'PY'
-          from __future__ import annotations
-          import gzip, json, os, subprocess
-          from collections import Counter
           from pathlib import Path
-
-          CONTROL = Path('control')
-          EVIDENCE = Path('evidence')
-          STAGE2 = Path('stage2')
-          OUT = Path('semantic_lock_output')
-          STAGE2_SHA = os.environ['STAGE2_SHA']
-          RETAINED_SHA = os.environ['RETAINED_SHA']
-          LOCK_PATH = os.environ['LOCK_PATH']
-
-          def norm(v):
-              if v is None:
-                  return ''
-              s = str(v).strip()
-              if s.endswith('.0'):
-                  try:
-                      return str(int(float(s)))
-                  except Exception:
-                      pass
-              return s
-
-          def git_evidence(*args):
-              return subprocess.check_output(['git','-C','evidence',*args], text=True).strip()
-
-          controller_sha = subprocess.check_output(['git','-C','control','rev-parse','HEAD'], text=True).strip()
-          retained_actual = subprocess.check_output(['git','-C','evidence','rev-parse','HEAD'], text=True).strip()
-          stage2_actual = subprocess.check_output(['git','-C','stage2','rev-parse','HEAD'], text=True).strip()
-          assert retained_actual == RETAINED_SHA, (retained_actual, RETAINED_SHA)
-          assert stage2_actual == STAGE2_SHA, (stage2_actual, STAGE2_SHA)
-
-          # Immutable V2 population gate from the final-assembly branch.
-          roster = CONTROL/'team_trb_all_players/impact_database/roster_tenure_v2'
-          summary = json.loads((roster/'roster_repair_v2_summary.json').read_text())
-          expected = {
-              'positive_core_rows_original':14526,
-              'excluded_stale_core_artifacts':2,
-              'validated_player_team_season_rows':14524,
-              'full_core_reuse_rows':9647,
-              'partial_player_team_season_rows':4877,
-              'wowy_game_bearing_segments':5199,
-              'cross_team_overlap_pairs':0,
-              'impossible_minute_rows':0,
-              'empty_played_tenures':0,
-          }
-          for key, value in expected.items():
-              assert summary[key] == value, (key, summary.get(key), value)
-
-          canonical = set()
-          with gzip.open(roster/'player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
-              for line in f:
-                  if not line.strip():
-                      continue
-                  r = json.loads(line)
-                  canonical.add((norm(r['season']),norm(r['player_id']),norm(r['team_id'])))
-          assert len(canonical) == 14524, len(canonical)
-
-          # Corrected long-format Stage2 gate: 1,353,334 metric rows = 15,206 windows x 89 metrics.
-          payload = STAGE2/'team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
-          metric_rows = 0
-          window_counts = Counter()
-          with gzip.open(payload,'rt',encoding='utf-8') as f:
-              for line in f:
-                  if not line.strip():
-                      continue
-                  r = json.loads(line)
-                  metric_rows += 1
-                  wkey = (
-                      norm(r.get('season')), norm(r.get('player_id')), norm(r.get('team_id')),
-                      norm(r.get('tenure_start')), norm(r.get('tenure_end')),
-                  )
-                  window_counts[wkey] += 1
-          assert metric_rows == 1353334, metric_rows
-          assert len(window_counts) == 15206, len(window_counts)
-          bad_metric_windows = [k for k,v in window_counts.items() if v != 89]
-          assert not bad_metric_windows, (len(bad_metric_windows), bad_metric_windows[:5])
-
-          zero = json.loads((STAGE2/'team_trb_all_players/impact_database/corrected_off/zero_minute_tail_report.json').read_text())
-          assert zero['total_excluded_zero_minute_windows'] == 221, zero
-          assert zero['indeterminate_windows'] == 0, zero
-          assert zero['remaining_retry_queue_windows'] == 0, zero
-
-          # Freeze and validate all 26 exact safe-lock branches. No unresolved rebound rows may be promoted.
-          lock_manifest = []
-          target_total = 0
-          accepted_game_ids = set()
-          for y in range(2000, 2026):
-              season = f'{y}-{(y+1)%100:02d}'
-              branch = f'treb-final-safe-lock-{y}'
-              ref = f'refs/remotes/origin/{branch}'
-              sha = git_evidence('rev-parse', ref)
-              raw = subprocess.check_output(
-                  ['git','-C','evidence','show',f'{ref}:{LOCK_PATH}/{season}.json'], text=True
-              )
-              d = json.loads(raw)
-              assert d['season'] == season
-              assert d.get('status') == 'COMPLETE', (season, d.get('status'))
-              assert len(d.get('exceptions', [])) == 0, (season, len(d.get('exceptions', [])))
-              assert len(d.get('unmatched_rebound_rows', [])) == 0, (season, len(d.get('unmatched_rebound_rows', [])))
-              targets = len(d.get('targets', []))
-              target_total += targets
-              games = sorted({int(x['game_id']) for x in d.get('accepted_excluded_games', [])})
-              accepted_game_ids.update(games)
-              lock_manifest.append({
-                  'season':season,
-                  'branch':branch,
-                  'commit_sha':sha,
-                  'status':d.get('status'),
-                  'targets':targets,
-                  'accepted_excluded_games':games,
-                  'engine':d.get('engine'),
-                  'code_commit':d.get('code_commit'),
-              })
-          assert len(lock_manifest) == 26
-          assert target_total == 5199, target_total
-          assert len(accepted_game_ids) == 40, len(accepted_game_ids)
-
-          # Exact-count semantic contract. These are the authoritative count artifacts/fields for later conflict validation.
-          exact_layer_path = EVIDENCE/'team_trb_all_players/build_exact_game_fact_layer.py'
-          exact_layer = exact_layer_path.read_text()
-          exact_contract = (
-              'team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on',
-              'team_game_treb.csv.gz','player_game_treb_on.csv.gz'
-          )
-          missing_contract = [x for x in exact_contract if x not in exact_layer]
-          assert not missing_contract, missing_contract
-
-          # Explicitly quarantine the legacy percentage-derived canonical assembly.
-          legacy_path = EVIDENCE/'.github/workflows/treb-final-canonical-assembly.yml'
-          legacy = legacy_path.read_text()
-          assert 'pct_candidates' in legacy
-          assert 'Solve exact opponent season OREB/DREB totals from all core player evidence.' in legacy
-
-          refs_raw = git_evidence('for-each-ref','--format=%(refname:short)\t%(objectname)','refs/remotes/origin')
-          refs = []
-          for line in refs_raw.splitlines():
-              if not line.strip() or line.startswith('origin/HEAD'):
-                  continue
-              name, sha = line.split('\t',1)
-              refs.append({'ref':name,'sha':sha})
-          refs.sort(key=lambda x:x['ref'])
-          game_fact_refs = [x for x in refs if x['ref'].startswith('origin/treb-game-facts-')]
-          repair_refs = [x for x in refs if any(k in x['ref'] for k in (
-              'treb-game-fact-repair','treb-authoritative-final-repair','treb-solved-engine-recovery',
-              'treb-solved-engine-cross-era-pass','treb-validated-'
-          ))]
-
-          report = {
-              'status':'PASS',
-              'purpose':'Fast exact-source semantic lock before retained count conflict validation',
-              'controller_sha':controller_sha,
-              'retained_forensic_commit_sha':retained_actual,
-              'authoritative_stage2_commit_sha':stage2_actual,
-              'canonical_population':14524,
-              'full_core_rows':9647,
-              'partial_player_team_season_rows':4877,
-              'partial_segments':5199,
-              'stage2_metric_rows':metric_rows,
-              'stage2_tenure_windows':len(window_counts),
-              'metrics_per_window':89,
-              'safe_lock_seasons':len(lock_manifest),
-              'safe_lock_segment_targets':target_total,
-              'safe_lock_exceptions':0,
-              'safe_lock_unmatched_rebound_rows':0,
-              'accepted_excluded_unique_games':len(accepted_game_ids),
-              'exact_count_artifact_contract':list(exact_contract),
-              'game_fact_refs_snapshotted':len(game_fact_refs),
-              'repair_refs_snapshotted':len(repair_refs),
-              'legacy_percentage_assembly':'QUARANTINED_DO_NOT_EXECUTE',
-              'next_stage':'Compare retained exact-count artifacts under the pinned refs; isolate conflicts by canonical key; do not reconstruct or promote ambiguous evidence.',
-              'integrity_policy':{
-                  'reconstruction_permitted':False,
-                  'rounded_percentage_backsolve_permitted':False,
-                  'legacy_pct_candidates_permitted':False,
-                  'automatic_ambiguous_promotion_permitted':False,
-                  'accepted_v13_residuals_reopened':False,
-              },
-          }
-          (OUT/'EXACT_SOURCE_SEMANTIC_LOCK.json').write_text(json.dumps(report,indent=2)+'\n')
-          (OUT/'SAFE_LOCK_COMMITS.json').write_text(json.dumps(lock_manifest,indent=2)+'\n')
-          (OUT/'GAME_FACT_REFS.json').write_text(json.dumps(game_fact_refs,indent=2)+'\n')
-          (OUT/'REPAIR_REFS.json').write_text(json.dumps(repair_refs,indent=2)+'\n')
-          (OUT/'DO_NOT_EXECUTE_LEGACY_ASSEMBLY.txt').write_text(
-              'QUARANTINED: .github/workflows/treb-final-canonical-assembly.yml\n'
-              'Reason: rounded-percentage opponent component inference via pct_candidates.\n'
-              'Only exact count artifacts under the frozen semantic contract may advance.\n'
-          )
-          md = [
-              '# TREB exact source semantic lock','',
-              '- Status: **PASS**',
-              '- Canonical V2 universe: **14,524 / 14,524**',
-              '- Full-core rows: **9,647**',
-              '- Partial player-team-season rows: **4,877**',
-              '- Partial segments: **5,199**',
-              f'- Stage2 metric rows: **{metric_rows:,}**',
-              f'- Stage2 tenure windows: **{len(window_counts):,}**',
-              '- Metrics per tenure window: **89**',
-              '- Exact safe-lock seasons: **26 / 26 COMPLETE**',
-              '- Safe-lock unmatched rebound rows: **0**',
-              '- Safe-lock exceptions: **0**',
-              f'- Accepted excluded unique games: **{len(accepted_game_ids)}**','',
-              '## Exact count semantic contract','',
-              *[f'- `{x}`' for x in exact_contract],'',
-              'Legacy percentage-derived canonical assembly remains quarantined.',
-              'No reconstruction, percentage backsolve, ambiguous promotion, or reopening of accepted V13 residuals is permitted.',
-          ]
-          (OUT/'EXACT_SOURCE_SEMANTIC_LOCK.md').write_text('\n'.join(md)+'\n')
-          print(json.dumps(report,indent=2))
+          import subprocess, tarfile, urllib.request
+          raw = Path('/tmp/treb2025')
+          text = urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls = {line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          for key in ('nbastatsv3_2025','cdnnba_2025'):
+              url = urls[key]
+              arc = raw / url.rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),url], check=True)
+              with tarfile.open(arc,'r:xz') as tf:
+                  tf.extractall(raw)
           PY
-
-      - name: Upload exact source semantic lock artifact
+      - name: Validate two-source 2025 rebound semantics
+        run: |
+          mkdir -p /tmp/treb2025/out
+          python -u team_trb_all_players/validate_2025_rebound_semantics.py \
+            --cdn /tmp/treb2025/cdnnba_2025.csv \
+            --nba /tmp/treb2025/nbastatsv3_2025.csv \
+            --output /tmp/treb2025/out/REBOUND_SEMANTICS_2025_CANARY.json \
+            | tee /tmp/treb2025/out/validator_stdout.txt
+      - name: Upload canary artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: treb-exact-source-semantic-lock-${{ github.run_id }}
-          path: semantic_lock_output/
+          name: treb-rebound-semantics-2025-canary-${{ github.run_id }}
+          path: /tmp/treb2025/out/
           retention-days: 90
           if-no-files-found: error
-
-      - name: Persist exact source semantic lock checkpoint
+      - name: Persist canary checkpoint
+        if: success()
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p control/treb_automation/status
-          cp semantic_lock_output/EXACT_SOURCE_SEMANTIC_LOCK.json control/treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.json
-          cp semantic_lock_output/EXACT_SOURCE_SEMANTIC_LOCK.md control/treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.md
-          cp semantic_lock_output/SAFE_LOCK_COMMITS.json control/treb_automation/status/EXACT_SOURCE_SAFE_LOCK_COMMITS.json
-          cd control
+          mkdir -p treb_automation/status
+          cp /tmp/treb2025/out/REBOUND_SEMANTICS_2025_CANARY.json treb_automation/status/REBOUND_SEMANTICS_2025_CANARY_LATEST.json
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.json \
-                  treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.md \
-                  treb_automation/status/EXACT_SOURCE_SAFE_LOCK_COMMITS.json
-          if git diff --cached --quiet; then
-            echo 'No semantic-lock checkpoint changes to commit.'
-          else
-            git commit -m 'Persist TREB exact source semantic lock [skip ci]'
+          git add treb_automation/status/REBOUND_SEMANTICS_2025_CANARY_LATEST.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist TREB 2025 rebound semantic canary [skip ci]'
             git fetch origin agent/treb-final-exact-assembly
             git rebase origin/agent/treb-final-exact-assembly
             git push origin HEAD:agent/treb-final-exact-assembly
