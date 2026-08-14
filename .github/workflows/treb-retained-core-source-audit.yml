@@ -1,0 +1,214 @@
+name: TREB retained core source audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-retained-core-source-audit.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-retained-core-source-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - name: Install audit readers
+        run: python -m pip install --upgrade pandas pyarrow
+
+      - name: Audit retained TREB sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import gzip, json, re
+          from pathlib import Path
+          import pandas as pd
+
+          ROOT = Path('.').resolve()
+          BASE = ROOT / 'team_trb_all_players'
+          OUT = BASE / 'impact_database' / 'outputs'
+          STATUS = ROOT / 'treb_automation' / 'status'
+          STATUS.mkdir(parents=True, exist_ok=True)
+          SEASON = re.compile(r'^\d{4}-\d{2}$')
+          seasons = sorted(p for p in OUT.iterdir() if p.is_dir() and SEASON.match(p.name)) if OUT.exists() else []
+
+          report = {
+              'status': 'PASS',
+              'purpose': 'Locate retained full-core TREB source for 9,647-key release overlay complement without rerunning Stage2 or historical reconstruction.',
+              'season_directories': len(seasons),
+              'expected_seasons': 26,
+              'sources': {},
+              'candidate_files': [],
+              'code_references': [],
+              'steven_adams': {},
+          }
+
+          def norm_ids(s):
+              return s.astype('string').fillna('').str.strip().str.replace(r'^([0-9]+)\.0$', r'\1', regex=True)
+
+          # 1) Inspect the retained per-season rebound-derived layer across all 26 seasons.
+          frames = []
+          per = []
+          for sp in seasons:
+              p = sp / 'team_rebound_derived.csv.gz'
+              if not p.exists():
+                  per.append({'season': sp.name, 'exists': False})
+                  continue
+              df = pd.read_csv(p, compression='gzip', low_memory=False)
+              df['season'] = sp.name
+              frames.append(df)
+              per.append({'season': sp.name, 'exists': True, 'rows': int(len(df)), 'columns': list(map(str, df.columns))})
+          if frames:
+              reb = pd.concat(frames, ignore_index=True, sort=False)
+              if 'player_id' in reb:
+                  reb['player_id'] = norm_ids(reb['player_id'])
+              if 'team_id' in reb:
+                  reb['team_id'] = pd.to_numeric(reb['team_id'], errors='coerce').astype('Int64')
+              keys = ['season','team_id','player_id']
+              unique_keys = int(len(reb[keys].drop_duplicates())) if all(c in reb for c in keys) else None
+              dup_rows = int(reb.duplicated(keys, keep=False).sum()) if all(c in reb for c in keys) else None
+              interesting = [c for c in reb.columns if any(x in c.lower() for x in ('reb','treb','oreb','dreb','pct','on','off','swing','minute','second'))]
+              report['sources']['team_rebound_derived'] = {
+                  'rows': int(len(reb)), 'unique_keys': unique_keys, 'duplicate_key_rows': dup_rows,
+                  'columns': list(map(str, reb.columns)), 'interesting_columns': interesting,
+                  'per_season': per,
+              }
+              if 'player_id' in reb:
+                  ad = reb[reb.player_id == '203500']
+                  report['steven_adams']['team_rebound_derived_rows'] = int(len(ad))
+                  report['steven_adams']['team_rebound_derived_sample'] = ad.head(20).where(pd.notna(ad), None).to_dict('records')
+          else:
+              report['sources']['team_rebound_derived'] = {'rows': 0, 'unique_keys': 0, 'per_season': per}
+
+          # 2) Inspect rebound-like native on/off metrics and Steven Adams presence.
+          mframes=[]
+          for sp in seasons:
+              p=sp/'team_on_off_metrics.csv.gz'
+              if p.exists():
+                  df=pd.read_csv(p, compression='gzip', low_memory=False)
+                  df['season']=sp.name
+                  mframes.append(df)
+          if mframes:
+              met=pd.concat(mframes, ignore_index=True, sort=False)
+              if 'subject_player_id' in met: met['subject_player_id']=norm_ids(met['subject_player_id'])
+              names=sorted(set(met.loc[met['metric'].astype(str).str.contains('reb',case=False,na=False),'metric'].astype(str))) if 'metric' in met else []
+              report['sources']['team_on_off_metrics']={
+                  'rows':int(len(met)), 'metric_count':int(met['metric'].nunique()) if 'metric' in met else None,
+                  'rebound_like_metric_names':names,
+              }
+              if 'subject_player_id' in met:
+                  ad=met[met.subject_player_id=='203500']
+                  report['steven_adams']['team_on_off_metric_rows']=int(len(ad))
+                  report['steven_adams']['rebound_like_on_off_sample']=ad[ad['metric'].astype(str).str.contains('reb',case=False,na=False)].head(30).where(pd.notna(ad),None).to_dict('records') if 'metric' in ad else []
+
+          # 3) Inspect retained career TREB outputs.
+          for fn in ('career_team_trb_all_players.csv.gz','career_team_trb_10000_minutes.csv.gz'):
+              p=OUT/fn
+              if p.exists():
+                  df=pd.read_csv(p, compression='gzip', low_memory=False)
+                  if 'player_id' in df: df['player_id']=norm_ids(df['player_id'])
+                  report['sources'][fn]={'rows':int(len(df)),'columns':list(map(str,df.columns))}
+                  if 'player_id' in df:
+                      ad=df[df.player_id=='203500']
+                      report['steven_adams'][fn]=ad.head(10).where(pd.notna(ad),None).to_dict('records')
+
+          # 4) Inventory retained candidate files and schemas, without loading huge unrelated files.
+          pats=('treb','rebound')
+          for p in ROOT.rglob('*'):
+              if not p.is_file() or '.git' in p.parts: continue
+              low=str(p.relative_to(ROOT)).lower()
+              if not any(x in low for x in pats): continue
+              if p.suffix.lower() not in ('.csv','.gz','.parquet','.json','.jsonl','.py','.yml','.yaml'): continue
+              item={'path':str(p.relative_to(ROOT)),'bytes':p.stat().st_size}
+              try:
+                  if p.name.endswith('.csv.gz') and p.stat().st_size < 25_000_000:
+                      d=pd.read_csv(p,compression='gzip',nrows=5,low_memory=False)
+                      item['columns']=list(map(str,d.columns))
+                  elif p.suffix=='.csv' and p.stat().st_size < 10_000_000:
+                      d=pd.read_csv(p,nrows=5,low_memory=False); item['columns']=list(map(str,d.columns))
+                  elif p.suffix=='.parquet' and p.stat().st_size < 25_000_000:
+                      d=pd.read_parquet(p); item['columns']=list(map(str,d.columns))
+              except Exception as e:
+                  item['inspect_error']=repr(e)
+              report['candidate_files'].append(item)
+          report['candidate_files']=sorted(report['candidate_files'], key=lambda x:x['path'])
+
+          # 5) Trace code references to known full-core vocabulary/source names.
+          needles=('full_core','full core','9647','team_rebound_derived','career_team_trb_all_players','TotalReboundPct','treb_on','treb_off')
+          for p in list(ROOT.rglob('*.py'))+list(ROOT.rglob('*.yml'))+list(ROOT.rglob('*.yaml')):
+              if '.git' in p.parts: continue
+              try: lines=p.read_text(errors='replace').splitlines()
+              except Exception: continue
+              for i,line in enumerate(lines,1):
+                  if any(n.lower() in line.lower() for n in needles):
+                      report['code_references'].append({'path':str(p.relative_to(ROOT)),'line':i,'text':line.strip()[:500]})
+          report['code_references']=report['code_references'][:1000]
+
+          # Strong source-shape summary used by next bounded repair job.
+          src=report.get('sources',{}).get('team_rebound_derived',{})
+          report['summary']={
+              'season_count_ok': len(seasons)==26,
+              'team_rebound_derived_unique_keys': src.get('unique_keys'),
+              'canonical_target':14524,
+              'exact_overlay_keys':4877,
+              'required_complement':9647,
+              'team_rebound_derived_has_full_canonical_key_shape': src.get('unique_keys')==14524,
+              'steven_adams_found_in_retained_core': report.get('steven_adams',{}).get('team_rebound_derived_rows',0)>0,
+          }
+
+          j=STATUS/'RETAINED_CORE_SOURCE_AUDIT_LATEST.json'
+          j.write_text(json.dumps(report,indent=2,default=str))
+          md=STATUS/'RETAINED_CORE_SOURCE_AUDIT_LATEST.md'
+          s=report['summary']
+          md.write_text('\n'.join([
+              '# Retained TREB core source audit',
+              '',
+              f"- Seasons: {len(seasons)}/26",
+              f"- team_rebound_derived unique keys: {s.get('team_rebound_derived_unique_keys')}",
+              f"- Canonical target: 14,524",
+              f"- Exact overlay keys: 4,877",
+              f"- Required complement: 9,647",
+              f"- Full canonical key shape: {s.get('team_rebound_derived_has_full_canonical_key_shape')}",
+              f"- Steven Adams found: {s.get('steven_adams_found_in_retained_core')}",
+              '',
+              'See JSON for schemas, candidate files, code references, and Adams samples.'
+          ]))
+          print(json.dumps(report['summary'], indent=2))
+          PY
+
+      - name: Upload retained-source audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-retained-core-source-audit-${{ github.run_id }}
+          path: |
+            treb_automation/status/RETAINED_CORE_SOURCE_AUDIT_LATEST.json
+            treb_automation/status/RETAINED_CORE_SOURCE_AUDIT_LATEST.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Persist audit to branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add treb_automation/status/RETAINED_CORE_SOURCE_AUDIT_LATEST.json treb_automation/status/RETAINED_CORE_SOURCE_AUDIT_LATEST.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Persist retained TREB core source audit [skip ci]'
+          git push origin HEAD:agent/treb-final-exact-assembly
