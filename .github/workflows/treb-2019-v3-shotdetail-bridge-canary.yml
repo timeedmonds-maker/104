@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json,re
+          import json
           from pathlib import Path
           import pandas as pd
           raw=Path('/tmp/treb2019bridge')
@@ -51,49 +51,43 @@ jobs:
             raise KeyError(cands)
           vg=gidcol(v3,['gameId','GAME_ID','GAMEID']); sg=gidcol(shot,['GAME_ID','gameId','GAMEID']); ng=gidcol(nba,['GAME_ID','gameId','GAMEID']); pg=gidcol(pbp,['GAMEID','GAME_ID','gameId'])
           vgid=pd.to_numeric(v3[vg],errors='coerce'); sgid=pd.to_numeric(shot[sg],errors='coerce'); ngid=pd.to_numeric(nba[ng],errors='coerce'); pgid=pd.to_numeric(pbp[pg],errors='coerce')
-          # Select 20 nearest regular-season controls with all four layers present.
           allv=set(vgid.dropna().astype('int64')); alls=set(sgid.dropna().astype('int64')); alln=set(ngid.dropna().astype('int64')); allp=set(pgid.dropna().astype('int64'))
           controls=sorted((allv&alls&alln&allp)-set(targets),key=lambda x:min(abs(x-t) for t in targets))[:20]
           assert len(controls)>=10
-          def cols(df): return [str(c) for c in df.columns]
           def v3_game(g): return v3[vgid.eq(g)].copy()
           def shot_game(g): return shot[sgid.eq(g)].copy()
+          def positive_teams(series):
+            x=pd.to_numeric(series,errors='coerce').dropna().astype('int64')
+            return sorted(x[x.gt(0)].unique().tolist())
           def describe_v3(g):
-            d=v3_game(g)
-            out={'rows':len(d),'columns':cols(d)}
-            for c in ['period','teamId','personId','actionType','subType','description','clock','actionNumber']:
-              if c in d: out[c+'_non_null']=int(d[c].notna().sum())
-            if 'teamId' in d: out['teams']=sorted(pd.to_numeric(d.teamId,errors='coerce').dropna().astype('int64').unique().tolist())
-            if 'period' in d: out['periods']=sorted(pd.to_numeric(d.period,errors='coerce').dropna().astype('int64').unique().tolist())
-            # Semantic rebound rows from actionType/subType/description, not action number.
+            d=v3_game(g); out={'rows':len(d)}
+            out['teams']=positive_teams(d.teamId) if 'teamId' in d else []
+            out['periods']=sorted(pd.to_numeric(d.period,errors='coerce').dropna().astype('int64').unique().tolist()) if 'period' in d else []
             mask=pd.Series(False,index=d.index)
             for c in ['actionType','subType','description']:
               if c in d: mask=mask|d[c].astype(str).str.contains('rebound',case=False,na=False)
             r=d[mask].copy(); out['rebound_rows']=len(r)
-            if 'teamId' in r: out['rebound_team_counts']={str(int(k)):int(v) for k,v in pd.to_numeric(r.teamId,errors='coerce').dropna().astype('int64').value_counts().items()}
-            if 'personId' in r: out['rebound_player_identified']=int(pd.to_numeric(r.personId,errors='coerce').fillna(0).gt(0).sum())
-            # Substitution chronology coverage.
+            rt=pd.to_numeric(r.teamId,errors='coerce') if 'teamId' in r else pd.Series(dtype=float)
+            out['rebound_positive_team_rows']=int(rt.fillna(0).gt(0).sum())
+            out['rebound_neutral_team_rows']=int(rt.fillna(0).eq(0).sum())
             sm=pd.Series(False,index=d.index)
             for c in ['actionType','subType','description']:
               if c in d: sm=sm|d[c].astype(str).str.contains('substitut|substitution',case=False,na=False,regex=True)
             out['substitution_rows']=int(sm.sum())
             return out
           def describe_shot(g):
-            d=shot_game(g); out={'rows':len(d),'columns':cols(d)}
-            for c in ['TEAM_ID','PLAYER_ID','SHOT_MADE_FLAG','PERIOD','GAME_EVENT_ID']:
-              if c in d: out[c+'_non_null']=int(d[c].notna().sum())
-            if 'TEAM_ID' in d: out['teams']=sorted(pd.to_numeric(d.TEAM_ID,errors='coerce').dropna().astype('int64').unique().tolist())
+            d=shot_game(g); out={'rows':len(d)}
+            out['teams']=positive_teams(d.TEAM_ID) if 'TEAM_ID' in d else []
             if 'SHOT_MADE_FLAG' in d:
               x=pd.to_numeric(d.SHOT_MADE_FLAG,errors='coerce'); out['missed_shots']=int(x.eq(0).sum()); out['made_shots']=int(x.eq(1).sum())
             return out
           rec=[]
           for g in controls+targets:
-            item={'game_id':g,'role':'TARGET' if g in targets else 'CONTROL','v3':describe_v3(g),'shotdetail':describe_shot(g),'legacy_rows':int(ngid.eq(g).sum()),'pbp_rows':int(pgid.eq(g).sum())}
-            item['bridge_structural_ready']=(len(item['v3'].get('teams',[]))==2 and item['v3'].get('rows',0)>0 and item['v3'].get('rebound_rows',0)>0 and item['v3'].get('substitution_rows',0)>0 and item['shotdetail'].get('rows',0)>0 and len(item['shotdetail'].get('teams',[]))==2)
+            item={'game_id':int(g),'role':'TARGET' if g in targets else 'CONTROL','v3':describe_v3(g),'shotdetail':describe_shot(g),'legacy_rows':int(ngid.eq(g).sum()),'pbp_rows':int(pgid.eq(g).sum())}
+            item['bridge_structural_ready']=(len(item['v3']['teams'])==2 and item['v3']['rows']>0 and item['v3']['rebound_rows']>0 and item['v3']['substitution_rows']>0 and item['shotdetail']['rows']>0 and len(item['shotdetail']['teams'])==2)
             rec.append(item)
           ctrl=[x for x in rec if x['role']=='CONTROL']; tar=[x for x in rec if x['role']=='TARGET']
-          # This is only a structural canary. Production requires a subsequent exact lineup/count equivalence proof on controls.
-          report={'status':'PASS','controls':len(ctrl),'targets':len(tar),'control_structural_ready':sum(x['bridge_structural_ready'] for x in ctrl),'target_structural_ready':sum(x['bridge_structural_ready'] for x in tar),'production_promotion_allowed':False,'records':rec}
+          report={'status':'PASS','neutral_team_id_zero_is_nonteam_event':True,'controls':len(ctrl),'targets':len(tar),'control_structural_ready':sum(x['bridge_structural_ready'] for x in ctrl),'target_structural_ready':sum(x['bridge_structural_ready'] for x in tar),'production_promotion_allowed':False,'records':rec}
           out=Path('team_trb_all_players/impact_database/2019_v3_shotdetail_bridge'); out.mkdir(parents=True,exist_ok=True)
           (out/'STRUCTURAL_CANARY.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps({k:v for k,v in report.items() if k!='records'},indent=2))
@@ -107,13 +101,13 @@ jobs:
           import gzip,json
           p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
           r=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
-          assert len(r)==14524
-          assert len({(str(x['season']),str(x['player_id']).removesuffix('.0'),int(x['team_id'])) for x in r})==14524
+          keys={(str(x['season']),str(x['player_id']).removesuffix('.0'),int(x['team_id'])) for x in r}
+          assert len(r)==14524 and len(keys)==14524
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add team_trb_all_players/impact_database/2019_v3_shotdetail_bridge
-          git commit -m 'Persist 2019 V3+shotdetail bridge structural canary' || true
+          git commit -m 'Persist corrected 2019 V3+shotdetail structural canary' || true
           git push origin HEAD:agent/treb-final-exact-assembly
       - uses: actions/upload-artifact@v4
         if: always()
