@@ -1,0 +1,3125 @@
+{
+  "status": "FAIL",
+  "stage2_sha": "57ba237c36d75f7a3ef2cc998d91aa70a59b3c29",
+  "scope": "exact recovery of the 16 authoritative V2 short-tenure keys missing from pinned Stage2",
+  "target_keys": 16,
+  "complete_keys": 5,
+  "distinct_complete_keys": 5,
+  "expected_metrics_per_key": 89,
+  "metric_rows": 712,
+  "expected_metric_rows": 1424,
+  "duplicate_metric_keys": 0,
+  "all_metric_sets_identical": false,
+  "common_metric_count": 0,
+  "failed_keys": 11,
+  "failures": [
+    {
+      "window": {
+        "season": "2016-17",
+        "team_id": 1610612739,
+        "player_id": "204002",
+        "player": "Edy Tavares",
+        "tenure_start": "2017-04-12",
+        "tenure_end": "2017-04-12",
+        "query_start_date": "2017-04-12",
+        "query_end_date": "2017-04-12",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 24.0,
+        "target_seconds_on": 1440.0,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2016-17",
+        "team_id": 1610612739,
+        "team_abbr": null,
+        "player_id": "204002",
+        "player": "Edy Tavares",
+        "tenure_start": "2017-04-12",
+        "tenure_end": "2017-04-12",
+        "query_start_date": "2017-04-12",
+        "query_end_date": "2017-04-12",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=204002&FromDate=2017-04-12&ToDate=2017-04-12')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=204002&FromDate=2017-04-12&ToDate=2017-04-12')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=204002&FromDate=2017-04-12&ToDate=2017-04-12')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=204002&FromDate=2017-04-12&ToDate=2017-04-12')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:13.174552+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2016-17",
+        "team_id": 1610612739,
+        "player_id": "2563",
+        "player": "Dahntay Jones",
+        "tenure_start": "2017-04-12",
+        "tenure_end": "2017-04-12",
+        "query_start_date": "2017-04-12",
+        "query_end_date": "2017-04-12",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 12.0,
+        "target_seconds_on": 720.0,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2016-17",
+        "team_id": 1610612739,
+        "team_abbr": null,
+        "player_id": "2563",
+        "player": "Dahntay Jones",
+        "tenure_start": "2017-04-12",
+        "tenure_end": "2017-04-12",
+        "query_start_date": "2017-04-12",
+        "query_end_date": "2017-04-12",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2017-04-12&ToDate=2017-04-12')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2017-04-12&ToDate=2017-04-12')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2017-04-12&ToDate=2017-04-12')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2017-04-12&ToDate=2017-04-12')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:14.219475+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2013-14",
+        "team_id": 1610612745,
+        "player_id": "2694",
+        "player": "Josh Powell",
+        "tenure_start": "2014-04-16",
+        "tenure_end": "2014-04-16",
+        "query_start_date": "2014-04-16",
+        "query_end_date": "2014-04-16",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 19.366666666666667,
+        "target_seconds_on": 1162.0,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2013-14",
+        "team_id": 1610612745,
+        "team_abbr": null,
+        "player_id": "2694",
+        "player": "Josh Powell",
+        "tenure_start": "2014-04-16",
+        "tenure_end": "2014-04-16",
+        "query_start_date": "2014-04-16",
+        "query_end_date": "2014-04-16",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 89,
+        "metrics": [
+          {
+            "metric": "2pt FGM Assist%",
+            "on": 0.714,
+            "off_corrected": 0.472,
+            "on_minus_off_corrected": 0.243,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non Putback 2pt FGM Assist%",
+            "on": 0.714,
+            "off_corrected": 0.519,
+            "on_minus_off_corrected": 0.195,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FGM Assist%",
+            "on": 0.8,
+            "off_corrected": 0.835,
+            "on_minus_off_corrected": -0.035,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FG%",
+            "on": 0.357,
+            "off_corrected": 0.358,
+            "on_minus_off_corrected": -0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non-Heave 3pt FG%",
+            "on": 0.357,
+            "off_corrected": 0.359,
+            "on_minus_off_corrected": -0.002,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt FG%",
+            "on": 0.35,
+            "off_corrected": 0.53,
+            "on_minus_off_corrected": -0.18,
+            "source_extra": {}
+          },
+          {
+            "metric": "eFG%",
+            "on": 0.426,
+            "off_corrected": 0.532,
+            "on_minus_off_corrected": -0.105,
+            "source_extra": {}
+          },
+          {
+            "metric": "TS%",
+            "on": 0.446,
+            "off_corrected": 0.568,
+            "on_minus_off_corrected": -0.122,
+            "source_extra": {}
+          },
+          {
+            "metric": "3PAr",
+            "on": 0.412,
+            "off_corrected": 0.33,
+            "on_minus_off_corrected": 0.082,
+            "source_extra": {}
+          },
+          {
+            "metric": "% of FG3A Blocked",
+            "on": 0.0,
+            "off_corrected": 0.006,
+            "on_minus_off_corrected": -0.006,
+            "source_extra": {}
+          },
+          {
+            "metric": "% of FG2A Blocked",
+            "on": 0.25,
+            "off_corrected": 0.1,
+            "on_minus_off_corrected": 0.15,
+            "source_extra": {}
+          },
+          {
+            "metric": "Live Ball TO%",
+            "on": 0.75,
+            "off_corrected": 0.531,
+            "on_minus_off_corrected": 0.219,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed FTs",
+            "on": 0.0,
+            "off_corrected": 0.839,
+            "on_minus_off_corrected": -0.839,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed FTs",
+            "on": 1.0,
+            "off_corrected": 0.152,
+            "on_minus_off_corrected": 0.848,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed 2s",
+            "on": 0.833,
+            "off_corrected": 0.688,
+            "on_minus_off_corrected": 0.145,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed 2s",
+            "on": 0.154,
+            "off_corrected": 0.336,
+            "on_minus_off_corrected": -0.182,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed 3s",
+            "on": 0.8,
+            "off_corrected": 0.751,
+            "on_minus_off_corrected": 0.049,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed 3s",
+            "on": 0.111,
+            "off_corrected": 0.262,
+            "on_minus_off_corrected": -0.151,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed FGs",
+            "on": 0.824,
+            "off_corrected": 0.707,
+            "on_minus_off_corrected": 0.117,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed FGs",
+            "on": 0.136,
+            "off_corrected": 0.307,
+            "on_minus_off_corrected": -0.17,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim OReb%",
+            "on": 0.25,
+            "off_corrected": 0.39,
+            "on_minus_off_corrected": -0.14,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid-Range OReb%",
+            "on": 0.0,
+            "off_corrected": 0.313,
+            "on_minus_off_corrected": -0.313,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid-Range OReb%",
+            "on": 0.25,
+            "off_corrected": 0.236,
+            "on_minus_off_corrected": 0.014,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 OReb%",
+            "on": 0.143,
+            "off_corrected": 0.259,
+            "on_minus_off_corrected": -0.116,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 OReb%",
+            "on": 0.0,
+            "off_corrected": 0.272,
+            "on_minus_off_corrected": -0.272,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim DReb%",
+            "on": 0.833,
+            "off_corrected": 0.584,
+            "on_minus_off_corrected": 0.25,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid-Range DReb%",
+            "on": 0.8,
+            "off_corrected": 0.702,
+            "on_minus_off_corrected": 0.098,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid-Range DReb%",
+            "on": 1.0,
+            "off_corrected": 0.767,
+            "on_minus_off_corrected": 0.233,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 DReb%",
+            "on": 0.667,
+            "off_corrected": 0.752,
+            "on_minus_off_corrected": -0.085,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 DReb%",
+            "on": 1.0,
+            "off_corrected": 0.75,
+            "on_minus_off_corrected": 0.25,
+            "source_extra": {}
+          },
+          {
+            "metric": "Blocks Recovered %",
+            "on": 1.0,
+            "off_corrected": 0.596,
+            "on_minus_off_corrected": 0.404,
+            "source_extra": {}
+          },
+          {
+            "metric": "Seconds Per Possession - Offense",
+            "on": 15.0,
+            "off_corrected": 14.436,
+            "on_minus_off_corrected": 0.564,
+            "source_extra": {}
+          },
+          {
+            "metric": "Seconds Per Possession - Defense",
+            "on": 15.974,
+            "off_corrected": 15.451,
+            "on_minus_off_corrected": 0.523,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim Shot Frequency",
+            "on": 0.206,
+            "off_corrected": 0.396,
+            "on_minus_off_corrected": -0.19,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim FG%",
+            "on": 0.429,
+            "off_corrected": 0.627,
+            "on_minus_off_corrected": -0.198,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim % Assisted",
+            "on": 0.333,
+            "off_corrected": 0.532,
+            "on_minus_off_corrected": -0.198,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range Shot Frequency",
+            "on": 0.176,
+            "off_corrected": 0.19,
+            "on_minus_off_corrected": -0.014,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range FG%",
+            "on": 0.167,
+            "off_corrected": 0.404,
+            "on_minus_off_corrected": -0.237,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range % Assisted",
+            "on": 1.0,
+            "off_corrected": 0.331,
+            "on_minus_off_corrected": 0.669,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range Shot Frequency",
+            "on": 0.206,
+            "off_corrected": 0.084,
+            "on_minus_off_corrected": 0.122,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range FG%",
+            "on": 0.429,
+            "off_corrected": 0.356,
+            "on_minus_off_corrected": 0.073,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid % Assisted",
+            "on": 1.0,
+            "off_corrected": 0.335,
+            "on_minus_off_corrected": 0.665,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 Shot Frequency",
+            "on": 0.118,
+            "off_corrected": 0.078,
+            "on_minus_off_corrected": 0.039,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 FG%",
+            "on": 0.5,
+            "off_corrected": 0.386,
+            "on_minus_off_corrected": 0.114,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 % Assisted",
+            "on": 0.5,
+            "off_corrected": 0.965,
+            "on_minus_off_corrected": -0.465,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 Shot Frequency",
+            "on": 0.294,
+            "off_corrected": 0.251,
+            "on_minus_off_corrected": 0.043,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 FG%",
+            "on": 0.3,
+            "off_corrected": 0.348,
+            "on_minus_off_corrected": -0.048,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 % Assisted",
+            "on": 1.0,
+            "off_corrected": 0.79,
+            "on_minus_off_corrected": 0.21,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim or 3pt Shot Frequency",
+            "on": 0.618,
+            "off_corrected": 0.726,
+            "on_minus_off_corrected": -0.108,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non-Heave Arc 3 FG%",
+            "on": 0.3,
+            "off_corrected": 0.351,
+            "on_minus_off_corrected": -0.051,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shot Quality",
+            "on": 0.484,
+            "off_corrected": 0.527,
+            "on_minus_off_corrected": -0.043,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shooting Foul Drawn Rate",
+            "on": 0.081,
+            "off_corrected": 0.138,
+            "on_minus_off_corrected": -0.057,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt Shooting Foul Drawn Rate",
+            "on": 0.13,
+            "off_corrected": 0.19,
+            "on_minus_off_corrected": -0.059,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt Shooting Foul Drawn Rate",
+            "on": 0.0,
+            "off_corrected": 0.016,
+            "on_minus_off_corrected": -0.016,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Points%",
+            "on": 0.121,
+            "off_corrected": 0.128,
+            "on_minus_off_corrected": -0.007,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Points%",
+            "on": 0.0,
+            "off_corrected": 0.337,
+            "on_minus_off_corrected": -0.337,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Possessions%",
+            "on": 0.081,
+            "off_corrected": 0.331,
+            "on_minus_off_corrected": -0.25,
+            "source_extra": {}
+          },
+          {
+            "metric": "Avg 2pt Shot Distance",
+            "on": 9.625,
+            "off_corrected": 5.411,
+            "on_minus_off_corrected": 4.214,
+            "source_extra": {}
+          },
+          {
+            "metric": "Avg 3pt Shot Distance",
+            "on": 24.85,
+            "off_corrected": 25.196,
+            "on_minus_off_corrected": -0.346,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Efficiency Excluding Last Minute Take Foul Possessions",
+            "on": 0.0,
+            "off_corrected": 112.145,
+            "on_minus_off_corrected": -112.145,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb%",
+            "on": 0.824,
+            "off_corrected": 0.714,
+            "on_minus_off_corrected": 0.11,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb%",
+            "on": 0.174,
+            "off_corrected": 0.292,
+            "on_minus_off_corrected": -0.118,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pts per 100 Possessions",
+            "on": 89.189,
+            "off_corrected": 110.893,
+            "on_minus_off_corrected": -21.703,
+            "source_extra": {}
+          },
+          {
+            "metric": "Assist Points per 100 Possessions",
+            "on": 59.459,
+            "off_corrected": 52.168,
+            "on_minus_off_corrected": 7.291,
+            "source_extra": {}
+          },
+          {
+            "metric": "FTA per 100 Possessions",
+            "on": 16.216,
+            "off_corrected": 32.06,
+            "on_minus_off_corrected": -15.844,
+            "source_extra": {}
+          },
+          {
+            "metric": "TOs per 100 Possessions",
+            "on": 10.811,
+            "off_corrected": 16.629,
+            "on_minus_off_corrected": -5.818,
+            "source_extra": {}
+          },
+          {
+            "metric": "Assists per 100 Possessions",
+            "on": 24.324,
+            "off_corrected": 22.012,
+            "on_minus_off_corrected": 2.312,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pts per 100 Possessions - Defense",
+            "on": 105.263,
+            "off_corrected": 106.317,
+            "on_minus_off_corrected": -1.054,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shot Quality - Defense",
+            "on": 0.505,
+            "off_corrected": 0.496,
+            "on_minus_off_corrected": 0.009,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FG% - Defense",
+            "on": 0.167,
+            "off_corrected": 0.353,
+            "on_minus_off_corrected": -0.186,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt FG% - Defense",
+            "on": 0.556,
+            "off_corrected": 0.475,
+            "on_minus_off_corrected": 0.081,
+            "source_extra": {}
+          },
+          {
+            "metric": "eFG% - Defense",
+            "on": 0.5,
+            "off_corrected": 0.489,
+            "on_minus_off_corrected": 0.011,
+            "source_extra": {}
+          },
+          {
+            "metric": "3PAr - Defense",
+            "on": 0.182,
+            "off_corrected": 0.262,
+            "on_minus_off_corrected": -0.08,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim Shot Frequency - Defense",
+            "on": 0.485,
+            "off_corrected": 0.312,
+            "on_minus_off_corrected": 0.173,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim FG% - Defense",
+            "on": 0.625,
+            "off_corrected": 0.611,
+            "on_minus_off_corrected": 0.014,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range Shot Frequency - Defense",
+            "on": 0.273,
+            "off_corrected": 0.206,
+            "on_minus_off_corrected": 0.067,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range FG% - Defense",
+            "on": 0.444,
+            "off_corrected": 0.373,
+            "on_minus_off_corrected": 0.071,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range Shot Frequency - Defense",
+            "on": 0.061,
+            "off_corrected": 0.221,
+            "on_minus_off_corrected": -0.16,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range FG% - Defense",
+            "on": 0.5,
+            "off_corrected": 0.376,
+            "on_minus_off_corrected": 0.124,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 Shot Frequency - Defense",
+            "on": 0.061,
+            "off_corrected": 0.071,
+            "on_minus_off_corrected": -0.01,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.351,
+            "on_minus_off_corrected": -0.351,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 Shot Frequency - Defense",
+            "on": 0.121,
+            "off_corrected": 0.191,
+            "on_minus_off_corrected": -0.07,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 FG% - Defense",
+            "on": 0.25,
+            "off_corrected": 0.354,
+            "on_minus_off_corrected": -0.104,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pace",
+            "on": 92.943,
+            "off_corrected": 96.368,
+            "on_minus_off_corrected": -3.425,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Efficiency",
+            "on": 133.333,
+            "off_corrected": 119.048,
+            "on_minus_off_corrected": 14.286,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Efficiency",
+            "on": 0.0,
+            "off_corrected": 112.671,
+            "on_minus_off_corrected": -112.671,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Possessions Per 100 Possessions",
+            "on": 8.108,
+            "off_corrected": 11.914,
+            "on_minus_off_corrected": -3.806,
+            "source_extra": {}
+          },
+          {
+            "metric": "First Chance Points Per 100 Possessions",
+            "on": 78.378,
+            "off_corrected": 96.71,
+            "on_minus_off_corrected": -18.331,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Points Per 100 Possessions",
+            "on": 10.811,
+            "off_corrected": 14.183,
+            "on_minus_off_corrected": -3.372,
+            "source_extra": {}
+          }
+        ],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": true,
+            "attempt": 1,
+            "status_code": 200,
+            "elapsed_seconds": 4.681,
+            "errors": []
+          },
+          "stat_minutes": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2013-14&SeasonType=Regular+Season&TeamId=1610612745&Stat=OffRebounds&FromDate=2014-04-16&ToDate=2014-04-16')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2013-14&SeasonType=Regular+Season&TeamId=1610612745&Stat=OffRebounds&FromDate=2014-04-16&ToDate=2014-04-16')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2013-14&SeasonType=Regular+Season&TeamId=1610612745&Stat=OffRebounds&FromDate=2014-04-16&ToDate=2014-04-16')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2013-14&SeasonType=Regular+Season&TeamId=1610612745&Stat=OffRebounds&FromDate=2014-04-16&ToDate=2014-04-16')"
+            ]
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:14.221626+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2017-18",
+        "team_id": 1610612745,
+        "player_id": "1628935",
+        "player": "Aaron Jackson",
+        "tenure_start": "2018-04-11",
+        "tenure_end": "2018-04-11",
+        "query_start_date": "2018-04-11",
+        "query_end_date": "2018-04-11",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 34.5,
+        "target_seconds_on": 2070.0,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2017-18",
+        "team_id": 1610612745,
+        "team_abbr": null,
+        "player_id": "1628935",
+        "player": "Aaron Jackson",
+        "tenure_start": "2018-04-11",
+        "tenure_end": "2018-04-11",
+        "query_start_date": "2018-04-11",
+        "query_end_date": "2018-04-11",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612745&PlayerId=1628935&FromDate=2018-04-11&ToDate=2018-04-11')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612745&PlayerId=1628935&FromDate=2018-04-11&ToDate=2018-04-11')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612745&PlayerId=1628935&FromDate=2018-04-11&ToDate=2018-04-11')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612745&PlayerId=1628935&FromDate=2018-04-11&ToDate=2018-04-11')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:21.255318+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2022-23",
+        "team_id": 1610612751,
+        "player_id": "1630564",
+        "player": "RaiQuan Gray",
+        "tenure_start": "2023-04-08",
+        "tenure_end": "2023-04-09",
+        "query_start_date": "2023-04-08",
+        "query_end_date": "2023-04-09",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 35.083333333333336,
+        "target_seconds_on": 2105.0,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2022-23",
+        "team_id": 1610612751,
+        "team_abbr": null,
+        "player_id": "1630564",
+        "player": "RaiQuan Gray",
+        "tenure_start": "2023-04-08",
+        "tenure_end": "2023-04-09",
+        "query_start_date": "2023-04-08",
+        "query_end_date": "2023-04-09",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:21.258437+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2022-23",
+        "team_id": 1610612757,
+        "player_id": "1628435",
+        "player": "Chance Comanche",
+        "tenure_start": "2023-04-09",
+        "tenure_end": "2023-04-09",
+        "query_start_date": "2023-04-09",
+        "query_end_date": "2023-04-09",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 20.783333333333335,
+        "target_seconds_on": 1247.0,
+        "interval_reason": "out_depart"
+      },
+      "result": {
+        "complete": false,
+        "season": "2022-23",
+        "team_id": 1610612757,
+        "team_abbr": null,
+        "player_id": "1628435",
+        "player": "Chance Comanche",
+        "tenure_start": "2023-04-09",
+        "tenure_end": "2023-04-09",
+        "query_start_date": "2023-04-09",
+        "query_end_date": "2023-04-09",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:22.421706+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2022-23",
+        "team_id": 1610612763,
+        "player_id": "1631367",
+        "player": "Jacob Gilyard",
+        "tenure_start": "2023-04-08",
+        "tenure_end": "2023-04-09",
+        "query_start_date": "2023-04-08",
+        "query_end_date": "2023-04-09",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 40.78333333333333,
+        "target_seconds_on": 2447.0,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2022-23",
+        "team_id": 1610612763,
+        "team_abbr": null,
+        "player_id": "1631367",
+        "player": "Jacob Gilyard",
+        "tenure_start": "2023-04-08",
+        "tenure_end": "2023-04-09",
+        "query_start_date": "2023-04-08",
+        "query_end_date": "2023-04-09",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:28.290515+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2024-25",
+        "team_id": 1610612755,
+        "player_id": "1630600",
+        "player": "Isaiah Mobley",
+        "tenure_start": "2025-04-13",
+        "tenure_end": "2025-04-13",
+        "query_start_date": "2025-04-13",
+        "query_end_date": "2025-04-13",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 17.366666666666667,
+        "target_seconds_on": 1042.0,
+        "interval_reason": "out_depart"
+      },
+      "result": {
+        "complete": false,
+        "season": "2024-25",
+        "team_id": 1610612755,
+        "team_abbr": null,
+        "player_id": "1630600",
+        "player": "Isaiah Mobley",
+        "tenure_start": "2025-04-13",
+        "tenure_end": "2025-04-13",
+        "query_start_date": "2025-04-13",
+        "query_end_date": "2025-04-13",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1630600&FromDate=2025-04-13&ToDate=2025-04-13')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1630600&FromDate=2025-04-13&ToDate=2025-04-13')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1630600&FromDate=2025-04-13&ToDate=2025-04-13')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1630600&FromDate=2025-04-13&ToDate=2025-04-13')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:28.293420+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2025-26",
+        "team_id": 1610612741,
+        "player_id": "1631338",
+        "player": "Mouhamadou Gueye",
+        "tenure_start": "2026-04-09",
+        "tenure_end": "2026-04-12",
+        "query_start_date": "2026-04-09",
+        "query_end_date": "2026-04-12",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 3,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 45.44166666666667,
+        "target_seconds_on": 2726.5,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2025-26",
+        "team_id": 1610612741,
+        "team_abbr": null,
+        "player_id": "1631338",
+        "player": "Mouhamadou Gueye",
+        "tenure_start": "2026-04-09",
+        "tenure_end": "2026-04-12",
+        "query_start_date": "2026-04-09",
+        "query_end_date": "2026-04-12",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 3,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 89,
+        "metrics": [
+          {
+            "metric": "2pt FGM Assist%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non Putback 2pt FGM Assist%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FGM Assist%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non-Heave 3pt FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "eFG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "TS%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "3PAr",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "% of FG3A Blocked",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "% of FG2A Blocked",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Live Ball TO%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed FTs",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed FTs",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed 2s",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed 2s",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed 3s",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed 3s",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed FGs",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed FGs",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim OReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid-Range OReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid-Range OReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 OReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 OReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim DReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid-Range DReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid-Range DReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 DReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 DReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Blocks Recovered %",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Seconds Per Possession - Offense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Seconds Per Possession - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim Shot Frequency",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim % Assisted",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range Shot Frequency",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range % Assisted",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range Shot Frequency",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid % Assisted",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 Shot Frequency",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 % Assisted",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 Shot Frequency",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 % Assisted",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim or 3pt Shot Frequency",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non-Heave Arc 3 FG%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shot Quality",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shooting Foul Drawn Rate",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt Shooting Foul Drawn Rate",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt Shooting Foul Drawn Rate",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Points%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Points%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Possessions%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Avg 2pt Shot Distance",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Avg 3pt Shot Distance",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Efficiency Excluding Last Minute Take Foul Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb%",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pts per 100 Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Assist Points per 100 Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "FTA per 100 Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "TOs per 100 Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Assists per 100 Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pts per 100 Possessions - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shot Quality - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "eFG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "3PAr - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim Shot Frequency - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range Shot Frequency - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range Shot Frequency - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 Shot Frequency - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 Shot Frequency - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pace",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Efficiency",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Efficiency",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Possessions Per 100 Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "First Chance Points Per 100 Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Points Per 100 Possessions",
+            "on": 0.0,
+            "off_corrected": 0.0,
+            "on_minus_off_corrected": 0.0,
+            "source_extra": {}
+          }
+        ],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": true,
+            "attempt": 2,
+            "status_code": 200,
+            "elapsed_seconds": 0.13,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&PlayerId=1631338&FromDate=2026-04-09&ToDate=2026-04-12')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12')"
+            ]
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:30.596366+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2025-26",
+        "team_id": 1610612762,
+        "player_id": "1643060",
+        "player": "Hayden Gray",
+        "tenure_start": "2026-04-11",
+        "tenure_end": "2026-04-12",
+        "query_start_date": "2026-04-11",
+        "query_end_date": "2026-04-12",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 1,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 24.75,
+        "target_seconds_on": 1485.0,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2025-26",
+        "team_id": 1610612762,
+        "team_abbr": null,
+        "player_id": "1643060",
+        "player": "Hayden Gray",
+        "tenure_start": "2026-04-11",
+        "tenure_end": "2026-04-12",
+        "query_start_date": "2026-04-11",
+        "query_end_date": "2026-04-12",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 1,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 0,
+        "metrics": [],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": false,
+            "attempt": 4,
+            "status_code": null,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12')",
+              "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12')",
+              "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": false,
+            "skipped": true,
+            "reason": "team profile unavailable or empty"
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:35.331732+00:00"
+      }
+    },
+    {
+      "window": {
+        "season": "2025-26",
+        "team_id": 1610612752,
+        "player_id": "1641794",
+        "player": "Dillon Jones",
+        "tenure_start": "2026-01-20",
+        "tenure_end": "2026-04-12",
+        "query_start_date": "2026-01-20",
+        "query_end_date": "2026-04-12",
+        "schedule_boundary_status": "resolved",
+        "zero_game_window": false,
+        "zero_minute_only": false,
+        "team_games_in_window": 39,
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "target_minutes_on": 39.388333333333335,
+        "target_seconds_on": 2363.3,
+        "interval_reason": "season_close"
+      },
+      "result": {
+        "complete": false,
+        "season": "2025-26",
+        "team_id": 1610612752,
+        "team_abbr": null,
+        "player_id": "1641794",
+        "player": "Dillon Jones",
+        "tenure_start": "2026-01-20",
+        "tenure_end": "2026-04-12",
+        "query_start_date": "2026-01-20",
+        "query_end_date": "2026-04-12",
+        "transaction_day_policy": "authoritative_v2_effective_interval_exact",
+        "team_games_in_window": 39,
+        "tenure_source": "authoritative_v2_target_manifest_missing23_recovery",
+        "tenure_confidence": "authoritative_v2",
+        "boundary_resolution": null,
+        "minutes_on": null,
+        "minutes_off": null,
+        "metric_count": 89,
+        "metrics": [
+          {
+            "metric": "2pt FGM Assist%",
+            "on": 0.526,
+            "off_corrected": 0.534,
+            "on_minus_off_corrected": -0.008,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non Putback 2pt FGM Assist%",
+            "on": 0.556,
+            "off_corrected": 0.585,
+            "on_minus_off_corrected": -0.03,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FGM Assist%",
+            "on": 0.75,
+            "off_corrected": 0.861,
+            "on_minus_off_corrected": -0.111,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FG%",
+            "on": 0.348,
+            "off_corrected": 0.371,
+            "on_minus_off_corrected": -0.023,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non-Heave 3pt FG%",
+            "on": 0.348,
+            "off_corrected": 0.371,
+            "on_minus_off_corrected": -0.023,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt FG%",
+            "on": 0.655,
+            "off_corrected": 0.554,
+            "on_minus_off_corrected": 0.102,
+            "source_extra": {}
+          },
+          {
+            "metric": "eFG%",
+            "on": 0.596,
+            "off_corrected": 0.555,
+            "on_minus_off_corrected": 0.042,
+            "source_extra": {}
+          },
+          {
+            "metric": "TS%",
+            "on": 0.627,
+            "off_corrected": 0.588,
+            "on_minus_off_corrected": 0.039,
+            "source_extra": {}
+          },
+          {
+            "metric": "3PAr",
+            "on": 0.442,
+            "off_corrected": 0.43,
+            "on_minus_off_corrected": 0.012,
+            "source_extra": {}
+          },
+          {
+            "metric": "% of FG3A Blocked",
+            "on": 0.087,
+            "off_corrected": 0.012,
+            "on_minus_off_corrected": 0.075,
+            "source_extra": {}
+          },
+          {
+            "metric": "% of FG2A Blocked",
+            "on": 0.034,
+            "off_corrected": 0.076,
+            "on_minus_off_corrected": -0.041,
+            "source_extra": {}
+          },
+          {
+            "metric": "Live Ball TO%",
+            "on": 0.5,
+            "off_corrected": 0.531,
+            "on_minus_off_corrected": -0.031,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed FTs",
+            "on": 1.0,
+            "off_corrected": 0.871,
+            "on_minus_off_corrected": 0.129,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed FTs",
+            "on": 0.0,
+            "off_corrected": 0.101,
+            "on_minus_off_corrected": -0.101,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed 2s",
+            "on": 0.833,
+            "off_corrected": 0.691,
+            "on_minus_off_corrected": 0.142,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed 2s",
+            "on": 0.2,
+            "off_corrected": 0.365,
+            "on_minus_off_corrected": -0.165,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed 3s",
+            "on": 0.75,
+            "off_corrected": 0.746,
+            "on_minus_off_corrected": 0.004,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed 3s",
+            "on": 0.533,
+            "off_corrected": 0.292,
+            "on_minus_off_corrected": 0.241,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb% - Missed FGs",
+            "on": 0.786,
+            "off_corrected": 0.72,
+            "on_minus_off_corrected": 0.066,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb% - Missed FGs",
+            "on": 0.4,
+            "off_corrected": 0.328,
+            "on_minus_off_corrected": 0.072,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim OReb%",
+            "on": 0.0,
+            "off_corrected": 0.424,
+            "on_minus_off_corrected": -0.424,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid-Range OReb%",
+            "on": 0.167,
+            "off_corrected": 0.346,
+            "on_minus_off_corrected": -0.179,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid-Range OReb%",
+            "on": 0.333,
+            "off_corrected": 0.287,
+            "on_minus_off_corrected": 0.047,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 OReb%",
+            "on": 0.5,
+            "off_corrected": 0.288,
+            "on_minus_off_corrected": 0.212,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 OReb%",
+            "on": 1.0,
+            "off_corrected": 0.301,
+            "on_minus_off_corrected": 0.699,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim DReb%",
+            "on": 1.0,
+            "off_corrected": 0.626,
+            "on_minus_off_corrected": 0.374,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid-Range DReb%",
+            "on": 0.667,
+            "off_corrected": 0.714,
+            "on_minus_off_corrected": -0.048,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid-Range DReb%",
+            "on": 0.8,
+            "off_corrected": 0.773,
+            "on_minus_off_corrected": 0.027,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 DReb%",
+            "on": 0.909,
+            "off_corrected": 0.748,
+            "on_minus_off_corrected": 0.161,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 DReb%",
+            "on": 0.4,
+            "off_corrected": 0.738,
+            "on_minus_off_corrected": -0.338,
+            "source_extra": {}
+          },
+          {
+            "metric": "Blocks Recovered %",
+            "on": 0.0,
+            "off_corrected": 0.58,
+            "on_minus_off_corrected": -0.58,
+            "source_extra": {}
+          },
+          {
+            "metric": "Seconds Per Possession - Offense",
+            "on": 16.167,
+            "off_corrected": 15.237,
+            "on_minus_off_corrected": 0.931,
+            "source_extra": {}
+          },
+          {
+            "metric": "Seconds Per Possession - Defense",
+            "on": 12.468,
+            "off_corrected": 14.424,
+            "on_minus_off_corrected": -1.955,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim Shot Frequency",
+            "on": 0.25,
+            "off_corrected": 0.279,
+            "on_minus_off_corrected": -0.029,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim FG%",
+            "on": 0.923,
+            "off_corrected": 0.663,
+            "on_minus_off_corrected": 0.26,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim % Assisted",
+            "on": 0.75,
+            "off_corrected": 0.606,
+            "on_minus_off_corrected": 0.144,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range Shot Frequency",
+            "on": 0.212,
+            "off_corrected": 0.211,
+            "on_minus_off_corrected": 0.001,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range FG%",
+            "on": 0.455,
+            "off_corrected": 0.448,
+            "on_minus_off_corrected": 0.006,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range % Assisted",
+            "on": 0.2,
+            "off_corrected": 0.446,
+            "on_minus_off_corrected": -0.246,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range Shot Frequency",
+            "on": 0.096,
+            "off_corrected": 0.08,
+            "on_minus_off_corrected": 0.016,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range FG%",
+            "on": 0.4,
+            "off_corrected": 0.449,
+            "on_minus_off_corrected": -0.049,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid % Assisted",
+            "on": 0.0,
+            "off_corrected": 0.395,
+            "on_minus_off_corrected": -0.395,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 Shot Frequency",
+            "on": 0.058,
+            "off_corrected": 0.135,
+            "on_minus_off_corrected": -0.077,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 FG%",
+            "on": 0.667,
+            "off_corrected": 0.419,
+            "on_minus_off_corrected": 0.248,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 % Assisted",
+            "on": 1.0,
+            "off_corrected": 0.985,
+            "on_minus_off_corrected": 0.015,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 Shot Frequency",
+            "on": 0.385,
+            "off_corrected": 0.295,
+            "on_minus_off_corrected": 0.089,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 FG%",
+            "on": 0.3,
+            "off_corrected": 0.349,
+            "on_minus_off_corrected": -0.049,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 % Assisted",
+            "on": 0.667,
+            "off_corrected": 0.793,
+            "on_minus_off_corrected": -0.127,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim or 3pt Shot Frequency",
+            "on": 0.692,
+            "off_corrected": 0.709,
+            "on_minus_off_corrected": -0.017,
+            "source_extra": {}
+          },
+          {
+            "metric": "Non-Heave Arc 3 FG%",
+            "on": 0.3,
+            "off_corrected": 0.349,
+            "on_minus_off_corrected": -0.049,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shot Quality",
+            "on": 0.534,
+            "off_corrected": 0.552,
+            "on_minus_off_corrected": -0.018,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shooting Foul Drawn Rate",
+            "on": 0.073,
+            "off_corrected": 0.099,
+            "on_minus_off_corrected": -0.026,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt Shooting Foul Drawn Rate",
+            "on": 0.125,
+            "off_corrected": 0.154,
+            "on_minus_off_corrected": -0.029,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt Shooting Foul Drawn Rate",
+            "on": 0.0,
+            "off_corrected": 0.017,
+            "on_minus_off_corrected": -0.017,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Points%",
+            "on": 0.101,
+            "off_corrected": 0.141,
+            "on_minus_off_corrected": -0.04,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Points%",
+            "on": 0.203,
+            "off_corrected": 0.233,
+            "on_minus_off_corrected": -0.03,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Possessions%",
+            "on": 0.127,
+            "off_corrected": 0.225,
+            "on_minus_off_corrected": -0.098,
+            "source_extra": {}
+          },
+          {
+            "metric": "Avg 2pt Shot Distance",
+            "on": 6.693,
+            "off_corrected": 6.38,
+            "on_minus_off_corrected": 0.313,
+            "source_extra": {}
+          },
+          {
+            "metric": "Avg 3pt Shot Distance",
+            "on": 26.722,
+            "off_corrected": 25.169,
+            "on_minus_off_corrected": 1.552,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Efficiency Excluding Last Minute Take Foul Possessions",
+            "on": 200.0,
+            "off_corrected": 124.52,
+            "on_minus_off_corrected": 75.48,
+            "source_extra": {}
+          },
+          {
+            "metric": "DReb%",
+            "on": 0.793,
+            "off_corrected": 0.727,
+            "on_minus_off_corrected": 0.066,
+            "source_extra": {}
+          },
+          {
+            "metric": "OReb%",
+            "on": 0.4,
+            "off_corrected": 0.318,
+            "on_minus_off_corrected": 0.082,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pts per 100 Possessions",
+            "on": 125.455,
+            "off_corrected": 120.228,
+            "on_minus_off_corrected": 5.226,
+            "source_extra": {}
+          },
+          {
+            "metric": "Assist Points per 100 Possessions",
+            "on": 69.091,
+            "off_corrected": 69.385,
+            "on_minus_off_corrected": -0.294,
+            "source_extra": {}
+          },
+          {
+            "metric": "FTA per 100 Possessions",
+            "on": 12.727,
+            "off_corrected": 22.057,
+            "on_minus_off_corrected": -9.329,
+            "source_extra": {}
+          },
+          {
+            "metric": "TOs per 100 Possessions",
+            "on": 18.182,
+            "off_corrected": 14.082,
+            "on_minus_off_corrected": 4.1,
+            "source_extra": {}
+          },
+          {
+            "metric": "Assists per 100 Possessions",
+            "on": 29.091,
+            "off_corrected": 28.332,
+            "on_minus_off_corrected": 0.758,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pts per 100 Possessions - Defense",
+            "on": 101.667,
+            "off_corrected": 112.706,
+            "on_minus_off_corrected": -11.039,
+            "source_extra": {}
+          },
+          {
+            "metric": "Shot Quality - Defense",
+            "on": 0.52,
+            "off_corrected": 0.551,
+            "on_minus_off_corrected": -0.031,
+            "source_extra": {}
+          },
+          {
+            "metric": "3pt FG% - Defense",
+            "on": 0.304,
+            "off_corrected": 0.358,
+            "on_minus_off_corrected": -0.053,
+            "source_extra": {}
+          },
+          {
+            "metric": "2pt FG% - Defense",
+            "on": 0.5,
+            "off_corrected": 0.539,
+            "on_minus_off_corrected": -0.039,
+            "source_extra": {}
+          },
+          {
+            "metric": "eFG% - Defense",
+            "on": 0.479,
+            "off_corrected": 0.538,
+            "on_minus_off_corrected": -0.059,
+            "source_extra": {}
+          },
+          {
+            "metric": "3PAr - Defense",
+            "on": 0.489,
+            "off_corrected": 0.45,
+            "on_minus_off_corrected": 0.039,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim Shot Frequency - Defense",
+            "on": 0.34,
+            "off_corrected": 0.277,
+            "on_minus_off_corrected": 0.064,
+            "source_extra": {}
+          },
+          {
+            "metric": "At Rim FG% - Defense",
+            "on": 0.75,
+            "off_corrected": 0.646,
+            "on_minus_off_corrected": 0.104,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range Shot Frequency - Defense",
+            "on": 0.064,
+            "off_corrected": 0.193,
+            "on_minus_off_corrected": -0.129,
+            "source_extra": {}
+          },
+          {
+            "metric": "Short Mid Range FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.441,
+            "on_minus_off_corrected": -0.441,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range Shot Frequency - Defense",
+            "on": 0.106,
+            "off_corrected": 0.08,
+            "on_minus_off_corrected": 0.026,
+            "source_extra": {}
+          },
+          {
+            "metric": "Long Mid Range FG% - Defense",
+            "on": 0.0,
+            "off_corrected": 0.403,
+            "on_minus_off_corrected": -0.403,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 Shot Frequency - Defense",
+            "on": 0.128,
+            "off_corrected": 0.123,
+            "on_minus_off_corrected": 0.005,
+            "source_extra": {}
+          },
+          {
+            "metric": "Corner 3 FG% - Defense",
+            "on": 0.167,
+            "off_corrected": 0.379,
+            "on_minus_off_corrected": -0.212,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 Shot Frequency - Defense",
+            "on": 0.362,
+            "off_corrected": 0.327,
+            "on_minus_off_corrected": 0.034,
+            "source_extra": {}
+          },
+          {
+            "metric": "Arc 3 FG% - Defense",
+            "on": 0.353,
+            "off_corrected": 0.35,
+            "on_minus_off_corrected": 0.003,
+            "source_extra": {}
+          },
+          {
+            "metric": "Pace",
+            "on": 101.142,
+            "off_corrected": 97.111,
+            "on_minus_off_corrected": 4.031,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Efficiency",
+            "on": 70.0,
+            "off_corrected": 128.208,
+            "on_minus_off_corrected": -58.208,
+            "source_extra": {}
+          },
+          {
+            "metric": "Penalty Efficiency",
+            "on": 200.0,
+            "off_corrected": 124.553,
+            "on_minus_off_corrected": 75.447,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Possessions Per 100 Possessions",
+            "on": 18.182,
+            "off_corrected": 13.239,
+            "on_minus_off_corrected": 4.943,
+            "source_extra": {}
+          },
+          {
+            "metric": "First Chance Points Per 100 Possessions",
+            "on": 112.727,
+            "off_corrected": 103.255,
+            "on_minus_off_corrected": 9.473,
+            "source_extra": {}
+          },
+          {
+            "metric": "Second Chance Points Per 100 Possessions",
+            "on": 12.727,
+            "off_corrected": 16.974,
+            "on_minus_off_corrected": -4.246,
+            "source_extra": {}
+          }
+        ],
+        "minute_source_row": null,
+        "requests": {
+          "team": {
+            "ok": true,
+            "attempt": 3,
+            "status_code": 200,
+            "elapsed_seconds": 0.965,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&PlayerId=1641794&FromDate=2026-01-20&ToDate=2026-04-12')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&PlayerId=1641794&FromDate=2026-01-20&ToDate=2026-04-12')"
+            ]
+          },
+          "stat_minutes": {
+            "ok": true,
+            "attempt": 3,
+            "status_code": 200,
+            "elapsed_seconds": 0.332,
+            "errors": [
+              "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&Stat=OffRebounds&FromDate=2026-01-20&ToDate=2026-04-12')",
+              "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&Stat=OffRebounds&FromDate=2026-01-20&ToDate=2026-04-12')"
+            ]
+          }
+        },
+        "generated_utc": "2026-08-14T03:45:35.624857+00:00"
+      }
+    }
+  ],
+  "keys": [
+    {
+      "season": "2003-04",
+      "team_id": 1610612738,
+      "player_id": "344",
+      "player": "Dana Barros",
+      "query_start_date": "2004-04-14",
+      "query_end_date": "2004-04-14",
+      "complete": true,
+      "metric_count": 89,
+      "unique_metric_count": 89,
+      "minutes_on": 11.0,
+      "minutes_off": 3930.0,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": true,
+          "attempt": 1,
+          "status_code": 200,
+          "elapsed_seconds": 3.026,
+          "errors": []
+        },
+        "stat_minutes": {
+          "ok": true,
+          "attempt": 1,
+          "status_code": 200,
+          "elapsed_seconds": 0.607,
+          "errors": []
+        }
+      }
+    },
+    {
+      "season": "2010-11",
+      "team_id": 1610612747,
+      "player_id": "201234",
+      "player": "Trey Johnson",
+      "query_start_date": "2011-04-13",
+      "query_end_date": "2011-04-13",
+      "complete": true,
+      "metric_count": 89,
+      "unique_metric_count": 89,
+      "minutes_on": 13.0,
+      "minutes_off": 3953.0,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": true,
+          "attempt": 1,
+          "status_code": 200,
+          "elapsed_seconds": 2.977,
+          "errors": []
+        },
+        "stat_minutes": {
+          "ok": true,
+          "attempt": 1,
+          "status_code": 200,
+          "elapsed_seconds": 0.519,
+          "errors": []
+        }
+      }
+    },
+    {
+      "season": "2012-13",
+      "team_id": 1610612752,
+      "player_id": "2853",
+      "player": "Earl Barron",
+      "query_start_date": "2013-04-17",
+      "query_end_date": "2013-04-17",
+      "complete": true,
+      "metric_count": 89,
+      "unique_metric_count": 89,
+      "minutes_on": 36.0,
+      "minutes_off": 3910.0,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": true,
+          "attempt": 1,
+          "status_code": 200,
+          "elapsed_seconds": 3.149,
+          "errors": []
+        },
+        "stat_minutes": {
+          "ok": true,
+          "attempt": 2,
+          "status_code": 200,
+          "elapsed_seconds": 0.522,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2012-13&SeasonType=Regular+Season&TeamId=1610612752&Stat=OffRebounds&FromDate=2013-04-17&ToDate=2013-04-17')"
+          ]
+        }
+      }
+    },
+    {
+      "season": "2013-14",
+      "team_id": 1610612745,
+      "player_id": "2694",
+      "player": "Josh Powell",
+      "query_start_date": "2014-04-16",
+      "query_end_date": "2014-04-16",
+      "complete": false,
+      "metric_count": 89,
+      "unique_metric_count": 89,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": true,
+          "attempt": 1,
+          "status_code": 200,
+          "elapsed_seconds": 4.681,
+          "errors": []
+        },
+        "stat_minutes": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2013-14&SeasonType=Regular+Season&TeamId=1610612745&Stat=OffRebounds&FromDate=2014-04-16&ToDate=2014-04-16')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2013-14&SeasonType=Regular+Season&TeamId=1610612745&Stat=OffRebounds&FromDate=2014-04-16&ToDate=2014-04-16')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2013-14&SeasonType=Regular+Season&TeamId=1610612745&Stat=OffRebounds&FromDate=2014-04-16&ToDate=2014-04-16')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2013-14&SeasonType=Regular+Season&TeamId=1610612745&Stat=OffRebounds&FromDate=2014-04-16&ToDate=2014-04-16')"
+          ]
+        }
+      }
+    },
+    {
+      "season": "2015-16",
+      "team_id": 1610612739,
+      "player_id": "2563",
+      "player": "Dahntay Jones",
+      "query_start_date": "2016-04-13",
+      "query_end_date": "2016-04-13",
+      "complete": true,
+      "metric_count": 89,
+      "unique_metric_count": 89,
+      "minutes_on": 42.0,
+      "minutes_off": 3929.0,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": true,
+          "attempt": 4,
+          "status_code": 200,
+          "elapsed_seconds": 1.034,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2015-16&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2016-04-13&ToDate=2016-04-13')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2015-16&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2016-04-13&ToDate=2016-04-13')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2015-16&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2016-04-13&ToDate=2016-04-13')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": true,
+          "attempt": 2,
+          "status_code": 200,
+          "elapsed_seconds": 0.311,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2015-16&SeasonType=Regular+Season&TeamId=1610612739&Stat=OffRebounds&FromDate=2016-04-13&ToDate=2016-04-13')"
+          ]
+        }
+      }
+    },
+    {
+      "season": "2016-17",
+      "team_id": 1610612739,
+      "player_id": "204002",
+      "player": "Edy Tavares",
+      "query_start_date": "2017-04-12",
+      "query_end_date": "2017-04-12",
+      "complete": false,
+      "metric_count": 0,
+      "unique_metric_count": 0,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=204002&FromDate=2017-04-12&ToDate=2017-04-12')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=204002&FromDate=2017-04-12&ToDate=2017-04-12')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=204002&FromDate=2017-04-12&ToDate=2017-04-12')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=204002&FromDate=2017-04-12&ToDate=2017-04-12')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "skipped": true,
+          "reason": "team profile unavailable or empty"
+        }
+      }
+    },
+    {
+      "season": "2016-17",
+      "team_id": 1610612739,
+      "player_id": "2563",
+      "player": "Dahntay Jones",
+      "query_start_date": "2017-04-12",
+      "query_end_date": "2017-04-12",
+      "complete": false,
+      "metric_count": 0,
+      "unique_metric_count": 0,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2017-04-12&ToDate=2017-04-12')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2017-04-12&ToDate=2017-04-12')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2017-04-12&ToDate=2017-04-12')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2016-17&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2563&FromDate=2017-04-12&ToDate=2017-04-12')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "skipped": true,
+          "reason": "team profile unavailable or empty"
+        }
+      }
+    },
+    {
+      "season": "2017-18",
+      "team_id": 1610612739,
+      "player_id": "2570",
+      "player": "Kendrick Perkins",
+      "query_start_date": "2018-04-11",
+      "query_end_date": "2018-04-11",
+      "complete": true,
+      "metric_count": 89,
+      "unique_metric_count": 89,
+      "minutes_on": 15.0,
+      "minutes_off": 3931.0,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": true,
+          "attempt": 4,
+          "status_code": 200,
+          "elapsed_seconds": 0.92,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2570&FromDate=2018-04-11&ToDate=2018-04-11')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2570&FromDate=2018-04-11&ToDate=2018-04-11')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612739&PlayerId=2570&FromDate=2018-04-11&ToDate=2018-04-11')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": true,
+          "attempt": 4,
+          "status_code": 200,
+          "elapsed_seconds": 0.351,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612739&Stat=OffRebounds&FromDate=2018-04-11&ToDate=2018-04-11')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612739&Stat=OffRebounds&FromDate=2018-04-11&ToDate=2018-04-11')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612739&Stat=OffRebounds&FromDate=2018-04-11&ToDate=2018-04-11')"
+          ]
+        }
+      }
+    },
+    {
+      "season": "2017-18",
+      "team_id": 1610612745,
+      "player_id": "1628935",
+      "player": "Aaron Jackson",
+      "query_start_date": "2018-04-11",
+      "query_end_date": "2018-04-11",
+      "complete": false,
+      "metric_count": 0,
+      "unique_metric_count": 0,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612745&PlayerId=1628935&FromDate=2018-04-11&ToDate=2018-04-11')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612745&PlayerId=1628935&FromDate=2018-04-11&ToDate=2018-04-11')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612745&PlayerId=1628935&FromDate=2018-04-11&ToDate=2018-04-11')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2017-18&SeasonType=Regular+Season&TeamId=1610612745&PlayerId=1628935&FromDate=2018-04-11&ToDate=2018-04-11')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "skipped": true,
+          "reason": "team profile unavailable or empty"
+        }
+      }
+    },
+    {
+      "season": "2022-23",
+      "team_id": 1610612751,
+      "player_id": "1630564",
+      "player": "RaiQuan Gray",
+      "query_start_date": "2023-04-08",
+      "query_end_date": "2023-04-09",
+      "complete": false,
+      "metric_count": 0,
+      "unique_metric_count": 0,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "skipped": true,
+          "reason": "team profile unavailable or empty"
+        }
+      }
+    },
+    {
+      "season": "2022-23",
+      "team_id": 1610612757,
+      "player_id": "1628435",
+      "player": "Chance Comanche",
+      "query_start_date": "2023-04-09",
+      "query_end_date": "2023-04-09",
+      "complete": false,
+      "metric_count": 0,
+      "unique_metric_count": 0,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "skipped": true,
+          "reason": "team profile unavailable or empty"
+        }
+      }
+    },
+    {
+      "season": "2022-23",
+      "team_id": 1610612763,
+      "player_id": "1631367",
+      "player": "Jacob Gilyard",
+      "query_start_date": "2023-04-08",
+      "query_end_date": "2023-04-09",
+      "complete": false,
+      "metric_count": 0,
+      "unique_metric_count": 0,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "skipped": true,
+          "reason": "team profile unavailable or empty"
+        }
+      }
+    },
+    {
+      "season": "2024-25",
+      "team_id": 1610612755,
+      "player_id": "1630600",
+      "player": "Isaiah Mobley",
+      "query_start_date": "2025-04-13",
+      "query_end_date": "2025-04-13",
+      "complete": false,
+      "metric_count": 0,
+      "unique_metric_count": 0,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1630600&FromDate=2025-04-13&ToDate=2025-04-13')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1630600&FromDate=2025-04-13&ToDate=2025-04-13')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1630600&FromDate=2025-04-13&ToDate=2025-04-13')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2024-25&SeasonType=Regular+Season&TeamId=1610612755&PlayerId=1630600&FromDate=2025-04-13&ToDate=2025-04-13')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "skipped": true,
+          "reason": "team profile unavailable or empty"
+        }
+      }
+    },
+    {
+      "season": "2025-26",
+      "team_id": 1610612741,
+      "player_id": "1631338",
+      "player": "Mouhamadou Gueye",
+      "query_start_date": "2026-04-09",
+      "query_end_date": "2026-04-12",
+      "complete": false,
+      "metric_count": 89,
+      "unique_metric_count": 89,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": true,
+          "attempt": 2,
+          "status_code": 200,
+          "elapsed_seconds": 0.13,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&PlayerId=1631338&FromDate=2026-04-09&ToDate=2026-04-12')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12')"
+          ]
+        }
+      }
+    },
+    {
+      "season": "2025-26",
+      "team_id": 1610612752,
+      "player_id": "1641794",
+      "player": "Dillon Jones",
+      "query_start_date": "2026-01-20",
+      "query_end_date": "2026-04-12",
+      "complete": false,
+      "metric_count": 89,
+      "unique_metric_count": 89,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": true,
+          "attempt": 3,
+          "status_code": 200,
+          "elapsed_seconds": 0.965,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&PlayerId=1641794&FromDate=2026-01-20&ToDate=2026-04-12')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&PlayerId=1641794&FromDate=2026-01-20&ToDate=2026-04-12')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": true,
+          "attempt": 3,
+          "status_code": 200,
+          "elapsed_seconds": 0.332,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&Stat=OffRebounds&FromDate=2026-01-20&ToDate=2026-04-12')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&Stat=OffRebounds&FromDate=2026-01-20&ToDate=2026-04-12')"
+          ]
+        }
+      }
+    },
+    {
+      "season": "2025-26",
+      "team_id": 1610612762,
+      "player_id": "1643060",
+      "player": "Hayden Gray",
+      "query_start_date": "2026-04-11",
+      "query_end_date": "2026-04-12",
+      "complete": false,
+      "metric_count": 0,
+      "unique_metric_count": 0,
+      "minutes_on": null,
+      "minutes_off": null,
+      "collection_source": "pbpstats_tenure_scoped_direct",
+      "requests": {
+        "team": {
+          "ok": false,
+          "attempt": 4,
+          "status_code": null,
+          "errors": [
+            "attempt 1: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12')",
+            "attempt 2: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12')",
+            "attempt 3: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12')",
+            "attempt 4: HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12')"
+          ]
+        },
+        "stat_minutes": {
+          "ok": false,
+          "skipped": true,
+          "reason": "team profile unavailable or empty"
+        }
+      }
+    }
+  ],
+  "historical_stage2_rebuild": false,
+  "collector": "pinned build_corrected_tenure_off.collect_window",
+  "source_endpoint": "PBP Stats tenure-scoped get-on-off team/stat"
+}
