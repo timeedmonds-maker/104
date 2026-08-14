@@ -1,0 +1,338 @@
+name: TREB targeted 23-key canonical repair
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-targeted-23-key-repair.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-targeted-23-key-repair
+  cancel-in-progress: false
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  REPAIRABILITY: team_trb_all_players/final_integrity_rebuild/canonical_23_key_repairability/repairability_23_keys.csv
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  V2_PARTIAL: team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz
+  OUTDIR: team_trb_all_players/final_integrity_rebuild/canonical_23_key_repair
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Mount pinned Stage2 collector and retained source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          rm -rf /tmp/treb_stage2
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          test -s /tmp/treb_stage2/team_trb_all_players/build_corrected_tenure_off.py
+          test -s /tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz
+          test -s "$TARGETS"
+          test -s "$REPAIRABILITY"
+
+      - name: Install request client
+        run: python -m pip install --quiet requests
+
+      - name: Recover only the 23 missing canonical keys
+        id: recover
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, json, math, os, sys
+          from collections import defaultdict
+          from pathlib import Path
+
+          ROOT=Path('.')
+          STAGE=Path('/tmp/treb_stage2/team_trb_all_players')
+          sys.path.insert(0,str(STAGE))
+          import build_corrected_tenure_off as collector
+
+          REPAIR=ROOT/os.environ['REPAIRABILITY']
+          TARGETS=ROOT/os.environ['TARGETS']
+          V2PART=ROOT/os.environ['V2_PARTIAL']
+          OUT=ROOT/os.environ['OUTDIR']
+          OUT.mkdir(parents=True,exist_ok=True)
+          V1WIN=STAGE/'impact_database'/'roster_tenure'/'player_team_season_windows_evidence_audited.jsonl.gz'
+          ZERO=STAGE/'impact_database'/'corrected_off'/'zero_minute_tail_exclusions.json'
+          SEG=STAGE/'impact_database'/'corrected_off'/'tenure_segment_on_off.jsonl.gz'
+          CORE=STAGE/'impact_database'/'outputs'
+
+          def nid(v):
+              s=str(v or '').strip()
+              if s.endswith('.0') and s[:-2].isdigit(): s=s[:-2]
+              return s
+          def k3(season,team,pid): return (str(season),int(float(team)),nid(pid))
+          def finite(v):
+              try:
+                  x=float(v)
+                  return x if math.isfinite(x) else None
+              except Exception: return None
+          def pname(r):
+              for f in ('player','player_name','subject_player','name'):
+                  if r.get(f): return str(r[f])
+              return ''
+          def read_jsonl_gz(p):
+              if not p.exists(): return []
+              with gzip.open(p,'rt',encoding='utf-8') as h:
+                  return [json.loads(x) for x in h if x.strip()]
+
+          repair_rows=[]
+          with REPAIR.open(newline='',encoding='utf-8') as h:
+              for r in csv.DictReader(h):
+                  r['team_id']=int(r['team_id']); r['player_id']=nid(r['player_id'])
+                  repair_rows.append(r)
+          assert len(repair_rows)==23, len(repair_rows)
+          missing_keys={k3(r['season'],r['team_id'],r['player_id']) for r in repair_rows}
+
+          targets={}
+          with gzip.open(TARGETS,'rt',encoding='utf-8') as h:
+              for line in h:
+                  if not line.strip(): continue
+                  r=json.loads(line); k=k3(r.get('season'),r.get('team_id'),r.get('player_id'))
+                  if k in missing_keys: targets[k]=r
+          assert len(targets)==23, len(targets)
+
+          # Existing retained Stage2 key universe.
+          existing=set()
+          with gzip.open(SEG,'rt',encoding='utf-8') as h:
+              for line in h:
+                  if not line.strip(): continue
+                  r=json.loads(line); existing.add(k3(r['season'],r['team_id'],r['player_id']))
+          assert len(existing)==14600, len(existing)
+
+          # Exact native core rows for each missing key: authoritative 89-metric same season/team/player evidence.
+          core_rows=defaultdict(list)
+          for season in sorted({k[0] for k in missing_keys}):
+              p=CORE/season/'team_on_off_metrics.csv.gz'
+              with gzip.open(p,'rt',encoding='utf-8',newline='') as h:
+                  for r in csv.DictReader(h):
+                      try: k=k3(season,r['team_id'],r['subject_player_id'])
+                      except Exception: continue
+                      if k in missing_keys: core_rows[k].append(r)
+          for k in missing_keys:
+              assert len(core_rows[k])==89,(k,len(core_rows[k]))
+              assert len({r['metric'] for r in core_rows[k]})==89,k
+
+          # Candidate exact tenure intervals. V2 evidence has priority, then original validated Stage2 windows,
+          # then the retained zero-tail ledger. No other season/team/player may ever substitute.
+          candidates=defaultdict(lambda:defaultdict(list))
+          def add_candidate(source,r):
+              try: k=k3(r.get('season'),r.get('team_id'),r.get('player_id'))
+              except Exception: return
+              if k not in missing_keys: return
+              start=r.get('query_start_date') or r.get('start_date') or r.get('tenure_start')
+              end=r.get('query_end_date') or r.get('end_date') or r.get('tenure_end')
+              if not start or not end or str(start)>str(end): return
+              w=dict(r)
+              w.update({'season':k[0],'team_id':k[1],'player_id':k[2],
+                        'player':pname(r) or pname(targets[k]),
+                        'query_start_date':str(start),'query_end_date':str(end),
+                        'tenure_start':str(r.get('tenure_start') or start),
+                        'tenure_end':str(r.get('tenure_end') or end),
+                        'schedule_boundary_status':'resolved','zero_game_window':False})
+              candidates[k][source].append(w)
+          for r in read_jsonl_gz(V2PART): add_candidate('V2_PARTIAL',r)
+          for r in read_jsonl_gz(V1WIN): add_candidate('V1_VALIDATED',r)
+          if ZERO.exists():
+              def walk(o):
+                  if isinstance(o,dict):
+                      if {'season','team_id','player_id'} <= set(o): add_candidate('ZERO_TAIL_LEDGER',o)
+                      for v in o.values(): walk(v)
+                  elif isinstance(o,list):
+                      for v in o: walk(v)
+              walk(json.loads(ZERO.read_text()))
+
+          def dedupe_windows(ws):
+              d={}
+              for w in ws:
+                  key=(w['query_start_date'],w['query_end_date'])
+                  d[key]=w
+              return [d[x] for x in sorted(d)]
+
+          def metric_rows_from_payload(payload):
+              out=[]
+              for r in collector.rows(payload):
+                  m=str(r.get('Stat') or '').strip()
+                  if m:
+                      out.append({'metric':m,'on':finite(r.get('On')),
+                                  'off_corrected':finite(r.get('Off')),
+                                  'on_minus_off_corrected':finite(r.get('On-Off'))})
+              return out
+
+          def full_season(k,t):
+              season,team,pid=k; name=pname(t)
+              common={'Season':season,'SeasonType':'Regular Season','TeamId':str(team),'PlayerId':pid}
+              tp,tm=collector.request_json(collector.TEAM_URL,common)
+              sp,sm=collector.request_json(collector.STAT_URL,{'Season':season,'SeasonType':'Regular Season','TeamId':str(team),'Stat':'OffRebounds'})
+              mon,moff,_=collector.stat_minutes(sp,pid,name)
+              mets=metric_rows_from_payload(tp)
+              return {'complete':bool(tm.get('ok') and sm.get('ok') and len(mets)==89 and mon is not None and moff is not None),
+                      'season':season,'team_id':team,'player_id':pid,'player':name,
+                      'query_start_date':None,'query_end_date':None,'minutes_on':mon,'minutes_off':moff,
+                      'metric_count':len(mets),'metrics':mets,'source':'PBP_STATS_FULL_SEASON_NATIVE_CORE_CONFIRMED',
+                      'requests':{'team':tm,'stat':sm}}
+
+          def aggregate(results):
+              names=set.intersection(*[{m['metric'] for m in r['metrics']} for r in results]) if results else set()
+              if len(names)!=89: raise RuntimeError(f'aggregate metric intersection={len(names)}')
+              mon=sum(float(r['minutes_on']) for r in results); moff=sum(float(r['minutes_off']) for r in results)
+              out=[]
+              for m in sorted(names):
+                  parts=[next(x for x in r['metrics'] if x['metric']==m) for r in results]
+                  def wt(field,weight):
+                      vals=[]
+                      for p,r in zip(parts,results):
+                          v=finite(p.get(field)); w=finite(r.get(weight))
+                          if v is not None and w is not None and w>0: vals.append((v,w))
+                      return sum(v*w for v,w in vals)/sum(w for _,w in vals) if vals else None
+                  on=wt('on','minutes_on'); off=wt('off_corrected','minutes_off')
+                  out.append({'metric':m,'on':on,'off_corrected':off,
+                              'on_minus_off_corrected':on-off if on is not None and off is not None else None})
+              return mon,moff,out
+
+          overlay=[]; diagnostics=[]; failures=[]
+          for rr in repair_rows:
+              k=k3(rr['season'],rr['team_id'],rr['player_id']); t=targets[k]
+              expected=finite(t.get('minutes_on'))
+              tenure_games=int(t.get('team_games_in_tenure') or 0)
+              total_games=int(t.get('total_team_games') or 0)
+              mode=''; source=''; results=[]; error=None
+              try:
+                  if total_games>0 and tenure_games==total_games:
+                      mode='FULL_SEASON_SAFE'; source='PBP_STATS_FULL_SEASON_NATIVE_CORE_CONFIRMED'
+                      res=full_season(k,t)
+                      if not res['complete']: raise RuntimeError(f"full-season query incomplete: {res.get('requests')}")
+                      results=[res]
+                  else:
+                      mode='TENURE_SCOPED'
+                      for src in ('V2_PARTIAL','V1_VALIDATED','ZERO_TAIL_LEDGER'):
+                          ws=dedupe_windows(candidates[k].get(src,[]))
+                          if ws:
+                              source=src
+                              break
+                      else:
+                          raise RuntimeError('no exact same-key tenure interval retained')
+                      for w in ws:
+                          res=collector.collect_window(w)
+                          if not res.get('complete') or int(res.get('metric_count') or 0)!=89:
+                              raise RuntimeError(f"incomplete tenure query {w['query_start_date']}..{w['query_end_date']}: metric_count={res.get('metric_count')} requests={res.get('requests')}")
+                          results.append(res)
+                  mon,moff,mets=aggregate(results)
+                  tol=max(0.35,0.0025*max(expected or 0,1))
+                  delta=abs(mon-expected) if expected is not None else None
+                  if expected is not None and delta>tol:
+                      raise RuntimeError(f'minutes mismatch recovered={mon:.6f} canonical={expected:.6f} delta={delta:.6f} tol={tol:.6f}')
+                  if len(mets)!=89: raise RuntimeError(f'PTS metric count {len(mets)}')
+                  for m in mets:
+                      overlay.append({'season':k[0],'team_id':k[1],'player_id':k[2],'player':pname(t),
+                                      'metric':m['metric'],'segment_count':len(results),
+                                      'minutes_on':mon,'minutes_off':moff,'on':m['on'],
+                                      'off_corrected':m['off_corrected'],
+                                      'on_minus_off_corrected':m['on_minus_off_corrected'],
+                                      'repair_source':source,'repair_mode':mode,
+                                      'canonical_target_minutes_on':expected})
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'player':pname(t),
+                                      'status':'RECOVERED','mode':mode,'source':source,'segments':len(results),
+                                      'recovered_minutes_on':mon,'canonical_minutes_on':expected,
+                                      'minutes_delta':delta,'prior_classification':rr['prior_classification']})
+              except Exception as exc:
+                  error=repr(exc); failures.append({'key':k,'player':pname(t),'error':error,'mode':mode,'source':source,
+                                                     'candidate_counts':{s:len(candidates[k].get(s,[])) for s in candidates[k]}})
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'player':pname(t),
+                                      'status':'FAILED','mode':mode,'source':source,'error':error,
+                                      'canonical_minutes_on':expected,'prior_classification':rr['prior_classification']})
+
+          # Structural gates for recovered overlay and projected canonical universe.
+          repaired_keys={(r['season'],r['team_id'],r['player_id']) for r in overlay}
+          bykey=defaultdict(list)
+          for r in overlay: bykey[(r['season'],r['team_id'],r['player_id'])].append(r)
+          bad_metric_keys={str(k):len({r['metric'] for r in rs}) for k,rs in bykey.items() if len(rs)!=89 or len({r['metric'] for r in rs})!=89}
+          all_targets=set()
+          with gzip.open(TARGETS,'rt',encoding='utf-8') as h:
+              for line in h:
+                  if line.strip():
+                      r=json.loads(line); all_targets.add(k3(r['season'],r['team_id'],r['player_id']))
+          assert len(all_targets)==14524,len(all_targets)
+          projected=(existing|repaired_keys)&all_targets
+          status='PASS' if len(repaired_keys)==23 and not failures and not bad_metric_keys and len(projected)==14524 else 'FAIL'
+
+          # Output compact repair overlay; never overwrite pinned Stage2.
+          with gzip.open(OUT/'targeted_23_key_metric_overlay.jsonl.gz','wt',encoding='utf-8') as h:
+              for r in sorted(overlay,key=lambda x:(x['season'],x['team_id'],int(x['player_id']),x['metric'])):
+                  h.write(json.dumps(r,ensure_ascii=False,separators=(',',':'))+'\n')
+          with (OUT/'targeted_23_key_diagnostics.csv').open('w',newline='',encoding='utf-8') as h:
+              fields=sorted({k for r in diagnostics for k in r})
+              w=csv.DictWriter(h,fieldnames=fields); w.writeheader(); w.writerows(diagnostics)
+          report={'status':status,'stage2_sha':os.environ['STAGE2_SHA'],'missing_keys_expected':23,
+                  'repaired_keys':len(repaired_keys),'overlay_metric_rows':len(overlay),
+                  'projected_authoritative_keys':len(projected),'authoritative_keys':len(all_targets),
+                  'bad_metric_keys':bad_metric_keys,'failures':failures,
+                  'production_gate_relaxed':False,'full_stage2_rebuild_performed':False,
+                  'safety':'same season/team/player only; full-season endpoint allowed only when tenure games equal total team games; partial tenures use retained exact intervals; zero-tail segment flags never erase canonical non-zero PTS'}
+          (OUT/'TARGETED_23_KEY_REPAIR_REPORT.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          md=['# TREB targeted 23-key canonical repair','',f"- Status: **{status}**",f"- Repaired keys: **{len(repaired_keys)}/23**",f"- Projected canonical coverage: **{len(projected)}/14524**",f"- Overlay metric rows: **{len(overlay)}**",'- Production gate relaxed: **NO**','- Full Stage2 rebuild: **NO**','',
+              'The repair reuses the pinned Stage2 collector. It never substitutes another season, team, or player. Full-season queries are permitted only when the authoritative V2 target proves the tenure spans every team game; all partial tenures require an exact retained date interval. Zero-tail records are treated as segment evidence, not as permission to null a canonical player-team-season with non-zero authoritative minutes.']
+          (OUT/'README.md').write_text('\n'.join(md)+'\n',encoding='utf-8')
+          print(json.dumps(report,indent=2))
+          PY
+
+      - name: Persist targeted repair evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$OUTDIR"
+          if git diff --cached --quiet; then
+            echo 'No repair outputs to commit'
+          else
+            git commit -m 'Persist targeted TREB 23-key canonical repair'
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Upload targeted repair artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-targeted-23-key-repair-${{ github.run_id }}
+          path: ${{ env.OUTDIR }}
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Material gate 14524 projected canonical keys
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['OUTDIR'])/'TARGETED_23_KEY_REPAIR_REPORT.json'
+          d=json.loads(p.read_text())
+          assert d['status']=='PASS',d
+          assert d['repaired_keys']==23,d
+          assert d['overlay_metric_rows']==23*89,d
+          assert d['projected_authoritative_keys']==14524,d
+          assert d['production_gate_relaxed'] is False,d
+          assert d['full_stage2_rebuild_performed'] is False,d
+          print('TARGETED 23-KEY MATERIAL GATE PASS: 14524/14524 projected canonical keys')
+          PY
