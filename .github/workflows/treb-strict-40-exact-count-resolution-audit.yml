@@ -1,0 +1,221 @@
+name: TREB strict 40 exact-count resolution audit
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: ['.github/workflows/treb-strict-40-exact-count-resolution-audit.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-strict-40-exact-count-resolution-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact assembly controller
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Checkout frozen forensic lineage and refs
+        uses: actions/checkout@v4
+        with:
+          ref: aecbcdde7a0efe9e162f0030032b1d1c16f5b8c3
+          path: evidence
+          fetch-depth: 0
+
+      - name: Audit exact-count candidates for the strict 40 games
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C evidence fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          mkdir -p /tmp/strict40_exact
+          python - <<'PY'
+          import csv,gzip,io,json,subprocess
+          from collections import defaultdict
+          from pathlib import Path
+
+          EXPECTED={
+            20201160,
+            20400335,20400736,
+            20500090,20500102,
+            20600887,
+            20700319,
+            20800032,20800142,
+            20900113,
+            21000431,21000997,
+            21100842,
+            21200919,21201167,
+            21301048,
+            21400968,
+            21500711,21500903,21500916,
+            21600358,21600655,21600668,
+            21701085,
+            21800143,
+            21901316,21901317,21901318,
+            22000485,22000853,
+            22100688,
+            22200140,22200182,22200207,22200234,22200778,22201040,
+            22300452,22300599,
+            22400433,
+          }
+          inv=Path('treb_automation/status/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY_LATEST.json')
+          d=json.loads(inv.read_text())
+          observed={int(x['game_id']) for x in d['games']}
+          assert observed==EXPECTED,(sorted(EXPECTED-observed),sorted(observed-EXPECTED))
+          assert d['games_without_persisted_evidence']==0,d
+
+          def git(*args, text=False):
+            return subprocess.check_output(['git','-C','evidence',*args], text=text)
+
+          refs=[]
+          raw=git('for-each-ref','--format=%(refname:short)\t%(objectname)','refs/remotes/origin',text=True)
+          for line in raw.splitlines():
+            if not line.strip() or line.startswith('origin/HEAD'): continue
+            ref,sha=line.split('\t',1)
+            if ref.startswith('origin/treb-game-facts-') or any(k in ref for k in (
+              'treb-game-fact-repair','treb-authoritative-final-repair',
+              'treb-solved-engine-recovery','treb-solved-engine-cross-era-pass','treb-validated-'
+            )):
+              refs.append((ref,sha))
+          refs=sorted(set(refs))
+
+          team_candidates=defaultdict(list)
+          player_candidates=defaultdict(list)
+          source_files=[]
+          parse_errors=[]
+
+          for ref,sha in refs:
+            try:
+              paths=git('ls-tree','-r','--name-only',ref,text=True).splitlines()
+            except Exception as exc:
+              parse_errors.append({'ref':ref,'error':f'ls-tree: {exc}'})
+              continue
+            interesting=[p for p in paths if p.endswith('team_game_treb.csv.gz') or p.endswith('player_game_treb_on.csv.gz')]
+            for path in interesting:
+              try:
+                blob=git('show',f'{ref}:{path}')
+                text=gzip.decompress(blob).decode('utf-8-sig','replace')
+                reader=csv.DictReader(io.StringIO(text))
+                rows=0; hits=0
+                if path.endswith('team_game_treb.csv.gz'):
+                  required={'game_id','team_id','team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+                  if not required.issubset(set(reader.fieldnames or [])):
+                    raise ValueError(f'missing team fields {sorted(required-set(reader.fieldnames or []))}')
+                  for r in reader:
+                    rows+=1
+                    try: gid=int(float(r['game_id']))
+                    except Exception: continue
+                    if gid not in EXPECTED: continue
+                    hits+=1
+                    tup=(int(float(r['team_id'])),int(float(r['team_oreb'])),int(float(r['team_dreb'])),int(float(r['opponent_oreb'])),int(float(r['opponent_dreb'])))
+                    team_candidates[gid].append({'ref':ref,'sha':sha,'path':path,'tuple':tup})
+                else:
+                  required={'game_id','team_id','player_id','seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+                  if not required.issubset(set(reader.fieldnames or [])):
+                    raise ValueError(f'missing player fields {sorted(required-set(reader.fieldnames or []))}')
+                  for r in reader:
+                    rows+=1
+                    try: gid=int(float(r['game_id']))
+                    except Exception: continue
+                    if gid not in EXPECTED: continue
+                    hits+=1
+                    tup=(int(float(r['team_id'])),int(float(r['player_id'])),int(float(r['seconds_on'])),int(float(r['team_oreb_on'])),int(float(r['team_dreb_on'])),int(float(r['opponent_oreb_on'])),int(float(r['opponent_dreb_on'])))
+                    player_candidates[gid].append({'ref':ref,'sha':sha,'path':path,'tuple':tup})
+                source_files.append({'ref':ref,'sha':sha,'path':path,'rows':rows,'strict40_rows':hits})
+              except Exception as exc:
+                parse_errors.append({'ref':ref,'sha':sha,'path':path,'error':f'{type(exc).__name__}: {exc}'})
+
+          games=[]
+          exact_resolved=conflicts=no_exact=0
+          for gid in sorted(EXPECTED):
+            tc=team_candidates.get(gid,[]); pc=player_candidates.get(gid,[])
+            team_by_source=defaultdict(list)
+            for x in tc: team_by_source[(x['ref'],x['sha'],x['path'])].append(tuple(x['tuple']))
+            player_by_source=defaultdict(list)
+            for x in pc: player_by_source[(x['ref'],x['sha'],x['path'])].append(tuple(x['tuple']))
+            team_sets={k:tuple(sorted(v)) for k,v in team_by_source.items()}
+            player_sets={k:tuple(sorted(v)) for k,v in player_by_source.items()}
+            unique_team={v for v in team_sets.values()}
+            unique_player={v for v in player_sets.values()}
+            has_pair=bool(team_sets and player_sets)
+            if not has_pair:
+              cls='NO_COMPLETE_EXACT_PAIR'; no_exact+=1
+            elif len(unique_team)==1 and len(unique_player)==1:
+              cls='EXACT_AGREEMENT'; exact_resolved+=1
+            else:
+              cls='EXACT_CONFLICT'; conflicts+=1
+            games.append({
+              'game_id':gid,
+              'classification':cls,
+              'team_source_count':len(team_sets),
+              'player_source_count':len(player_sets),
+              'unique_team_tuple_sets':len(unique_team),
+              'unique_player_tuple_sets':len(unique_player),
+              'team_sources':[{'ref':k[0],'sha':k[1],'path':k[2],'rows':len(v),'tuple_set':[list(t) for t in v]} for k,v in sorted(team_sets.items())],
+              'player_sources':[{'ref':k[0],'sha':k[1],'path':k[2],'rows':len(v),'tuple_set':[list(t) for t in v]} for k,v in sorted(player_sets.items())],
+            })
+
+          out={
+            'status':'PASS',
+            'purpose':'Deterministic exact-count resolution audit for the 40 games intersecting canonical V2 partial targets; no reconstruction or exclusion acceptance',
+            'strict40_games':40,
+            'refs_scanned':len(refs),
+            'exact_agreement_games':exact_resolved,
+            'exact_conflict_games':conflicts,
+            'no_complete_exact_pair_games':no_exact,
+            'parse_error_count':len(parse_errors),
+            'integrity_policy':{
+              'reconstruction_permitted':False,
+              'accepted_exclusion_permitted':False,
+              'percentage_backsolve_permitted':False,
+              'automatic_conflict_promotion_permitted':False,
+              'v13_residuals_reopened':False,
+            },
+            'games':games,
+            'source_files':source_files,
+            'parse_errors':parse_errors,
+          }
+          Path('/tmp/strict40_exact/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT.json').write_text(json.dumps(out,indent=2)+'\n')
+          with open('/tmp/strict40_exact/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT.csv','w',newline='',encoding='utf-8') as f:
+            w=csv.DictWriter(f,fieldnames=['game_id','classification','team_source_count','player_source_count','unique_team_tuple_sets','unique_player_tuple_sets'])
+            w.writeheader(); w.writerows([{k:g[k] for k in w.fieldnames} for g in games])
+          Path('/tmp/strict40_exact/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT.md').write_text(
+            '# TREB strict 40 exact-count resolution audit\n\n'
+            f'- Status: **PASS**\n- Strict games: **40**\n- Exact agreement: **{exact_resolved}**\n'
+            f'- Exact conflicts: **{conflicts}**\n- No complete exact pair: **{no_exact}**\n'
+            f'- Frozen/repair refs scanned: **{len(refs)}**\n- Parse errors: **{len(parse_errors)}**\n\n'
+            'No reconstruction, percentage backsolve, exclusion acceptance, or ambiguous promotion was performed.\n'
+          )
+          print(json.dumps({k:out[k] for k in ['status','strict40_games','refs_scanned','exact_agreement_games','exact_conflict_games','no_complete_exact_pair_games','parse_error_count']},indent=2))
+          PY
+
+      - name: Upload strict 40 exact-count audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-strict-40-exact-count-resolution-audit-${{ github.run_id }}
+          path: /tmp/strict40_exact/
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Persist durable audit checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p treb_automation/status
+          cp /tmp/strict40_exact/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT.json treb_automation/status/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT_LATEST.json
+          cp /tmp/strict40_exact/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT.csv treb_automation/status/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT_LATEST.csv
+          cp /tmp/strict40_exact/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT.md treb_automation/status/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT_LATEST.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add treb_automation/status/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT_LATEST.*
+          git commit -m 'Persist strict 40-game exact-count resolution audit [skip ci]'
+          git fetch origin agent/treb-final-exact-assembly
+          git rebase origin/agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
