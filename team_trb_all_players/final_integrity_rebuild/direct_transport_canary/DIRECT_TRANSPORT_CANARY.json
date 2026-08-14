@@ -1,0 +1,19 @@
+{
+  "status": "FAIL",
+  "season": "2016-17",
+  "team_id": 1610612760,
+  "adams_id": "203500",
+  "attempts": [
+    {
+      "label": "direct_30s",
+      "elapsed_seconds": 30.081,
+      "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=30)\"))"
+    },
+    {
+      "label": "jina_60s",
+      "elapsed_seconds": 30.262,
+      "error": "HTTPError('422 Client Error: Unprocessable Entity for url: https://r.jina.ai/http://stats.nba.com/stats/teamplayeronoffdetails?DateFrom=&DateTo=&GameSegment=&LastNGames=0&LeagueID=00&Location=&MeasureType=Advanced&Month=0&OpponentTeamID=0&Outcome=&PORound=0&PaceAdjust=N&PerMode=Totals&Period=0&PlusMinus=N&Rank=N&Season=2016-17&SeasonSegment=&SeasonType=Regular+Season&ShotClockRange=&TeamID=1610612760&VsConference=&VsDivision=')"
+    }
+  ],
+  "production_changed": false
+}
