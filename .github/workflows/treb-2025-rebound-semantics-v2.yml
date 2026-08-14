@@ -1,7 +1,7 @@
 name: TREB 2025 rebound semantics V2
 on:
   push:
-    branches: [agent/treb-batched-game-facts-20260812]
+    branches: [agent/treb-batched-game-facts-20260812, agent/treb-final-exact-assembly]
     paths: [.github/workflows/treb-2025-rebound-semantics-v2.yml]
   workflow_dispatch:
 permissions:
