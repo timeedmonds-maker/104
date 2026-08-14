@@ -1,6 +1,6 @@
 name: TREB repo-wide historical direct source scan
 
-# self-trigger: 2026-08-15
+# self-trigger: 2026-08-15-fixed
 on:
   push:
     branches:
@@ -103,6 +103,8 @@ jobs:
                   line_count=text.count('\n') + (1 if text and not text.endswith('\n') else 0)
                   sample='\n'.join(text.splitlines()[:4])[:4000]
                   hits.append({'sha':sha,'path':path,'size':size,'compression':compression,'matched_signatures':matched,'header':first[:2000],'line_count':line_count,'sample':sample})
+              except Exception:
+                  continue
 
           strong=[]
           for h in hits:
