@@ -51,6 +51,10 @@ jobs:
           def gi(df,col,g):
             return df[pd.to_numeric(df[col],errors='coerce').eq(g)].copy()
 
+          def int0(value):
+            n=pd.to_numeric(value,errors='coerce')
+            return 0 if pd.isna(n) else int(n)
+
           def clock_seconds(value):
             s=str(value or '').strip()
             m=re.fullmatch(r'PT(?:(\d+)M)?([0-9]+(?:\.[0-9]+)?)S',s,re.I)
@@ -69,10 +73,10 @@ jobs:
             keys=[]
             for _,r in x.iterrows():
               keys.append((
-                int(pd.to_numeric(r.get('period'),errors='coerce')),
+                int0(r.get('period')),
                 clock_seconds(r.get('clock')),
-                int(pd.to_numeric(r.get('personId'),errors='coerce') or 0),
-                int(pd.to_numeric(r.get('teamId'),errors='coerce') or 0),
+                int0(r.get('personId')),
+                int0(r.get('teamId')),
               ))
             return Counter(keys)
 
@@ -83,10 +87,10 @@ jobs:
             keys=[]
             for _,r in x.iterrows():
               keys.append((
-                int(pd.to_numeric(r.get('PERIOD'),errors='coerce')),
+                int0(r.get('PERIOD')),
                 clock_seconds(r.get('PCTIMESTRING')),
-                int(pd.to_numeric(r.get('PLAYER1_ID'),errors='coerce') or 0),
-                int(pd.to_numeric(r.get('PLAYER1_TEAM_ID'),errors='coerce') or 0),
+                int0(r.get('PLAYER1_ID')),
+                int0(r.get('PLAYER1_TEAM_ID')),
               ))
             return Counter(keys)
 
