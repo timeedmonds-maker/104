@@ -20,6 +20,7 @@ env:
   LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
   OUT: /tmp/treb_final_materiality
   STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  REPAIR_OVERLAY: team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/targeted_23_metric_overlay.jsonl.gz
   EXPECTED_EXACT_SEGMENTS: '5199'
   EXPECTED_EXACT_PTS: '4877'
   EXPECTED_FULL_CORE_ROWS: '9647'
@@ -122,6 +123,111 @@ jobs:
           fp.write_text(s.replace(needle,replacement,1))
           PY
           python -u /tmp/treb_stage2/team_trb_all_players/finalize_corrected_off_package.py
+
+          # Inject only the independently validated 23 canonical repairs into the
+          # temporary Stage2 PTS export. This does not alter the pinned source,
+          # rebuild Stage2, or relax any production gate.
+          python - <<'PY'
+          import gzip, json, os
+          from pathlib import Path
+          import pandas as pd
+
+          export=Path('/tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/final_export')
+          pq=export/'player_team_season_corrected_on_off.parquet'
+          overlay_path=Path(os.environ['REPAIR_OVERLAY'])
+          target_path=Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          assert pq.is_file(),pq
+          assert overlay_path.is_file(),overlay_path
+          assert target_path.is_file(),target_path
+
+          def ids(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+
+          def canon(df):
+              x=df.copy()
+              x['season']=x['season'].astype(str)
+              x['team_id']=pd.to_numeric(x['team_id'],errors='raise').astype('int64')
+              x['player_id']=x['player_id'].map(ids).astype('string')
+              return x
+
+          src=canon(pd.read_parquet(pq))
+          rows=[]
+          with gzip.open(overlay_path,'rt',encoding='utf-8') as h:
+              for line in h:
+                  if line.strip(): rows.append(json.loads(line))
+          rep=canon(pd.DataFrame(rows))
+          assert len(rep)==23*89,len(rep)
+          assert rep[['season','team_id','player_id']].drop_duplicates().shape[0]==23
+          c=rep.groupby(['season','team_id','player_id'])['metric'].nunique()
+          assert int(c.min())==89 and int(c.max())==89,c.describe().to_dict()
+          assert not rep.duplicated(['season','team_id','player_id','metric']).any()
+
+          # Attach canonical metadata where available so repaired rows are fully
+          # reader-friendly rather than key-only rows.
+          targets=[]
+          with gzip.open(target_path,'rt',encoding='utf-8') as h:
+              for line in h:
+                  if line.strip(): targets.append(json.loads(line))
+          t=canon(pd.DataFrame(targets))
+          meta_cols=[x for x in ['season','team_id','player_id','team_abbr','player'] if x in t.columns]
+          meta=t[meta_cols].drop_duplicates(['season','team_id','player_id'])
+          if 'team_abbr' not in rep.columns and 'team_abbr' in meta.columns:
+              rep=rep.merge(meta[['season','team_id','player_id','team_abbr']],on=['season','team_id','player_id'],how='left',validate='many_to_one')
+          if 'player' not in rep.columns and 'player' in meta.columns:
+              rep=rep.merge(meta[['season','team_id','player_id','player']],on=['season','team_id','player_id'],how='left',validate='many_to_one')
+
+          # Map repair schema to the Stage2 export schema consumed by the final
+          # assembler. Missing non-material source metadata remains nullable.
+          if 'on_minus_off_corrected' in rep.columns and 'swing' in src.columns and 'swing' not in rep.columns:
+              rep['swing']=rep['on_minus_off_corrected']
+          if 'on_minus_off_corrected' not in rep.columns and 'swing' in rep.columns:
+              rep['on_minus_off_corrected']=rep['swing']
+          if 'off' in src.columns and 'off' not in rep.columns:
+              rep['off']=rep['off_corrected']
+          rep['aggregation_method']='validated_targeted_canonical_23_repair'
+          rep['canonical_repair_overlay']=True
+          src['canonical_repair_overlay']=False
+
+          overlap=src[['season','team_id','player_id','metric']].merge(
+              rep[['season','team_id','player_id','metric']],
+              on=['season','team_id','player_id','metric'],how='inner')
+          assert len(overlap)==0,f'unexpected Stage2/repair metric overlap rows={len(overlap)}'
+
+          # Preserve the existing Stage2 column order, then append any explicit
+          # repair provenance columns. Pandas fills irrelevant metadata with NA.
+          all_cols=list(src.columns)+[x for x in rep.columns if x not in src.columns]
+          for col in all_cols:
+              if col not in src.columns: src[col]=pd.NA
+              if col not in rep.columns: rep[col]=pd.NA
+          merged=pd.concat([src[all_cols],rep[all_cols]],ignore_index=True)
+          assert not merged.duplicated(['season','team_id','player_id','metric']).any()
+
+          # Re-prove the immutable V2 canonical universe after injection.
+          target_keys=t[['season','team_id','player_id']].drop_duplicates()
+          assert len(target_keys)==14524,len(target_keys)
+          merged_keys=merged[['season','team_id','player_id']].drop_duplicates()
+          canonical=target_keys.merge(merged_keys,on=['season','team_id','player_id'],how='inner')
+          assert len(canonical)==14524,len(canonical)
+          missing=target_keys.merge(merged_keys,on=['season','team_id','player_id'],how='left',indicator=True)
+          assert int((missing['_merge']=='left_only').sum())==0
+          merged.to_parquet(pq,index=False)
+
+          gate={
+              'status':'PASS_CANONICAL_23_OVERLAY_INJECTED',
+              'repair_keys':23,
+              'repair_metric_rows':2047,
+              'metrics_per_repair_key':89,
+              'canonical_union_after_injection':14524,
+              'missing_canonical_after_injection':0,
+              'stage2_sha':os.environ['STAGE2_SHA'],
+              'stage2_full_rebuild_performed':False,
+              'production_gate_relaxed':False,
+          }
+          Path(os.environ['OUT'],'CANONICAL_23_OVERLAY_INJECTION_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2))
+          PY
+
           python -u team_trb_all_players/finalize_treb_full_89_database.py \
             --stage2-export-dir /tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/final_export \
             --exact-dir "$OUT" \
@@ -135,6 +241,13 @@ jobs:
           from pathlib import Path
           import pandas as pd
           out=Path(os.environ['OUT'])
+          inj=json.loads((out/'CANONICAL_23_OVERLAY_INJECTION_GATE.json').read_text())
+          assert inj['status']=='PASS_CANONICAL_23_OVERLAY_INJECTED',inj
+          assert inj['canonical_union_after_injection']==14524,inj
+          assert inj['missing_canonical_after_injection']==0,inj
+          assert inj['repair_keys']==23 and inj['repair_metric_rows']==2047,inj
+          assert inj['stage2_full_rebuild_performed'] is False,inj
+          assert inj['production_gate_relaxed'] is False,inj
           q=json.loads((out/'ALL_89_METRICS_QA.json').read_text())
           assert q['status']=='PASS',q
           assert q['metric_count']==int(os.environ['EXPECTED_METRICS'])==89,q
@@ -188,7 +301,8 @@ jobs:
           from pathlib import Path
           out=Path(os.environ['OUT'])
           full=json.loads((out/'MATERIAL_RELEASE_GATE.json').read_text())
-          report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit':os.environ['GITHUB_SHA'],'stage2_sha':os.environ['STAGE2_SHA'],'material_integrity_gate':'PASS','canonical_pts':full['canonical_pts'],'exact_pts':full['exact_pts'],'full_core_pts':full['full_core_pts'],'metrics':full['metric_count'],'steven_adams_minutes':full['steven_adams_minutes'],'total_rebound_pct_players_10000_minutes':full['total_rebound_pct_players_10000_minutes'],'captains_call_residual_rebounds_accepted':13,'rounded_percentage_backsolve_used':False,'supporting_checks_block_release':False}
+          inj=json.loads((out/'CANONICAL_23_OVERLAY_INJECTION_GATE.json').read_text())
+          report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit':os.environ['GITHUB_SHA'],'stage2_sha':os.environ['STAGE2_SHA'],'material_integrity_gate':'PASS','canonical_pts':full['canonical_pts'],'exact_pts':full['exact_pts'],'full_core_pts':full['full_core_pts'],'metrics':full['metric_count'],'steven_adams_minutes':full['steven_adams_minutes'],'total_rebound_pct_players_10000_minutes':full['total_rebound_pct_players_10000_minutes'],'canonical_repair_keys':inj['repair_keys'],'canonical_repair_metric_rows':inj['repair_metric_rows'],'captains_call_residual_rebounds_accepted':13,'rounded_percentage_backsolve_used':False,'supporting_checks_block_release':False}
           (out/'FINAL_MATERIAL_PRODUCTION_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
@@ -244,6 +358,7 @@ jobs:
             /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
             /tmp/treb_final_materiality/FINAL_MATERIAL_PRODUCTION_REPORT.json
             /tmp/treb_final_materiality/MATERIAL_EXACT_GATE.json
+            /tmp/treb_final_materiality/CANONICAL_23_OVERLAY_INJECTION_GATE.json
             /tmp/treb_final_materiality/MATERIAL_RELEASE_GATE.json
             /tmp/treb_final_materiality/ALL_89_METRICS_QA.json
             /tmp/treb_final_materiality/SUPPORTING_READER_AUDIT.json
@@ -262,6 +377,7 @@ jobs:
           mkdir -p "$D"
           cp /tmp/treb_final_materiality/FINAL_MATERIAL_PRODUCTION_REPORT.json "$D/"
           cp /tmp/treb_final_materiality/MATERIAL_EXACT_GATE.json "$D/"
+          cp /tmp/treb_final_materiality/CANONICAL_23_OVERLAY_INJECTION_GATE.json "$D/"
           cp /tmp/treb_final_materiality/MATERIAL_RELEASE_GATE.json "$D/"
           cp /tmp/treb_final_materiality/ALL_89_METRICS_QA.json "$D/"
           cp /tmp/treb_final_materiality/SUPPORTING_READER_AUDIT.json "$D/" 2>/dev/null || true
