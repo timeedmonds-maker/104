@@ -1,0 +1,329 @@
+name: TREB corrected full overlay release v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-corrected-full-overlay-release-v2.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-corrected-full-overlay-release-v2
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+      STAGE2_CACHE: /tmp/treb_stage2_export_cache
+      STAGE2_RELEASE: /tmp/treb_stage2_release_export
+      OUT: /tmp/treb_corrected_release
+      LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+      STATUS_DIR: treb_automation/status
+
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install release readers
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+
+      - name: Restore pinned Stage2 cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.STAGE2_CACHE }}
+          key: treb-stage2-final-export-${{ env.STAGE2_SHA }}-jsonstruct-v1
+          fail-on-cache-miss: true
+
+      - name: Prepare cached Stage2 release input
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$STAGE2_RELEASE" /tmp/treb_stage2
+          mkdir -p "$STAGE2_RELEASE"
+          cp -a "$STAGE2_CACHE/." "$STAGE2_RELEASE/"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          import pandas as pd
+          p=Path(os.environ['STAGE2_RELEASE'])
+          q=json.loads((p/'quality_report.json').read_text())
+          assert int(q['metric_count']) == 89, q
+          assert int(q['tenure_segment_metric_rows']) == 1353334, q
+          src=p/'player_team_season_corrected_on_off.parquet'
+          assert src.exists()
+          names=sorted(pd.read_parquet(src,columns=['metric']).metric.astype(str).unique().tolist())
+          assert len(names)==89, len(names)
+          print(json.dumps({'cache':'PASS','metric_count':89,'source_rows':1353334,'stage2_metric_names':names},indent=2))
+          PY
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+
+      - name: Rebuild exact-count support from locked seasons only
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+          python -u team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb_locks \
+            --output-dir "$OUT"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          import pandas as pd
+          out=Path(os.environ['OUT'])
+          d=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
+          q=json.loads((out/'qa_report.json').read_text())
+          assert q['status']=='PASS' and q['seasons_complete']==26, q
+          assert q['duplicate_tenure_keys']==0 and q['unexpected_exceptions']==0 and q['unmatched_rebound_rows']==0, q
+          assert q['accepted_exclusion_ledger_exact_match'] is True, q
+          assert len(d)==5199, len(d)
+          assert d.groupby(['season','team_id','player_id']).ngroups==4877
+          print({'exact_support':'PASS','segments':len(d),'player_team_seasons':4877})
+          PY
+
+      - name: Patch cached Stage2 canonical gap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARGS=(--stage2-export-dir "$STAGE2_RELEASE" --stage2-root /tmp/treb_stage2/team_trb_all_players --ledger "$OUT/PATCH_FORWARD_EXCEPTION_LEDGER.json")
+          FINAL6=team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/final_6_targeted_recovery/FINAL_6_RECOVERY_QA.json
+          if [ -s "$FINAL6" ]; then ARGS+=(--optional-final6-json "$FINAL6"); fi
+          python -u team_trb_all_players/build_patch_forward_stage2_export.py "${ARGS[@]}"
+
+      - name: Assemble corrected 14524-key TREB population with resolved native metric names
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/finalize_treb_full_89_database_v2.py \
+            --stage2-export-dir "$STAGE2_RELEASE" \
+            --exact-dir "$OUT" \
+            --stage2-sha "$STAGE2_SHA"
+
+      - name: Materialize canonical TREB overlay and run all release gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, math, os
+          from pathlib import Path
+          import duckdb
+          import pandas as pd
+
+          out=Path(os.environ['OUT'])
+          keys=['season','team_id','player_id']
+          canonical_metrics=['TotalReboundPct','OffReboundPct','DefReboundPct']
+          failures=[]
+          def check(ok, msg):
+              if not bool(ok): failures.append(msg)
+
+          alias_report=json.loads((out/'TREB_REBOUND_METRIC_ALIASES.json').read_text())
+          aliases=alias_report['canonical_to_stage2']
+          stage2_metrics=[aliases[m] for m in canonical_metrics]
+          reverse={v:k for k,v in aliases.items()}
+          check(len(set(stage2_metrics))==3, f'non-unique rebound metric mapping: {aliases}')
+          check(alias_report.get('native_stage2_metric_names_preserved') is True, 'native Stage2 names not preserved')
+
+          detail=pd.read_parquet(out/'all_metrics_player_team_season.parquet')
+          career=pd.read_parquet(out/'all_metrics_career.parquet')
+          wide=pd.read_parquet(out/'all_metrics_player_team_season_wide.parquet')
+          career_wide=pd.read_parquet(out/'all_metrics_career_wide.parquet')
+          qa=json.loads((out/'ALL_89_METRICS_QA.json').read_text())
+
+          canonical=detail[keys].drop_duplicates()
+          overlay_native=detail[detail.metric.astype(str).isin(stage2_metrics)].copy()
+          overlay_career_native=career[career.metric.astype(str).isin(stage2_metrics)].copy()
+          overlay=overlay_native.copy()
+          overlay['stage2_metric']=overlay['metric'].astype(str)
+          overlay['metric']=overlay['stage2_metric'].map(reverse)
+          overlay_career=overlay_career_native.copy()
+          overlay_career['stage2_metric']=overlay_career['metric'].astype(str)
+          overlay_career['metric']=overlay_career['stage2_metric'].map(reverse)
+
+          check(len(canonical)==14524, f'canonical keys {len(canonical)} != 14524')
+          check(not canonical.duplicated(keys).any(), 'duplicate canonical keys')
+          check(canonical.season.nunique()==26, f'seasons {canonical.season.nunique()} != 26')
+          check(detail.metric.astype(str).nunique()==89, f'native metric count {detail.metric.astype(str).nunique()} != 89')
+          check(len(detail)==14524*89, f'native metric rows {len(detail)} != {14524*89}')
+          counts=detail.groupby(keys).metric.nunique()
+          check(len(counts)==14524 and counts.min()==89 and counts.max()==89, '89-metric canonical gate failed')
+          check(not detail.duplicated(keys+['metric']).any(), 'duplicate canonical metric rows')
+          check(qa.get('rounded_percentage_backsolve_used') is False, 'rounded percentage backsolve flag is not false')
+          check(qa.get('full_core_stage2_direct_rows')==9647, f"full core QA {qa.get('full_core_stage2_direct_rows')} != 9647")
+          check(qa.get('exact_count_partial_player_team_rows')==4877, f"exact QA {qa.get('exact_count_partial_player_team_rows')} != 4877")
+
+          check(len(overlay)==14524*3, f'TREB overlay rows {len(overlay)} != {14524*3}')
+          check(overlay.metric.notna().all(), 'canonical TREB alias mapping produced null metric names')
+          check(not overlay.duplicated(keys+['metric']).any(), 'duplicate canonical TREB overlay key-metric rows')
+          check(overlay.groupby(keys).metric.nunique().eq(3).all(), 'not every canonical key has all 3 rebound metrics')
+          exact_mask=pd.to_numeric(overlay['exact_count_overlay'],errors='coerce').fillna(0).astype(bool)
+          exact_rows=int(exact_mask.sum())
+          exact_keys=overlay[exact_mask][keys].drop_duplicates()
+          complement_keys=overlay[~exact_mask][keys].drop_duplicates()
+          check(exact_rows==4877*3, f'exact overlay metric rows {exact_rows} != {4877*3}')
+          check(len(exact_keys)==4877, f'exact keys {len(exact_keys)} != 4877')
+          check(len(complement_keys)==9647, f'full-core complement keys {len(complement_keys)} != 9647')
+          check(len(pd.concat([exact_keys,complement_keys]).drop_duplicates())==14524, 'exact + complement union != 14524')
+          for canonical_metric in canonical_metrics:
+              g=overlay[overlay.metric.astype(str).eq(canonical_metric)]
+              ex=int(pd.to_numeric(g['exact_count_overlay'],errors='coerce').fillna(0).astype(bool).sum())
+              check(len(g)==14524, f'{canonical_metric} rows {len(g)} != 14524')
+              check(ex==4877, f'{canonical_metric} exact rows {ex} != 4877')
+
+          ad=overlay_career[(overlay_career.player_id.astype(str)=='203500') & (overlay_career.metric.astype(str)=='TotalReboundPct')]
+          check(len(ad)==1, f'Steven Adams career TREB rows {len(ad)} != 1')
+          ad_minutes=float(ad.minutes_on.iloc[0]) if len(ad)==1 else math.nan
+          check(math.isfinite(ad_minutes) and ad_minutes>10000, f'Steven Adams minutes_on invalid: {ad_minutes}')
+          check(math.isfinite(ad_minutes) and 20000<ad_minutes<21000, f'Steven Adams minutes_on outside expected range: {ad_minutes}')
+          q10=overlay_career[(overlay_career.metric.astype(str)=='TotalReboundPct') & (pd.to_numeric(overlay_career.minutes_on,errors='coerce')>=10000)]
+          qualifying=int(q10.player_id.astype(str).nunique())
+          check(500<=qualifying<=600, f'10,000-minute TREB qualifier population not sensible: {qualifying}')
+
+          keep_meta=[c for c in ['season','team_id','player_id','player','team_abbr','minutes_on','minutes_off'] if c in wide.columns]
+          overlay_wide=wide[keep_meta].copy()
+          final_wide=wide.copy()
+          for canonical_metric, stage2_metric in aliases.items():
+              for field in ['on','off','swing']:
+                  src=f'{stage2_metric}__{field}'
+                  dst=f'{canonical_metric}__{field}'
+                  check(src in wide.columns, f'missing native wide column {src}')
+                  if src in wide.columns:
+                      overlay_wide[dst]=wide[src]
+                      final_wide[dst]=wide[src]
+
+          cmeta=[c for c in ['player_id','player','minutes_on','minutes_off'] if c in career_wide.columns]
+          overlay_career_wide=career_wide[cmeta].copy()
+          final_career_wide=career_wide.copy()
+          for canonical_metric, stage2_metric in aliases.items():
+              for field in ['on','off','swing']:
+                  src=f'{stage2_metric}__{field}'
+                  dst=f'{canonical_metric}__{field}'
+                  check(src in career_wide.columns, f'missing native career wide column {src}')
+                  if src in career_wide.columns:
+                      overlay_career_wide[dst]=career_wide[src]
+                      final_career_wide[dst]=career_wide[src]
+
+          overlay.to_parquet(out/'treb_overlay_player_team_season_long.parquet',index=False,compression='zstd')
+          overlay.to_csv(out/'treb_overlay_player_team_season_long.csv.gz',index=False,compression='gzip')
+          overlay_wide.to_parquet(out/'treb_overlay_player_team_season_wide.parquet',index=False,compression='zstd')
+          overlay_wide.to_csv(out/'treb_overlay_player_team_season_wide.csv.gz',index=False,compression='gzip')
+          overlay_career.to_parquet(out/'treb_overlay_career_long.parquet',index=False,compression='zstd')
+          overlay_career.to_csv(out/'treb_overlay_career_long.csv.gz',index=False,compression='gzip')
+          overlay_career_wide.to_parquet(out/'treb_overlay_career_wide.parquet',index=False,compression='zstd')
+          overlay_career_wide.to_csv(out/'treb_overlay_career_wide.csv.gz',index=False,compression='gzip')
+          final_wide.to_parquet(out/'final_combined_player_team_season_wide.parquet',index=False,compression='zstd')
+          final_wide.to_csv(out/'final_combined_player_team_season_wide.csv.gz',index=False,compression='gzip')
+          final_career_wide.to_parquet(out/'final_combined_career_wide.parquet',index=False,compression='zstd')
+          final_career_wide.to_csv(out/'final_combined_career_wide.csv.gz',index=False,compression='gzip')
+
+          db=duckdb.connect(str(out/'TREB_all_metrics.duckdb'))
+          db.execute(f"CREATE OR REPLACE TABLE treb_overlay_player_team_season AS SELECT * FROM read_parquet('{(out/'treb_overlay_player_team_season_long.parquet').as_posix()}')")
+          db.execute(f"CREATE OR REPLACE TABLE treb_overlay_career AS SELECT * FROM read_parquet('{(out/'treb_overlay_career_long.parquet').as_posix()}')")
+          db.execute(f"CREATE OR REPLACE TABLE final_combined_player_team_season_wide AS SELECT * FROM read_parquet('{(out/'final_combined_player_team_season_wide.parquet').as_posix()}')")
+          db.execute(f"CREATE OR REPLACE TABLE final_combined_career_wide AS SELECT * FROM read_parquet('{(out/'final_combined_career_wide.parquet').as_posix()}')")
+          db.close()
+
+          report={
+              'status':'PASS' if not failures else 'FAIL',
+              'canonical_treb_player_team_season_keys':len(canonical),
+              'canonical_target':14524,
+              'duplicate_canonical_keys':int(canonical.duplicated(keys).sum()),
+              'season_count':int(canonical.season.nunique()),
+              'native_stage2_metric_count':int(detail.metric.astype(str).nunique()),
+              'native_stage2_metric_rows':int(len(detail)),
+              'native_stage2_metric_names_preserved':True,
+              'canonical_to_stage2_rebound_metric':aliases,
+              'reconstructed_exact_keys':int(len(exact_keys)),
+              'full_core_complement_keys':int(len(complement_keys)),
+              'treb_union_keys':int(len(pd.concat([exact_keys,complement_keys]).drop_duplicates())),
+              'rounded_percentage_backsolve_used':False,
+              'steven_adams_player_id':'203500',
+              'steven_adams_treb_career_present':len(ad)==1,
+              'steven_adams_minutes_on':ad_minutes,
+              'treb_10000_minute_qualifying_players':qualifying,
+              'retained_core_reference_10000_count':552,
+              'failures':failures,
+          }
+          (out/'CORRECTED_TREB_RELEASE_GATE.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          if failures:
+              raise SystemExit('CORRECTED TREB RELEASE GATE FAIL: '+' | '.join(failures))
+          PY
+
+      - name: Package and integrity-test corrected ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$OUT"
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          zip -6 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
+          unzip -t /tmp/TREB_final_database_2000-01_to_2025-26.zip >/tmp/zip_integrity.log
+          sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip > /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+          cat /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+
+      - name: Upload corrected final ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-corrected-final-database-2000-01-to-2025-26-v2
+          path: |
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
+
+      - name: Publish permanent corrected GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="treb-corrected-final-v2-${GITHUB_RUN_ID}"
+          gh release create "$tag" \
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip \
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "TREB corrected final database 2000-01 to 2025-26" \
+            --notes "Corrected release-layer population. 14,524 canonical player-team-season TREB keys = 4,877 reconstructed exact-count keys + 9,647 retained Stage2-direct full-core keys. Exact rows take precedence. Native 89 Stage2 metric names are preserved; stable canonical TREB aliases are provided in the release overlay. No rounded-percentage backsolve. Steven Adams regression and 10,000-minute population gated."
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" > /tmp/release_url.txt
+
+      - name: Persist corrected release report
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$STATUS_DIR"
+          cp "$OUT/CORRECTED_TREB_RELEASE_GATE.json" "$STATUS_DIR/CORRECTED_TREB_RELEASE_GATE_LATEST.json"
+          cp "$OUT/TREB_REBOUND_METRIC_ALIASES.json" "$STATUS_DIR/TREB_REBOUND_METRIC_ALIASES_LATEST.json"
+          cp /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256 "$STATUS_DIR/TREB_FINAL_ZIP_LATEST.sha256"
+          cp /tmp/release_url.txt "$STATUS_DIR/TREB_FINAL_RELEASE_URL_LATEST.txt"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['STATUS_DIR'])/'CORRECTED_TREB_RELEASE_GATE_LATEST.json'
+          q=json.loads(p.read_text())
+          q['workflow_run_id']=int(os.environ['GITHUB_RUN_ID'])
+          q['workflow_commit']=os.environ['GITHUB_SHA']
+          p.write_text(json.dumps(q,indent=2)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$STATUS_DIR/CORRECTED_TREB_RELEASE_GATE_LATEST.json" "$STATUS_DIR/TREB_REBOUND_METRIC_ALIASES_LATEST.json" "$STATUS_DIR/TREB_FINAL_ZIP_LATEST.sha256" "$STATUS_DIR/TREB_FINAL_RELEASE_URL_LATEST.txt"
+          git commit -m 'Persist corrected full TREB release v2 [skip ci]'
+          git push origin HEAD:agent/treb-final-exact-assembly
