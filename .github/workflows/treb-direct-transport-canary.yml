@@ -1,0 +1,125 @@
+name: TREB direct TREB transport canary
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-direct-transport-canary.yml
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Probe one known 2016-17 team with bounded longer transport windows
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/final_integrity_rebuild/direct_transport_canary
+          python - <<'PY'
+          import json, time
+          from pathlib import Path
+          from urllib.parse import urlencode
+          import requests
+
+          season='2016-17'
+          team_id=1610612760  # OKC, protected Adams regression season
+          adams_id='203500'
+          base='https://stats.nba.com/stats/teamplayeronoffdetails'
+          jina='https://r.jina.ai/http://stats.nba.com/stats/teamplayeronoffdetails'
+          headers={
+              'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36',
+              'Referer':'https://www.nba.com/','Origin':'https://www.nba.com','Accept':'application/json, text/plain, */*',
+              'x-nba-stats-origin':'stats','x-nba-stats-token':'true',
+          }
+          params={
+              'DateFrom':'','DateTo':'','GameSegment':'','LastNGames':0,'LeagueID':'00','Location':'',
+              'MeasureType':'Advanced','Month':0,'OpponentTeamID':0,'Outcome':'','PORound':0,'PaceAdjust':'N',
+              'PerMode':'Totals','Period':0,'PlusMinus':'N','Rank':'N','Season':season,'SeasonSegment':'',
+              'SeasonType':'Regular Season','ShotClockRange':'','TeamID':team_id,'VsConference':'','VsDivision':'',
+          }
+          out={'status':'FAIL','season':season,'team_id':team_id,'adams_id':adams_id,'attempts':[],'production_changed':False}
+          payload=None
+          for label,url,timeout,use_headers in [
+              ('direct_30s',base,30,True),
+              ('jina_60s',jina+'?'+urlencode(params),60,False),
+          ]:
+              t=time.time()
+              try:
+                  r=requests.get(url,params=params if label.startswith('direct') else None,
+                                 headers=headers if use_headers else {'User-Agent':headers['User-Agent']},timeout=timeout)
+                  rec={'label':label,'elapsed_seconds':round(time.time()-t,3),'http_status':r.status_code,'bytes':len(r.content)}
+                  r.raise_for_status()
+                  if label.startswith('direct'):
+                      d=r.json()
+                  else:
+                      txt=r.text.strip(); start=txt.find('{'); end=txt.rfind('}')
+                      if start<0 or end<start: raise ValueError('relay response contains no JSON object')
+                      d=json.loads(txt[start:end+1])
+                  sets=d.get('resultSets',d.get('resultSet'))
+                  if isinstance(sets,dict): sets=[sets]
+                  if not isinstance(sets,list): raise ValueError('no resultSets')
+                  names=[str(x.get('name','')) for x in sets]
+                  rec['result_set_names']=names
+                  on=next((x for x in sets if str(x.get('name',''))=='PlayersOnCourtTeamPlayerOnOffDetails'),None)
+                  off=next((x for x in sets if str(x.get('name',''))=='PlayersOffCourtTeamPlayerOnOffDetails'),None)
+                  if on is None or off is None: raise ValueError(f'ON/OFF sets absent: {names}')
+                  def rowmap(rs):
+                      hs=rs.get('headers') or []
+                      ans={}
+                      for rr in rs.get('rowSet',[]):
+                          z=dict(zip(hs,rr)); pid=z.get('VS_PLAYER_ID',z.get('PLAYER_ID'))
+                          if pid is not None: ans[str(int(float(pid)))]=z
+                      return ans
+                  oni,offi=rowmap(on),rowmap(off)
+                  rec['adams_on_present']=adams_id in oni; rec['adams_off_present']=adams_id in offi
+                  if adams_id in oni:
+                      rec['adams_on_REB_PCT']=oni[adams_id].get('REB_PCT')
+                      rec['adams_on_MIN']=oni[adams_id].get('MIN')
+                  if adams_id in offi:
+                      rec['adams_off_REB_PCT']=offi[adams_id].get('REB_PCT')
+                      rec['adams_off_MIN']=offi[adams_id].get('MIN')
+                  rec['semantic_shape_pass']=bool(adams_id in oni and adams_id in offi and oni[adams_id].get('REB_PCT') is not None and offi[adams_id].get('REB_PCT') is not None)
+                  out['attempts'].append(rec)
+                  if rec['semantic_shape_pass']:
+                      out['status']='PASS'; out['working_transport']=label; payload=d; break
+              except Exception as e:
+                  out['attempts'].append({'label':label,'elapsed_seconds':round(time.time()-t,3),'error':repr(e)})
+          p=Path('team_trb_all_players/final_integrity_rebuild/direct_transport_canary/DIRECT_TRANSPORT_CANARY.json')
+          p.write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - name: Persist canary result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          p=team_trb_all_players/final_integrity_rebuild/direct_transport_canary/DIRECT_TRANSPORT_CANARY.json
+          test -f "$p"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$p"
+          git commit -m 'Persist direct TREB transport canary [skip ci]' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-direct-transport-canary-${{ github.run_id }}
+          path: team_trb_all_players/final_integrity_rebuild/direct_transport_canary/DIRECT_TRANSPORT_CANARY.json
+          retention-days: 30
+          if-no-files-found: error
