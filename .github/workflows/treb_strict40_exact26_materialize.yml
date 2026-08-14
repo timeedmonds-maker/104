@@ -1,0 +1,173 @@
+name: TREB strict40 exact26 materialization
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb_strict40_exact26_materialize.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-strict40-exact26-materialize
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AUDIT_ARTIFACT_ID: '9210326810'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - name: Recover strict-40 exact-count audit
+        run: |
+          set -euo pipefail
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${AUDIT_ARTIFACT_ID}/zip" > /tmp/strict40.zip
+          mkdir -p /tmp/strict40
+          unzip -q /tmp/strict40.zip -d /tmp/strict40
+          test -s /tmp/strict40/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT.json
+
+      - name: Materialize only exact-agreement games
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, json
+          from pathlib import Path
+
+          src=Path('/tmp/strict40/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT.json')
+          audit=json.loads(src.read_text())
+          assert audit['status']=='PASS', audit.get('status')
+          assert audit['strict40_games']==40, audit['strict40_games']
+          assert audit['exact_agreement_games']==26, audit['exact_agreement_games']
+          assert audit['exact_conflict_games']==0, audit['exact_conflict_games']
+          assert audit['no_complete_exact_pair_games']==14, audit['no_complete_exact_pair_games']
+          assert audit['parse_error_count']==0, audit['parse_error_count']
+
+          exact=[g for g in audit['games'] if g['classification']=='EXACT_AGREEMENT']
+          unresolved=[g for g in audit['games'] if g['classification']!='EXACT_AGREEMENT']
+          assert len(exact)==26
+          assert len(unresolved)==14
+          assert not ({int(g['game_id']) for g in exact} & {int(g['game_id']) for g in unresolved})
+
+          out=Path('team_trb_all_players/impact_database/final_exact_exclusion_recovery')
+          out.mkdir(parents=True,exist_ok=True)
+
+          team_rows=[]
+          player_rows=[]
+          manifest=[]
+          for g in exact:
+              gid=int(g['game_id'])
+              assert g['unique_team_tuple_sets']==1 and g['unique_player_tuple_sets']==1, gid
+              assert g['team_source_count']>=1 and g['player_source_count']>=1, gid
+              tsets={tuple(tuple(r) for r in s['tuple_set']) for s in g['team_sources']}
+              psets={tuple(tuple(r) for r in s['tuple_set']) for s in g['player_sources']}
+              assert len(tsets)==1 and len(psets)==1, gid
+              tset=next(iter(tsets)); pset=next(iter(psets))
+              assert len(tset)==2, (gid,len(tset))
+              teams={int(r[0]) for r in tset}
+              assert len(teams)==2, (gid,teams)
+              # tuple: team_id, team_oreb, team_dreb, opp_oreb, opp_dreb
+              for r in tset:
+                  team_id,tor,tdr,oor,odr=map(int,r)
+                  assert tor>=0 and tdr>=0 and oor>=0 and odr>=0
+                  team_rows.append([gid,team_id,tor,tdr,oor,odr])
+              # Team tuples must be reciprocal.
+              a,b=tset
+              assert int(a[1])==int(b[3]) and int(a[2])==int(b[4])
+              assert int(a[3])==int(b[1]) and int(a[4])==int(b[2])
+
+              seen=set()
+              for r in pset:
+                  # tuple: team_id, player_id, seconds, team_oreb_on, team_dreb_on, opp_oreb_on, opp_dreb_on
+                  team_id,player_id,seconds,tor,tdr,oor,odr=map(int,r)
+                  assert team_id in teams
+                  assert seconds>=0 and tor>=0 and tdr>=0 and oor>=0 and odr>=0
+                  key=(team_id,player_id)
+                  assert key not in seen,(gid,key)
+                  seen.add(key)
+                  player_rows.append([gid,team_id,player_id,seconds,tor,tdr,oor,odr])
+              manifest.append({
+                  'game_id':gid,
+                  'classification':'EXACT_AGREEMENT',
+                  'team_source_count':g['team_source_count'],
+                  'player_source_count':g['player_source_count'],
+                  'team_sources':[{'ref':s['ref'],'sha':s['sha'],'path':s['path']} for s in g['team_sources']],
+                  'player_sources':[{'ref':s['ref'],'sha':s['sha'],'path':s['path']} for s in g['player_sources']],
+              })
+
+          assert len(team_rows)==52
+          assert len({(r[0],r[1]) for r in team_rows})==52
+          assert len({(r[0],r[1],r[2]) for r in player_rows})==len(player_rows)
+
+          with (out/'exact_26_team_game_treb.csv').open('w',newline='') as f:
+              w=csv.writer(f); w.writerow(['game_id','team_id','team_oreb','team_dreb','opp_oreb','opp_dreb']); w.writerows(team_rows)
+          with (out/'exact_26_player_game_treb_on.csv').open('w',newline='') as f:
+              w=csv.writer(f); w.writerow(['game_id','team_id','player_id','seconds_on','team_oreb_on','team_dreb_on','opp_oreb_on','opp_dreb_on']); w.writerows(player_rows)
+          (out/'exact_26_source_manifest.json').write_text(json.dumps({'status':'PASS','games':manifest},indent=2)+'\n')
+          (out/'remaining_14_unresolved.json').write_text(json.dumps({
+              'status':'BLOCKED',
+              'count':14,
+              'games':[{'game_id':int(g['game_id']),'classification':g['classification']} for g in unresolved],
+              'policy':'No accepted exclusion, backsolve, guess, or conflict promotion permitted.'
+          },indent=2)+'\n')
+          summary={
+              'status':'PASS',
+              'strict40':40,
+              'materialized_exact_games':26,
+              'materialized_team_game_rows':len(team_rows),
+              'materialized_player_game_rows':len(player_rows),
+              'remaining_unresolved_games':14,
+              'conflicts':0,
+              'production_values_changed':False,
+              'note':'This checkpoint materializes persisted exact count evidence only; canonical production integration remains separately gated.'
+          }
+          (out/'MATERIALIZATION_QA.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          PY
+
+      - name: Reassert immutable V2 population
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          rows=[]
+          with gzip.open(p,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if line.strip(): rows.append(json.loads(line))
+          keys={(str(r['season']),str(r['player_id']).removesuffix('.0'),int(r['team_id'])) for r in rows}
+          assert len(rows)==14524,(len(rows),'rows')
+          assert len(keys)==14524,(len(keys),'keys')
+          print(json.dumps({'status':'PASS','v2_rows':len(rows),'v2_unique_keys':len(keys)},indent=2))
+          PY
+
+      - name: Persist evidence checkpoint
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/final_exact_exclusion_recovery
+          if git diff --cached --quiet; then
+            echo 'No checkpoint change required.'
+            exit 0
+          fi
+          git commit -m 'Persist 26 exact historical exclusion recoveries'
+          git push origin HEAD:agent/treb-final-exact-assembly
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-strict40-exact26-materialized-${{ github.run_id }}
+          path: team_trb_all_players/impact_database/final_exact_exclusion_recovery
+          if-no-files-found: error
+          retention-days: 90
