@@ -1,0 +1,1059 @@
+{
+  "status": "PASS",
+  "purpose": "materiality diagnostic for 23 authoritative V2 canonical keys absent from pinned Stage2 tenure-segment source",
+  "stage2_sha": "57ba237c36d75f7a3ef2cc998d91aa70a59b3c29",
+  "authoritative_v2_keys": 14524,
+  "stage2_segment_keys": 14600,
+  "missing_authoritative_keys": 23,
+  "stage2_only_keys": 99,
+  "missing_with_any_legacy_core_data": 23,
+  "missing_with_all_89_legacy_core_metrics": 23,
+  "missing_with_zero_legacy_core_metrics": 0,
+  "missing_with_stage2_same_player_season_on_other_team": 3,
+  "target_manifest_columns": [
+    "season",
+    "player_id",
+    "player",
+    "team_id",
+    "seconds_on",
+    "minutes_on",
+    "team_games_in_tenure",
+    "total_team_games",
+    "full_core_reuse",
+    "intervals"
+  ],
+  "target_numeric_summary_for_missing": {
+    "seconds_on": {
+      "non_null": 23,
+      "sum": 276610.39999999997,
+      "min": 655.0,
+      "max": 135702.0
+    },
+    "minutes_on": {
+      "non_null": 23,
+      "sum": 4610.173333333333,
+      "min": 10.916666666666666,
+      "max": 2261.7
+    },
+    "team_games_in_tenure": {
+      "non_null": 23,
+      "sum": 613.0,
+      "min": 1.0,
+      "max": 82.0
+    },
+    "total_team_games": {
+      "non_null": 23,
+      "sum": 1869.0,
+      "min": 65.0,
+      "max": 82.0
+    },
+    "full_core_reuse": {
+      "non_null": 23,
+      "sum": 7.0,
+      "min": 0.0,
+      "max": 1.0
+    }
+  },
+  "missing_keys": [
+    {
+      "season": "2002-03",
+      "player_id": "2213",
+      "player": "Kirk Haston",
+      "team_id": 1610612740,
+      "seconds_on": 3489.0,
+      "minutes_on": 58.15,
+      "team_games_in_tenure": 82,
+      "total_team_games": 82,
+      "full_core_reuse": true,
+      "intervals": [
+        {
+          "start": "2002-10-29",
+          "end": "2003-04-16",
+          "reason": "manual_verified_full"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Kirk Haston"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          58.0
+        ],
+        "minutes_off": [
+          3923.0
+        ]
+      }
+    },
+    {
+      "season": "2003-04",
+      "player_id": "344",
+      "player": "Dana Barros",
+      "team_id": 1610612738,
+      "seconds_on": 655.0,
+      "minutes_on": 10.916666666666666,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2004-04-14",
+          "end": "2004-04-14",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Dana Barros"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          11.0
+        ],
+        "minutes_off": [
+          3930.0
+        ]
+      }
+    },
+    {
+      "season": "2004-05",
+      "player_id": "2590",
+      "player": "Mo Williams",
+      "team_id": 1610612749,
+      "seconds_on": 135702.0,
+      "minutes_on": 2261.7,
+      "team_games_in_tenure": 82,
+      "total_team_games": 82,
+      "full_core_reuse": true,
+      "intervals": [
+        {
+          "start": "2004-11-02",
+          "end": "2005-04-20",
+          "reason": "full_no_inseason_event"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [
+        "2005-06",
+        "2006-07",
+        "2007-08"
+      ],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Mo Williams"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          2262.0
+        ],
+        "minutes_off": [
+          1694.0
+        ]
+      }
+    },
+    {
+      "season": "2010-11",
+      "player_id": "201234",
+      "player": "Trey Johnson",
+      "team_id": 1610612747,
+      "seconds_on": 804.0,
+      "minutes_on": 13.4,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2011-04-13",
+          "end": "2011-04-13",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [
+        1610612761
+      ],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Trey Johnson"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          13.0
+        ],
+        "minutes_off": [
+          3953.0
+        ]
+      }
+    },
+    {
+      "season": "2012-13",
+      "player_id": "2853",
+      "player": "Earl Barron",
+      "team_id": 1610612752,
+      "seconds_on": 2190.0,
+      "minutes_on": 36.5,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2013-04-17",
+          "end": "2013-04-17",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [
+        1610612764
+      ],
+      "stage2_same_player_team_other_seasons": [
+        "2009-10"
+      ],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Earl Barron"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          36.0
+        ],
+        "minutes_off": [
+          3910.0
+        ]
+      }
+    },
+    {
+      "season": "2013-14",
+      "player_id": "2694",
+      "player": "Josh Powell",
+      "team_id": 1610612745,
+      "seconds_on": 1162.0,
+      "minutes_on": 19.366666666666667,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2014-04-16",
+          "end": "2014-04-16",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Josh Powell"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          19.0
+        ],
+        "minutes_off": [
+          3947.0
+        ]
+      }
+    },
+    {
+      "season": "2015-16",
+      "player_id": "2563",
+      "player": "Dahntay Jones",
+      "team_id": 1610612739,
+      "seconds_on": 2541.0,
+      "minutes_on": 42.35,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2016-04-13",
+          "end": "2016-04-13",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Dahntay Jones"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          42.0
+        ],
+        "minutes_off": [
+          3929.0
+        ]
+      }
+    },
+    {
+      "season": "2016-17",
+      "player_id": "204002",
+      "player": "Edy Tavares",
+      "team_id": 1610612739,
+      "seconds_on": 1440.0,
+      "minutes_on": 24.0,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2017-04-12",
+          "end": "2017-04-12",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [
+        1610612737
+      ],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Edy Tavares"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          24.0
+        ],
+        "minutes_off": [
+          3952.0
+        ]
+      }
+    },
+    {
+      "season": "2016-17",
+      "player_id": "2563",
+      "player": "Dahntay Jones",
+      "team_id": 1610612739,
+      "seconds_on": 720.0,
+      "minutes_on": 12.0,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2017-04-12",
+          "end": "2017-04-12",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Dahntay Jones"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          12.0
+        ],
+        "minutes_off": [
+          3964.0
+        ]
+      }
+    },
+    {
+      "season": "2017-18",
+      "player_id": "2570",
+      "player": "Kendrick Perkins",
+      "team_id": 1610612739,
+      "seconds_on": 872.0,
+      "minutes_on": 14.533333333333333,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2018-04-11",
+          "end": "2018-04-11",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [
+        "2014-15"
+      ],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Kendrick Perkins"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          15.0
+        ],
+        "minutes_off": [
+          3931.0
+        ]
+      }
+    },
+    {
+      "season": "2017-18",
+      "player_id": "1628935",
+      "player": "Aaron Jackson",
+      "team_id": 1610612745,
+      "seconds_on": 2070.0,
+      "minutes_on": 34.5,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2018-04-11",
+          "end": "2018-04-11",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Aaron Jackson"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          34.0
+        ],
+        "minutes_off": [
+          3916.0
+        ]
+      }
+    },
+    {
+      "season": "2018-19",
+      "player_id": "203895",
+      "player": "Jordan McRae",
+      "team_id": 1610612764,
+      "seconds_on": 19968.0,
+      "minutes_on": 332.8,
+      "team_games_in_tenure": 82,
+      "total_team_games": 82,
+      "full_core_reuse": true,
+      "intervals": [
+        {
+          "start": "2018-10-16",
+          "end": "2019-04-10",
+          "reason": "full_no_inseason_event"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [
+        "2019-20"
+      ],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Jordan McRae"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          333.0
+        ],
+        "minutes_off": [
+          3653.0
+        ]
+      }
+    },
+    {
+      "season": "2019-20",
+      "player_id": "1629731",
+      "player": "Dean Wade",
+      "team_id": 1610612739,
+      "seconds_on": 4285.0,
+      "minutes_on": 71.41666666666667,
+      "team_games_in_tenure": 65,
+      "total_team_games": 65,
+      "full_core_reuse": true,
+      "intervals": [
+        {
+          "start": "2019-10-22",
+          "end": "2020-08-14",
+          "reason": "full_no_inseason_event"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [
+        "2020-21",
+        "2021-22",
+        "2022-23",
+        "2023-24",
+        "2024-25",
+        "2025-26"
+      ],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Dean Wade"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          71.0
+        ],
+        "minutes_off": [
+          3074.0
+        ]
+      }
+    },
+    {
+      "season": "2021-22",
+      "player_id": "1630556",
+      "player": "Kessler Edwards",
+      "team_id": 1610612751,
+      "seconds_on": 59230.0,
+      "minutes_on": 987.1666666666666,
+      "team_games_in_tenure": 82,
+      "total_team_games": 82,
+      "full_core_reuse": true,
+      "intervals": [
+        {
+          "start": "2021-10-19",
+          "end": "2022-04-10",
+          "reason": "full_no_inseason_event"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [
+        "2022-23"
+      ],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Kessler Edwards"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          987.0
+        ],
+        "minutes_off": [
+          2964.0
+        ]
+      }
+    },
+    {
+      "season": "2022-23",
+      "player_id": "1630564",
+      "player": "RaiQuan Gray",
+      "team_id": 1610612751,
+      "seconds_on": 2105.0,
+      "minutes_on": 35.083333333333336,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2023-04-08",
+          "end": "2023-04-09",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "RaiQuan Gray"
+      ],
+      "legacy_core_minute_fields": {}
+    },
+    {
+      "season": "2022-23",
+      "player_id": "1628435",
+      "player": "Chance Comanche",
+      "team_id": 1610612757,
+      "seconds_on": 1247.0,
+      "minutes_on": 20.783333333333335,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2023-04-09",
+          "end": "2023-04-09",
+          "reason": "out_depart"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Chance Comanche"
+      ],
+      "legacy_core_minute_fields": {}
+    },
+    {
+      "season": "2022-23",
+      "player_id": "1631367",
+      "player": "Jacob Gilyard",
+      "team_id": 1610612763,
+      "seconds_on": 2447.0,
+      "minutes_on": 40.78333333333333,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2023-04-08",
+          "end": "2023-04-09",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [
+        "2023-24"
+      ],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Jacob Gilyard"
+      ],
+      "legacy_core_minute_fields": {}
+    },
+    {
+      "season": "2024-25",
+      "player_id": "1631120",
+      "player": "JD Davison",
+      "team_id": 1610612738,
+      "seconds_on": 5574.0,
+      "minutes_on": 92.9,
+      "team_games_in_tenure": 82,
+      "total_team_games": 82,
+      "full_core_reuse": true,
+      "intervals": [
+        {
+          "start": "2024-10-22",
+          "end": "2025-04-13",
+          "reason": "full_no_inseason_event"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [
+        "2022-23",
+        "2023-24"
+      ],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "JD Davison"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          93.0
+        ],
+        "minutes_off": [
+          3873.0
+        ]
+      }
+    },
+    {
+      "season": "2024-25",
+      "player_id": "1630600",
+      "player": "Isaiah Mobley",
+      "team_id": 1610612755,
+      "seconds_on": 1042.0,
+      "minutes_on": 17.366666666666667,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2025-04-13",
+          "end": "2025-04-13",
+          "reason": "out_depart"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Isaiah Mobley"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          17.0
+        ],
+        "minutes_off": [
+          3944.0
+        ]
+      }
+    },
+    {
+      "season": "2025-26",
+      "player_id": "1631338",
+      "player": "Mouhamadou Gueye",
+      "team_id": 1610612741,
+      "seconds_on": 2726.5,
+      "minutes_on": 45.44166666666667,
+      "team_games_in_tenure": 3,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2026-04-09",
+          "end": "2026-04-12",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Mouhamadou Gueye"
+      ],
+      "legacy_core_minute_fields": {}
+    },
+    {
+      "season": "2025-26",
+      "player_id": "1641733",
+      "player": "Nick Smith Jr.",
+      "team_id": 1610612747,
+      "seconds_on": 22492.6,
+      "minutes_on": 374.87666666666667,
+      "team_games_in_tenure": 82,
+      "total_team_games": 82,
+      "full_core_reuse": true,
+      "intervals": [
+        {
+          "start": "2025-10-21",
+          "end": "2026-04-12",
+          "reason": "full_no_inseason_event"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Nick Smith Jr."
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          344.0
+        ],
+        "minutes_off": [
+          3501.0
+        ]
+      }
+    },
+    {
+      "season": "2025-26",
+      "player_id": "1641794",
+      "player": "Dillon Jones",
+      "team_id": 1610612752,
+      "seconds_on": 2363.3,
+      "minutes_on": 39.388333333333335,
+      "team_games_in_tenure": 39,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2026-01-20",
+          "end": "2026-04-12",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Dillon Jones"
+      ],
+      "legacy_core_minute_fields": {
+        "minutes_on": [
+          27.0
+        ],
+        "minutes_off": [
+          3828.0
+        ]
+      }
+    },
+    {
+      "season": "2025-26",
+      "player_id": "1643060",
+      "player": "Hayden Gray",
+      "team_id": 1610612762,
+      "seconds_on": 1485.0,
+      "minutes_on": 24.75,
+      "team_games_in_tenure": 1,
+      "total_team_games": 82,
+      "full_core_reuse": false,
+      "intervals": [
+        {
+          "start": "2026-04-11",
+          "end": "2026-04-12",
+          "reason": "season_close"
+        }
+      ],
+      "stage2_same_player_season_other_team_ids": [],
+      "stage2_same_player_team_other_seasons": [],
+      "legacy_core_rows": 89,
+      "legacy_core_metric_count": 89,
+      "legacy_core_players": [
+        "Hayden Gray"
+      ],
+      "legacy_core_minute_fields": {}
+    }
+  ],
+  "core_columns_by_missing_season": {
+    "2002-03": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2003-04": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2004-05": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2010-11": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2012-13": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2013-14": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2015-16": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2016-17": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2017-18": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2018-19": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2019-20": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2021-22": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2022-23": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2024-25": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    },
+    "2025-26": {
+      "exists": true,
+      "columns": [
+        "season",
+        "team_id",
+        "subject_player_id",
+        "subject_player",
+        "metric",
+        "minutes_on",
+        "minutes_off",
+        "on",
+        "off",
+        "on_off",
+        "source_extra"
+      ]
+    }
+  },
+  "classification_rule": {
+    "material": "meaningful minutes/results absent with no safe established source",
+    "potentially_technical_or_identity": "zero/near-zero target impact, alias/team-boundary identity, or complete established direct core metrics available"
+  }
+}
