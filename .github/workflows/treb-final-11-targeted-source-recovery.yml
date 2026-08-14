@@ -1,0 +1,207 @@
+name: TREB final 11 targeted source recovery
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-final-11-targeted-source-recovery.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-final-11-targeted-source-recovery
+  cancel-in-progress: false
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  BASE: team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/recovered_short_tenure_16
+  OUT: team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/final_11_targeted_recovery
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact-assembly branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install request dependency
+        run: python -m pip install --disable-pip-version-check requests
+
+      - name: Recover only 3 minute fields and 8 unavailable team profiles
+        id: recover
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2 "$OUT"
+          mkdir -p "$OUT"
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          python - <<'PY'
+          import gzip, json, math, os, sys, time
+          from pathlib import Path
+
+          ROOT=Path.cwd(); BASE=ROOT/os.environ['BASE']; OUT=ROOT/os.environ['OUT']
+          S2=Path('/tmp/treb_stage2/team_trb_all_players')
+          sys.path.insert(0,str(S2))
+          import build_corrected_tenure_off as core
+
+          qa=json.loads((BASE/'RECOVERY_QA.json').read_text())
+          failures=qa['failures']
+          group_a=[]; group_b=[]
+          for f in failures:
+              r=f.get('result') or {}
+              if len(r.get('metrics') or [])==89:
+                  group_b.append(f)
+              else:
+                  group_a.append(f)
+          if len(group_a)!=8 or len(group_b)!=3:
+              raise RuntimeError(f'classification drift A={len(group_a)} B={len(group_b)}')
+
+          def finite(v):
+              try:
+                  x=float(v)
+              except Exception:
+                  return None
+              return x if math.isfinite(x) else None
+
+          def request_stat(window, rounds=4):
+              params={
+                  'Season':str(window['season']), 'SeasonType':'Regular Season',
+                  'TeamId':str(int(window['team_id'])), 'Stat':'OffRebounds',
+                  'FromDate':str(window['query_start_date']), 'ToDate':str(window['query_end_date'])
+              }
+              metas=[]
+              for round_no in range(1,rounds+1):
+                  payload,meta=core.request_json(core.STAT_URL,params,attempts=4)
+                  metas.append(meta)
+                  if meta.get('ok'):
+                      return payload,metas
+                  if round_no<rounds:
+                      time.sleep(10*round_no)
+              return {},metas
+
+          # Group B: preserve exact 89-metric team payload; resolve minute row only.
+          minute_repairs=[]; minute_failures=[]
+          for f in group_b:
+              w=f['window']; r=f['result']; target=float(w['target_minutes_on'])
+              payload,metas=request_stat(w)
+              mon=moff=row=None; method=None
+              if payload:
+                  mon,moff,row=core.stat_minutes(payload,str(w['player_id']),str(w['player']))
+                  if mon is not None and moff is not None:
+                      method='pinned_stat_minutes_exact_id_or_name'
+                  else:
+                      candidates=[]
+                      for cand in core.rows(payload):
+                          cm=finite(cand.get('MinutesOn')); cf=finite(cand.get('MinutesOff'))
+                          if cm is None or cf is None: continue
+                          candidates.append((abs(cm-target),cm,cf,cand))
+                      close=[x for x in candidates if x[0] <= 1.0]
+                      close.sort(key=lambda x:x[0])
+                      if close and (len(close)==1 or close[0][0] < close[1][0]-1e-9):
+                          _,mon,moff,row=close[0]
+                          method='unique_nearest_authoritative_minutes_on_within_1min'
+              rec={
+                  'season':w['season'],'team_id':w['team_id'],'player_id':str(w['player_id']),'player':w['player'],
+                  'query_start_date':w['query_start_date'],'query_end_date':w['query_end_date'],
+                  'metric_count_preserved':len(r.get('metrics') or []),'target_minutes_on':target,
+                  'minutes_on':mon,'minutes_off':moff,'minute_resolution_method':method,
+                  'request_attempt_groups':metas,
+                  'metrics':r.get('metrics') or [],
+              }
+              if mon is not None and moff is not None and len(rec['metrics'])==89:
+                  minute_repairs.append(rec)
+              else:
+                  minute_failures.append(rec)
+
+          # Group A: retry only the eight missing one-game team profiles. Sequential rounds reduce burst pressure.
+          team_repairs=[]; team_failures=[]
+          for f in group_a:
+              w=f['window']; attempts=[]; result=None
+              for round_no in range(1,4):
+                  try:
+                      result=core.collect_window(w)
+                  except Exception as exc:
+                      attempts.append({'round':round_no,'error':repr(exc)})
+                      result=None
+                  else:
+                      attempts.append({'round':round_no,'complete':bool(result.get('complete')),
+                                       'metric_count':len(result.get('metrics') or []),
+                                       'requests':result.get('requests')})
+                  if result and result.get('complete') and len(result.get('metrics') or [])==89:
+                      break
+                  if round_no<3:
+                      time.sleep(12*round_no)
+              rec={'window':w,'attempts':attempts,'result':result}
+              if result and result.get('complete') and len(result.get('metrics') or [])==89:
+                  team_repairs.append(rec)
+              else:
+                  team_failures.append(rec)
+
+          report={
+              'status':'PASS' if len(minute_repairs)==3 and len(team_repairs)==8 else 'FAIL',
+              'stage2_sha':os.environ['STAGE2_SHA'],
+              'scope':'only 3 minute-only repairs plus 8 one-game HTTP-503 team-profile retries',
+              'minute_only_target_keys':3,'minute_only_recovered':len(minute_repairs),'minute_only_failed':len(minute_failures),
+              'team_profile_target_keys':8,'team_profile_recovered':len(team_repairs),'team_profile_failed':len(team_failures),
+              'previously_recovered_5_requeried':False,'historical_stage2_rebuild':False,
+              'minute_repairs':minute_repairs,'minute_failures':minute_failures,
+              'team_repairs':team_repairs,'team_failures':team_failures,
+          }
+          (OUT/'FINAL_11_RECOVERY_QA.json').write_text(json.dumps(report,indent=2,ensure_ascii=False,default=str)+'\n')
+
+          # Compact machine-readable recovered rows, preserving exact team metrics verbatim.
+          with gzip.open(OUT/'recovered_final_11.jsonl.gz','wt',encoding='utf-8') as fh:
+              for rec in minute_repairs:
+                  fh.write(json.dumps({'type':'minute_only_preserved_metrics',**rec},ensure_ascii=False,default=str)+'\n')
+              for rec in team_repairs:
+                  fh.write(json.dumps({'type':'team_profile_recovery',**(rec['result'] or {})},ensure_ascii=False,default=str)+'\n')
+
+          (OUT/'README.md').write_text(
+              '# Final 11 targeted recovery\n\n'
+              f"- Status: **{report['status']}**\n"
+              f"- Minute-only recovered: **{len(minute_repairs)}/3**\n"
+              f"- One-game team profiles recovered: **{len(team_repairs)}/8**\n"
+              '- Previously recovered 5 re-queried: **No**\n'
+              '- Historical Stage2 rebuild: **No**\n',encoding='utf-8')
+          print(json.dumps({k:report[k] for k in ['status','minute_only_recovered','minute_only_failed','team_profile_recovered','team_profile_failed','previously_recovered_5_requeried','historical_stage2_rebuild']},indent=2))
+          if report['status']!='PASS':
+              raise RuntimeError('final 11 targeted recovery incomplete; persisted evidence is authoritative for next action')
+          PY
+
+      - name: Persist targeted recovery evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ -d "$OUT" ]; then
+            git add -f "$OUT"
+            if ! git diff --cached --quiet; then
+              git commit -m 'Persist final 11 targeted Stage2 recovery'
+              git push origin HEAD:agent/treb-final-exact-assembly
+            fi
+          fi
+
+      - name: Upload targeted recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-11-targeted-recovery-${{ github.run_id }}
+          path: ${{ env.OUT }}
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Surface incomplete targeted recovery
+        if: steps.recover.outcome == 'failure'
+        run: |
+          echo 'Final 11 targeted recovery incomplete; evidence was persisted.'
+          exit 1
