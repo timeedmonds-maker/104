@@ -1,0 +1,294 @@
+name: TREB final exact production assembly
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-final-exact-production-assembly.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-final-exact-production-assembly
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: '1'
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install production readers
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install pandas numpy pyarrow requests
+
+      - name: Fetch every durable TREB branch head
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+          echo "remote_heads=$(git for-each-ref --format='%(refname)' refs/remotes/origin | wc -l)"
+
+      - name: Rebuild locked 4,877-key exact layer
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks /tmp/treb_exact_support
+          mkdir -p /tmp/treb_locks /tmp/treb_exact_support
+          LOCK_PATH='team_trb_all_players/impact_database/final_local_rebuild/locked_seasons'
+          for y in $(seq 2000 2025); do
+            branch="refs/remotes/origin/treb-final-safe-lock-${y}"
+            season=$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")
+            git show "${branch}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          python team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb_locks \
+            --output-dir /tmp/treb_exact_support
+          python - <<'PY'
+          import pandas as pd
+          p='/tmp/treb_exact_support/career_treb_detail.csv'
+          d=pd.read_csv(p)
+          cols={c.lower().strip().replace(' ','_'):c for c in d.columns}
+          def pick(*names):
+              for n in names:
+                  if n in cols: return cols[n]
+              raise SystemExit(f'missing key column from {d.columns.tolist()}')
+          s=pick('season')
+          pcol=pick('player_id','playerid')
+          t=pick('team_id','teamid')
+          keys=d[[s,pcol,t]].drop_duplicates()
+          print(f'exact_segments={len(d)} exact_pts={len(keys)}')
+          if len(d)!=5199 or len(keys)!=4877:
+              raise SystemExit(f'EXACT_GATE_FAIL segments={len(d)} pts={len(keys)}')
+          PY
+
+      - name: Recover all exact PBP game-fact sources and execute newest production assembler
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/treb_production /tmp/treb_discovery /tmp/treb_candidates
+          python - <<'PY'
+          from __future__ import annotations
+          import json, os, re, subprocess, sys, gzip, csv, shutil
+          from pathlib import Path
+
+          ROOT=Path.cwd()
+          DISC=Path('/tmp/treb_discovery')
+          CANDS=Path('/tmp/treb_candidates')
+          PROD=Path('/tmp/treb_production')
+          DISC.mkdir(parents=True,exist_ok=True); CANDS.mkdir(parents=True,exist_ok=True); PROD.mkdir(parents=True,exist_ok=True)
+
+          def sh(args, check=True, text=True):
+              return subprocess.run(args, cwd=ROOT, check=check, text=text, capture_output=True)
+
+          refs=[x.strip() for x in sh(['git','for-each-ref','--format=%(refname)','refs/remotes/origin']).stdout.splitlines() if x.strip()]
+          refs=[r for r in refs if not r.endswith('/HEAD')]
+
+          # First, inventory every durable exact game-fact pair across every branch head.
+          pairs=[]; refs_with_exact=[]
+          for ref in refs:
+              ls=sh(['git','ls-tree','-r','--name-only',ref],check=False)
+              if ls.returncode: continue
+              paths=ls.stdout.splitlines()
+              teams={p[:-len('team_game_treb.csv.gz')] for p in paths if p.endswith('team_game_treb.csv.gz') and 'exact_game_fact' in p}
+              players={p[:-len('player_game_treb_on.csv.gz')] for p in paths if p.endswith('player_game_treb_on.csv.gz') and 'exact_game_fact' in p}
+              common=sorted(teams & players)
+              if common:
+                  refs_with_exact.append(ref)
+                  for base in common:
+                      pairs.append({'ref':ref,'base':base,'team':base+'team_game_treb.csv.gz','player':base+'player_game_treb_on.csv.gz'})
+          inventory={'remote_refs':len(refs),'refs_with_exact':len(refs_with_exact),'exact_file_pairs_at_heads':len(pairs)}
+          (DISC/'exact_source_inventory.json').write_text(json.dumps(inventory,indent=2))
+          print(json.dumps(inventory,indent=2),flush=True)
+          if not pairs:
+              raise SystemExit('NO_EXACT_GAME_FACT_PAIRS_FOUND')
+
+          # Search all branch heads for assembly/release scripts. This intentionally bypasses GitHub code-index gaps.
+          hits={}
+          patterns=['team_game_treb','player_game_treb_on','9647','14524','TREB_final_database_2000-01_to_2025-26.zip']
+          for ref in refs:
+              ls=sh(['git','ls-tree','-r','--name-only',ref],check=False)
+              if ls.returncode: continue
+              py=[p for p in ls.stdout.splitlines() if p.endswith('.py') and ('treb' in p.lower() or 'rebound' in p.lower() or 'final' in p.lower())]
+              for path in py:
+                  # filename prefilter keeps this finite on hundreds of refs
+                  low=path.lower()
+                  if not any(k in low for k in ('final','exact','fullcore','release','assembly','rebound','treb')): continue
+                  out=sh(['git','show',f'{ref}:{path}'],check=False)
+                  if out.returncode: continue
+                  src=out.stdout
+                  matched=[p for p in patterns if p in src]
+                  if 'team_game_treb' in matched and 'player_game_treb_on' in matched:
+                      key=(ref,path)
+                      score=20
+                      score += 18 if '9647' in src else 0
+                      score += 18 if '14524' in src else 0
+                      score += 30 if 'TREB_final_database_2000-01_to_2025-26.zip' in src else 0
+                      score += 10 if 'fullcore' in low or 'full_core' in low else 0
+                      score += 10 if 'final' in low or 'release' in low or 'assembly' in low else 0
+                      score += 8 if '4877' in src else 0
+                      try:
+                          ts=int(sh(['git','log','-1','--format=%ct',ref,'--',path]).stdout.strip() or '0')
+                      except Exception: ts=0
+                      hits[key]={'ref':ref,'path':path,'score':score,'timestamp':ts,'matched':matched}
+          ranked=sorted(hits.values(),key=lambda x:(x['score'],x['timestamp']),reverse=True)
+          (DISC/'assembler_candidates.json').write_text(json.dumps(ranked[:100],indent=2))
+          print('top assembler candidates:',flush=True)
+          for r in ranked[:20]: print(r,flush=True)
+
+          # Also look for already-built final ZIPs anywhere in durable Git heads; validation happens later.
+          zip_hits=[]
+          for ref in refs:
+              ls=sh(['git','ls-tree','-r','--name-only',ref],check=False)
+              if ls.returncode: continue
+              for p in ls.stdout.splitlines():
+                  if p.endswith('TREB_final_database_2000-01_to_2025-26.zip'):
+                      try: ts=int(sh(['git','log','-1','--format=%ct',ref,'--',p]).stdout.strip() or '0')
+                      except: ts=0
+                      zip_hits.append((ts,ref,p))
+          zip_hits.sort(reverse=True)
+          (DISC/'existing_final_zip_candidates.json').write_text(json.dumps([{'timestamp':a,'ref':b,'path':c} for a,b,c in zip_hits],indent=2))
+
+          def materialize(ref,path,dest):
+              data=subprocess.run(['git','show',f'{ref}:{path}'],cwd=ROOT,check=True,capture_output=True).stdout
+              dest.parent.mkdir(parents=True,exist_ok=True); dest.write_bytes(data)
+
+          # Prefer a newer assembler that knows both exact game-fact families and the canonical gates.
+          # Execute in a detached worktree so historical scripts get their matching companion modules/files.
+          attempts=[]
+          for i,r in enumerate(ranked[:12]):
+              if r['score'] < 48: continue
+              wt=Path(f'/tmp/treb_worktree_{i}')
+              subprocess.run(['git','worktree','remove','--force',str(wt)],cwd=ROOT,check=False,capture_output=True)
+              add=subprocess.run(['git','worktree','add','--detach',str(wt),r['ref']],cwd=ROOT,text=True,capture_output=True)
+              if add.returncode:
+                  attempts.append({**r,'status':'worktree_failed','stderr':add.stderr[-1000:]}); continue
+              script=wt/r['path']
+              env=os.environ.copy(); env['PYTHONPATH']=str(wt); env['TREB_EXACT_SUPPORT_DIR']='/tmp/treb_exact_support'; env['TREB_OUTPUT_DIR']=str(PROD)
+              # Dry help only when argparse is present; then execute scripts that appear self-contained / no required positional args.
+              src=script.read_text(errors='ignore')
+              if 'argparse' in src:
+                  hp=subprocess.run([sys.executable,str(script),'--help'],cwd=wt,env=env,text=True,capture_output=True,timeout=60)
+                  helptext=(hp.stdout+'\n'+hp.stderr)[-8000:]
+                  (DISC/f'candidate_{i:02d}_help.txt').write_text(helptext)
+                  # A required positional CLI is not guessed. Keep it for diagnostics and move on.
+                  positional=[]
+                  for line in hp.stdout.splitlines():
+                      if line.startswith('usage:') and '<' not in line:
+                          # argparse usages with bare words after options are likely positional; conservative skip below based on known Required marker.
+                          pass
+                  if 'the following arguments are required:' in hp.stderr.lower():
+                      attempts.append({**r,'status':'requires_args'}); continue
+              try:
+                  run=subprocess.run([sys.executable,str(script)],cwd=wt,env=env,text=True,capture_output=True,timeout=2400)
+              except subprocess.TimeoutExpired as e:
+                  attempts.append({**r,'status':'timeout'}); continue
+              log=(run.stdout or '')+'\n'+(run.stderr or '')
+              (DISC/f'candidate_{i:02d}_run.log').write_text(log[-200000:])
+              found=list(wt.rglob('TREB_final_database_2000-01_to_2025-26.zip'))+list(PROD.rglob('TREB_final_database_2000-01_to_2025-26.zip'))
+              attempts.append({**r,'status':'ran','returncode':run.returncode,'final_zip_found':bool(found)})
+              if run.returncode==0 and found:
+                  shutil.copy2(found[0],PROD/'TREB_final_database_2000-01_to_2025-26.zip')
+                  print(f'PRODUCTION_ASSEMBLER_SUCCESS ref={r["ref"]} path={r["path"]}',flush=True)
+                  break
+          (DISC/'assembler_attempts.json').write_text(json.dumps(attempts,indent=2))
+
+          # If a complete ZIP was durably committed already, retain the newest as a candidate ONLY; final gate step validates it.
+          finalzip=PROD/'TREB_final_database_2000-01_to_2025-26.zip'
+          if not finalzip.exists() and zip_hits:
+              _,ref,path=zip_hits[0]
+              materialize(ref,path,finalzip)
+              print(f'RECOVERED_EXISTING_FINAL_ZIP ref={ref} path={path}',flush=True)
+
+          # Runtime discovery fallback: preserve enough exact source metadata for one targeted repair if no assembler can finish.
+          if not finalzip.exists():
+              summary={
+                  'status':'ASSEMBLER_NOT_YET_COMPLETED',
+                  'exact_locked_pts':4877,
+                  'full_core_target_pts':9647,
+                  'canonical_target_pts':14524,
+                  'source_inventory':inventory,
+                  'assembler_candidate_count':len(ranked),
+                  'assembler_attempts':attempts,
+              }
+              (DISC/'PRODUCTION_BLOCKER.json').write_text(json.dumps(summary,indent=2))
+              print(json.dumps(summary,indent=2),flush=True)
+              raise SystemExit('PRODUCTION_ASSEMBLER_NOT_COMPLETED; see retained discovery artifact')
+          PY
+
+      - name: Validate final ZIP production gates
+        run: |
+          set -euo pipefail
+          ZIP=/tmp/treb_production/TREB_final_database_2000-01_to_2025-26.zip
+          test -s "$ZIP"
+          unzip -t "$ZIP"
+          mkdir -p /tmp/treb_final_unzip
+          rm -rf /tmp/treb_final_unzip/*
+          unzip -q "$ZIP" -d /tmp/treb_final_unzip
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd, json, zipfile
+          root=Path('/tmp/treb_final_unzip')
+          files=list(root.rglob('*'))
+          print('final_zip_files=',[str(p.relative_to(root)) for p in files if p.is_file()])
+          # Locate detail-like canonical output and enforce the 14,524 PTS union gate.
+          candidates=[]
+          for p in root.rglob('*.csv'):
+              try:
+                  d=pd.read_csv(p,nrows=5)
+              except Exception: continue
+              norm={c.lower().strip().replace(' ','_'):c for c in d.columns}
+              if 'season' in norm and ('player_id' in norm or 'playerid' in norm) and ('team_id' in norm or 'teamid' in norm):
+                  candidates.append(p)
+          best=None; bestn=-1; bestdf=None
+          for p in candidates:
+              try: d=pd.read_csv(p)
+              except: continue
+              norm={c.lower().strip().replace(' ','_'):c for c in d.columns}
+              pc=norm.get('player_id') or norm.get('playerid'); tc=norm.get('team_id') or norm.get('teamid'); sc=norm['season']
+              n=len(d[[sc,pc,tc]].drop_duplicates())
+              if n>bestn: best,bestn,bestdf=p,n,d
+          if best is None:
+              raise SystemExit('FINAL_GATE_FAIL no canonical PTS CSV found in ZIP')
+          norm={c.lower().strip().replace(' ','_'):c for c in bestdf.columns}
+          pc=norm.get('player_id') or norm.get('playerid'); tc=norm.get('team_id') or norm.get('teamid'); sc=norm['season']
+          keys=bestdf[[sc,pc,tc]].drop_duplicates()
+          dup=len(bestdf)-len(keys) if len(bestdf)==bestn else 0
+          seasons=keys[sc].nunique()
+          print(f'canonical_file={best} canonical_pts={bestn} seasons={seasons}')
+          if bestn!=14524: raise SystemExit(f'FINAL_GATE_FAIL canonical_pts={bestn} expected=14524')
+          if seasons!=26: raise SystemExit(f'FINAL_GATE_FAIL seasons={seasons} expected=26')
+          # Require an Adams row and >10k career minutes across detail rows when minute column is available.
+          adams=bestdf[bestdf[pc].astype(str).str.replace('.0','',regex=False)=='203500']
+          if adams.empty: raise SystemExit('FINAL_GATE_FAIL Steven Adams 203500 absent')
+          mincol=norm.get('minutes_on') or norm.get('minutes') or norm.get('on_minutes')
+          if mincol:
+              mins=pd.to_numeric(adams[mincol],errors='coerce').fillna(0).sum()
+              print(f'steven_adams_minutes={mins}')
+              if mins<=10000: raise SystemExit(f'FINAL_GATE_FAIL Steven Adams minutes={mins}')
+          report={'status':'PASS','canonical_pts':bestn,'seasons':seasons,'steven_adams_present':True,'canonical_file':str(best.relative_to(root))}
+          Path('/tmp/treb_production/FINAL_PRODUCTION_VALIDATION.json').write_text(json.dumps(report,indent=2))
+          PY
+          sha256sum "$ZIP" | tee /tmp/treb_production/TREB_final_database_2000-01_to_2025-26.zip.sha256
+
+      - name: Upload final database or complete failure inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-exact-production-assembly
+          path: |
+            /tmp/treb_production/**
+            /tmp/treb_discovery/**
+            /tmp/treb_exact_support/**
+          if-no-files-found: warn
+          retention-days: 30
