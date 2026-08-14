@@ -1,0 +1,317 @@
+name: TREB final direct-complement production release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-final-direct-complement-production.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-final-direct-complement-production
+  cancel-in-progress: false
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+
+jobs:
+  prepare:
+    name: prepare exact + native 89
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install readers
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow
+
+      - name: Rebuild exact 4,877 partial layer from validated locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks /tmp/treb_exact_support /tmp/prep
+          mkdir -p /tmp/treb_locks /tmp/treb_exact_support /tmp/prep/exact_support
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git fetch --no-tags --depth=1 origin "refs/heads/${b}:refs/remotes/origin/${b}"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+          python -u team_trb_all_players/finalize_treb_database.py --locks-dir /tmp/treb_locks --output-dir /tmp/treb_exact_support
+          cp -a /tmp/treb_exact_support/. /tmp/prep/exact_support/
+          python - <<'PY'
+          import json, math
+          from pathlib import Path
+          import pandas as pd
+          d=pd.read_csv('/tmp/treb_exact_support/career_treb_detail.csv',low_memory=False)
+          q=json.loads(Path('/tmp/treb_exact_support/qa_report.json').read_text())
+          assert q['status']=='PASS' and q['seasons_complete']==26,q
+          assert q['duplicate_tenure_keys']==0 and q['unexpected_exceptions']==0 and q['unmatched_rebound_rows']==0,q
+          assert q['accepted_exclusion_ledger_exact_match'] is True,q
+          assert len(d)==5199,len(d)
+          keys=['season','team_id','player_id']
+          counts=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off','seconds_on','seconds_off','games_processed']
+          for c in counts:
+              d[c]=pd.to_numeric(d[c],errors='raise')
+              assert d[c].notna().all() and (d[c]>=0).all(),c
+              assert float((d[c]-d[c].round()).abs().max())<1e-9,c
+          agg={c:'sum' for c in counts}
+          if 'player' in d: agg['player']='first'
+          if 'team_abbr' in d: agg['team_abbr']='first'
+          p=d.groupby(keys,as_index=False,sort=True).agg(agg)
+          assert len(p)==4877 and not p[keys].duplicated().any()
+          def ratio(a,b):
+              den=a+b
+              return a/den.where(den.ne(0))
+          p['minutes_on']=p.seconds_on/60.0; p['minutes_off']=p.seconds_off/60.0
+          p['treb_on']=ratio(p.team_oreb_on+p.team_dreb_on,p.opponent_oreb_on+p.opponent_dreb_on)
+          p['treb_off']=ratio(p.team_oreb_off+p.team_dreb_off,p.opponent_oreb_off+p.opponent_dreb_off)
+          p['oreb_pct_on']=ratio(p.team_oreb_on,p.opponent_dreb_on); p['oreb_pct_off']=ratio(p.team_oreb_off,p.opponent_dreb_off)
+          p['dreb_pct_on']=ratio(p.team_dreb_on,p.opponent_oreb_on); p['dreb_pct_off']=ratio(p.team_dreb_off,p.opponent_oreb_off)
+          p.to_parquet('/tmp/prep/exact_partial_4877.parquet',index=False,compression='zstd')
+          print(json.dumps({'status':'PASS','exact_segments':5199,'exact_partial_keys':4877,'rounded_percentage_backsolve_used':False},indent=2))
+          PY
+
+      - name: Fast-aggregate pinned Stage2 89 metrics and inject validated 23-key repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2_source
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2_source "$STAGE2_SHA"
+          python - <<'PY'
+          import gzip,json,os
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          root=Path('/tmp/treb_stage2_source/team_trb_all_players')
+          segp=root/'impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          repair=Path('team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/targeted_23_metric_overlay.jsonl.gz')
+          targets=Path(os.environ['TARGETS'])
+          seg=pd.read_json(segp,lines=True,compression='gzip')
+          assert len(seg)==1353334,len(seg)
+          for c in ['team_id','minutes_on','minutes_off','on','off_corrected']:
+              seg[c]=pd.to_numeric(seg[c],errors='coerce')
+          seg['player_id']=seg.player_id.astype('string').str.replace(r'\.0$','',regex=True)
+          seg['metric']=seg.metric.astype(str)
+          assert seg.metric.nunique()==89
+          onm=seg['on'].notna()&seg.minutes_on.notna()&(seg.minutes_on>0)
+          offm=seg.off_corrected.notna()&seg.minutes_off.notna()&(seg.minutes_off>0)
+          seg['_on_num']=np.where(onm,seg['on']*seg.minutes_on,0.0); seg['_on_den']=np.where(onm,seg.minutes_on,0.0)
+          seg['_off_num']=np.where(offm,seg.off_corrected*seg.minutes_off,0.0); seg['_off_den']=np.where(offm,seg.minutes_off,0.0)
+          seg['_mo']=seg.minutes_on.fillna(0.0); seg['_mf']=seg.minutes_off.fillna(0.0)
+          k=['season','team_id','player_id','player','metric']
+          a=seg.groupby(k,dropna=False,sort=True).agg(segment_count=('metric','size'),minutes_on=('_mo','sum'),minutes_off=('_mf','sum'),on_num=('_on_num','sum'),on_den=('_on_den','sum'),off_num=('_off_num','sum'),off_den=('_off_den','sum')).reset_index()
+          a['on']=a.on_num/a.on_den.where(a.on_den>0); a['off_corrected']=a.off_num/a.off_den.where(a.off_den>0); a['on_minus_off_corrected']=a['on']-a.off_corrected
+          a=a.drop(columns=['on_num','on_den','off_num','off_den'])
+          a['aggregation_method']=np.where(a.segment_count.eq(1),'exact_tenure_segment','minutes_weighted_across_exact_tenure_segments')
+          a['aggregation_confidence']=np.where(a.segment_count.eq(1),'high','moderate')
+          a['team_id']=pd.to_numeric(a.team_id).astype('int64'); a['season']=a.season.astype(str); a['player_id']=a.player_id.astype('string')
+          assert a.metric.nunique()==89 and not a.duplicated(['season','team_id','player_id','metric']).any()
+          def readj(p):
+              z=[]
+              with gzip.open(p,'rt',encoding='utf-8') as h:
+                  for line in h:
+                      if line.strip(): z.append(json.loads(line))
+              return pd.DataFrame(z)
+          def canon(x):
+              x=x.copy(); x['season']=x.season.astype(str); x['team_id']=pd.to_numeric(x.team_id).astype('int64'); x['player_id']=x.player_id.astype(str).str.replace(r'\.0$','',regex=True).astype('string'); return x
+          r=canon(readj(repair)); t=canon(readj(targets))
+          assert len(r)==2047 and r[['season','team_id','player_id']].drop_duplicates().shape[0]==23
+          if 'off_corrected' not in r.columns and 'off' in r.columns: r['off_corrected']=r['off']
+          if 'on_minus_off_corrected' not in r.columns and 'swing' in r.columns: r['on_minus_off_corrected']=r['swing']
+          if 'player' not in r.columns: r['player']=''
+          r['segment_count']=r.get('segment_count',1); r['aggregation_method']='validated_targeted_canonical_23_repair'; r['aggregation_confidence']='validated_repair'
+          tkeys=t[['season','team_id','player_id']].drop_duplicates(); assert len(tkeys)==14524
+          akeys=a[['season','team_id','player_id']].drop_duplicates(); inter=tkeys.merge(akeys,on=['season','team_id','player_id']); assert len(inter)==14501,len(inter)
+          miss=tkeys.merge(akeys,on=['season','team_id','player_id'],how='left',indicator=True); miss=miss[miss._merge=='left_only'][['season','team_id','player_id']]
+          rk=r[['season','team_id','player_id']].drop_duplicates(); chk=miss.merge(rk,on=['season','team_id','player_id'],how='outer',indicator=True); assert len(chk)==23 and chk._merge.eq('both').all()
+          cols=list(a.columns)+[c for c in r.columns if c not in a.columns]
+          for c in cols:
+              if c not in a: a[c]=pd.NA
+              if c not in r: r[c]=pd.NA
+          merged=pd.concat([a[cols],r[cols]],ignore_index=True)
+          merged=merged.merge(tkeys.assign(_canonical=True),on=['season','team_id','player_id'],how='inner',validate='many_to_one').drop(columns='_canonical')
+          km=merged.groupby(['season','team_id','player_id']).metric.nunique()
+          assert len(merged)==14524*89 and len(km)==14524 and km.min()==89 and km.max()==89
+          assert merged.metric.nunique()==89 and not merged.duplicated(['season','team_id','player_id','metric']).any()
+          merged.to_parquet('/tmp/prep/native_89_canonical.parquet',index=False,compression='zstd')
+          Path('/tmp/prep/PREP_GATE.json').write_text(json.dumps({'status':'PASS','stage2_source_rows':1353334,'native_metric_count':89,'canonical_keys':14524,'canonical_metric_rows':14524*89,'repaired_missing_stage2_keys':23,'repair_metric_rows':2047,'stage2_full_rebuild_performed':False},indent=2)+'\n')
+          print(Path('/tmp/prep/PREP_GATE.json').read_text())
+          PY
+
+      - name: Upload prepared canonical layers
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-prepared-canonical-layers-${{ github.run_id }}
+          path: /tmp/prep
+          retention-days: 30
+          compression-level: 0
+          if-no-files-found: error
+
+  direct_treb:
+    name: direct TREB ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        year: [2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas requests
+      - name: Collect direct ON/OFF TotalReboundPct for full-core canonical keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/direct /tmp/direct_cache
+          python -u team_trb_all_players/collect_direct_fullcore_treb.py \
+            --year ${{ matrix.year }} \
+            --targets "$TARGETS" \
+            --output /tmp/direct/direct_treb_${{ matrix.year }}.csv \
+            --cache-dir /tmp/direct_cache
+      - name: Upload season direct TREB result even when some keys failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-direct-treb-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/direct
+          retention-days: 30
+          if-no-files-found: warn
+
+  assemble:
+    name: assemble 14,524 TREB + package
+    needs: [prepare, direct_treb]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-prepared-canonical-layers-${{ github.run_id }}
+          path: /tmp/prep
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-direct-treb-*-${{ github.run_id }}
+          path: /tmp/direct
+          merge-multiple: true
+
+      - name: Inventory all direct-source failures before release gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/treb_final_database
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path('/tmp/direct')
+          parts=[]; reports=[]
+          for p in sorted(root.glob('direct_treb_*.csv')):
+              parts.append(pd.read_csv(p,low_memory=False))
+          for p in sorted(root.glob('direct_treb_*.json')):
+              reports.append(json.loads(p.read_text()))
+          if not parts:
+              raise SystemExit('No direct TREB CSV artifacts downloaded')
+          d=pd.concat(parts,ignore_index=True,sort=False)
+          fail=d[d.status.astype(str)!='PASS'].copy()
+          if len(fail): fail.to_csv('/tmp/treb_final_database/DIRECT_TREB_FAILURES.csv',index=False)
+          summary={'status':'PASS' if len(fail)==0 else 'FAIL','season_artifacts':len(parts),'direct_rows':len(d),'pass_rows':int(d.status.astype(str).eq('PASS').sum()),'failure_rows':len(fail),'reports':reports,'all_failures_retained':True}
+          Path('/tmp/treb_final_database/DIRECT_TREB_COLLECTION_SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps({k:summary[k] for k in ['status','season_artifacts','direct_rows','pass_rows','failure_rows']},indent=2))
+          PY
+
+      - name: MATERIAL GATE assemble complete 14,524-key TREB overlay and Adams regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a /tmp/prep/exact_support/. /tmp/treb_final_database/
+          python -u team_trb_all_players/finalize_complete_treb_release.py \
+            --targets "$TARGETS" \
+            --native /tmp/prep/native_89_canonical.parquet \
+            --exact /tmp/prep/exact_partial_4877.parquet \
+            --direct-dir /tmp/direct \
+            --out /tmp/treb_final_database \
+            --stage2-sha "$STAGE2_SHA"
+
+      - name: Record accepted immaterial V13 residual provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          residuals=[[21700032,4988],[21700042,7322],[21700494,7412],[21800689,1396],[21800689,1398],[22101023,256],[22200322,3388],[22200331,3717],[22200331,3912],[22200733,5955],[22201187,1569],[22201187,1573],[22400072,288]]
+          Path('/tmp/treb_final_database/captains_call_accepted_residuals.json').write_text(json.dumps({'status':'ACCEPTED_IMMATERIAL_CAPTAINS_CALL','residual_rebound_events':13,'unique_games':len({x[0] for x in residuals}),'residual_keys':residuals,'structural_gates_relaxed':False},indent=2)+'\n')
+          PY
+
+      - name: Package materially passing database immediately
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/treb_final_database
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          zip -9 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
+          sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip | tee /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+          unzip -t /tmp/TREB_final_database_2000-01_to_2025-26.zip
+
+      - name: Upload final database ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-production-${{ github.run_id }}
+          path: |
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+            /tmp/treb_final_database/MATERIAL_RELEASE_GATE.json
+            /tmp/treb_final_database/ALL_89_METRICS_QA.json
+            /tmp/treb_final_database/DIRECT_TREB_COLLECTION_SUMMARY.json
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Persist final material gate only
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/final_integrity_rebuild/final_production_release
+          cp /tmp/treb_final_database/MATERIAL_RELEASE_GATE.json team_trb_all_players/final_integrity_rebuild/final_production_release/
+          cp /tmp/treb_final_database/ALL_89_METRICS_QA.json team_trb_all_players/final_integrity_rebuild/final_production_release/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/final_integrity_rebuild/final_production_release
+          git commit -m 'Persist final complete TREB production gates [skip ci]' || exit 0
+          git push origin HEAD:agent/treb-final-exact-assembly
+
+      - name: Upload complete failure inventory if material gate fails
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-direct-complement-failure-${{ github.run_id }}
+          path: |
+            /tmp/treb_final_database/DIRECT_TREB_FAILURES.csv
+            /tmp/treb_final_database/DIRECT_TREB_COLLECTION_SUMMARY.json
+            /tmp/direct/*.json
+          retention-days: 30
+          if-no-files-found: warn
