@@ -1,0 +1,94 @@
+name: TREB direct totals proof v3
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-direct-totals-proof-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: treb-direct-totals-proof-v3
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install audit readers
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow
+
+      - name: Rebuild exact-key support only
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/treb_exact_support
+          LOCK_PATH=team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+          rm -rf /tmp/treb_locks "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          python -u team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb_locks \
+            --output-dir "$OUT"
+          python - <<'PY'
+          import pandas as pd
+          d=pd.read_csv('/tmp/treb_exact_support/career_treb_detail.csv',low_memory=False)
+          assert len(d)==5199
+          assert d.groupby(['season','team_id','player_id']).ngroups==4877
+          print({'exact_support':'PASS','segments':5199,'exact_pts':4877})
+          PY
+
+      - name: Patch opponent rebound merge only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('team_trb_all_players/audit_treb_direct_totals_proof_v2.py')
+          s=p.read_text()
+          old="opp=d.rename(columns={'_team':'opp_team','_reb':'opp_reb'})\n        q=d.merge(opp,on=['_season','_game'],how='inner'); q=q[q._team!=q._opp_team]\n        own=q.groupby(['_season','_team'],as_index=False).agg(team_season_rebounds=('_reb','sum'),opponent_season_rebounds=('opp_reb','sum'),games=('_game','nunique'))"
+          new="opp=d.rename(columns={'_team':'_opp_team','_reb':'_opp_reb'})\n        q=d.merge(opp,on=['_season','_game'],how='inner'); q=q[q['_team']!=q['_opp_team']]\n        own=q.groupby(['_season','_team'],as_index=False).agg(team_season_rebounds=('_reb','sum'),opponent_season_rebounds=('_opp_reb','sum'),games=('_game','nunique'))"
+          if old not in s:
+              raise SystemExit('target opponent-merge block not found')
+          p.write_text(s.replace(old,new,1))
+          print('patched opponent rebound merge block')
+          PY
+
+      - name: Identify and prove direct team/opponent totals
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_direct_totals_v3
+          mkdir -p /tmp/treb_direct_totals_v3
+          python -u team_trb_all_players/audit_treb_direct_totals_proof_v2.py \
+            --canonical team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            --exact-detail /tmp/treb_exact_support/career_treb_detail.csv \
+            --root team_trb_all_players \
+            --out /tmp/treb_direct_totals_v3
+
+      - name: Upload proof artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-direct-totals-proof-v3
+          path: |
+            /tmp/treb_direct_totals_v3/TREB_DIRECT_TOTALS_PROOF_V2.json
+            /tmp/treb_direct_totals_v3/TREB_DIRECT_TOTALS_PROOF_V2.md
+            /tmp/treb_direct_totals_v3/BEST_TEAM_SEASON_REBOUND_TOTALS.csv.gz
+          if-no-files-found: warn
+          retention-days: 30
