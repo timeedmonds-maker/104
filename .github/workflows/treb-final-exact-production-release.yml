@@ -121,6 +121,25 @@ jobs:
           git fetch --no-tags origin treb-stage2-actions-live
           git cat-file -e "${STAGE2_SHA}^{commit}"
           git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path('/tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/corrected_off_collection_summary.json')
+          d=json.loads(p.read_text())
+          expected_windows=int(os.environ['EXPECTED_STAGE2_WINDOWS'])
+          expected_rows=int(os.environ['EXPECTED_STAGE2_METRIC_ROWS'])
+          assert d.get('all_complete') is True, d
+          assert int(d.get('impact_windows_total') or -1)==expected_windows, d
+          assert int(d.get('complete_windows') or -1)==expected_windows, d
+          assert int(d.get('remaining_windows') or -1)==0, d
+          assert int(d.get('failed_windows') or -1)==0, d
+          assert int(d.get('metric_rows') or -1)==expected_rows, d
+          # Compatibility only: the pinned finalizer predates impact_windows_total and
+          # expects the equivalent legacy field impact_windows_requested.
+          d['impact_windows_requested']=d['impact_windows_total']
+          p.write_text(json.dumps(d,indent=2)+'\n')
+          print(json.dumps({'status':'PASS','stage2_schema_compatibility':'impact_windows_requested <- impact_windows_total','windows':expected_windows,'metric_rows':expected_rows},indent=2))
+          PY
           python -u /tmp/treb_stage2/team_trb_all_players/finalize_corrected_off_package.py
           python -u team_trb_all_players/finalize_treb_full_89_database.py \
             --stage2-export-dir /tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/final_export \
