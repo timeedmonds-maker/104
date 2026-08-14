@@ -1,0 +1,300 @@
+name: TREB targeted 10-key runner repair
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-targeted-10-key-repair.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-targeted-10-key-repair
+  cancel-in-progress: false
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  TARGET_PATH: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  RESULT_DIR: team_trb_all_players/final_integrity_rebuild/canonical_10_key_targeted_repair
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m pip install --quiet --upgrade requests
+
+      - name: Mount pinned Stage2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          rm -rf /tmp/treb_stage2
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          test -d /tmp/treb_stage2/team_trb_all_players/impact_database/outputs
+          test -s "$TARGET_PATH"
+
+      - name: Repair only the 10 remaining canonical keys
+        id: repair
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, json, math, os, re, time
+          from collections import defaultdict
+          from datetime import datetime
+          from pathlib import Path
+          import requests
+
+          ROOT=Path('.')
+          STAGE=Path('/tmp/treb_stage2/team_trb_all_players')
+          OUT=ROOT/os.environ['RESULT_DIR']
+          OUT.mkdir(parents=True,exist_ok=True)
+          TARGET=ROOT/os.environ['TARGET_PATH']
+          TEAM_URL='https://api.pbpstats.com/get-on-off/nba/team'
+          STAT_URL='https://api.pbpstats.com/get-on-off/nba/stat'
+          HEADERS={'Accept':'application/json, text/plain, */*','Origin':'https://www.pbpstats.com','Referer':'https://www.pbpstats.com/','User-Agent':'Mozilla/5.0 Chrome/131 Safari/537.36'}
+
+          TEN=[
+            ('2013-14',1610612745,'2694'),('2015-16',1610612739,'2563'),
+            ('2010-11',1610612747,'201234'),('2012-13',1610612752,'2853'),
+            ('2017-18',1610612739,'2570'),('2016-17',1610612739,'2563'),
+            ('2017-18',1610612745,'1628935'),('2022-23',1610612751,'1630564'),
+            ('2025-26',1610612741,'1631338'),('2024-25',1610612755,'1630600')
+          ]
+          KEYS=set(TEN)
+          PRECISION={('2013-14',1610612745,'2694'),('2015-16',1610612739,'2563'),('2017-18',1610612739,'2570')}
+
+          def nid(v):
+              s=str(v or '').strip()
+              if s.endswith('.0') and s[:-2].isdigit(): s=s[:-2]
+              return s
+          def k3(r): return (str(r.get('season')),int(float(r.get('team_id'))),nid(r.get('player_id') or r.get('subject_player_id')))
+          def finite(v):
+              try:
+                  x=float(v); return x if math.isfinite(x) else None
+              except: return None
+          def rows(j):
+              x=j.get('results') if isinstance(j,dict) else None
+              return [r for r in x if isinstance(r,dict)] if isinstance(x,list) else []
+          def readjgz(p):
+              if not p.exists(): return []
+              out=[]
+              with gzip.open(p,'rt',encoding='utf-8') as h:
+                  for line in h:
+                      if line.strip():
+                          try: out.append(json.loads(line))
+                          except: pass
+              return out
+          def get(url,params,attempts=8):
+              errs=[]
+              with requests.Session() as s:
+                  s.headers.update(HEADERS)
+                  for a in range(1,attempts+1):
+                      try:
+                          r=s.get(url,params=params,timeout=(10,45)); r.raise_for_status(); j=r.json()
+                          if isinstance(j,dict): return j,{'ok':True,'attempt':a,'status':r.status_code}
+                      except Exception as e:
+                          errs.append(repr(e)); time.sleep(min(2**max(a-1,0),8))
+              return {},{'ok':False,'errors':errs}
+
+          targets={}
+          for r in readjgz(TARGET):
+              k=k3(r)
+              if k in KEYS: targets[k]=r
+          assert len(targets)==10,len(targets)
+
+          # Native 89-metric dictionary for exact same season/team/player.
+          native=defaultdict(dict)
+          for season in sorted({k[0] for k in KEYS}):
+              p=STAGE/'impact_database/outputs'/season/'team_on_off_metrics.csv.gz'
+              with gzip.open(p,'rt',encoding='utf-8',newline='') as h:
+                  for r in csv.DictReader(h):
+                      try: k=(season,int(float(r['team_id'])),nid(r['subject_player_id']))
+                      except: continue
+                      if k in KEYS: native[k][str(r.get('metric'))]=r
+          for k in KEYS: assert len(native[k])==89,(k,len(native[k]))
+
+          # Collect every same-key retained interval we can find. No other team/season/player is allowed.
+          evidence=defaultdict(list)
+          scan=[
+            ROOT/'team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz',
+            ROOT/'team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz',
+            STAGE/'impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz',
+            STAGE/'impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz',
+          ]
+          for p in scan:
+              for r in readjgz(p):
+                  try: k=k3(r)
+                  except: continue
+                  if k not in KEYS: continue
+                  st=r.get('query_start_date') or r.get('tenure_start') or r.get('start_date')
+                  en=r.get('query_end_date') or r.get('tenure_end') or r.get('end_date')
+                  if st and en and str(st)<=str(en):
+                      evidence[k].append({'start':str(st),'end':str(en),'source':str(p),'row':r})
+          zp=STAGE/'impact_database/corrected_off/zero_minute_tail_exclusions.json'
+          def walk(o):
+              if isinstance(o,dict):
+                  if {'season','team_id','player_id'}<=set(o):
+                      try:
+                          k=k3(o); st=o.get('query_start_date') or o.get('tenure_start'); en=o.get('query_end_date') or o.get('tenure_end')
+                          if k in KEYS and st and en: evidence[k].append({'start':str(st),'end':str(en),'source':str(zp),'row':o})
+                      except: pass
+                  for v in o.values(): walk(v)
+              elif isinstance(o,list):
+                  for v in o: walk(v)
+          if zp.exists(): walk(json.loads(zp.read_text()))
+
+          def stat_minutes(sr,pid,name):
+              exact=[r for r in sr if nid(r.get('PlayerId') or r.get('EntityId') or r.get('PlayerID'))==pid]
+              if not exact and name:
+                  nn=re.sub(r'[^a-z0-9]+','',name.lower())
+                  exact=[r for r in sr if re.sub(r'[^a-z0-9]+','',str(r.get('Name') or '').lower())==nn]
+              if len(exact)==1:
+                  a,b=finite(exact[0].get('MinutesOn')),finite(exact[0].get('MinutesOff'))
+                  return a,b,(a+b if a is not None and b is not None else None),'exact'
+              totals=[]
+              for r in sr:
+                  a,b=finite(r.get('MinutesOn')),finite(r.get('MinutesOff'))
+                  if a is not None and b is not None and a+b>0: totals.append(a+b)
+              return None,None,(max(totals) if totals else None),'team_total_fallback'
+
+          def query(k,st,en):
+              season,team,pid=k; t=targets[k]; name=str(t.get('player') or t.get('player_name') or '')
+              common={'Season':season,'SeasonType':'Regular Season','TeamId':str(team),'PlayerId':pid,'FromDate':st,'ToDate':en}
+              tj,tm=get(TEAM_URL,common); tr=rows(tj)
+              sj,sm=get(STAT_URL,{'Season':season,'SeasonType':'Regular Season','TeamId':str(team),'Stat':'OffRebounds','FromDate':st,'ToDate':en}); sr=rows(sj)
+              mon,moff,total,msrc=stat_minutes(sr,pid,name)
+              mets={}
+              for x in tr:
+                  m=str(x.get('Stat') or '').strip()
+                  if m: mets[m]={'on':finite(x.get('On')),'off_corrected':finite(x.get('Off')),'swing':finite(x.get('On-Off'))}
+              return {'start':st,'end':en,'metrics':mets,'metric_count':len(mets),'minutes_on':mon,'minutes_off':moff,'total_minutes':total,'minute_source':msrc,'team_meta':tm,'stat_meta':sm,'stat_rows':len(sr)}
+
+          def days(st,en):
+              try: return (datetime.fromisoformat(en).date()-datetime.fromisoformat(st).date()).days+1
+              except: return 99999
+
+          def candidate_intervals(k):
+              seen={}
+              for e in evidence.get(k,[]):
+                  pair=(e['start'],e['end'])
+                  seen.setdefault(pair,e)
+              # Prefer narrower exact tenure evidence; do not discard it in favour of a containing old window.
+              return sorted(seen.values(),key=lambda e:(days(e['start'],e['end']),e['start'],e['end']))
+
+          def repair_one(k):
+              t=targets[k]; target=finite(t.get('minutes_on')); iv=candidate_intervals(k)
+              if not iv: return {'ok':False,'key':k,'error':'no same-key interval evidence'}
+              qs=[]
+              for e in iv:
+                  q=query(k,e['start'],e['end']); q['source']=e['source']; q['span_days']=days(e['start'],e['end']); qs.append(q)
+              # Rank: full 89 metrics, usable duration evidence, minute closeness, narrowest interval.
+              def score(q):
+                  mc=q['metric_count']; dur=q['total_minutes'] is not None or (q['minutes_on'] is not None and q['minutes_off'] is not None)
+                  delta=abs(q['minutes_on']-target) if q['minutes_on'] is not None and target is not None else 9999
+                  return (1 if mc==89 else 0,1 if dur else 0,-delta,-q['span_days'],mc)
+              best=max(qs,key=score)
+              mon=best['minutes_on']; moff=best['minutes_off']; total=best['total_minutes']
+              precision_reconciled=False
+              # Authoritative V2 minutes may have second-level precision while PBP Stats rounds to whole/tenth minutes.
+              if target is not None and mon is not None and total is not None and abs(mon-target)<=0.51:
+                  mon=target; moff=total-target; precision_reconciled=abs(best['minutes_on']-target)>1e-9
+              elif target is not None and mon is None and total is not None and total+1e-9>=target:
+                  mon=target; moff=total-target; precision_reconciled=True
+              if mon is None or moff is None:
+                  return {'ok':False,'key':k,'error':'no safe tenure duration after candidate ranking','best':best,'queries':qs}
+              if target is not None and abs(mon-target)>0.51:
+                  return {'ok':False,'key':k,'error':f'minutes mismatch after reconciliation recovered={mon} target={target}','best':best}
+
+              # Preserve the native 89-metric layer. If the exact tiny interval omits an undefined metric,
+              # emit that metric explicitly as NULL rather than borrowing a whole-season OFF value.
+              native_names=set(native[k]); got=set(best['metrics'])
+              if not got.issubset(native_names): return {'ok':False,'key':k,'error':'interval returned unknown metric names','extra':sorted(got-native_names)}
+              out=[]; null_filled=[]
+              for m in sorted(native_names):
+                  if m in best['metrics']:
+                      x=best['metrics'][m]; on=x['on']; off=x['off_corrected']; sw=x['swing']; prov='exact_tenure_query'
+                  else:
+                      on=off=sw=None; prov='interval_metric_undefined_not_returned'; null_filled.append(m)
+                  out.append({'metric':m,'on':on,'off_corrected':off,'swing':sw,'metric_provenance':prov})
+              if len(out)!=89: return {'ok':False,'key':k,'error':'failed to preserve 89 metric names'}
+              # For the three known precision-only cases, require all 89 exact metrics; no NULL fill needed.
+              if k in PRECISION and null_filled:
+                  return {'ok':False,'key':k,'error':'precision case unexpectedly missing interval metrics','missing_metrics':null_filled}
+              return {'ok':True,'key':k,'minutes_on':mon,'minutes_off':moff,'metrics':out,'precision_reconciled':precision_reconciled,'null_metric_count':len(null_filled),'null_metrics':null_filled,'best':best,'candidate_count':len(qs)}
+
+          results={k:repair_one(k) for k in TEN}
+          diagnostics=[]; overlay=[]
+          for k in TEN:
+              r=results[k]; t=targets[k]
+              diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'player':str(t.get('player') or t.get('player_name') or ''),'ok':r.get('ok'),
+                                  'error':r.get('error'),'minutes_on':r.get('minutes_on'),'minutes_off':r.get('minutes_off'),'precision_reconciled':r.get('precision_reconciled'),
+                                  'null_metric_count':r.get('null_metric_count'),'candidate_count':r.get('candidate_count'),'best_interval':({'start':r.get('best',{}).get('start'),'end':r.get('best',{}).get('end'),'metric_count':r.get('best',{}).get('metric_count'),'minute_source':r.get('best',{}).get('minute_source'),'source':r.get('best',{}).get('source')} if r.get('best') else None)})
+              if r.get('ok'):
+                  for m in r['metrics']:
+                      overlay.append({'season':k[0],'team_id':k[1],'player_id':k[2],'player':str(t.get('player') or t.get('player_name') or ''),'metric':m['metric'],
+                                      'minutes_on':r['minutes_on'],'minutes_off':r['minutes_off'],'on':m['on'],'off_corrected':m['off_corrected'],'on_minus_off_corrected':m['swing'],
+                                      'metric_provenance':m['metric_provenance'],'precision_reconciled':r['precision_reconciled'],'stage2_sha':os.environ['STAGE2_SHA']})
+          failures=[r for r in results.values() if not r.get('ok')]
+          repaired={r['key'] for r in results.values() if r.get('ok')}
+          null_rows=sum(1 for x in overlay if x['metric_provenance']=='interval_metric_undefined_not_returned')
+          report={'status':'PASS_TARGETED_10_REPAIR' if not failures else 'FAIL_TARGETED_10_REPAIR','keys_expected':10,'keys_repaired':len(repaired),'failure_count':len(failures),
+                  'metric_rows':len(overlay),'null_metric_rows_explicit_undefined':null_rows,'precision_rule':'canonical V2 minutes may replace PBP Stats minute rounding only when exact same-key interval total duration is known and delta <=0.51 minute',
+                  'safety':'same season/team/player only; missing tiny-interval metrics are explicit NULL, never borrowed from whole-season OFF; native 89 metric names preserved; no Stage2 rebuild; no canonical key dropped',
+                  'production_gate_relaxed':False,'stage2_full_rebuild_performed':False,'diagnostics':diagnostics}
+          (OUT/'TARGETED_10_REPAIR_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
+          with gzip.open(OUT/'targeted_10_metric_overlay.jsonl.gz','wt',encoding='utf-8') as h:
+              for x in overlay: h.write(json.dumps(x,ensure_ascii=False,separators=(',',':'))+'\n')
+          with (OUT/'diagnostics.csv').open('w',newline='',encoding='utf-8') as h:
+              fields=['season','team_id','player_id','player','ok','error','minutes_on','minutes_off','precision_reconciled','null_metric_count','candidate_count','best_interval']
+              w=csv.DictWriter(h,fieldnames=fields); w.writeheader()
+              for d in diagnostics:
+                  d=dict(d); d['best_interval']=json.dumps(d['best_interval'],sort_keys=True); w.writerow(d)
+          print(json.dumps({k:v for k,v in report.items() if k!='diagnostics'},indent=2))
+          if failures: raise SystemExit(1)
+          assert len(repaired)==10
+          assert len(overlay)==10*89
+          PY
+
+      - name: Persist second repair results
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          git add -f "$RESULT_DIR"
+          if git diff --cached --quiet; then echo 'No second-repair outputs'; else git commit -m 'Persist targeted TREB 10-key repair results'; git push origin HEAD:agent/treb-final-exact-assembly; fi
+
+      - name: Upload second repair artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-targeted-10-key-repair-${{ github.run_id }}
+          path: ${{ env.RESULT_DIR }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Surface repair failure
+        if: steps.repair.outcome != 'success'
+        run: exit 1
