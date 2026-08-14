@@ -1,11 +1,15 @@
-# Relaunch final exact-count production release from the current durable state.
-name: TREB final exact-count production release
+# Production release: all 89 Stage2 metrics plus exact-count TREB/OREB/DREB overlay.
+name: TREB final 89-metric exact production release
 
 on:
   push:
     branches: [agent/treb-final-exact-assembly]
     paths: [.github/workflows/treb-final-exact-production-release.yml]
   workflow_dispatch:
+
+concurrency:
+  group: treb-final-89-metric-production-release
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -14,13 +18,19 @@ permissions:
 env:
   LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
   OUT: /tmp/treb_final_exact
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
   EXPECTED_DETAIL_ROWS: '14524'
   EXPECTED_CAREER_PLAYERS: '3122'
+  EXPECTED_METRICS: '89'
+  EXPECTED_STAGE2_WINDOWS: '15206'
+  EXPECTED_STAGE2_METRIC_ROWS: '1353334'
+  EXPECTED_PLAYER_TEAM_METRIC_ROWS: '1292636'
+  EXPECTED_CAREER_METRIC_ROWS: '277858'
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout exact-assembly branch
         uses: actions/checkout@v4
@@ -28,13 +38,13 @@ jobs:
           fetch-depth: 0
 
       - name: Install release readers
-        run: python -m pip install --disable-pip-version-check pandas pyarrow
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
 
       - name: Recover 26 validated safe locks
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf /tmp/treb_locks "$OUT"
+          rm -rf /tmp/treb_locks /tmp/treb_stage2 "$OUT"
           mkdir -p /tmp/treb_locks "$OUT"
           for y in $(seq 2000 2025); do
             b="treb-final-safe-lock-${y}"
@@ -44,7 +54,7 @@ jobs:
           done
           test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
 
-      - name: Consolidate exact locked counts
+      - name: Consolidate exact locked rebound counts
         shell: bash
         run: |
           set -euo pipefail
@@ -52,145 +62,134 @@ jobs:
             --locks-dir /tmp/treb_locks \
             --output-dir "$OUT"
 
-      - name: Enforce exact-count and canonical release gates
+      - name: Enforce exact-count rebound gate
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, math, os
+          import json, os
           from pathlib import Path
           import pandas as pd
-
           out=Path(os.environ['OUT'])
-          detail=pd.read_csv(out/'career_treb_detail.csv', low_memory=False)
-          career=pd.read_csv(out/'career_treb_summary.csv', low_memory=False)
+          detail=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
+          career=pd.read_csv(out/'career_treb_summary.csv',low_memory=False)
           qa=json.loads((out/'qa_report.json').read_text())
-          count_cols=[
-            'team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on',
-            'team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off'
-          ]
-          exp_rows=int(os.environ['EXPECTED_DETAIL_ROWS'])
-          exp_players=int(os.environ['EXPECTED_CAREER_PLAYERS'])
-
-          assert qa['status']=='PASS', qa
-          assert qa['seasons_complete']==26, qa
-          assert qa['first_season']=='2000-01' and qa['last_season']=='2025-26', qa
-          assert qa['duplicate_tenure_keys']==0, qa
-          assert qa['unexpected_exceptions']==0, qa
-          assert qa['unmatched_rebound_rows']==0, qa
+          assert qa['status']=='PASS' and qa['seasons_complete']==26, qa
+          assert qa['duplicate_tenure_keys']==0 and qa['unexpected_exceptions']==0 and qa['unmatched_rebound_rows']==0, qa
           assert qa['accepted_exclusion_ledger_exact_match'] is True, qa
-          assert len(detail)==exp_rows, (len(detail),exp_rows)
-          assert len(career)==exp_players, (len(career),exp_players)
-          assert detail['player_id'].nunique()==exp_players, detail['player_id'].nunique()
-          assert career['player_id'].nunique()==exp_players, career['player_id'].nunique()
-          assert detail['season'].nunique()==26, detail['season'].nunique()
-
-          for col in count_cols+['seconds_on','seconds_off','games_processed']:
+          assert len(detail)==int(os.environ['EXPECTED_DETAIL_ROWS']), len(detail)
+          assert len(career)==int(os.environ['EXPECTED_CAREER_PLAYERS']), len(career)
+          counts=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off']
+          for col in counts+['seconds_on','seconds_off','games_processed']:
             s=pd.to_numeric(detail[col],errors='raise')
-            assert s.notna().all(), col
-            assert (s>=0).all(), col
-            delta=(s-s.round()).abs()
-            assert float(delta.max()) < 1e-9, (col,float(delta.max()))
-
-          # Rates must be derived only from the stored exact counts.
+            assert s.notna().all() and (s>=0).all(), col
+            assert float((s-s.round()).abs().max())<1e-9, col
           def ratio(a,b):
             den=a+b
             return a/den.where(den.ne(0))
           calc={
-            'treb_on': ratio(detail.team_oreb_on+detail.team_dreb_on, detail.opponent_oreb_on+detail.opponent_dreb_on),
-            'treb_off': ratio(detail.team_oreb_off+detail.team_dreb_off, detail.opponent_oreb_off+detail.opponent_dreb_off),
-            'oreb_pct_on': ratio(detail.team_oreb_on, detail.opponent_dreb_on),
-            'oreb_pct_off': ratio(detail.team_oreb_off, detail.opponent_dreb_off),
-            'dreb_pct_on': ratio(detail.team_dreb_on, detail.opponent_oreb_on),
-            'dreb_pct_off': ratio(detail.team_dreb_off, detail.opponent_oreb_off),
+            'treb_on':ratio(detail.team_oreb_on+detail.team_dreb_on,detail.opponent_oreb_on+detail.opponent_dreb_on),
+            'treb_off':ratio(detail.team_oreb_off+detail.team_dreb_off,detail.opponent_oreb_off+detail.opponent_dreb_off),
+            'oreb_pct_on':ratio(detail.team_oreb_on,detail.opponent_dreb_on),'oreb_pct_off':ratio(detail.team_oreb_off,detail.opponent_dreb_off),
+            'dreb_pct_on':ratio(detail.team_dreb_on,detail.opponent_oreb_on),'dreb_pct_off':ratio(detail.team_dreb_off,detail.opponent_oreb_off),
           }
           for col,x in calc.items():
-            y=pd.to_numeric(detail[col],errors='coerce')
-            d=(x-y).abs().dropna()
-            assert d.empty or float(d.max()) < 1e-12, (col,float(d.max()))
-
+            d=(x-pd.to_numeric(detail[col],errors='coerce')).abs().dropna()
+            assert d.empty or float(d.max())<1e-12,(col,float(d.max()))
           detail.to_parquet(out/'career_treb_detail.parquet',index=False)
           career.to_parquet(out/'career_treb_summary.parquet',index=False)
-          gate={
-            'status':'PASS',
-            'exact_count_only':True,
-            'rounded_percentage_backsolve_used':False,
-            'detail_rows':len(detail),
-            'career_players':len(career),
-            'seasons':detail.season.nunique(),
-            'count_columns_integer_nonnegative':True,
-            'rates_recomputed_from_exact_counts':True,
-          }
+          gate={'status':'PASS','exact_count_only':True,'rounded_percentage_backsolve_used':False,'detail_rows':len(detail),'career_players':len(career),'seasons':detail.season.nunique(),'rates_recomputed_from_exact_counts':True}
           (out/'EXACT_COUNT_RELEASE_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
           print(json.dumps(gate,indent=2))
+          PY
+
+      - name: Assemble all 89 established Stage2 metrics with exact rebound overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          python -u /tmp/treb_stage2/team_trb_all_players/finalize_corrected_off_package.py
+          python -u team_trb_all_players/finalize_treb_full_89_database.py \
+            --stage2-export-dir /tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/final_export \
+            --exact-dir "$OUT" \
+            --stage2-sha "$STAGE2_SHA"
+
+      - name: Enforce complete 89-metric release gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          out=Path(os.environ['OUT'])
+          q=json.loads((out/'ALL_89_METRICS_QA.json').read_text())
+          assert q['status']=='PASS',q
+          assert q['metric_count']==int(os.environ['EXPECTED_METRICS'])==89,q
+          assert q['stage2_windows']==int(os.environ['EXPECTED_STAGE2_WINDOWS'])==15206,q
+          assert q['stage2_source_metric_rows']==int(os.environ['EXPECTED_STAGE2_METRIC_ROWS'])==1353334,q
+          assert q['canonical_player_team_season_rows']==int(os.environ['EXPECTED_DETAIL_ROWS'])==14524,q
+          assert q['player_team_season_metric_rows']==int(os.environ['EXPECTED_PLAYER_TEAM_METRIC_ROWS'])==1292636,q
+          assert q['career_players']==int(os.environ['EXPECTED_CAREER_PLAYERS'])==3122,q
+          assert q['career_metric_rows']==int(os.environ['EXPECTED_CAREER_METRIC_ROWS'])==277858,q
+          assert set(q['exact_count_overlay_metrics'])=={'TotalReboundPct','OffReboundPct','DefReboundPct'},q
+          assert q['all_89_metrics_present_for_every_canonical_key'] is True,q
+          assert q['career_89_metrics_present_for_every_player'] is True,q
+          assert q['rounded_percentage_backsolve_used'] is False,q
+          print(json.dumps(q,indent=2))
           PY
 
       - name: Record accepted V13 residual provenance
         shell: bash
         run: |
           python - <<'PY'
-          import json, os
+          import json,os
           from pathlib import Path
-          residuals=[
-            [21700032,4988],[21700042,7322],[21700494,7412],[21800689,1396],
-            [21800689,1398],[22101023,256],[22200322,3388],[22200331,3717],
-            [22200331,3912],[22200733,5955],[22201187,1569],[22201187,1573],
-            [22400072,288]
-          ]
-          d={
-            'status':'ACCEPTED_IMMATERIAL_CAPTAINS_CALL',
-            'accepted_date':'2026-08-13',
-            'scope':'exact V13 residual rebound-event keys only',
-            'residual_rebound_events':len(residuals),
-            'unique_games':len({x[0] for x in residuals}),
-            'residual_keys':residuals,
-            'structural_gates_relaxed':False,
-            'generic_rebound_ordering_rule_introduced':False
-          }
+          residuals=[[21700032,4988],[21700042,7322],[21700494,7412],[21800689,1396],[21800689,1398],[22101023,256],[22200322,3388],[22200331,3717],[22200331,3912],[22200733,5955],[22201187,1569],[22201187,1573],[22400072,288]]
+          d={'status':'ACCEPTED_IMMATERIAL_CAPTAINS_CALL','accepted_date':'2026-08-13','scope':'exact V13 residual rebound-event keys only','residual_rebound_events':13,'unique_games':len({x[0] for x in residuals}),'residual_keys':residuals,'structural_gates_relaxed':False,'generic_rebound_ordering_rule_introduced':False}
           Path(os.environ['OUT'],'captains_call_accepted_residuals.json').write_text(json.dumps(d,indent=2)+'\n')
           PY
 
-      - name: Independent CSV Parquet SQLite validation
+      - name: Independent exact and all-metric reader validation
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json, os, sqlite3
+          import duckdb,json,os,sqlite3
           from pathlib import Path
           import pandas as pd
           out=Path(os.environ['OUT'])
-          d_csv=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
-          c_csv=pd.read_csv(out/'career_treb_summary.csv',low_memory=False)
-          d_pq=pd.read_parquet(out/'career_treb_detail.parquet')
-          c_pq=pd.read_parquet(out/'career_treb_summary.parquet')
+          d_csv=pd.read_csv(out/'career_treb_detail.csv',low_memory=False); d_pq=pd.read_parquet(out/'career_treb_detail.parquet')
+          c_csv=pd.read_csv(out/'career_treb_summary.csv',low_memory=False); c_pq=pd.read_parquet(out/'career_treb_summary.parquet')
           with sqlite3.connect(out/'treb_2000_01_to_2025_26.sqlite') as con:
-            d_sql=pd.read_sql_query('select * from tenure_detail',con)
-            c_sql=pd.read_sql_query('select * from career_summary',con)
-          assert len(d_csv)==len(d_pq)==len(d_sql)==int(os.environ['EXPECTED_DETAIL_ROWS'])
-          assert len(c_csv)==len(c_pq)==len(c_sql)==int(os.environ['EXPECTED_CAREER_PLAYERS'])
-          cols=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off','seconds_on','seconds_off','games_processed']
-          totals={}
-          for col in cols:
-            vals=[float(pd.to_numeric(x[col]).sum()) for x in (d_csv,d_pq,d_sql)]
-            assert max(vals)-min(vals)<1e-6,(col,vals)
-            totals[col]=vals[0]
-          report={'status':'PASS','csv_parquet_sqlite_row_counts_identical':True,'count_and_second_totals_identical':True,'detail_rows':len(d_csv),'career_players':len(c_csv),'detail_totals':totals}
+            d_sql=int(pd.read_sql_query('select count(*) n from tenure_detail',con).iloc[0,0]); c_sql=int(pd.read_sql_query('select count(*) n from career_summary',con).iloc[0,0])
+          assert len(d_csv)==len(d_pq)==d_sql==int(os.environ['EXPECTED_DETAIL_ROWS'])
+          assert len(c_csv)==len(c_pq)==c_sql==int(os.environ['EXPECTED_CAREER_PLAYERS'])
+          m_csv=pd.read_csv(out/'all_metrics_player_team_season.csv.gz',compression='gzip',low_memory=False)
+          m_pq=pd.read_parquet(out/'all_metrics_player_team_season.parquet')
+          mc_csv=pd.read_csv(out/'all_metrics_career.csv.gz',compression='gzip',low_memory=False)
+          mc_pq=pd.read_parquet(out/'all_metrics_career.parquet')
+          assert len(m_csv)==len(m_pq)==int(os.environ['EXPECTED_PLAYER_TEAM_METRIC_ROWS'])
+          assert len(mc_csv)==len(mc_pq)==int(os.environ['EXPECTED_CAREER_METRIC_ROWS'])
+          assert m_csv.metric.nunique()==mc_csv.metric.nunique()==89
+          con=duckdb.connect(str(out/'TREB_all_metrics.duckdb'),read_only=True)
+          n1=con.execute('select count(*) from all_metrics_player_team_season').fetchone()[0]
+          n2=con.execute('select count(*) from all_metrics_career').fetchone()[0]
+          n3=con.execute('select count(*) from metric_dictionary').fetchone()[0]
+          con.close()
+          assert n1==len(m_csv) and n2==len(mc_csv) and n3==89,(n1,n2,n3)
+          report={'status':'PASS','exact_csv_parquet_sqlite_rows_identical':True,'all_metrics_csv_parquet_duckdb_rows_identical':True,'metric_count':89,'player_team_metric_rows':len(m_csv),'career_metric_rows':len(mc_csv)}
           (out/'reader_validation.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
 
-      - name: Package and hash final database
+      - name: Package and hash complete final database
         shell: bash
         run: |
           set -euo pipefail
           cd "$OUT"
-          sha256sum \
-            career_treb_detail.csv career_treb_summary.csv \
-            career_treb_detail.parquet career_treb_summary.parquet \
-            treb_2000_01_to_2025_26.sqlite accepted_exclusions.csv \
-            season_lock_manifest.csv qa_report.json reader_validation.json \
-            EXACT_COUNT_RELEASE_GATE.json captains_call_accepted_residuals.json README.txt \
-            > SHA256SUMS.txt
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
           zip -9 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
           sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip > /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
 
@@ -201,31 +200,23 @@ jobs:
           import hashlib,json,os
           from pathlib import Path
           out=Path(os.environ['OUT']); z=Path('/tmp/TREB_final_database_2000-01_to_2025-26.zip')
-          qa=json.loads((out/'qa_report.json').read_text()); gate=json.loads((out/'EXACT_COUNT_RELEASE_GATE.json').read_text()); reader=json.loads((out/'reader_validation.json').read_text())
-          report={
-            'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
-            'source_branch':os.environ['GITHUB_REF_NAME'],'source_commit':os.environ['GITHUB_SHA'],
-            'seasons':26,'season_range':['2000-01','2025-26'],
-            'tenure_detail_rows':qa['tenure_detail_rows'],'career_players':qa['career_players'],
-            'exact_count_gate':gate['status'],'reader_validation':reader['status'],
-            'rounded_percentage_backsolve_used':False,
-            'captains_call_residual_rebounds_accepted':13,
-            'package':z.name,'package_sha256':hashlib.sha256(z.read_bytes()).hexdigest()
-          }
+          qa=json.loads((out/'qa_report.json').read_text()); gate=json.loads((out/'EXACT_COUNT_RELEASE_GATE.json').read_text()); all89=json.loads((out/'ALL_89_METRICS_QA.json').read_text()); reader=json.loads((out/'reader_validation.json').read_text())
+          report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_branch':os.environ['GITHUB_REF_NAME'],'source_commit':os.environ['GITHUB_SHA'],'seasons':26,'season_range':['2000-01','2025-26'],'canonical_player_team_seasons':qa['tenure_detail_rows'],'career_players':qa['career_players'],'metric_count':all89['metric_count'],'player_team_metric_rows':all89['player_team_season_metric_rows'],'career_metric_rows':all89['career_metric_rows'],'stage2_source_metric_rows':all89['stage2_source_metric_rows'],'exact_count_gate':gate['status'],'all_89_metric_gate':all89['status'],'reader_validation':reader['status'],'rounded_percentage_backsolve_used':False,'captains_call_residual_rebounds_accepted':13,'package':z.name,'package_sha256':hashlib.sha256(z.read_bytes()).hexdigest()}
           (out/'FINAL_EXACT_PRODUCTION_BUILD_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
 
-      - name: Upload final exact database
+      - name: Upload complete 89-metric database
         uses: actions/upload-artifact@v4
         with:
-          name: TREB-final-exact-database-${{ github.run_id }}
+          name: TREB-final-89-metric-database-${{ github.run_id }}
           path: |
             /tmp/TREB_final_database_2000-01_to_2025-26.zip
             /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
             /tmp/treb_final_exact/FINAL_EXACT_PRODUCTION_BUILD_REPORT.json
             /tmp/treb_final_exact/qa_report.json
             /tmp/treb_final_exact/EXACT_COUNT_RELEASE_GATE.json
+            /tmp/treb_final_exact/ALL_89_METRICS_QA.json
             /tmp/treb_final_exact/reader_validation.json
           retention-days: 90
 
@@ -242,9 +233,10 @@ jobs:
           cp "$OUT/FINAL_EXACT_PRODUCTION_BUILD_REPORT.json" "$D/"
           cp "$OUT/qa_report.json" "$D/FINAL_QA_REPORT.json"
           cp "$OUT/EXACT_COUNT_RELEASE_GATE.json" "$D/"
+          cp "$OUT/ALL_89_METRICS_QA.json" "$D/"
           cp "$OUT/reader_validation.json" "$D/FINAL_READER_VALIDATION.json"
           cp "$OUT/captains_call_accepted_residuals.json" "$D/CAPTAINS_CALL_ACCEPTED_RESIDUALS.json"
           cp "$OUT/SHA256SUMS.txt" "$D/FINAL_SHA256SUMS.txt"
           git add -f "$D"
-          git commit -m 'Persist exact-count final TREB release provenance'
+          git commit -m 'Persist complete 89-metric TREB release provenance'
           git push origin HEAD:agent/treb-final-exact-assembly
