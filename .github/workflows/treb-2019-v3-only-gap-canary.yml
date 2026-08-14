@@ -51,16 +51,16 @@ jobs:
             at=vg['actionType'].astype('string').str.lower() if not vg.empty else pd.Series(dtype='string')
             reb=vg[at.eq('rebound')].copy() if not vg.empty else vg
             subs=vg[at.eq('substitution')].copy() if not vg.empty else vg
-            periods=sorted(pd.to_numeric(vg.get('period'),errors='coerce').dropna().astype(int).unique().tolist()) if not vg.empty else []
-            teams=sorted(pd.to_numeric(vg.get('teamId'),errors='coerce').dropna().astype(int).loc[lambda s:s>0].unique().tolist()) if not vg.empty else []
+            periods=[int(x) for x in sorted(pd.to_numeric(vg.get('period'),errors='coerce').dropna().astype(int).unique().tolist())] if not vg.empty else []
+            teams=[int(x) for x in sorted(pd.to_numeric(vg.get('teamId'),errors='coerce').dropna().astype(int).loc[lambda s:s>0].unique().tolist())] if not vg.empty else []
             player_reb=reb[pd.to_numeric(reb.get('personId'),errors='coerce').fillna(0).gt(0)] if not reb.empty else reb
             counter_pat=re.compile(r'\(\s*Off\s*:\s*\d+\s+Def\s*:\s*\d+\s*\)',re.I)
             counter_rows=int(player_reb.get('description',pd.Series(dtype='string')).astype('string').fillna('').str.contains(counter_pat).sum()) if not player_reb.empty else 0
-            return {'game_id':g,'nba_rows':len(ng),'v3_rows':len(vg),'pbp_rows':len(pg),'v3_rebounds':len(reb),'v3_player_rebounds':len(player_reb),'v3_player_rebound_counter_rows':counter_rows,'v3_substitutions':len(subs),'v3_periods':periods,'v3_team_ids':teams,'two_teams':len(teams)==2,'has_complete_period_chronology':bool(periods and periods[0]==1 and periods==list(range(1,max(periods)+1))),'all_player_rebounds_countered':len(player_reb)==counter_rows}
+            return {'game_id':int(g),'nba_rows':int(len(ng)),'v3_rows':int(len(vg)),'pbp_rows':int(len(pg)),'v3_rebounds':int(len(reb)),'v3_player_rebounds':int(len(player_reb)),'v3_player_rebound_counter_rows':counter_rows,'v3_substitutions':int(len(subs)),'v3_periods':periods,'v3_team_ids':teams,'two_teams':len(teams)==2,'has_complete_period_chronology':bool(periods and periods[0]==1 and periods==list(range(1,max(periods)+1))),'all_player_rebounds_countered':len(player_reb)==counter_rows}
           target=[summarize(g) for g in targets]
           # Compare v3 semantic completeness on nearby games where legacy + pbp are both present.
           candidate=[]
-          gids=sorted(pd.to_numeric(v3.gameId,errors='coerce').dropna().astype(int).unique())
+          gids=[int(x) for x in sorted(pd.to_numeric(v3.gameId,errors='coerce').dropna().astype(int).unique())]
           for g in gids:
             if g in targets or not (21901280 <= g <= 21901330): continue
             s=summarize(g)
