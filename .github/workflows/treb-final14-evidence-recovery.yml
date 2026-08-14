@@ -1,0 +1,80 @@
+name: TREB strict final14 evidence recovery
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-final14-evidence-recovery.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - name: Strict evidence inventory for final 14
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, subprocess, tempfile, os, csv, gzip, zipfile
+          from pathlib import Path
+          unresolved=json.loads(Path('team_trb_all_players/impact_database/final_exact_exclusion_recovery/remaining_14_unresolved.json').read_text())
+          gids={int(x['game_id']) for x in unresolved['games']}
+          assert len(gids)==14
+          refs=subprocess.check_output(['git','for-each-ref','--format=%(refname:short)','refs/remotes/origin/agent/treb','refs/remotes/origin/treb'],text=True).splitlines()
+          refs=sorted(set(refs))
+          hits={g:[] for g in gids}
+          for ref in refs:
+            try:
+              files=subprocess.check_output(['git','ls-tree','-r','--name-only',ref],text=True,stderr=subprocess.DEVNULL).splitlines()
+            except: continue
+            candidates=[p for p in files if any(k in p.lower() for k in ['game','rebound','treb','forensic','repair','exact']) and p.lower().endswith(('.json','.jsonl','.csv','.gz'))]
+            for p in candidates:
+              try:
+                raw=subprocess.check_output(['git','show',f'{ref}:{p}'],stderr=subprocess.DEVNULL,timeout=8)
+                if p.endswith('.gz'):
+                  raw=gzip.decompress(raw)
+                txt=raw.decode('utf-8','ignore')
+              except: continue
+              for g in gids:
+                if str(g) in txt or str(g).zfill(10) in txt:
+                  hits[g].append({'ref':ref,'path':p})
+          out=Path('team_trb_all_players/impact_database/final14_evidence_recovery'); out.mkdir(parents=True,exist_ok=True)
+          summary={'status':'PASS','games':[]}
+          for g in sorted(gids):
+            uniq=[]; seen=set()
+            for h in hits[g]:
+              k=(h['ref'],h['path'])
+              if k not in seen: seen.add(k); uniq.append(h)
+            summary['games'].append({'game_id':g,'evidence_locations':uniq,'evidence_location_count':len(uniq)})
+          summary['games_with_evidence_locations']=sum(x['evidence_location_count']>0 for x in summary['games'])
+          summary['games_without_evidence_locations']=14-summary['games_with_evidence_locations']
+          (out/'FINAL14_EVIDENCE_INVENTORY.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in summary.items() if k!='games'},indent=2))
+          PY
+      - name: Reassert V2 and persist checkpoint
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          rows=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          assert len(rows)==14524
+          assert len({(str(r['season']),str(r['player_id']).removesuffix('.0'),int(r['team_id'])) for r in rows})==14524
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/final14_evidence_recovery
+          git commit -m 'Persist strict final-14 evidence inventory' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-final14-evidence-${{ github.run_id }}
+          path: team_trb_all_players/impact_database/final14_evidence_recovery
+          retention-days: 90
