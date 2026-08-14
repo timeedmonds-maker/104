@@ -1,0 +1,103 @@
+name: TREB final9 targeted evidence
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-final9-targeted-evidence.yml]
+permissions:
+  contents: write
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy
+      - name: Download only unresolved source years and preserve exact local evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json,subprocess,tarfile,urllib.request
+          from pathlib import Path
+          import pandas as pd
+          failed={20201160:(2002,5,1610612765),20400335:(2004,2,1610612740),21500916:(2015,5,1610612757),21800143:(2018,6,1610612741),22000853:(2020,3,1610612757),22200234:(2022,2,1610612747)}
+          gaps=[21901316,21901317,21901318]
+          years=sorted({v[0] for v in failed.values()}|{2019})
+          raw=Path('/tmp/treb_final9'); raw.mkdir(parents=True,exist_ok=True)
+          txt=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in txt.splitlines() if '=' in x}
+          for y in years:
+            d=raw/str(y); d.mkdir(exist_ok=True)
+            for pre in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{pre}_{y}'
+              if key not in urls: continue
+              arc=d/urls[key].rsplit('/',1)[-1]
+              subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--output',str(arc),urls[key]],check=True)
+              with tarfile.open(arc,'r:xz') as tf: tf.extractall(d)
+          out=Path('team_trb_all_players/impact_database/final9_targeted_evidence'); out.mkdir(parents=True,exist_ok=True)
+          cases=[]
+          def clean(df):
+            return json.loads(df.to_json(orient='records'))
+          for gid,(y,p,tid) in failed.items():
+            d=raw/str(y)
+            nba=pd.read_csv(d/f'nbastats_{y}.csv',low_memory=False)
+            v3=pd.read_csv(d/f'nbastatsv3_{y}.csv',low_memory=False)
+            pbp=pd.read_csv(d/f'pbpstats_{y}.csv',low_memory=False)
+            ng=nba[pd.to_numeric(nba.GAME_ID,errors='coerce').eq(gid)].copy()
+            vg=v3[pd.to_numeric(v3.gameId,errors='coerce').eq(gid)].copy()
+            pg=pbp[pd.to_numeric(pbp.GAMEID,errors='coerce').eq(gid)].copy()
+            np=ng[pd.to_numeric(ng.PERIOD,errors='coerce').isin([max(1,p-1),p])].copy()
+            vp=vg[pd.to_numeric(vg.period,errors='coerce').isin([max(1,p-1),p])].copy()
+            pp=pg[pd.to_numeric(pg.PERIOD,errors='coerce').isin([max(1,p-1),p])].copy()
+            # Keep all participant/substitution/action evidence around the exact failed period.
+            cases.append({'game_id':gid,'year':y,'period':p,'team_id':tid,'legacy_rows':clean(np),'v3_rows':clean(vp),'pbp_rows':clean(pp)})
+          gap_rows=[]
+          d=raw/'2019'
+          frames={}
+          for pre,col,file in [('nbastats','GAME_ID','nbastats_2019.csv'),('nbastatsv3','gameId','nbastatsv3_2019.csv'),('pbpstats','GAMEID','pbpstats_2019.csv')]:
+            df=pd.read_csv(d/file,low_memory=False); frames[pre]=(df,col)
+          for gid in gaps:
+            rec={'game_id':gid,'year':2019,'sources':{}}
+            for pre,(df,col) in frames.items():
+              x=df[pd.to_numeric(df[col],errors='coerce').eq(gid)]
+              rec['sources'][pre]={'rows':len(x),'sample':clean(x.head(10))}
+            # Inspect neighbouring IDs to distinguish an unplayed schedule ID from a local archive hole.
+            for delta in (-2,-1,1,2):
+              ngid=gid+delta
+              rec.setdefault('neighbours',{})[str(ngid)]={pre:int(pd.to_numeric(df[col],errors='coerce').eq(ngid).sum()) for pre,(df,col) in frames.items()}
+            gap_rows.append(rec)
+          (out/'FAILED6_PERIOD_EVIDENCE.json').write_text(json.dumps(cases,indent=2)+'\n')
+          (out/'SOURCE_GAP_2019_EVIDENCE.json').write_text(json.dumps(gap_rows,indent=2)+'\n')
+          qa={'status':'PASS','failed_full_source_games':len(cases),'source_gap_games':len(gap_rows),'production_values_changed':False,'successful_exact_games_not_rerun':[20600887,20700319,20800142,21100842,22000485]}
+          (out/'QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - name: Reassert immutable V2 and persist evidence checkpoint
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          r=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          assert len(r)==14524
+          assert len({(str(x['season']),str(x['player_id']).removesuffix('.0'),int(x['team_id'])) for x in r})==14524
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f team_trb_all_players/impact_database/final9_targeted_evidence
+          git commit -m 'Persist targeted evidence for final 9 historical games' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-final9-targeted-evidence-${{ github.run_id }}
+          path: team_trb_all_players/impact_database/final9_targeted_evidence
+          retention-days: 90
+          if-no-files-found: error
