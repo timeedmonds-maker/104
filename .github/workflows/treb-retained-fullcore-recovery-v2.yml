@@ -1,0 +1,298 @@
+name: TREB retained full-core recovery v2
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-retained-fullcore-recovery-v2.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-retained-fullcore-recovery-v2
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TARGET_REF: 6c5e7b042ee6e7564b310c22bee478645fef37da
+      TARGET_BRANCH: treb-final-database-complete-20260812
+      OUT: team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery_v2
+    steps:
+      - name: Checkout production branch with full history
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install dependency
+        run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Fetch only known complete retained branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}" --no-tags
+          got="$(git rev-parse "origin/${TARGET_BRANCH}")"
+          echo "TARGET_BRANCH=${TARGET_BRANCH}"
+          echo "TARGET_REF_EXPECTED=${TARGET_REF}"
+          echo "TARGET_REF_FETCHED=${got}"
+          test "$got" = "$TARGET_REF"
+
+      - name: Configure durable checkpoint commits
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p "$OUT"
+
+      - name: Focused retained-source scan with heartbeat and checkpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import gzip, io, json, os, re, subprocess, threading, time, zipfile
+          from pathlib import Path
+          import pandas as pd
+
+          TARGET_REF = os.environ['TARGET_REF']
+          OUT = Path(os.environ['OUT'])
+          OUT.mkdir(parents=True, exist_ok=True)
+          EXPECTED = 9647
+          FILE_TIMEOUT = 20
+          CHECKPOINT_SECS = 120
+          MAX_BYTES = 180_000_000
+
+          PATH_RX = re.compile(r'(treb|rebound|on.?off|final|complete|database|canonical|core|impact|stage2)', re.I)
+          DATA_RX = re.compile(r'\.(csv|jsonl|json)(\.gz)?$', re.I)
+          ZIP_RX = re.compile(r'\.zip$', re.I)
+
+          state = {
+              'status': 'RUNNING', 'target_ref': TARGET_REF, 'files_total': 0,
+              'files_done': 0, 'current': None, 'tables_seen': 0,
+              'best_candidate_keys': 0, 'exact_candidates': 0,
+              'last_checkpoint_utc': None, 'started_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+          }
+          inventory = []
+          exact_meta = []
+          stop = threading.Event()
+          last_push = 0.0
+
+          def run(args, *, text=True, timeout=FILE_TIMEOUT, check=True):
+              cp = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  text=text, timeout=timeout)
+              if check and cp.returncode:
+                  err = cp.stderr if text else cp.stderr.decode(errors='replace')
+                  raise RuntimeError(f"{args!r} rc={cp.returncode} stderr={err[-1000:]}")
+              return cp.stdout
+
+          def save_progress(note=''):
+              state['note'] = note
+              state['last_checkpoint_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+              (OUT/'progress.json').write_text(json.dumps(state, indent=2) + '\n')
+              (OUT/'candidate_inventory.json').write_text(json.dumps(inventory, indent=2) + '\n')
+              (OUT/'exact_candidates.json').write_text(json.dumps(exact_meta, indent=2) + '\n')
+
+          def durable_checkpoint(note, force=False):
+              global last_push
+              save_progress(note)
+              now = time.monotonic()
+              if not force and now - last_push < CHECKPOINT_SECS:
+                  return
+              subprocess.run(['git','add',str(OUT)], check=True)
+              if subprocess.run(['git','diff','--cached','--quiet']).returncode == 0:
+                  last_push = now
+                  return
+              msg = f"TREB recovery v2 checkpoint: {state['files_done']}/{state['files_total']} files"
+              subprocess.run(['git','commit','-m',msg], check=True)
+              subprocess.run(['git','push','origin','HEAD:agent/treb-final-exact-assembly'], check=True)
+              last_push = now
+              print(f"CHECKPOINT pushed files={state['files_done']}/{state['files_total']} best={state['best_candidate_keys']} exact={state['exact_candidates']}", flush=True)
+
+          def heartbeat():
+              while not stop.wait(120):
+                  print('HEARTBEAT ' + json.dumps({
+                      'files_done': state['files_done'], 'files_total': state['files_total'],
+                      'current': state['current'], 'tables_seen': state['tables_seen'],
+                      'best_candidate_keys': state['best_candidate_keys'],
+                      'exact_candidates': state['exact_candidates']
+                  }), flush=True)
+
+          def clean_id(v):
+              s = str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+
+          def first(cols, aliases):
+              low = {str(c).strip().lower(): c for c in cols}
+              for a in aliases:
+                  if a in low: return low[a]
+              return None
+
+          def pct(s):
+              x = pd.to_numeric(s, errors='coerce')
+              return x.where(x <= 1.5, x/100.0)
+
+          def truthy(v):
+              return str(v).strip().lower() in {'1','true','t','yes','y'}
+
+          def inspect_df(df, label, origin):
+              if df is None or df.empty: return
+              state['tables_seen'] += 1
+              cols = list(df.columns)
+              season = first(cols, ['season','season_id','season_label'])
+              team = first(cols, ['team_id','teamid'])
+              player = first(cols, ['player_id','playerid','person_id'])
+              on = first(cols, ['direct_treb_on','treb_on','on_value','value_on','on','on_court','on_pct','on_court_value','oncourt'])
+              off = first(cols, ['direct_treb_off','treb_off','off_value','value_off','off','off_court','off_pct','off_court_value','offcourt'])
+              metric = first(cols, ['metric','metric_name','stat','stat_name'])
+              source = first(cols, ['source','provenance','treb_source','source_semantics'])
+              full = first(cols, ['full_core_reuse','full_core','is_full_core'])
+              if not all([season, team, player]) or on is None or off is None:
+                  return
+
+              w = df.copy()
+              if metric:
+                  m = w[metric].astype(str).str.lower().str.replace(r'[^a-z0-9]+','',regex=True)
+                  keep = m.isin({'totalreboundpct','rebpct','teamreboundpct','totalreboundpercentage'})
+                  if keep.any(): w = w[keep]
+              if w.empty: return
+
+              selection = 'all_rows'
+              if full:
+                  mask = w[full].map(truthy)
+                  if mask.any():
+                      w = w[mask]; selection = f'full_core:{full}'
+              elif source:
+                  s = w[source].astype(str).str.lower()
+                  mask = s.str.contains(r'teamplayeronoffdetails|direct nba|nba stats|reb_pct|full.core', regex=True)
+                  if mask.any():
+                      w = w[mask]; selection = f'direct_source:{source}'
+
+              norm = pd.DataFrame({
+                  'season': w[season].astype(str).str.strip(),
+                  'team_id': w[team].map(clean_id),
+                  'player_id': w[player].map(clean_id),
+                  'direct_treb_on': pct(w[on]),
+                  'direct_treb_off': pct(w[off]),
+                  'source': w[source].astype(str) if source else 'retained_candidate'
+              }).dropna(subset=['direct_treb_on','direct_treb_off'])
+              norm = norm.drop_duplicates(['season','team_id','player_id'], keep='last')
+              plausible = norm['direct_treb_on'].between(.20,.80) & norm['direct_treb_off'].between(.20,.80)
+              keys = len(norm)
+              state['best_candidate_keys'] = max(state['best_candidate_keys'], keys)
+              rec = {'origin':origin,'label':label,'rows':len(df),'candidate_keys':keys,
+                     'plausible_keys':int(plausible.sum()),'selection':selection,
+                     'columns':[str(c) for c in cols[:80]]}
+              inventory.append(rec)
+              print(f"TABLE label={label} candidate_keys={keys} plausible={int(plausible.sum())} selection={selection}", flush=True)
+
+              if keys == EXPECTED and plausible.all():
+                  out = OUT/'recovered_direct_fullcore.csv'
+                  norm.sort_values(['season','team_id','player_id']).to_csv(out,index=False)
+                  exact_meta.append({**rec,'normalized_path':str(out)})
+                  state['exact_candidates'] = len(exact_meta)
+                  durable_checkpoint(f'EXACT {EXPECTED}-key candidate found in {label}', force=True)
+
+          def inspect_bytes(data, label, origin):
+              ll = label.lower()
+              try:
+                  if ll.endswith('.csv'):
+                      inspect_df(pd.read_csv(io.BytesIO(data), low_memory=False), label, origin)
+                  elif ll.endswith('.jsonl'):
+                      rows = [json.loads(x) for x in data.decode('utf-8',errors='replace').splitlines() if x.strip()]
+                      inspect_df(pd.DataFrame(rows), label, origin)
+                  elif ll.endswith('.json'):
+                      obj = json.loads(data.decode('utf-8',errors='replace'))
+                      if isinstance(obj,list): inspect_df(pd.DataFrame(obj), label, origin)
+                      elif isinstance(obj,dict):
+                          for k,v in obj.items():
+                              if isinstance(v,list) and v and isinstance(v[0],dict):
+                                  inspect_df(pd.DataFrame(v), label+'#'+str(k), origin)
+              except Exception as e:
+                  inventory.append({'origin':origin,'label':label,'parse_error':repr(e)[:800]})
+
+          def inspect_blob(data, label, origin):
+              ll = label.lower()
+              if ll.endswith('.gz'):
+                  inspect_bytes(gzip.decompress(data), label[:-3], origin)
+              elif ll.endswith('.zip'):
+                  with zipfile.ZipFile(io.BytesIO(data)) as z:
+                      members = [n for n in z.namelist() if (DATA_RX.search(n) or ZIP_RX.search(n)) and PATH_RX.search(n)]
+                      inventory.append({'origin':origin,'label':label,'zip_relevant_members':len(members),'sample':members[:50]})
+                      for n in members:
+                          info = z.getinfo(n)
+                          if info.file_size > MAX_BYTES:
+                              inventory.append({'origin':origin+'::'+label,'label':n,'skip':'member_too_large','bytes':info.file_size})
+                              continue
+                          inspect_blob(z.read(n), n, origin+'::'+label)
+                          if exact_meta: return
+              else:
+                  inspect_bytes(data,label,origin)
+
+          th = threading.Thread(target=heartbeat, daemon=True)
+          th.start()
+          try:
+              paths = run(['git','ls-tree','-r','--name-only',TARGET_REF], timeout=30).splitlines()
+              candidates = [p for p in paths if PATH_RX.search(p) and (DATA_RX.search(p) or ZIP_RX.search(p))]
+              # Most likely retained final/canonical/direct files first.
+              candidates.sort(key=lambda p: (0 if re.search(r'(final|complete|direct|canonical)',p,re.I) else 1, len(p), p))
+              state['files_total'] = len(candidates)
+              durable_checkpoint(f'scan initialized with {len(candidates)} candidate files', force=True)
+              print(f"SCAN_START target={TARGET_REF} candidate_files={len(candidates)}", flush=True)
+
+              for i,p in enumerate(candidates,1):
+                  state['current'] = p
+                  print(f"FILE_START {i}/{len(candidates)} {p}", flush=True)
+                  try:
+                      size = int(run(['git','cat-file','-s',f'{TARGET_REF}:{p}'], timeout=10).strip())
+                      if size > MAX_BYTES:
+                          inventory.append({'origin':TARGET_REF,'label':p,'skip':'git_blob_too_large','bytes':size})
+                      else:
+                          data = run(['git','show',f'{TARGET_REF}:{p}'], text=False, timeout=FILE_TIMEOUT)
+                          inspect_blob(data,p,TARGET_REF)
+                  except subprocess.TimeoutExpired:
+                      inventory.append({'origin':TARGET_REF,'label':p,'timeout_seconds':FILE_TIMEOUT})
+                      print(f"FILE_TIMEOUT {p} after {FILE_TIMEOUT}s", flush=True)
+                  except Exception as e:
+                      inventory.append({'origin':TARGET_REF,'label':p,'error':repr(e)[:1000]})
+                      print(f"FILE_ERROR {p} {e!r}", flush=True)
+                  state['files_done'] = i
+                  durable_checkpoint(f'completed {i}/{len(candidates)}: {p}')
+                  if exact_meta:
+                      break
+
+              state['current'] = None
+              state['status'] = 'PASS' if exact_meta else 'NOT_FOUND_ON_KNOWN_COMPLETE_BRANCH'
+              state['finished_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+              report = [
+                  '# TREB retained full-core recovery v2','',
+                  f"- Target retained branch commit: `{TARGET_REF}`",
+                  f"- Candidate files on branch: **{state['files_total']}**",
+                  f"- Files inspected: **{state['files_done']}**",
+                  f"- Tables seen: **{state['tables_seen']}**",
+                  f"- Best candidate key count: **{state['best_candidate_keys']}**",
+                  f"- Exact {EXPECTED}-key candidates: **{state['exact_candidates']}**",
+                  '- Live NBA Stats fetch: **NO**',
+                  '- Rounded percentage backsolve: **NO**',
+                  '- Opponent rebound inference: **NO**','',
+                  '## Result', state['status']
+              ]
+              (OUT/'report.md').write_text('\n'.join(report)+'\n')
+              durable_checkpoint('final result '+state['status'], force=True)
+              print('\n'.join(report), flush=True)
+          finally:
+              stop.set(); th.join(timeout=2)
+          PY
+
+      - name: Upload recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-retained-fullcore-recovery-v2-${{ github.run_id }}
+          path: team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery_v2/
+          if-no-files-found: warn
