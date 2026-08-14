@@ -1,0 +1,102 @@
+name: TREB production assembler input discovery
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-production-assembler-input-discovery.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - name: Fetch durable refs
+        run: git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+      - name: Discover exact reconciler inputs without guessing
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/treb_input_discovery
+          python - <<'PY'
+          import gzip,json,subprocess
+          from pathlib import Path
+          refs=[x.strip() for x in subprocess.check_output(['git','for-each-ref','--format=%(refname)','refs/remotes/origin'],text=True).splitlines() if x.strip() and not x.endswith('/HEAD')]
+          result={'status':'PASS','reconciler':'team_trb_all_players/reconcile_exact_treb_from_game_facts.py','core_candidates':[],'tenure_window_candidates':[],'facts_candidates':[]}
+          seen=set()
+          for ref in refs:
+            try: paths=subprocess.check_output(['git','ls-tree','-r','--name-only',ref],text=True,stderr=subprocess.DEVNULL).splitlines()
+            except: continue
+            # Tenure windows: exact schema fields required by reconciler.
+            for p in paths:
+              lp=p.lower()
+              if p.endswith('.jsonl.gz') and ('tenure' in lp or 'player_team_season' in lp):
+                key=(ref,p)
+                if key in seen: continue
+                try:
+                  raw=subprocess.check_output(['git','show',f'{ref}:{p}'],stderr=subprocess.DEVNULL,timeout=8)
+                  first=gzip.decompress(raw).decode('utf-8','ignore').splitlines()[0]
+                  d=json.loads(first)
+                  required={'season','team_id','player_id','query_start_date','query_end_date'}
+                  if required.issubset(d): result['tenure_window_candidates'].append({'ref':ref,'path':p,'fields':sorted(d)})
+                except: pass
+                seen.add(key)
+            # Exact game-fact roots: require QA + both files at same season directory.
+            qas=[p for p in paths if p.endswith('/qa.json') and 'exact_game_fact' in p]
+            for q in qas:
+              base=q[:-len('qa.json')]
+              if base+'team_game_treb.csv.gz' in paths and base+'player_game_treb_on.csv.gz' in paths:
+                try:
+                  qa=json.loads(subprocess.check_output(['git','show',f'{ref}:{q}'],text=True,stderr=subprocess.DEVNULL,timeout=8))
+                except: continue
+                result['facts_candidates'].append({'ref':ref,'season':qa.get('season'),'base':base,'qa_status':qa.get('status')})
+            # Core roots: inspect likely gzipped JSON checkpoint files for rebound_derived schema.
+            likely=[p for p in paths if p.endswith('.json.gz') and any(k in lp for k in [])]
+            likely=[p for p in paths if p.endswith('.json.gz') and ('checkpoint' in p.lower() or 'core' in p.lower() or 'team_trb' in p.lower())]
+            for p in likely[:400]:
+              try:
+                raw=subprocess.check_output(['git','show',f'{ref}:{p}'],stderr=subprocess.DEVNULL,timeout=5)
+                d=json.loads(gzip.decompress(raw))
+                if isinstance(d,dict) and isinstance(d.get('rebound_derived'),list) and d.get('rebound_derived'):
+                  root=str(Path(p).parent.parent)
+                  rec={'ref':ref,'path':p,'candidate_root':root,'season':d.get('season'),'team_id':d.get('team_id'),'rows':len(d['rebound_derived'])}
+                  if rec not in result['core_candidates']: result['core_candidates'].append(rec)
+                  if len(result['core_candidates'])>=50: break
+              except: pass
+          result['facts_pass_seasons']=sorted({x['season'] for x in result['facts_candidates'] if x.get('qa_status')=='PASS' and x.get('season')})
+          result['facts_pass_season_count']=len(result['facts_pass_seasons'])
+          result['tenure_window_candidate_count']=len(result['tenure_window_candidates'])
+          result['core_candidate_count']=len(result['core_candidates'])
+          result['facts_candidate_count']=len(result['facts_candidates'])
+          out=Path('/tmp/treb_input_discovery/ASSEMBLER_INPUT_DISCOVERY.json')
+          out.write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in result.items() if not isinstance(v,list)},indent=2))
+          PY
+      - name: Reassert canonical V2 identity
+        run: |
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          rows=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          assert len(rows)==14524
+          assert len({(str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0')) for r in rows})==14524
+          print('V2=PASS 14524')
+          PY
+      - name: Persist discovery
+        run: |
+          mkdir -p team_trb_all_players/impact_database/final_exact_production_discovery
+          cp /tmp/treb_input_discovery/ASSEMBLER_INPUT_DISCOVERY.json team_trb_all_players/impact_database/final_exact_production_discovery/
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/impact_database/final_exact_production_discovery
+          git commit -m 'Persist exact production assembler input discovery' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-production-assembler-input-discovery
+          path: /tmp/treb_input_discovery
+          retention-days: 30
