@@ -131,8 +131,8 @@ jobs:
           assert d.get('all_complete') is True, d
           assert int(d.get('impact_windows_total') or -1)==expected_windows, d
           assert int(d.get('complete_windows') or -1)==expected_windows, d
-          assert int(d.get('remaining_windows') or -1)==0, d
-          assert int(d.get('failed_windows') or -1)==0, d
+          assert int(d.get('remaining_windows', -1))==0, d
+          assert int(d.get('failed_windows', -1))==0, d
           assert int(d.get('metric_rows') or -1)==expected_rows, d
           # Compatibility only: the pinned finalizer predates impact_windows_total and
           # expects the equivalent legacy field impact_windows_requested.
