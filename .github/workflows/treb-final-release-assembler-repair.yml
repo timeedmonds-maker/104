@@ -1,0 +1,257 @@
+name: TREB final release assembler repair
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-final-release-assembler-repair.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-final-release-assembler-repair
+  cancel-in-progress: false
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout final assembly branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install readers
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install pandas numpy pyarrow
+
+      - name: Fetch durable refs
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin '+refs/heads/*:refs/remotes/origin/*'
+
+      - name: Rebuild locked exact layer
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks /tmp/treb_exact_support /tmp/treb_release_repair /tmp/treb_release_output
+          mkdir -p /tmp/treb_locks /tmp/treb_exact_support /tmp/treb_release_repair /tmp/treb_release_output
+          LOCK_PATH='team_trb_all_players/impact_database/final_local_rebuild/locked_seasons'
+          for y in $(seq 2000 2025); do
+            branch="refs/remotes/origin/treb-final-safe-lock-${y}"
+            season=$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")
+            git show "${branch}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          python team_trb_all_players/finalize_treb_database.py --locks-dir /tmp/treb_locks --output-dir /tmp/treb_exact_support
+          python - <<'PY'
+          import pandas as pd
+          d=pd.read_csv('/tmp/treb_exact_support/career_treb_detail.csv')
+          keys=d[['season','player_id','team_id']].drop_duplicates()
+          assert len(d)==5199, len(d)
+          assert len(keys)==4877, len(keys)
+          print('EXACT_LAYER_PASS segments=5199 pts=4877')
+          PY
+
+      - name: Find actual final-release assembler and attempt only genuine release candidates
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import json, os, re, shutil, subprocess, sys
+          from pathlib import Path
+
+          ROOT=Path.cwd()
+          REPORT=Path('/tmp/treb_release_repair')
+          OUT=Path('/tmp/treb_release_output')
+          REPORT.mkdir(parents=True,exist_ok=True); OUT.mkdir(parents=True,exist_ok=True)
+          PIN='57ba237c36d75f7a3ef2cc998d91aa70a59b3c29'
+
+          def run(args,cwd=ROOT,check=False,timeout=120,text=True):
+              return subprocess.run(args,cwd=cwd,check=check,capture_output=True,text=text,timeout=timeout)
+
+          refs=[x.strip() for x in run(['git','for-each-ref','--format=%(refname)','refs/remotes/origin']).stdout.splitlines() if x.strip() and not x.endswith('/HEAD')]
+          priority=[r for r in refs if any(k in r.lower() for k in ('final','production','complete','authoritative','stage2','assembly'))]
+          ordered=[]
+          for r in [PIN,'HEAD']+priority+refs:
+              if r not in ordered: ordered.append(r)
+
+          tokens=['14524','9647','4877','TotalReboundPct','TREB_final_database_2000-01_to_2025-26.zip','1292636','15206']
+          candidates={}
+
+          for ref in ordered:
+              ls=run(['git','ls-tree','-r','--name-only',ref],timeout=60)
+              if ls.returncode: continue
+              paths=[p for p in ls.stdout.splitlines() if p.endswith(('.py','.yml','.yaml'))]
+              likely=[p for p in paths if any(k in p.lower() for k in ('final','release','assembly','complete','production','stage2','core','database','rebound','treb'))]
+              for path in likely:
+                  show=run(['git','show',f'{ref}:{path}'],timeout=30)
+                  if show.returncode: continue
+                  src=show.stdout
+                  matched=[t for t in tokens if t in src]
+                  if not matched: continue
+                  score=0
+                  score += 80 if '14524' in src else 0
+                  score += 80 if '9647' in src else 0
+                  score += 50 if '4877' in src else 0
+                  score += 60 if 'TotalReboundPct' in src else 0
+                  score += 120 if 'TREB_final_database_2000-01_to_2025-26.zip' in src else 0
+                  score += 40 if '1292636' in src else 0
+                  score += 30 if '15206' in src else 0
+                  low=path.lower()
+                  score += 30 if any(k in low for k in ('final','release','assembly','production','complete')) else 0
+                  score += 20 if 'stage2' in low or 'fullcore' in low or 'full_core' in low else 0
+                  key=(path,src[:200])
+                  rec={'ref':ref,'path':path,'score':score,'matched':matched}
+                  old=candidates.get(key)
+                  if old is None or score>old['score']: candidates[key]=rec
+
+          ranked=sorted(candidates.values(),key=lambda x:x['score'],reverse=True)
+          (REPORT/'release_candidates.json').write_text(json.dumps(ranked[:200],indent=2)+'\n')
+          print('release_candidate_count=',len(ranked))
+          for r in ranked[:25]: print(r)
+
+          # Expand workflow candidates to referenced Python scripts at the same ref.
+          expanded=[]
+          for r in ranked[:50]:
+              expanded.append(r)
+              if r['path'].endswith(('.yml','.yaml')):
+                  src=run(['git','show',f"{r['ref']}:{r['path']}"],timeout=30).stdout
+                  for m in re.finditer(r'python(?:3)?\s+([A-Za-z0-9_./-]+\.py)',src):
+                      p=m.group(1).lstrip('./')
+                      chk=run(['git','cat-file','-e',f"{r['ref']}:{p}"],timeout=20)
+                      if chk.returncode==0:
+                          expanded.append({'ref':r['ref'],'path':p,'score':r['score']+15,'matched':r['matched']+['workflow_referenced_script']})
+          uniq=[]; seen=set()
+          for r in sorted(expanded,key=lambda x:x['score'],reverse=True):
+              k=(r['ref'],r['path'])
+              if k not in seen:
+                  seen.add(k); uniq.append(r)
+
+          attempts=[]
+          final_zip=OUT/'TREB_final_database_2000-01_to_2025-26.zip'
+          for i,r in enumerate([x for x in uniq if x['path'].endswith('.py')][:20]):
+              wt=Path(f'/tmp/treb_release_wt_{i}')
+              run(['git','worktree','remove','--force',str(wt)],timeout=30)
+              add=run(['git','worktree','add','--detach',str(wt),r['ref']],timeout=120)
+              if add.returncode:
+                  attempts.append({**r,'status':'worktree_failed'}); continue
+              script=wt/r['path']
+              src=script.read_text(errors='ignore')
+              env=os.environ.copy()
+              env.update({
+                  'PYTHONPATH':str(wt),
+                  'TREB_EXACT_SUPPORT_DIR':'/tmp/treb_exact_support',
+                  'TREB_EXACT_DETAIL':'/tmp/treb_exact_support/career_treb_detail.csv',
+                  'TREB_OUTPUT_DIR':str(OUT),
+                  'TREB_FINAL_OUTPUT_DIR':str(OUT),
+                  'TREB_STAGE2_PIN':PIN,
+                  'TREB_CANONICAL_TARGETS':str(ROOT/'team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'),
+              })
+              help_text=''
+              if 'argparse' in src or '--help' in src:
+                  hp=run([sys.executable,str(script),'--help'],cwd=wt,timeout=60)
+                  help_text=(hp.stdout or '')+'\n'+(hp.stderr or '')
+                  (REPORT/f'candidate_{i:02d}_help.txt').write_text(help_text[-20000:])
+              required_hint=('the following arguments are required:' in help_text.lower())
+              final_semantics=('TREB_final_database_2000-01_to_2025-26.zip' in src and ('14524' in src or '9647' in src or 'TotalReboundPct' in src))
+              if not final_semantics:
+                  attempts.append({**r,'status':'not_final_release_semantics'}); continue
+              if required_hint:
+                  attempts.append({**r,'status':'requires_explicit_args','help_tail':help_text[-1500:]}); continue
+              try:
+                  proc=run([sys.executable,str(script)],cwd=wt,timeout=1800)
+                  log=(proc.stdout or '')+'\n'+(proc.stderr or '')
+                  (REPORT/f'candidate_{i:02d}_run.log').write_text(log[-200000:])
+                  found=list(wt.rglob('TREB_final_database_2000-01_to_2025-26.zip'))+list(OUT.rglob('TREB_final_database_2000-01_to_2025-26.zip'))
+                  attempts.append({**r,'status':'ran','returncode':proc.returncode,'zip_found':bool(found)})
+                  if proc.returncode==0 and found:
+                      shutil.copy2(found[0],final_zip)
+                      break
+              except subprocess.TimeoutExpired:
+                  attempts.append({**r,'status':'timeout'})
+
+          (REPORT/'release_attempts.json').write_text(json.dumps(attempts,indent=2)+'\n')
+          summary={
+              'status':'PASS' if final_zip.exists() else 'NEEDS_TARGETED_INVOCATION',
+              'exact_pts':4877,
+              'canonical_target':14524,
+              'complement_target':9647,
+              'candidate_count':len(ranked),
+              'top_candidates':ranked[:20],
+              'attempts':attempts,
+              'final_zip_found':final_zip.exists(),
+          }
+          (REPORT/'FINAL_RELEASE_REPAIR.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in summary.items() if k not in ('top_candidates','attempts')},indent=2))
+          PY
+
+      - name: Validate any produced final ZIP
+        if: always()
+        run: |
+          set -euo pipefail
+          ZIP=/tmp/treb_release_output/TREB_final_database_2000-01_to_2025-26.zip
+          if [ ! -s "$ZIP" ]; then
+            echo 'No final ZIP produced in this repair pass; discovery retained for targeted invocation.'
+            exit 0
+          fi
+          unzip -t "$ZIP"
+          rm -rf /tmp/treb_release_unzip && mkdir -p /tmp/treb_release_unzip
+          unzip -q "$ZIP" -d /tmp/treb_release_unzip
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          root=Path('/tmp/treb_release_unzip')
+          bestn=-1; best=None; bestdf=None; bestkeys=None
+          for p in root.rglob('*.csv'):
+              try: d=pd.read_csv(p)
+              except: continue
+              n={c.lower().strip().replace(' ','_'):c for c in d.columns}
+              if 'season' not in n: continue
+              pc=n.get('player_id') or n.get('playerid'); tc=n.get('team_id') or n.get('teamid')
+              if not pc or not tc: continue
+              keys=d[[n['season'],pc,tc]].drop_duplicates()
+              if len(keys)>bestn: bestn=len(keys); best=p; bestdf=d; bestkeys=keys
+          assert bestn==14524,(best,bestn)
+          assert bestkeys.iloc[:,0].nunique()==26
+          n={c.lower().strip().replace(' ','_'):c for c in bestdf.columns}
+          pc=n.get('player_id') or n.get('playerid')
+          adams=bestdf[bestdf[pc].astype(str).str.replace('.0','',regex=False)=='203500']
+          assert not adams.empty
+          print(f'CANONICAL_GATE_PASS pts={bestn} seasons=26 adams=present file={best}')
+          PY
+          sha256sum "$ZIP" | tee /tmp/treb_release_repair/FINAL_ZIP_SHA256.txt
+
+      - name: Persist repair inventory
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/impact_database/final_release_repair
+          cp -f /tmp/treb_release_repair/* team_trb_all_players/impact_database/final_release_repair/ 2>/dev/null || true
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/impact_database/final_release_repair
+          git commit -m 'Persist final release assembler repair inventory' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+
+      - name: Upload repair inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-release-assembler-repair
+          path: /tmp/treb_release_repair
+          retention-days: 30
+
+      - name: Upload final database when produced
+        if: ${{ hashFiles('/tmp/treb_release_output/TREB_final_database_2000-01_to_2025-26.zip') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-production
+          path: /tmp/treb_release_output/TREB_final_database_2000-01_to_2025-26.zip
+          retention-days: 30
