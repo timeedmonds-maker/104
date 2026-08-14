@@ -1,0 +1,233 @@
+{
+  "status": "FAIL",
+  "stage2_sha": "57ba237c36d75f7a3ef2cc998d91aa70a59b3c29",
+  "missing_keys_expected": 23,
+  "repaired_keys": 8,
+  "overlay_metric_rows": 712,
+  "projected_authoritative_keys": 14509,
+  "authoritative_keys": 14524,
+  "bad_metric_keys": {},
+  "failures": [
+    {
+      "key": [
+        "2010-11",
+        1610612747,
+        "201234"
+      ],
+      "player": "Trey Johnson",
+      "error": "RuntimeError('minutes mismatch recovered=13.000000 canonical=13.400000 delta=0.400000 tol=0.350000')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1
+      }
+    },
+    {
+      "key": [
+        "2012-13",
+        1610612752,
+        "2853"
+      ],
+      "player": "Earl Barron",
+      "error": "RuntimeError('minutes mismatch recovered=36.000000 canonical=36.500000 delta=0.500000 tol=0.350000')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1
+      }
+    },
+    {
+      "key": [
+        "2013-14",
+        1610612745,
+        "2694"
+      ],
+      "player": "Josh Powell",
+      "error": "RuntimeError('minutes mismatch recovered=19.000000 canonical=19.366667 delta=0.366667 tol=0.350000')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1
+      }
+    },
+    {
+      "key": [
+        "2015-16",
+        1610612739,
+        "2563"
+      ],
+      "player": "Dahntay Jones",
+      "error": "RuntimeError('minutes mismatch recovered=42.000000 canonical=42.350000 delta=0.350000 tol=0.350000')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1
+      }
+    },
+    {
+      "key": [
+        "2017-18",
+        1610612739,
+        "2570"
+      ],
+      "player": "Kendrick Perkins",
+      "error": "RuntimeError('minutes mismatch recovered=15.000000 canonical=14.533333 delta=0.466667 tol=0.350000')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1
+      }
+    },
+    {
+      "key": [
+        "2017-18",
+        1610612745,
+        "1628935"
+      ],
+      "player": "Aaron Jackson",
+      "error": "RuntimeError('minutes mismatch recovered=34.000000 canonical=34.500000 delta=0.500000 tol=0.350000')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1
+      }
+    },
+    {
+      "key": [
+        "2019-20",
+        1610612739,
+        "1629731"
+      ],
+      "player": "Dean Wade",
+      "error": "RuntimeError('minutes mismatch recovered=71.000000 canonical=71.416667 delta=0.416667 tol=0.350000')",
+      "mode": "FULL_SEASON_SAFE",
+      "source": "PBP_STATS_FULL_SEASON_NATIVE_CORE_CONFIRMED",
+      "candidate_counts": {
+        "V1_VALIDATED": 1
+      }
+    },
+    {
+      "key": [
+        "2022-23",
+        1610612751,
+        "1630564"
+      ],
+      "player": "RaiQuan Gray",
+      "error": "RuntimeError('incomplete tenure query 2023-04-08..2023-04-09: metric_count=89 requests={\\'team\\': {\\'ok\\': True, \\'attempt\\': 3, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.191, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&PlayerId=1630564&FromDate=2023-04-08&ToDate=2023-04-09\\')\"]}, \\'stat_minutes\\': {\\'ok\\': True, \\'attempt\\': 3, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.414, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&Stat=OffRebounds&FromDate=2023-04-08&ToDate=2023-04-09\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612751&Stat=OffRebounds&FromDate=2023-04-08&ToDate=2023-04-09\\')\"]}}')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1,
+        "V1_VALIDATED": 1,
+        "ZERO_TAIL_LEDGER": 1
+      }
+    },
+    {
+      "key": [
+        "2022-23",
+        1610612757,
+        "1628435"
+      ],
+      "player": "Chance Comanche",
+      "error": "RuntimeError('incomplete tenure query 2023-04-09..2023-04-09: metric_count=89 requests={\\'team\\': {\\'ok\\': True, \\'attempt\\': 4, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.202, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09\\')\", \"attempt 3: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612757&PlayerId=1628435&FromDate=2023-04-09&ToDate=2023-04-09\\')\"]}, \\'stat_minutes\\': {\\'ok\\': True, \\'attempt\\': 1, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.572, \\'errors\\': []}}')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1
+      }
+    },
+    {
+      "key": [
+        "2022-23",
+        1610612763,
+        "1631367"
+      ],
+      "player": "Jacob Gilyard",
+      "error": "RuntimeError('incomplete tenure query 2023-04-08..2023-04-09: metric_count=89 requests={\\'team\\': {\\'ok\\': True, \\'attempt\\': 4, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.183, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09\\')\", \"attempt 3: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2022-23&SeasonType=Regular+Season&TeamId=1610612763&PlayerId=1631367&FromDate=2023-04-08&ToDate=2023-04-09\\')\"]}, \\'stat_minutes\\': {\\'ok\\': True, \\'attempt\\': 1, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.343, \\'errors\\': []}}')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1,
+        "V1_VALIDATED": 1,
+        "ZERO_TAIL_LEDGER": 1
+      }
+    },
+    {
+      "key": [
+        "2024-25",
+        1610612755,
+        "1630600"
+      ],
+      "player": "Isaiah Mobley",
+      "error": "RuntimeError('minutes mismatch recovered=17.000000 canonical=17.366667 delta=0.366667 tol=0.350000')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1
+      }
+    },
+    {
+      "key": [
+        "2025-26",
+        1610612741,
+        "1631338"
+      ],
+      "player": "Mouhamadou Gueye",
+      "error": "RuntimeError('incomplete tenure query 2026-04-09..2026-04-12: metric_count=89 requests={\\'team\\': {\\'ok\\': True, \\'attempt\\': 3, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.193, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&PlayerId=1631338&FromDate=2026-04-09&ToDate=2026-04-12\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&PlayerId=1631338&FromDate=2026-04-09&ToDate=2026-04-12\\')\"]}, \\'stat_minutes\\': {\\'ok\\': True, \\'attempt\\': 4, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.427, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12\\')\", \"attempt 3: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612741&Stat=OffRebounds&FromDate=2026-04-09&ToDate=2026-04-12\\')\"]}}')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1,
+        "V1_VALIDATED": 1,
+        "ZERO_TAIL_LEDGER": 1
+      }
+    },
+    {
+      "key": [
+        "2025-26",
+        1610612747,
+        "1641733"
+      ],
+      "player": "Nick Smith Jr.",
+      "error": "RuntimeError('minutes mismatch recovered=344.000000 canonical=374.876667 delta=30.876667 tol=0.937192')",
+      "mode": "FULL_SEASON_SAFE",
+      "source": "PBP_STATS_FULL_SEASON_NATIVE_CORE_CONFIRMED",
+      "candidate_counts": {}
+    },
+    {
+      "key": [
+        "2025-26",
+        1610612752,
+        "1641794"
+      ],
+      "player": "Dillon Jones",
+      "error": "RuntimeError('incomplete tenure query 2026-01-20..2026-04-12: metric_count=89 requests={\\'team\\': {\\'ok\\': True, \\'attempt\\': 3, \\'status_code\\': 200, \\'elapsed_seconds\\': 1.15, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&PlayerId=1641794&FromDate=2026-01-20&ToDate=2026-04-12\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&PlayerId=1641794&FromDate=2026-01-20&ToDate=2026-04-12\\')\"]}, \\'stat_minutes\\': {\\'ok\\': True, \\'attempt\\': 3, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.382, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&Stat=OffRebounds&FromDate=2026-01-20&ToDate=2026-04-12\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612752&Stat=OffRebounds&FromDate=2026-01-20&ToDate=2026-04-12\\')\"]}}')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1,
+        "V1_VALIDATED": 1,
+        "ZERO_TAIL_LEDGER": 1
+      }
+    },
+    {
+      "key": [
+        "2025-26",
+        1610612762,
+        "1643060"
+      ],
+      "player": "Hayden Gray",
+      "error": "RuntimeError('incomplete tenure query 2026-04-11..2026-04-12: metric_count=89 requests={\\'team\\': {\\'ok\\': True, \\'attempt\\': 3, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.197, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/team?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&PlayerId=1643060&FromDate=2026-04-11&ToDate=2026-04-12\\')\"]}, \\'stat_minutes\\': {\\'ok\\': True, \\'attempt\\': 4, \\'status_code\\': 200, \\'elapsed_seconds\\': 0.557, \\'errors\\': [\"attempt 1: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&Stat=OffRebounds&FromDate=2026-04-11&ToDate=2026-04-12\\')\", \"attempt 2: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&Stat=OffRebounds&FromDate=2026-04-11&ToDate=2026-04-12\\')\", \"attempt 3: HTTPError(\\'503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-on-off/nba/stat?Season=2025-26&SeasonType=Regular+Season&TeamId=1610612762&Stat=OffRebounds&FromDate=2026-04-11&ToDate=2026-04-12\\')\"]}}')",
+      "mode": "TENURE_SCOPED",
+      "source": "V2_PARTIAL",
+      "candidate_counts": {
+        "V2_PARTIAL": 1,
+        "V1_VALIDATED": 1,
+        "ZERO_TAIL_LEDGER": 1
+      }
+    }
+  ],
+  "production_gate_relaxed": false,
+  "full_stage2_rebuild_performed": false,
+  "safety": "same season/team/player only; full-season endpoint allowed only when tenure games equal total team games; partial tenures use retained exact intervals; zero-tail segment flags never erase canonical non-zero PTS"
+}
