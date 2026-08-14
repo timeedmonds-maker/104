@@ -1,0 +1,114 @@
+name: TREB exact partial player-team-season aggregation gate
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-partial-exact-aggregation-gate.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+  OUT: /tmp/treb_partial_exact_gate
+
+jobs:
+  aggregate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Recover 26 safe locks and aggregate exact partial segments
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_locks /tmp/treb_stage2 "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git fetch --no-tags --depth=1 origin "refs/heads/${b}:refs/remotes/origin/${b}"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          python -u team_trb_all_players/finalize_treb_database.py --locks-dir /tmp/treb_locks --output-dir "$OUT"
+          git fetch --no-tags origin treb-stage2-actions-live
+          git worktree add --detach /tmp/treb_stage2 refs/remotes/origin/treb-stage2-actions-live
+          python /tmp/treb_stage2/team_trb_all_players/build_roster_targets_v2.py
+          python - <<'PY'
+          import gzip,json,os
+          from pathlib import Path
+          import pandas as pd
+
+          out=Path(os.environ['OUT'])
+          seg=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
+          assert len(seg)==5199, len(seg)
+          counts=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off','seconds_on','seconds_off','games_processed']
+          for c in counts:
+              seg[c]=pd.to_numeric(seg[c],errors='raise')
+          keys=['season','player_id','team_id']
+          def first_nonblank(s):
+              for v in s:
+                  if pd.notna(v) and str(v).strip(): return str(v)
+              return ''
+          agg=seg.groupby(keys,sort=True,dropna=False)[counts].sum().reset_index()
+          meta=seg.groupby(keys,sort=True,dropna=False).agg(
+              player=('player',first_nonblank),
+              team_abbr=('team_abbr',first_nonblank),
+              segment_count=('season','size'),
+          ).reset_index()
+          agg=agg.merge(meta,on=keys,validate='one_to_one')
+          assert len(agg)==4877, len(agg)
+          assert not agg.duplicated(keys).any()
+
+          roster=Path('/tmp/treb_stage2/team_trb_all_players/impact_database/roster_tenure_v2')
+          with gzip.open(roster/'player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              targets=[json.loads(x) for x in f if x.strip()]
+          summary=json.loads((roster/'roster_repair_v2_summary.json').read_text())
+          assert len(targets)==14524
+          assert summary['full_core_reuse_rows']==9647
+          assert summary['partial_player_team_season_rows']==4877
+          with gzip.open(roster/'wowy_partial_segments.jsonl.gz','rt',encoding='utf-8') as f:
+              assert sum(1 for x in f if x.strip())==5199
+          def pid(v):
+              s=str(v).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          expected={(str(r['season']),pid(r['player_id']),int(r['team_id'])) for r in targets if not bool(r['full_core_reuse'])}
+          observed={(str(r.season),pid(r.player_id),int(r.team_id)) for r in agg.itertuples(index=False)}
+          assert len(expected)==4877
+          assert observed==expected, {'missing':len(expected-observed),'extra':len(observed-expected)}
+
+          agg.to_csv(out/'partial_player_team_season_exact_counts.csv',index=False)
+          qa={
+              'status':'PASS',
+              'segment_rows':5199,
+              'partial_player_team_season_rows':4877,
+              'v2_total_rows':14524,
+              'v2_full_core_rows':9647,
+              'duplicate_partial_keys':0,
+              'partial_key_set_exact_match':True,
+              'full_core_exact_rows_still_required':9647,
+              'note':'This gate aggregates exact reconstructed partial segments only; it does not accept excluded games or the bounded 2025 bridge as final production semantics.'
+          }
+          (out/'PARTIAL_EXACT_AGGREGATION_GATE.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-partial-exact-aggregation-gate
+          path: |
+            /tmp/treb_partial_exact_gate/PARTIAL_EXACT_AGGREGATION_GATE.json
+            /tmp/treb_partial_exact_gate/partial_player_team_season_exact_counts.csv
+      - name: Persist gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/final_integrity_rebuild/final_exact_release
+          cp "$OUT/PARTIAL_EXACT_AGGREGATION_GATE.json" team_trb_all_players/final_integrity_rebuild/final_exact_release/
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/final_integrity_rebuild/final_exact_release/PARTIAL_EXACT_AGGREGATION_GATE.json
+          git commit -m 'Persist exact partial aggregation gate' || exit 0
+          git push origin HEAD:agent/treb-final-exact-assembly
