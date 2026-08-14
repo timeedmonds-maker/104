@@ -33,44 +33,111 @@ jobs:
             subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--output',str(arc),urls[key]],check=True)
             with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
           PY
-      - name: Audit v3-only semantic sufficiency and controls
+      - name: Audit V3 rebound identity against healthy legacy controls
         run: |
           set -euo pipefail
           python - <<'PY'
           import json,re
+          from collections import Counter
           from pathlib import Path
           import pandas as pd
+
           raw=Path('/tmp/treb2019v3')
           nba=pd.read_csv(raw/'nbastats_2019.csv',low_memory=False)
           v3=pd.read_csv(raw/'nbastatsv3_2019.csv',low_memory=False)
           pbp=pd.read_csv(raw/'pbpstats_2019.csv',low_memory=False)
           targets=[21901316,21901317,21901318]
-          def gi(df,col,g): return df[pd.to_numeric(df[col],errors='coerce').eq(g)].copy()
-          def summarize(g):
+
+          def gi(df,col,g):
+            return df[pd.to_numeric(df[col],errors='coerce').eq(g)].copy()
+
+          def clock_seconds(value):
+            s=str(value or '').strip()
+            m=re.fullmatch(r'PT(?:(\d+)M)?([0-9]+(?:\.[0-9]+)?)S',s,re.I)
+            if m:
+              return int(round((int(m.group(1) or 0)*60)+float(m.group(2))))
+            m=re.fullmatch(r'(\d+):(\d+(?:\.\d+)?)',s)
+            if m:
+              return int(round(int(m.group(1))*60+float(m.group(2))))
+            return None
+
+          def v3_rebound_keys(g):
+            x=gi(v3,'gameId',g)
+            if x.empty: return Counter()
+            at=x['actionType'].astype('string').str.lower()
+            x=x[at.eq('rebound')].copy()
+            keys=[]
+            for _,r in x.iterrows():
+              keys.append((
+                int(pd.to_numeric(r.get('period'),errors='coerce')),
+                clock_seconds(r.get('clock')),
+                int(pd.to_numeric(r.get('personId'),errors='coerce') or 0),
+                int(pd.to_numeric(r.get('teamId'),errors='coerce') or 0),
+              ))
+            return Counter(keys)
+
+          def legacy_rebound_keys(g):
+            x=gi(nba,'GAME_ID',g)
+            if x.empty: return Counter()
+            x=x[pd.to_numeric(x['EVENTMSGTYPE'],errors='coerce').eq(4)].copy()
+            keys=[]
+            for _,r in x.iterrows():
+              keys.append((
+                int(pd.to_numeric(r.get('PERIOD'),errors='coerce')),
+                clock_seconds(r.get('PCTIMESTRING')),
+                int(pd.to_numeric(r.get('PLAYER1_ID'),errors='coerce') or 0),
+                int(pd.to_numeric(r.get('PLAYER1_TEAM_ID'),errors='coerce') or 0),
+              ))
+            return Counter(keys)
+
+          def structure(g):
             vg=gi(v3,'gameId',g); ng=gi(nba,'GAME_ID',g); pg=gi(pbp,'GAMEID',g)
             at=vg['actionType'].astype('string').str.lower() if not vg.empty else pd.Series(dtype='string')
-            reb=vg[at.eq('rebound')].copy() if not vg.empty else vg
-            subs=vg[at.eq('substitution')].copy() if not vg.empty else vg
             periods=[int(x) for x in sorted(pd.to_numeric(vg.get('period'),errors='coerce').dropna().astype(int).unique().tolist())] if not vg.empty else []
             teams=[int(x) for x in sorted(pd.to_numeric(vg.get('teamId'),errors='coerce').dropna().astype(int).loc[lambda s:s>0].unique().tolist())] if not vg.empty else []
-            player_reb=reb[pd.to_numeric(reb.get('personId'),errors='coerce').fillna(0).gt(0)] if not reb.empty else reb
-            counter_pat=re.compile(r'\(\s*Off\s*:\s*\d+\s+Def\s*:\s*\d+\s*\)',re.I)
-            counter_rows=int(player_reb.get('description',pd.Series(dtype='string')).astype('string').fillna('').str.contains(counter_pat).sum()) if not player_reb.empty else 0
-            return {'game_id':int(g),'nba_rows':int(len(ng)),'v3_rows':int(len(vg)),'pbp_rows':int(len(pg)),'v3_rebounds':int(len(reb)),'v3_player_rebounds':int(len(player_reb)),'v3_player_rebound_counter_rows':counter_rows,'v3_substitutions':int(len(subs)),'v3_periods':periods,'v3_team_ids':teams,'two_teams':len(teams)==2,'has_complete_period_chronology':bool(periods and periods[0]==1 and periods==list(range(1,max(periods)+1))),'all_player_rebounds_countered':len(player_reb)==counter_rows}
-          target=[summarize(g) for g in targets]
-          # Compare v3 semantic completeness on nearby games where legacy + pbp are both present.
-          candidate=[]
+            return {
+              'game_id':int(g),'nba_rows':int(len(ng)),'v3_rows':int(len(vg)),'pbp_rows':int(len(pg)),
+              'v3_rebounds':int(at.eq('rebound').sum()) if not vg.empty else 0,
+              'v3_substitutions':int(at.eq('substitution').sum()) if not vg.empty else 0,
+              'v3_periods':periods,'v3_team_ids':teams,'two_teams':len(teams)==2,
+              'has_complete_period_chronology':bool(periods and periods[0]==1 and periods==list(range(1,max(periods)+1))),
+            }
+
+          controls=[]
           gids=[int(x) for x in sorted(pd.to_numeric(v3.gameId,errors='coerce').dropna().astype(int).unique())]
           for g in gids:
             if g in targets or not (21901280 <= g <= 21901330): continue
-            s=summarize(g)
-            if s['nba_rows']>0 and s['pbp_rows']>0 and s['v3_rows']>0: candidate.append(s)
-          controls=candidate[:20]
-          assert len(controls)>=10,len(controls)
-          qa={'status':'PASS','targets':target,'control_count':len(controls),'controls':controls,'target_v3_semantically_complete':[x['game_id'] for x in target if x['two_teams'] and x['has_complete_period_chronology'] and x['v3_rebounds']>0 and x['v3_substitutions']>0 and x['all_player_rebounds_countered']],'policy':'Diagnostic only. No production promotion without a separate exact count/lineup equivalence proof against controls.'}
+            s=structure(g)
+            if s['nba_rows']>0 and s['pbp_rows']>0 and s['v3_rows']>0:
+              vk=v3_rebound_keys(g); lk=legacy_rebound_keys(g)
+              controls.append({
+                **s,
+                'legacy_rebounds':int(sum(lk.values())),
+                'v3_identity_rows':int(sum(vk.values())),
+                'exact_rebound_identity_multiset':vk==lk,
+                'v3_only_keys':[[list(k),int(n)] for k,n in (vk-lk).items()][:20],
+                'legacy_only_keys':[[list(k),int(n)] for k,n in (lk-vk).items()][:20],
+              })
+            if len(controls)>=20: break
+          assert len(controls)==20,len(controls)
+
+          wrong=[x for x in controls if not x['exact_rebound_identity_multiset']]
+          targets_out=[structure(g) for g in targets]
+          structurally_complete=[x['game_id'] for x in targets_out if x['two_teams'] and x['has_complete_period_chronology'] and x['v3_rebounds']>0 and x['v3_substitutions']>0]
+          qa={
+            'status':'PASS',
+            'control_count':len(controls),
+            'control_exact_rebound_identity_games':len(controls)-len(wrong),
+            'control_wrong_rebound_identity_games':len(wrong),
+            'rebound_identity_equivalent_on_controls':len(wrong)==0,
+            'targets':targets_out,
+            'target_v3_structurally_complete':structurally_complete,
+            'controls':controls,
+            'policy':'Diagnostic only. The prior description-counter proxy was invalid because it also failed healthy controls. No production promotion without exact rebound-identity controls plus a separate lineup-equivalence proof.',
+          }
           out=Path('team_trb_all_players/impact_database/2019_v3_only_gap_canary'); out.mkdir(parents=True,exist_ok=True)
           (out/'QA.json').write_text(json.dumps(qa,indent=2)+'\n')
-          print(json.dumps({'status':qa['status'],'target_v3_semantically_complete':qa['target_v3_semantically_complete'],'control_count':qa['control_count']},indent=2))
+          print(json.dumps({k:qa[k] for k in ('status','control_count','control_exact_rebound_identity_games','control_wrong_rebound_identity_games','rebound_identity_equivalent_on_controls','target_v3_structurally_complete')},indent=2))
           PY
       - name: Reassert V2 and persist
         run: |
@@ -85,7 +152,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add team_trb_all_players/impact_database/2019_v3_only_gap_canary
-          git commit -m 'Persist 2019 v3-only source-gap canary' || true
+          git commit -m 'Persist 2019 V3 rebound-identity control audit' || true
           git push origin HEAD:agent/treb-final-exact-assembly
       - uses: actions/upload-artifact@v4
         if: always()
