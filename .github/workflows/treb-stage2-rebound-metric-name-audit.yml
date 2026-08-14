@@ -1,0 +1,123 @@
+name: TREB Stage2 rebound metric-name audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-stage2-rebound-metric-name-audit.yml]
+
+permissions:
+  contents: write
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+
+concurrency:
+  group: treb-stage2-rebound-metric-name-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout controller
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Checkout pinned Stage2
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.STAGE2_SHA }}
+          path: stage2
+          fetch-depth: 1
+
+      - name: Audit exact Stage2 metric identifiers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/treb_metric_audit
+          python - <<'PY'
+          import gzip, json, os, re
+          from collections import Counter
+          from pathlib import Path
+
+          p = Path('stage2/team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
+          counts = Counter()
+          rows = 0
+          with gzip.open(p, 'rt', encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip():
+                      continue
+                  r = json.loads(line)
+                  rows += 1
+                  counts[str(r['metric'])] += 1
+
+          assert rows == 1_353_334, rows
+          assert len(counts) == 89, len(counts)
+          assert set(counts.values()) == {15_206}, sorted(set(counts.values()))
+
+          names = sorted(counts)
+          def reb_like(s):
+              x = re.sub(r'[^a-z0-9]+', '', s.lower())
+              return any(tok in x for tok in ('rebound','reb','oreb','dreb','orb','drb','trb'))
+          rebound = [x for x in names if reb_like(x)]
+
+          # The failed final release expected these legacy names. Record presence/absence only;
+          # do not invent aliases or alter semantics here.
+          legacy_expected = ['TotalReboundPct','OffReboundPct','DefReboundPct']
+          report = {
+              'status': 'PASS',
+              'purpose': 'Bounded diagnosis of Stage2 rebound metric identifiers after final assembly name-gate failure',
+              'stage2_sha': os.environ['STAGE2_SHA'],
+              'metric_rows': rows,
+              'metric_count': len(names),
+              'rows_per_metric': 15206,
+              'legacy_expected_names': {x: x in counts for x in legacy_expected},
+              'rebound_like_metric_names': rebound,
+              'all_metric_names': names,
+              'integrity_policy': {
+                  'no_alias_promotion_in_this_step': True,
+                  'no_percentage_backsolve': True,
+                  'no_reconstruction': True,
+                  'accepted_v13_residuals_reopened': False
+              }
+          }
+          out = Path('/tmp/treb_metric_audit/STAGE2_REBOUND_METRIC_NAME_AUDIT.json')
+          out.write_text(json.dumps(report, indent=2) + '\n')
+          md = [
+              '# Stage2 rebound metric-name audit','',
+              '- Status: **PASS**',
+              f'- Metric rows: **{rows:,}**',
+              f'- Metric identifiers: **{len(names)}**',
+              '- Rows per metric: **15,206**','',
+              '## Rebound-like identifiers',''
+          ] + [f'- `{x}`' for x in rebound] + ['', '## Legacy expected-name presence',''] + [f'- `{x}`: **{str(x in counts).upper()}**' for x in legacy_expected]
+          Path('/tmp/treb_metric_audit/STAGE2_REBOUND_METRIC_NAME_AUDIT.md').write_text('\n'.join(md) + '\n')
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Upload diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-stage2-rebound-metric-name-audit-${{ github.run_id }}
+          path: /tmp/treb_metric_audit/
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Persist durable diagnostic checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p treb_automation/status
+          cp /tmp/treb_metric_audit/STAGE2_REBOUND_METRIC_NAME_AUDIT.json treb_automation/status/STAGE2_REBOUND_METRIC_NAME_AUDIT_LATEST.json
+          cp /tmp/treb_metric_audit/STAGE2_REBOUND_METRIC_NAME_AUDIT.md treb_automation/status/STAGE2_REBOUND_METRIC_NAME_AUDIT_LATEST.md
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add treb_automation/status/STAGE2_REBOUND_METRIC_NAME_AUDIT_LATEST.json treb_automation/status/STAGE2_REBOUND_METRIC_NAME_AUDIT_LATEST.md
+          git commit -m 'Persist Stage2 rebound metric-name audit [skip ci]'
+          git fetch origin agent/treb-final-exact-assembly
+          git rebase origin/agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
