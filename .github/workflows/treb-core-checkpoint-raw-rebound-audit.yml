@@ -1,0 +1,108 @@
+name: TREB retained core raw rebound audit
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-core-checkpoint-raw-rebound-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: treb-core-checkpoint-raw-rebound-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Audit retained raw rebound metrics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip, json, re
+          from pathlib import Path
+          from collections import Counter, defaultdict
+
+          ROOT=Path('team_trb_all_players/impact_database/core_checkpoints')
+          OUT=Path('/tmp/treb_core_raw_rebound_audit')
+          OUT.mkdir(parents=True,exist_ok=True)
+          norm=lambda s: re.sub(r'[^a-z0-9]+','',str(s).lower())
+
+          files=sorted(ROOT.glob('*/*.json.gz'))
+          metrics=Counter(); row_keys=defaultdict(Counter); samples={}; seasons=Counter(); teams=Counter()
+          player_keys=set(); rebound_rows=[]; opp_metric_names=set(); raw_metric_names=set(); bad=[]
+          for p in files:
+              try:
+                  with gzip.open(p,'rt',encoding='utf-8') as f: d=json.load(f)
+              except Exception as e:
+                  bad.append([str(p),repr(e)]); continue
+              if d.get('complete') is not True or d.get('absent_team_season') is True: continue
+              season=str(d.get('season')); team_id=int(d.get('team_id'))
+              seasons[season]+=1; teams[team_id]+=1
+              players=d.get('player_totals') or []
+              name_to_id={norm(r.get('Name') or r.get('ShortName')):str(r.get('EntityId') or r.get('RowId') or r.get('PlayerId') or '').strip() for r in players if isinstance(r,dict)}
+              results=d.get('team_on_off_results') or {}
+              for metric, rows in results.items():
+                  metrics[str(metric)]+=1
+                  n=norm(metric)
+                  if 'reb' in n or 'rebound' in n: raw_metric_names.add(str(metric))
+                  if ('opp' in n or 'opponent' in n) and ('reb' in n or 'rebound' in n): opp_metric_names.add(str(metric))
+                  if not isinstance(rows,list): continue
+                  for r in rows[:5]:
+                      if isinstance(r,dict):
+                          for k in r: row_keys[str(metric)][str(k)]+=1
+                          samples.setdefault(str(metric),r)
+                  if str(metric) in ('OffRebounds','DefRebounds'):
+                      for r in rows:
+                          if not isinstance(r,dict): continue
+                          pid=name_to_id.get(norm(r.get('Name')),'')
+                          if pid:
+                              player_keys.add((season,team_id,pid))
+                              rebound_rows.append({
+                                  'season':season,'team_id':team_id,'player_id':pid,'player':r.get('Name'),'metric':str(metric),
+                                  'MinutesOn':r.get('MinutesOn'),'MinutesOff':r.get('MinutesOff'),'On':r.get('On'),'Off':r.get('Off'),'On-Off':r.get('On-Off'),
+                                  'extra':{k:v for k,v in r.items() if k not in {'Name','MinutesOn','MinutesOff','On','Off','On-Off'}}
+                              })
+
+          report={
+              'status':'PASS','checkpoint_files':len(files),'read_errors':len(bad),
+              'seasons_with_complete_core':len(seasons),'complete_team_seasons':sum(seasons.values()),
+              'unique_player_team_season_keys_with_raw_oreb_dreb':len(player_keys),
+              'rebound_metric_names':sorted(raw_metric_names),
+              'opponent_rebound_metric_names':sorted(opp_metric_names),
+              'all_metric_names':sorted(metrics),
+              'metric_checkpoint_coverage':dict(sorted(metrics.items())),
+              'rebound_metric_row_keys':{m:sorted(row_keys[m]) for m in sorted(raw_metric_names)},
+              'rebound_metric_samples':{m:samples.get(m) for m in sorted(raw_metric_names)},
+              'read_errors_detail':bad[:20],
+          }
+          (OUT/'TREB_CORE_RAW_REBOUND_AUDIT.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          md=['# TREB retained core raw rebound audit','',f"- Checkpoint files: **{report['checkpoint_files']}**",f"- Complete team-seasons: **{report['complete_team_seasons']}**",f"- Seasons: **{report['seasons_with_complete_core']}**",f"- PTS keys with raw OffRebounds/DefRebounds rows: **{report['unique_player_team_season_keys_with_raw_oreb_dreb']}**",'', '## Rebound metrics']
+          md += [f'- `{x}`' for x in report['rebound_metric_names']]
+          md += ['', '## Opponent rebound metrics'] + ([f'- `{x}`' for x in report['opponent_rebound_metric_names']] or ['- NONE'])
+          md += ['', '## Sample raw OffRebounds row', '```json', json.dumps(samples.get('OffRebounds'),indent=2,default=str), '```', '', '## Sample raw DefRebounds row', '```json', json.dumps(samples.get('DefRebounds'),indent=2,default=str), '```']
+          (OUT/'TREB_CORE_RAW_REBOUND_AUDIT.md').write_text('\n'.join(md)+'\n')
+          print(json.dumps({k:report[k] for k in ['status','checkpoint_files','complete_team_seasons','seasons_with_complete_core','unique_player_team_season_keys_with_raw_oreb_dreb','rebound_metric_names','opponent_rebound_metric_names']},indent=2))
+          PY
+
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-core-raw-rebound-audit
+          path: |
+            /tmp/treb_core_raw_rebound_audit/TREB_CORE_RAW_REBOUND_AUDIT.json
+            /tmp/treb_core_raw_rebound_audit/TREB_CORE_RAW_REBOUND_AUDIT.md
+          if-no-files-found: error
+          retention-days: 30
