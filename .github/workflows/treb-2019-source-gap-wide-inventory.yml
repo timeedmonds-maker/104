@@ -1,0 +1,91 @@
+name: TREB 2019 source-gap wide inventory
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-2019-source-gap-wide-inventory.yml]
+permissions:
+  contents: write
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Inventory every archived 2019 source and target-game coverage
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,subprocess,tarfile,urllib.request,os
+          from pathlib import Path
+          import pandas as pd
+          targets={21901316,21901317,21901318}
+          raw=Path('/tmp/treb2019wide'); raw.mkdir(parents=True,exist_ok=True)
+          txt=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=60).read().decode()
+          urls={x.split('=',1)[0].strip():x.split('=',1)[1].strip() for x in txt.splitlines() if '=' in x}
+          keys=sorted(k for k in urls if '2019' in k)
+          report={'status':'PASS','archive_keys':keys,'archives':[],'targets':{str(g):[] for g in sorted(targets)}}
+          for key in keys:
+            url=urls[key]; arc=raw/url.rsplit('/',1)[-1]
+            rec={'key':key,'url_basename':arc.name,'downloaded':False,'members':[]}
+            try:
+              subprocess.run(['curl','--fail','--location','--retry','4','--retry-all-errors','--output',str(arc),url],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+              rec['downloaded']=True
+              with tarfile.open(arc,'r:xz') as tf:
+                names=tf.getnames(); rec['members']=names
+                tf.extractall(raw/key)
+              for p in (raw/key).rglob('*'):
+                if not p.is_file(): continue
+                hit=[]
+                try:
+                  if p.suffix.lower()=='.csv':
+                    df=pd.read_csv(p,low_memory=False)
+                    for col in df.columns:
+                      s=pd.to_numeric(df[col],errors='coerce')
+                      found=targets & set(s.dropna().astype('int64').tolist())
+                      if found:
+                        for g in found:
+                          report['targets'][str(g)].append({'archive_key':key,'file':str(p.relative_to(raw/key)),'column':str(col),'rows':int(s.eq(g).sum())})
+                        hit.extend(found)
+                  else:
+                    b=p.read_bytes()
+                    for g in targets:
+                      if str(g).encode() in b or f'{g:010d}'.encode() in b:
+                        report['targets'][str(g)].append({'archive_key':key,'file':str(p.relative_to(raw/key)),'column':None,'rows':None})
+                except Exception:
+                  pass
+            except Exception as e:
+              rec['error']=repr(e)
+            report['archives'].append(rec)
+          report['target_source_counts']={g:len(v) for g,v in report['targets'].items()}
+          out=Path('team_trb_all_players/impact_database/2019_source_gap_wide_inventory'); out.mkdir(parents=True,exist_ok=True)
+          (out/'INVENTORY.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps({'archive_keys':keys,'target_source_counts':report['target_source_counts']},indent=2))
+          PY
+      - name: Reassert V2 and persist
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          r=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          assert len(r)==14524
+          assert len({(str(x['season']),str(x['player_id']).removesuffix('.0'),int(x['team_id'])) for x in r})==14524
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add team_trb_all_players/impact_database/2019_source_gap_wide_inventory
+          git commit -m 'Persist wide 2019 source-gap inventory' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: treb-2019-source-gap-wide-${{ github.run_id }}
+          path: team_trb_all_players/impact_database/2019_source_gap_wide_inventory
+          retention-days: 90
