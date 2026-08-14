@@ -13,10 +13,15 @@ concurrency:
   group: treb-final-completion-supervisor
   cancel-in-progress: false
 
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  RETAINED_SHA: aecbcdde7a0efe9e162f0030032b1d1c16f5b8c3
+  LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+
 jobs:
-  retained-evidence-inventory:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+  exact-source-semantic-lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - name: Checkout final assembly controller
         uses: actions/checkout@v4
@@ -25,36 +30,39 @@ jobs:
           path: control
           fetch-depth: 1
 
-      - name: Checkout retained forensic evidence
+      - name: Checkout pinned retained forensic lineage
         uses: actions/checkout@v4
         with:
-          ref: agent/treb-batched-game-facts-20260812
+          ref: ${{ env.RETAINED_SHA }}
           path: evidence
+          fetch-depth: 0
+
+      - name: Checkout pinned authoritative Stage2
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.STAGE2_SHA }}
+          path: stage2
           fetch-depth: 1
 
-      - name: Inventory retained raw rebound evidence against canonical V2 universe
+      - name: Validate exact source semantics and frozen lineage
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p supervisor_output
+          git -C evidence fetch --prune origin '+refs/heads/*:refs/remotes/origin/*'
+          mkdir -p semantic_lock_output
           python - <<'PY'
-          import csv
-          import gzip
-          import io
-          import json
-          import os
-          import re
-          import subprocess
-          from collections import Counter, defaultdict
+          from __future__ import annotations
+          import gzip, json, os, subprocess
+          from collections import Counter
           from pathlib import Path
 
           CONTROL = Path('control')
           EVIDENCE = Path('evidence')
-          OUT = Path('supervisor_output')
-          TARGETS = CONTROL / 'team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
-          EXPECTED_CANONICAL = 14524
-          MAX_SAMPLE_RECORDS = 8
-          MAX_FILE_BYTES = 250 * 1024 * 1024
+          STAGE2 = Path('stage2')
+          OUT = Path('semantic_lock_output')
+          STAGE2_SHA = os.environ['STAGE2_SHA']
+          RETAINED_SHA = os.environ['RETAINED_SHA']
+          LOCK_PATH = os.environ['LOCK_PATH']
 
           def norm(v):
               if v is None:
@@ -67,331 +75,220 @@ jobs:
                       pass
               return s
 
-          def nfield(v):
-              return re.sub(r'[^a-z0-9]+', '', str(v).lower())
+          def git_evidence(*args):
+              return subprocess.check_output(['git','-C','evidence',*args], text=True).strip()
 
-          def field_alias(fields, aliases):
-              lookup = {nfield(f): f for f in fields}
-              for alias in aliases:
-                  if nfield(alias) in lookup:
-                      return lookup[nfield(alias)]
-              return None
+          controller_sha = subprocess.check_output(['git','-C','control','rev-parse','HEAD'], text=True).strip()
+          retained_actual = subprocess.check_output(['git','-C','evidence','rev-parse','HEAD'], text=True).strip()
+          stage2_actual = subprocess.check_output(['git','-C','stage2','rev-parse','HEAD'], text=True).strip()
+          assert retained_actual == RETAINED_SHA, (retained_actual, RETAINED_SHA)
+          assert stage2_actual == STAGE2_SHA, (stage2_actual, STAGE2_SHA)
 
-          def key_fields(fields):
-              sf = field_alias(fields, ('season','season_id','seasonid'))
-              pf = field_alias(fields, ('player_id','playerid','entity_id','entityid','nba_player_id','nbaplayerid'))
-              tf = field_alias(fields, ('team_id','teamid','nba_team_id','nbateamid'))
-              return sf, pf, tf
-
-          pct_tokens = ('pct','percent','percentage','rate','ratio','share','swing','difference','diff','minus','plusminus')
-          reb_tokens = ('rebound','rebounds','trb','oreb','dreb','orb','drb')
-          count_context = ('count','total','made','team','opp','opponent','player','on','off','for','against','own','available','chance','opportunity')
-
-          def rebound_field_kind(field):
-              low = str(field).lower()
-              nf = nfield(field)
-              if not any(tok in low or tok in nf for tok in reb_tokens):
-                  return None
-              if '%' in low or any(tok in nf for tok in pct_tokens):
-                  return 'percentage'
-              if nf in ('trb','oreb','dreb','orb','drb','reb','rebound','rebounds'):
-                  return 'raw_count'
-              if any(tok in nf for tok in count_context):
-                  return 'raw_count'
-              return 'raw_candidate'
+          # Immutable V2 population gate from the final-assembly branch.
+          roster = CONTROL/'team_trb_all_players/impact_database/roster_tenure_v2'
+          summary = json.loads((roster/'roster_repair_v2_summary.json').read_text())
+          expected = {
+              'positive_core_rows_original':14526,
+              'excluded_stale_core_artifacts':2,
+              'validated_player_team_season_rows':14524,
+              'full_core_reuse_rows':9647,
+              'partial_player_team_season_rows':4877,
+              'wowy_game_bearing_segments':5199,
+              'cross_team_overlap_pairs':0,
+              'impossible_minute_rows':0,
+              'empty_played_tenures':0,
+          }
+          for key, value in expected.items():
+              assert summary[key] == value, (key, summary.get(key), value)
 
           canonical = set()
-          with gzip.open(TARGETS, 'rt', encoding='utf-8') as fh:
-              for line in fh:
+          with gzip.open(roster/'player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
                   if not line.strip():
                       continue
-                  row = json.loads(line)
-                  fields = list(row.keys())
-                  sf, pf, tf = key_fields(fields)
-                  if not (sf and pf and tf):
-                      raise RuntimeError(f'Canonical target schema missing key fields: {fields}')
-                  canonical.add((norm(row.get(sf)), norm(row.get(pf)), norm(row.get(tf))))
+                  r = json.loads(line)
+                  canonical.add((norm(r['season']),norm(r['player_id']),norm(r['team_id'])))
+          assert len(canonical) == 14524, len(canonical)
 
-          if len(canonical) != EXPECTED_CANONICAL:
-              raise RuntimeError(f'Canonical V2 population gate failed: {len(canonical)} != {EXPECTED_CANONICAL}')
-
-          evidence_sha = subprocess.check_output(['git','-C','evidence','rev-parse','HEAD'], text=True).strip()
-          controller_sha = subprocess.check_output(['git','-C','control','rev-parse','HEAD'], text=True).strip()
-
-          allowed_suffixes = ('.csv','.csv.gz','.json','.json.gz','.jsonl','.jsonl.gz')
-          name_hints = ('rebound','reb','trb','oreb','dreb','residual','exact','repair','recover','candidate','accumulator','fact','overlay','lock','v13','forensic','promotion','promote')
-          skip_parts = {'.git','node_modules','__pycache__'}
-
-          def candidate_path(p):
-              rel = str(p.relative_to(EVIDENCE)).lower()
-              if any(part in skip_parts for part in p.parts):
-                  return False
-              if not rel.endswith(allowed_suffixes):
-                  return False
-              return any(h in rel for h in name_hints)
-
-          files = sorted(p for p in EVIDENCE.rglob('*') if p.is_file() and candidate_path(p))
-
-          def text_open(path):
-              if str(path).lower().endswith('.gz'):
-                  return gzip.open(path, 'rt', encoding='utf-8-sig', errors='replace', newline='')
-              return open(path, 'rt', encoding='utf-8-sig', errors='replace', newline='')
-
-          def sample_and_iter(path):
-              low = str(path).lower()
-              if low.endswith('.csv') or low.endswith('.csv.gz'):
-                  fh = text_open(path)
-                  reader = csv.DictReader(fh)
-                  fields = reader.fieldnames or []
-                  def gen():
-                      try:
-                          for row in reader:
-                              yield row
-                      finally:
-                          fh.close()
-                  return fields, gen()
-
-              if low.endswith('.jsonl') or low.endswith('.jsonl.gz'):
-                  fh = text_open(path)
-                  first = None
-                  while True:
-                      line = fh.readline()
-                      if not line:
-                          break
-                      if line.strip():
-                          obj = json.loads(line)
-                          if isinstance(obj, dict):
-                              first = obj
-                              break
-                  if first is None:
-                      fh.close()
-                      return [], iter(())
-                  fields = list(first.keys())
-                  def gen():
-                      try:
-                          yield first
-                          for line in fh:
-                              if not line.strip():
-                                  continue
-                              obj = json.loads(line)
-                              if isinstance(obj, dict):
-                                  yield obj
-                      finally:
-                          fh.close()
-                  return fields, gen()
-
-              # JSON files are inspected only when reasonably sized; they are loaded as a bounded structural source.
-              if path.stat().st_size > 30 * 1024 * 1024:
-                  return [], iter(())
-              with text_open(path) as fh:
-                  obj = json.load(fh)
-              records = []
-              if isinstance(obj, list):
-                  records = [x for x in obj if isinstance(x, dict)]
-              elif isinstance(obj, dict):
-                  for key in ('rows','records','data','items','candidates','results'):
-                      val = obj.get(key)
-                      if isinstance(val, list) and val and isinstance(val[0], dict):
-                          records = val
-                          break
-                  if not records:
-                      records = [obj]
-              fields = list(records[0].keys()) if records else []
-              return fields, iter(records)
-
-          source_reports = []
-          raw_union = set()
-          raw_key_sources = defaultdict(list)
-          percentage_union = set()
-          files_examined = 0
-          files_skipped_large = 0
-          parse_errors = []
-
-          for path in files:
-              rel = str(path.relative_to(EVIDENCE))
-              size = path.stat().st_size
-              if size > MAX_FILE_BYTES:
-                  files_skipped_large += 1
-                  source_reports.append({'path': rel, 'classification':'skipped_large', 'bytes':size})
-                  continue
-              files_examined += 1
-              try:
-                  fields, rows = sample_and_iter(path)
-                  sf, pf, tf = key_fields(fields)
-                  raw_fields = [f for f in fields if rebound_field_kind(f) in ('raw_count','raw_candidate')]
-                  pct_fields = [f for f in fields if rebound_field_kind(f) == 'percentage']
-                  if not (sf and pf and tf) or not (raw_fields or pct_fields):
-                      source_reports.append({
-                          'path': rel,
-                          'classification': 'non_keyed_or_non_rebound',
-                          'bytes': size,
-                          'key_fields': [x for x in (sf,pf,tf) if x],
-                          'raw_rebound_fields': raw_fields,
-                          'percentage_fields': pct_fields,
-                      })
-                      if hasattr(rows, 'close'):
-                          rows.close()
+          # Corrected long-format Stage2 gate: 1,353,334 metric rows = 15,206 windows x 89 metrics.
+          payload = STAGE2/'team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          metric_rows = 0
+          window_counts = Counter()
+          with gzip.open(payload,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip():
                       continue
+                  r = json.loads(line)
+                  metric_rows += 1
+                  wkey = (
+                      norm(r.get('season')), norm(r.get('player_id')), norm(r.get('team_id')),
+                      norm(r.get('tenure_start')), norm(r.get('tenure_end')),
+                  )
+                  window_counts[wkey] += 1
+          assert metric_rows == 1353334, metric_rows
+          assert len(window_counts) == 15206, len(window_counts)
+          bad_metric_windows = [k for k,v in window_counts.items() if v != 89]
+          assert not bad_metric_windows, (len(bad_metric_windows), bad_metric_windows[:5])
 
-                  source_keys = set()
-                  canonical_source_keys = set()
-                  noncanonical = 0
-                  row_count = 0
-                  for row in rows:
-                      row_count += 1
-                      key = (norm(row.get(sf)), norm(row.get(pf)), norm(row.get(tf)))
-                      if not all(key):
-                          continue
-                      source_keys.add(key)
-                      if key in canonical:
-                          canonical_source_keys.add(key)
-                      else:
-                          noncanonical += 1
+          zero = json.loads((STAGE2/'team_trb_all_players/impact_database/corrected_off/zero_minute_tail_report.json').read_text())
+          assert zero['total_excluded_zero_minute_windows'] == 221, zero
+          assert zero['indeterminate_windows'] == 0, zero
+          assert zero['remaining_retry_queue_windows'] == 0, zero
 
-                  if raw_fields:
-                      classification = 'candidate_raw_count_evidence'
-                      raw_union.update(canonical_source_keys)
-                      for key in canonical_source_keys:
-                          raw_key_sources[key].append(rel)
-                  else:
-                      classification = 'percentage_only_evidence'
-                      percentage_union.update(canonical_source_keys)
+          # Freeze and validate all 26 exact safe-lock branches. No unresolved rebound rows may be promoted.
+          lock_manifest = []
+          target_total = 0
+          accepted_game_ids = set()
+          for y in range(2000, 2026):
+              season = f'{y}-{(y+1)%100:02d}'
+              branch = f'treb-final-safe-lock-{y}'
+              ref = f'refs/remotes/origin/{branch}'
+              sha = git_evidence('rev-parse', ref)
+              raw = subprocess.check_output(
+                  ['git','-C','evidence','show',f'{ref}:{LOCK_PATH}/{season}.json'], text=True
+              )
+              d = json.loads(raw)
+              assert d['season'] == season
+              assert d.get('status') == 'COMPLETE', (season, d.get('status'))
+              assert len(d.get('exceptions', [])) == 0, (season, len(d.get('exceptions', [])))
+              assert len(d.get('unmatched_rebound_rows', [])) == 0, (season, len(d.get('unmatched_rebound_rows', [])))
+              targets = len(d.get('targets', []))
+              target_total += targets
+              games = sorted({int(x['game_id']) for x in d.get('accepted_excluded_games', [])})
+              accepted_game_ids.update(games)
+              lock_manifest.append({
+                  'season':season,
+                  'branch':branch,
+                  'commit_sha':sha,
+                  'status':d.get('status'),
+                  'targets':targets,
+                  'accepted_excluded_games':games,
+                  'engine':d.get('engine'),
+                  'code_commit':d.get('code_commit'),
+              })
+          assert len(lock_manifest) == 26
+          assert target_total == 5199, target_total
+          assert len(accepted_game_ids) == 40, len(accepted_game_ids)
 
-                  source_reports.append({
-                      'path': rel,
-                      'classification': classification,
-                      'bytes': size,
-                      'rows': row_count,
-                      'unique_keys': len(source_keys),
-                      'canonical_keys_covered': len(canonical_source_keys),
-                      'noncanonical_rows_or_keys_seen': noncanonical,
-                      'key_fields': [sf,pf,tf],
-                      'raw_rebound_fields': raw_fields,
-                      'percentage_fields': pct_fields,
-                  })
-              except Exception as exc:
-                  parse_errors.append({'path':rel,'error':f'{type(exc).__name__}: {exc}'})
-                  source_reports.append({'path':rel,'classification':'parse_error','bytes':size,'error':f'{type(exc).__name__}: {exc}'})
+          # Exact-count semantic contract. These are the authoritative count artifacts/fields for later conflict validation.
+          exact_layer_path = EVIDENCE/'team_trb_all_players/build_exact_game_fact_layer.py'
+          exact_layer = exact_layer_path.read_text()
+          exact_contract = (
+              'team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on',
+              'team_game_treb.csv.gz','player_game_treb_on.csv.gz'
+          )
+          missing_contract = [x for x in exact_contract if x not in exact_layer]
+          assert not missing_contract, missing_contract
 
-          unresolved_candidate = canonical - raw_union
-          multi_source = {k:v for k,v in raw_key_sources.items() if len(v) > 1}
-          class_counts = Counter(r['classification'] for r in source_reports)
-          raw_sources = [r for r in source_reports if r['classification'] == 'candidate_raw_count_evidence']
-          raw_sources.sort(key=lambda r:(-r.get('canonical_keys_covered',0), r['path']))
-          pct_sources = [r for r in source_reports if r['classification'] == 'percentage_only_evidence']
-          pct_sources.sort(key=lambda r:(-r.get('canonical_keys_covered',0), r['path']))
+          # Explicitly quarantine the legacy percentage-derived canonical assembly.
+          legacy_path = EVIDENCE/'.github/workflows/treb-final-canonical-assembly.yml'
+          legacy = legacy_path.read_text()
+          assert 'pct_candidates' in legacy
+          assert 'Solve exact opponent season OREB/DREB totals from all core player evidence.' in legacy
+
+          refs_raw = git_evidence('for-each-ref','--format=%(refname:short)\t%(objectname)','refs/remotes/origin')
+          refs = []
+          for line in refs_raw.splitlines():
+              if not line.strip() or line.startswith('origin/HEAD'):
+                  continue
+              name, sha = line.split('\t',1)
+              refs.append({'ref':name,'sha':sha})
+          refs.sort(key=lambda x:x['ref'])
+          game_fact_refs = [x for x in refs if x['ref'].startswith('origin/treb-game-facts-')]
+          repair_refs = [x for x in refs if any(k in x['ref'] for k in (
+              'treb-game-fact-repair','treb-authoritative-final-repair','treb-solved-engine-recovery',
+              'treb-solved-engine-cross-era-pass','treb-validated-'
+          ))]
 
           report = {
-              'status': 'PASS',
-              'controller_sha': controller_sha,
-              'evidence_branch': 'agent/treb-batched-game-facts-20260812',
-              'evidence_sha': evidence_sha,
-              'canonical_population': len(canonical),
-              'canonical_population_required': EXPECTED_CANONICAL,
-              'candidate_files_found': len(files),
-              'files_examined': files_examined,
-              'files_skipped_large': files_skipped_large,
-              'parse_error_count': len(parse_errors),
-              'classification_counts': dict(sorted(class_counts.items())),
-              'candidate_raw_source_count': len(raw_sources),
-              'percentage_only_source_count': len(pct_sources),
-              'candidate_raw_union_canonical_keys': len(raw_union),
-              'candidate_raw_uncovered_canonical_keys': len(unresolved_candidate),
-              'percentage_only_union_canonical_keys': len(percentage_union),
-              'multi_raw_source_key_count': len(multi_source),
-              'coverage_semantics': 'candidate inventory only; a key is not promoted or declared exact merely because a raw-looking source covers it',
-              'integrity_policy': {
-                  'reconstruction_permitted': False,
-                  'rounded_metric_promotion_permitted': False,
-                  'percentage_only_promotion_permitted': False,
-                  'accepted_v13_residuals_reopened': False,
-                  'canonical_population_required': EXPECTED_CANONICAL,
-                  'automatic_exact_promotion_permitted': False,
+              'status':'PASS',
+              'purpose':'Fast exact-source semantic lock before retained count conflict validation',
+              'controller_sha':controller_sha,
+              'retained_forensic_commit_sha':retained_actual,
+              'authoritative_stage2_commit_sha':stage2_actual,
+              'canonical_population':14524,
+              'full_core_rows':9647,
+              'partial_player_team_season_rows':4877,
+              'partial_segments':5199,
+              'stage2_metric_rows':metric_rows,
+              'stage2_tenure_windows':len(window_counts),
+              'metrics_per_window':89,
+              'safe_lock_seasons':len(lock_manifest),
+              'safe_lock_segment_targets':target_total,
+              'safe_lock_exceptions':0,
+              'safe_lock_unmatched_rebound_rows':0,
+              'accepted_excluded_unique_games':len(accepted_game_ids),
+              'exact_count_artifact_contract':list(exact_contract),
+              'game_fact_refs_snapshotted':len(game_fact_refs),
+              'repair_refs_snapshotted':len(repair_refs),
+              'legacy_percentage_assembly':'QUARANTINED_DO_NOT_EXECUTE',
+              'next_stage':'Compare retained exact-count artifacts under the pinned refs; isolate conflicts by canonical key; do not reconstruct or promote ambiguous evidence.',
+              'integrity_policy':{
+                  'reconstruction_permitted':False,
+                  'rounded_percentage_backsolve_permitted':False,
+                  'legacy_pct_candidates_permitted':False,
+                  'automatic_ambiguous_promotion_permitted':False,
+                  'accepted_v13_residuals_reopened':False,
               },
-              'candidate_raw_sources': raw_sources,
-              'percentage_only_sources': pct_sources,
-              'uncovered_canonical_keys': ['|'.join(k) for k in sorted(unresolved_candidate)],
-              'multi_raw_source_keys': [
-                  {'key':'|'.join(k),'sources':sorted(v)} for k,v in sorted(multi_source.items())
-              ],
-              'parse_errors': parse_errors,
-              'all_source_reports': source_reports,
           }
-
-          (OUT / 'retained_evidence_inventory.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
-          with (OUT / 'candidate_raw_sources.csv').open('w', encoding='utf-8', newline='') as fh:
-              cols = ['path','canonical_keys_covered','unique_keys','rows','bytes','raw_rebound_fields','percentage_fields']
-              w = csv.DictWriter(fh, fieldnames=cols)
-              w.writeheader()
-              for r in raw_sources:
-                  w.writerow({
-                      'path':r['path'],
-                      'canonical_keys_covered':r.get('canonical_keys_covered',0),
-                      'unique_keys':r.get('unique_keys',0),
-                      'rows':r.get('rows',0),
-                      'bytes':r.get('bytes',0),
-                      'raw_rebound_fields':'|'.join(r.get('raw_rebound_fields',[])),
-                      'percentage_fields':'|'.join(r.get('percentage_fields',[])),
-                  })
-
+          (OUT/'EXACT_SOURCE_SEMANTIC_LOCK.json').write_text(json.dumps(report,indent=2)+'\n')
+          (OUT/'SAFE_LOCK_COMMITS.json').write_text(json.dumps(lock_manifest,indent=2)+'\n')
+          (OUT/'GAME_FACT_REFS.json').write_text(json.dumps(game_fact_refs,indent=2)+'\n')
+          (OUT/'REPAIR_REFS.json').write_text(json.dumps(repair_refs,indent=2)+'\n')
+          (OUT/'DO_NOT_EXECUTE_LEGACY_ASSEMBLY.txt').write_text(
+              'QUARANTINED: .github/workflows/treb-final-canonical-assembly.yml\n'
+              'Reason: rounded-percentage opponent component inference via pct_candidates.\n'
+              'Only exact count artifacts under the frozen semantic contract may advance.\n'
+          )
           md = [
-              '# TREB retained evidence inventory', '',
-              f'- Status: **PASS**',
-              f'- Canonical V2 universe: **{len(canonical):,} / {EXPECTED_CANONICAL:,}**',
-              f'- Retained evidence branch: `{evidence_sha}`',
-              f'- Candidate files found: **{len(files):,}**',
-              f'- Files examined: **{files_examined:,}**',
-              f'- Candidate raw/count sources: **{len(raw_sources):,}**',
-              f'- Candidate raw/count union coverage: **{len(raw_union):,} canonical keys**',
-              f'- Canonical keys not covered by candidate raw/count sources: **{len(unresolved_candidate):,}**',
-              f'- Percentage-only union coverage: **{len(percentage_union):,} canonical keys**',
-              f'- Keys appearing in multiple raw/count candidate sources: **{len(multi_source):,}**',
-              f'- Parse errors: **{len(parse_errors):,}**', '',
-              '## Important interpretation', '',
-              'This is a retained-source inventory, not an automatic promotion step. Raw-looking coverage is not treated as exact until source semantics and conflicts are validated.',
-              'No reconstruction, rounded-percentage backsolve, percentage-only promotion, or reopening of the 13 accepted V13 residuals is permitted.', '',
-              '## Top raw/count candidate sources', '',
+              '# TREB exact source semantic lock','',
+              '- Status: **PASS**',
+              '- Canonical V2 universe: **14,524 / 14,524**',
+              '- Full-core rows: **9,647**',
+              '- Partial player-team-season rows: **4,877**',
+              '- Partial segments: **5,199**',
+              f'- Stage2 metric rows: **{metric_rows:,}**',
+              f'- Stage2 tenure windows: **{len(window_counts):,}**',
+              '- Metrics per tenure window: **89**',
+              '- Exact safe-lock seasons: **26 / 26 COMPLETE**',
+              '- Safe-lock unmatched rebound rows: **0**',
+              '- Safe-lock exceptions: **0**',
+              f'- Accepted excluded unique games: **{len(accepted_game_ids)}**','',
+              '## Exact count semantic contract','',
+              *[f'- `{x}`' for x in exact_contract],'',
+              'Legacy percentage-derived canonical assembly remains quarantined.',
+              'No reconstruction, percentage backsolve, ambiguous promotion, or reopening of accepted V13 residuals is permitted.',
           ]
-          for r in raw_sources[:40]:
-              md.append(f"- `{r['path']}` — {r.get('canonical_keys_covered',0):,} canonical keys; fields: {', '.join(r.get('raw_rebound_fields',[])[:12])}")
-          if not raw_sources:
-              md.append('- None detected by the conservative schema classifier.')
-          (OUT / 'RETAINED_EVIDENCE_INVENTORY.md').write_text('\n'.join(md) + '\n', encoding='utf-8')
-
-          print(json.dumps({
-              'canonical_population': len(canonical),
-              'candidate_files_found': len(files),
-              'candidate_raw_source_count': len(raw_sources),
-              'candidate_raw_union_canonical_keys': len(raw_union),
-              'candidate_raw_uncovered_canonical_keys': len(unresolved_candidate),
-              'multi_raw_source_key_count': len(multi_source),
-              'parse_error_count': len(parse_errors),
-          }, indent=2))
+          (OUT/'EXACT_SOURCE_SEMANTIC_LOCK.md').write_text('\n'.join(md)+'\n')
+          print(json.dumps(report,indent=2))
           PY
 
-      - name: Upload retained evidence inventory artifact
+      - name: Upload exact source semantic lock artifact
         uses: actions/upload-artifact@v4
         with:
-          name: treb-retained-evidence-inventory-${{ github.run_id }}
-          path: supervisor_output/
+          name: treb-exact-source-semantic-lock-${{ github.run_id }}
+          path: semantic_lock_output/
           retention-days: 90
           if-no-files-found: error
 
-      - name: Persist retained evidence inventory checkpoint
+      - name: Persist exact source semantic lock checkpoint
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p control/treb_automation/status
-          cp supervisor_output/retained_evidence_inventory.json control/treb_automation/status/retained_evidence_inventory_latest.json
-          cp supervisor_output/RETAINED_EVIDENCE_INVENTORY.md control/treb_automation/status/RETAINED_EVIDENCE_INVENTORY_LATEST.md
+          cp semantic_lock_output/EXACT_SOURCE_SEMANTIC_LOCK.json control/treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.json
+          cp semantic_lock_output/EXACT_SOURCE_SEMANTIC_LOCK.md control/treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.md
+          cp semantic_lock_output/SAFE_LOCK_COMMITS.json control/treb_automation/status/EXACT_SOURCE_SAFE_LOCK_COMMITS.json
           cd control
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add treb_automation/status/retained_evidence_inventory_latest.json treb_automation/status/RETAINED_EVIDENCE_INVENTORY_LATEST.md
+          git add treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.json \
+                  treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.md \
+                  treb_automation/status/EXACT_SOURCE_SAFE_LOCK_COMMITS.json
           if git diff --cached --quiet; then
-            echo 'No checkpoint changes to commit.'
+            echo 'No semantic-lock checkpoint changes to commit.'
           else
-            git commit -m 'Persist TREB retained evidence inventory [skip ci]'
+            git commit -m 'Persist TREB exact source semantic lock [skip ci]'
             git fetch origin agent/treb-final-exact-assembly
             git rebase origin/agent/treb-final-exact-assembly
             git push origin HEAD:agent/treb-final-exact-assembly
