@@ -1,0 +1,183 @@
+name: TREB opponent rebound stat-name probe
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-opponent-rebound-stat-name-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Probe opponent rebound stat names
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/opponent_rebound_stat_probe_output
+          python - <<'PY'
+          import json, random, time
+          from pathlib import Path
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+          from urllib.error import HTTPError, URLError
+
+          BASE = "https://api.pbpstats.com/get-on-off/nba/stat"
+          COMMON = {
+              "Season": "2025-26",
+              "SeasonType": "Regular Season",
+              "TeamId": "1610612745",
+          }
+          PLAYER = "Steven Adams"
+          EXPECTED_OPP_TOTAL = 620.0
+          STATS = [
+              # Known controls
+              "Rebounds", "OffRebounds", "DefRebounds",
+              "OpponentRebounds", "ReboundsOpponent",
+              "OffReboundsOpponent", "DefReboundsOpponent",
+              # Most plausible opponent-count variants
+              "OpponentOffRebounds", "OpponentDefRebounds",
+              "OppOffRebounds", "OppDefRebounds",
+              "OpponentOffensiveRebounds", "OpponentDefensiveRebounds",
+              "OppOffensiveRebounds", "OppDefensiveRebounds",
+              "OffensiveReboundsOpponent", "DefensiveReboundsOpponent",
+              "OpponentORebounds", "OpponentDRebounds",
+              "OppORebounds", "OppDRebounds",
+              "OpponentOREB", "OpponentDREB",
+              "OppOREB", "OppDREB",
+              "OpponentReboundsOff", "OpponentReboundsDef",
+              "ReboundsOpponentOff", "ReboundsOpponentDef",
+              "OpponentOffRebound", "OpponentDefRebound",
+              "OppOffRebound", "OppDefRebound",
+              "OffReboundsAllowed", "DefReboundsAllowed",
+              "OpponentTeamOffRebounds", "OpponentTeamDefRebounds",
+          ]
+          HEADERS = {
+              "Accept": "application/json, text/plain, */*",
+              "Origin": "https://www.pbpstats.com",
+              "Referer": "https://www.pbpstats.com/",
+              "User-Agent": "Mozilla/5.0 AppleWebKit/537.36 Chrome/131 Safari/537.36",
+          }
+
+          def fetch(stat):
+              params = {**COMMON, "Stat": stat}
+              url = BASE + "?" + urlencode(params)
+              errors = []
+              for attempt in range(1, 5):
+                  started = time.monotonic()
+                  try:
+                      req = Request(url, headers=HEADERS)
+                      with urlopen(req, timeout=75) as resp:
+                          status = resp.status
+                          body = resp.read().decode("utf-8", "replace")
+                      payload = json.loads(body)
+                      rows = payload.get("results") if isinstance(payload, dict) else None
+                      rows = rows if isinstance(rows, list) else []
+                      adams = next((r for r in rows if isinstance(r, dict) and r.get("Name") == PLAYER), None)
+                      return {
+                          "stat": stat,
+                          "ok": True,
+                          "status_code": status,
+                          "url": url,
+                          "elapsed_seconds": round(time.monotonic() - started, 3),
+                          "row_count": len(rows),
+                          "adams_row": adams,
+                          "sample_rows": rows[:3],
+                          "errors": errors,
+                      }
+                  except HTTPError as exc:
+                      body = exc.read().decode("utf-8", "replace")[:500]
+                      errors.append(f"attempt {attempt}: HTTP {exc.code}: {body!r}")
+                      if exc.code not in (429, 500, 502, 503, 504):
+                          return {"stat": stat, "ok": False, "status_code": exc.code, "url": url, "row_count": 0, "adams_row": None, "errors": errors}
+                  except (URLError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+                      errors.append(f"attempt {attempt}: {exc!r}")
+                  except Exception as exc:
+                      errors.append(f"attempt {attempt}: {exc!r}")
+                  if attempt < 4:
+                      time.sleep(min(2 ** (attempt - 1), 8) + random.random())
+              return {"stat": stat, "ok": False, "status_code": None, "url": url, "row_count": 0, "adams_row": None, "errors": errors}
+
+          results = []
+          for i, stat in enumerate(STATS, 1):
+              print(f"[{i}/{len(STATS)}] {stat}", flush=True)
+              item = fetch(stat)
+              results.append(item)
+              print(f"  ok={item['ok']} status={item.get('status_code')} rows={item.get('row_count')} adams={item.get('adams_row')}", flush=True)
+              time.sleep(0.35)
+
+          nonempty = [r for r in results if r.get("row_count", 0) > 0]
+          opponent_nonempty = [r for r in nonempty if r["stat"] not in {"Rebounds", "OffRebounds", "DefRebounds"}]
+
+          # Identify any two non-control Adams rows whose ON values sum to the locked exact opponent total.
+          exact_sum_pairs = []
+          vals = []
+          for r in opponent_nonempty:
+              row = r.get("adams_row") or {}
+              try:
+                  on = float(row.get("On"))
+              except (TypeError, ValueError):
+                  continue
+              vals.append((r["stat"], on))
+          for i, (a, av) in enumerate(vals):
+              for b, bv in vals[i+1:]:
+                  if abs((av + bv) - EXPECTED_OPP_TOTAL) < 1e-9:
+                      exact_sum_pairs.append({"stat_a": a, "on_a": av, "stat_b": b, "on_b": bv, "sum": av+bv})
+
+          summary = {
+              "season": COMMON["Season"],
+              "team_id": COMMON["TeamId"],
+              "player": PLAYER,
+              "expected_opponent_rebounds_on": EXPECTED_OPP_TOTAL,
+              "stats_tested": len(STATS),
+              "nonempty_stats": [r["stat"] for r in nonempty],
+              "nonempty_opponent_candidate_stats": [r["stat"] for r in opponent_nonempty],
+              "exact_sum_pairs": exact_sum_pairs,
+              "results": results,
+          }
+          out = Path("team_trb_all_players/opponent_rebound_stat_probe_output")
+          (out / "probe.json").write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+          md = [
+              "# TREB opponent rebound stat-name probe",
+              "",
+              f"- Stats tested: {len(STATS)}",
+              f"- Nonempty stats: {', '.join(summary['nonempty_stats']) or 'none'}",
+              f"- Nonempty opponent candidates: {', '.join(summary['nonempty_opponent_candidate_stats']) or 'none'}",
+              f"- Exact pairs summing to {EXPECTED_OPP_TOTAL:g}: {len(exact_sum_pairs)}",
+              "",
+              "| Stat | OK | HTTP | Rows | Steven Adams On | Steven Adams Off |",
+              "|---|---:|---:|---:|---:|---:|",
+          ]
+          for r in results:
+              row = r.get("adams_row") or {}
+              md.append(f"| {r['stat']} | {r.get('ok')} | {r.get('status_code')} | {r.get('row_count',0)} | {row.get('On','')} | {row.get('Off','')} |")
+          (out / "README.md").write_text("\n".join(md) + "\n", encoding="utf-8")
+
+          print(json.dumps({
+              "stats_tested": len(STATS),
+              "nonempty_stats": summary["nonempty_stats"],
+              "nonempty_opponent_candidate_stats": summary["nonempty_opponent_candidate_stats"],
+              "exact_sum_pairs": exact_sum_pairs,
+          }, indent=2), flush=True)
+          PY
+
+      - name: Upload probe artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-opponent-rebound-stat-name-probe
+          path: team_trb_all_players/opponent_rebound_stat_probe_output/
+          if-no-files-found: error
+          retention-days: 30
