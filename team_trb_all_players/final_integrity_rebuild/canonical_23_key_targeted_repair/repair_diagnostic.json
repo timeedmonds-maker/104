@@ -1,0 +1,657 @@
+{
+  "status": "FAIL",
+  "keys": [
+    {
+      "season": "2002-03",
+      "team_id": 1610612740,
+      "player_id": "2213",
+      "player": "Kirk Haston",
+      "ok": true,
+      "source": "native_core_full_tenure",
+      "error": null,
+      "minutes_on": 58.0,
+      "minutes_off": 3923.0,
+      "metric_count": 89,
+      "intervals": null
+    },
+    {
+      "season": "2003-04",
+      "team_id": 1610612738,
+      "player_id": "344",
+      "player": "Dana Barros",
+      "ok": true,
+      "source": "targeted_tenure_requery",
+      "error": null,
+      "minutes_on": 11.0,
+      "minutes_off": 3930.0,
+      "metric_count": 89,
+      "intervals": [
+        {
+          "start": "2004-04-14",
+          "end": "2004-04-14",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2003-04",
+            "team_id": 1610612738,
+            "team_abbr": "BOS",
+            "player_id": "344",
+            "player": "Dana Barros",
+            "query_start_date": "2004-04-14",
+            "query_end_date": "2004-04-14",
+            "team_games_in_window": 1,
+            "minutes_on": 10.916666666666666,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2004-05",
+      "team_id": 1610612749,
+      "player_id": "2590",
+      "player": "Mo Williams",
+      "ok": true,
+      "source": "native_core_full_tenure",
+      "error": null,
+      "minutes_on": 2262.0,
+      "minutes_off": 1694.0,
+      "metric_count": 89,
+      "intervals": null
+    },
+    {
+      "season": "2010-11",
+      "team_id": 1610612747,
+      "player_id": "201234",
+      "player": "Trey Johnson",
+      "ok": false,
+      "source": null,
+      "error": "one or more tenure queries did not return 89 metrics",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2011-04-13",
+          "end": "2011-04-13",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2010-11",
+            "team_id": 1610612747,
+            "team_abbr": "LAL",
+            "player_id": "201234",
+            "player": "Trey Johnson",
+            "query_start_date": "2011-04-13",
+            "query_end_date": "2011-04-13",
+            "team_games_in_window": 1,
+            "minutes_on": 13.4,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2012-13",
+      "team_id": 1610612752,
+      "player_id": "2853",
+      "player": "Earl Barron",
+      "ok": false,
+      "source": null,
+      "error": "one or more tenure queries did not return 89 metrics",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2013-04-17",
+          "end": "2013-04-17",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2012-13",
+            "team_id": 1610612752,
+            "team_abbr": "NYK",
+            "player_id": "2853",
+            "player": "Earl Barron",
+            "query_start_date": "2013-04-17",
+            "query_end_date": "2013-04-17",
+            "team_games_in_window": 1,
+            "minutes_on": 36.5,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2013-14",
+      "team_id": 1610612745,
+      "player_id": "2694",
+      "player": "Josh Powell",
+      "ok": false,
+      "source": null,
+      "error": "minutes_on mismatch recovered=19.0 target=19.366666666666667",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2014-04-16",
+          "end": "2014-04-16",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2013-14",
+            "team_id": 1610612745,
+            "team_abbr": "HOU",
+            "player_id": "2694",
+            "player": "Josh Powell",
+            "query_start_date": "2014-04-16",
+            "query_end_date": "2014-04-16",
+            "team_games_in_window": 1,
+            "minutes_on": 19.366666666666667,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2015-16",
+      "team_id": 1610612739,
+      "player_id": "2563",
+      "player": "Dahntay Jones",
+      "ok": false,
+      "source": null,
+      "error": "minutes_on mismatch recovered=42.0 target=42.35",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2016-04-13",
+          "end": "2016-04-13",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2015-16",
+            "team_id": 1610612739,
+            "team_abbr": "CLE",
+            "player_id": "2563",
+            "player": "Dahntay Jones",
+            "query_start_date": "2016-04-13",
+            "query_end_date": "2016-04-13",
+            "team_games_in_window": 1,
+            "minutes_on": 42.35,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2016-17",
+      "team_id": 1610612739,
+      "player_id": "204002",
+      "player": "Edy Tavares",
+      "ok": true,
+      "source": "targeted_tenure_requery",
+      "error": null,
+      "minutes_on": 24.0,
+      "minutes_off": 3952.0,
+      "metric_count": 89,
+      "intervals": [
+        {
+          "start": "2017-04-12",
+          "end": "2017-04-12",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2016-17",
+            "team_id": 1610612739,
+            "team_abbr": "CLE",
+            "player_id": "204002",
+            "player": "Edy Tavares",
+            "query_start_date": "2017-04-12",
+            "query_end_date": "2017-04-12",
+            "team_games_in_window": 1,
+            "minutes_on": 24.0,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2016-17",
+      "team_id": 1610612739,
+      "player_id": "2563",
+      "player": "Dahntay Jones",
+      "ok": false,
+      "source": null,
+      "error": "tenure minutes unavailable after zero-tail handling",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2017-04-12",
+          "end": "2017-04-12",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2016-17",
+            "team_id": 1610612739,
+            "team_abbr": "CLE",
+            "player_id": "2563",
+            "player": "Dahntay Jones",
+            "query_start_date": "2017-04-12",
+            "query_end_date": "2017-04-12",
+            "team_games_in_window": 1,
+            "minutes_on": 12.0,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2017-18",
+      "team_id": 1610612739,
+      "player_id": "2570",
+      "player": "Kendrick Perkins",
+      "ok": false,
+      "source": null,
+      "error": "minutes_on mismatch recovered=15.0 target=14.533333333333333",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2018-04-11",
+          "end": "2018-04-11",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2017-18",
+            "team_id": 1610612739,
+            "team_abbr": "CLE",
+            "player_id": "2570",
+            "player": "Kendrick Perkins",
+            "query_start_date": "2018-04-11",
+            "query_end_date": "2018-04-11",
+            "team_games_in_window": 1,
+            "minutes_on": 14.533333333333333,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2017-18",
+      "team_id": 1610612745,
+      "player_id": "1628935",
+      "player": "Aaron Jackson",
+      "ok": false,
+      "source": null,
+      "error": "tenure minutes unavailable after zero-tail handling",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2018-04-11",
+          "end": "2018-04-11",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2017-18",
+            "team_id": 1610612745,
+            "team_abbr": "HOU",
+            "player_id": "1628935",
+            "player": "Aaron Jackson",
+            "query_start_date": "2018-04-11",
+            "query_end_date": "2018-04-11",
+            "team_games_in_window": 1,
+            "minutes_on": 34.5,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2018-19",
+      "team_id": 1610612764,
+      "player_id": "203895",
+      "player": "Jordan McRae",
+      "ok": true,
+      "source": "native_core_full_tenure",
+      "error": null,
+      "minutes_on": 333.0,
+      "minutes_off": 3653.0,
+      "metric_count": 89,
+      "intervals": null
+    },
+    {
+      "season": "2019-20",
+      "team_id": 1610612739,
+      "player_id": "1629731",
+      "player": "Dean Wade",
+      "ok": true,
+      "source": "native_core_full_tenure",
+      "error": null,
+      "minutes_on": 71.0,
+      "minutes_off": 3074.0,
+      "metric_count": 89,
+      "intervals": null
+    },
+    {
+      "season": "2021-22",
+      "team_id": 1610612751,
+      "player_id": "1630556",
+      "player": "Kessler Edwards",
+      "ok": true,
+      "source": "native_core_full_tenure",
+      "error": null,
+      "minutes_on": 987.0,
+      "minutes_off": 2964.0,
+      "metric_count": 89,
+      "intervals": null
+    },
+    {
+      "season": "2022-23",
+      "team_id": 1610612751,
+      "player_id": "1630564",
+      "player": "RaiQuan Gray",
+      "ok": false,
+      "source": null,
+      "error": "tenure minutes unavailable after zero-tail handling",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2023-04-08",
+          "end": "2023-04-09",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2022-23",
+            "team_id": 1610612751,
+            "team_abbr": "BKN",
+            "player_id": "1630564",
+            "player": "RaiQuan Gray",
+            "query_start_date": "2023-04-08",
+            "query_end_date": "2023-04-09",
+            "team_games_in_window": 1,
+            "minutes_on": 35.083333333333336,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2022-23",
+      "team_id": 1610612757,
+      "player_id": "1628435",
+      "player": "Chance Comanche",
+      "ok": true,
+      "source": "targeted_tenure_requery",
+      "error": null,
+      "minutes_on": 20.783333333333335,
+      "minutes_off": 3877.2166666666667,
+      "metric_count": 89,
+      "intervals": [
+        {
+          "start": "2023-04-09",
+          "end": "2023-04-09",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2022-23",
+            "team_id": 1610612757,
+            "team_abbr": "POR",
+            "player_id": "1628435",
+            "player": "Chance Comanche",
+            "query_start_date": "2023-04-09",
+            "query_end_date": "2023-04-09",
+            "team_games_in_window": 1,
+            "minutes_on": 20.783333333333335,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "out_depart"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2022-23",
+      "team_id": 1610612763,
+      "player_id": "1631367",
+      "player": "Jacob Gilyard",
+      "ok": true,
+      "source": "targeted_tenure_requery",
+      "error": null,
+      "minutes_on": 40.78333333333333,
+      "minutes_off": 3867.2166666666667,
+      "metric_count": 89,
+      "intervals": [
+        {
+          "start": "2023-04-08",
+          "end": "2023-04-09",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2022-23",
+            "team_id": 1610612763,
+            "team_abbr": "MEM",
+            "player_id": "1631367",
+            "player": "Jacob Gilyard",
+            "query_start_date": "2023-04-08",
+            "query_end_date": "2023-04-09",
+            "team_games_in_window": 1,
+            "minutes_on": 40.78333333333333,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2024-25",
+      "team_id": 1610612738,
+      "player_id": "1631120",
+      "player": "JD Davison",
+      "ok": true,
+      "source": "native_core_full_tenure",
+      "error": null,
+      "minutes_on": 93.0,
+      "minutes_off": 3873.0,
+      "metric_count": 89,
+      "intervals": null
+    },
+    {
+      "season": "2024-25",
+      "team_id": 1610612755,
+      "player_id": "1630600",
+      "player": "Isaiah Mobley",
+      "ok": false,
+      "source": null,
+      "error": "one or more tenure queries did not return 89 metrics",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2025-04-13",
+          "end": "2025-04-13",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2024-25",
+            "team_id": 1610612755,
+            "team_abbr": "PHI",
+            "player_id": "1630600",
+            "player": "Isaiah Mobley",
+            "query_start_date": "2025-04-13",
+            "query_end_date": "2025-04-13",
+            "team_games_in_window": 1,
+            "minutes_on": 17.366666666666667,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "out_depart"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2025-26",
+      "team_id": 1610612741,
+      "player_id": "1631338",
+      "player": "Mouhamadou Gueye",
+      "ok": false,
+      "source": null,
+      "error": "one or more tenure queries did not return 89 metrics",
+      "minutes_on": null,
+      "minutes_off": null,
+      "metric_count": 0,
+      "intervals": [
+        {
+          "start": "2026-04-09",
+          "end": "2026-04-12",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2025-26",
+            "team_id": 1610612741,
+            "team_abbr": "CHI",
+            "player_id": "1631338",
+            "player": "Mouhamadou Gueye",
+            "query_start_date": "2026-04-09",
+            "query_end_date": "2026-04-12",
+            "team_games_in_window": 3,
+            "minutes_on": 45.44166666666667,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2025-26",
+      "team_id": 1610612747,
+      "player_id": "1641733",
+      "player": "Nick Smith Jr.",
+      "ok": true,
+      "source": "native_core_full_tenure",
+      "error": null,
+      "minutes_on": 344.0,
+      "minutes_off": 3501.0,
+      "metric_count": 89,
+      "intervals": null
+    },
+    {
+      "season": "2025-26",
+      "team_id": 1610612752,
+      "player_id": "1641794",
+      "player": "Dillon Jones",
+      "ok": true,
+      "source": "targeted_tenure_requery",
+      "error": null,
+      "minutes_on": 39.388333333333335,
+      "minutes_off": 3815.6116666666667,
+      "metric_count": 89,
+      "intervals": [
+        {
+          "start": "2026-01-20",
+          "end": "2026-04-12",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2025-26",
+            "team_id": 1610612752,
+            "team_abbr": "NYK",
+            "player_id": "1641794",
+            "player": "Dillon Jones",
+            "query_start_date": "2026-01-20",
+            "query_end_date": "2026-04-12",
+            "team_games_in_window": 39,
+            "minutes_on": 39.388333333333335,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    },
+    {
+      "season": "2025-26",
+      "team_id": 1610612762,
+      "player_id": "1643060",
+      "player": "Hayden Gray",
+      "ok": true,
+      "source": "targeted_tenure_requery",
+      "error": null,
+      "minutes_on": 24.75,
+      "minutes_off": 3845.25,
+      "metric_count": 89,
+      "intervals": [
+        {
+          "start": "2026-04-11",
+          "end": "2026-04-12",
+          "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz",
+          "row": {
+            "season": "2025-26",
+            "team_id": 1610612762,
+            "team_abbr": "UTA",
+            "player_id": "1643060",
+            "player": "Hayden Gray",
+            "query_start_date": "2026-04-11",
+            "query_end_date": "2026-04-12",
+            "team_games_in_window": 1,
+            "minutes_on": 24.75,
+            "segment_index": 1,
+            "segment_count": 1,
+            "needs_on": false,
+            "source": "roster_tenure_v2",
+            "boundary_reason": "season_close"
+          }
+        }
+      ]
+    }
+  ],
+  "failure_count": 10
+}
