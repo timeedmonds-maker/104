@@ -1,0 +1,173 @@
+name: TREB strict 40 exclusion evidence inventory
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: ['.github/workflows/treb-strict-40-exclusion-evidence-inventory.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: treb-strict-40-exclusion-evidence-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact assembly controller
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Recover exclusion-bearing safe locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/treb_locks
+          LOCK_PATH=team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git fetch --no-tags --depth=1 origin "refs/heads/${b}:refs/remotes/origin/${b}"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+
+      - name: Checkout forensic evidence branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-batched-game-facts-20260812
+          path: forensic
+          fetch-depth: 1
+
+      - name: Build exact 40-game evidence inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/strict40
+          python - <<'PY'
+          import csv,gzip,json,re
+          from pathlib import Path
+
+          EXPECTED={
+            20201160,
+            20400335,20400736,
+            20500090,20500102,
+            20600887,
+            20700319,
+            20800032,20800142,
+            20900113,
+            21000431,21000997,
+            21100842,
+            21200919,21201167,
+            21301048,
+            21400968,
+            21500711,21500903,21500916,
+            21600358,21600655,21600668,
+            21701085,
+            21800143,
+            21901316,21901317,21901318,
+            22000485,22000853,
+            22100688,
+            22200140,22200182,22200207,22200234,22200778,22201040,
+            22300452,22300599,
+            22400433,
+          }
+          rows=[]
+          observed=set()
+          for p in sorted(Path('/tmp/treb_locks').glob('*.json')):
+            d=json.loads(p.read_text())
+            for x in d.get('accepted_excluded_games',[]):
+              gid=int(x['game_id']); observed.add(gid)
+              rows.append({'season':d['season'],'game_id':gid,'lock_engine':d.get('engine'),'lock_code_commit':d.get('code_commit'),'lock_exclusion':x})
+          assert observed==EXPECTED,(sorted(EXPECTED-observed),sorted(observed-EXPECTED))
+          assert len(rows)==40,len(rows)
+
+          roots=[Path('team_trb_all_players'),Path('forensic/team_trb_all_players')]
+          suffixes={'.json','.jsonl','.csv','.md','.txt','.py','.yml','.yaml','.gz'}
+          files=[]
+          for root in roots:
+            if not root.exists(): continue
+            for p in root.rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in suffixes: continue
+              try:
+                if p.stat().st_size>8_000_000: continue
+              except OSError: continue
+              files.append(p)
+
+          def read_text(p):
+            try:
+              if p.suffix.lower()=='.gz':
+                with gzip.open(p,'rt',encoding='utf-8',errors='ignore') as f: return f.read()
+              return p.read_text(encoding='utf-8',errors='ignore')
+            except Exception:
+              return ''
+
+          cache={}
+          for p in files:
+            t=read_text(p)
+            if t: cache[str(p)]=t
+
+          for r in rows:
+            needle=str(r['game_id'])
+            hits=[]
+            for path,text in cache.items():
+              if needle in text:
+                # Keep a compact nearby snippet for adjudication routing.
+                i=text.find(needle)
+                snippet=re.sub(r'\s+',' ',text[max(0,i-180):i+320]).strip()
+                hits.append({'path':path,'snippet':snippet})
+            r['evidence_hits']=hits[:50]
+            r['evidence_hit_count']=len(hits)
+            r['has_persisted_evidence']=bool(hits)
+
+          out={
+            'status':'PASS',
+            'purpose':'Strict evidence inventory for the 40 historical games currently accepted as exclusions; no exclusion is accepted by this audit',
+            'excluded_games':40,
+            'expected_set_exact_match':True,
+            'games_with_persisted_evidence':sum(bool(r['evidence_hits']) for r in rows),
+            'games_without_persisted_evidence':sum(not r['evidence_hits'] for r in rows),
+            'integrity_policy':{
+              'accepted_exclusions_permitted':False,
+              'reconstruction_changed':False,
+              'v2_changed':False,
+              'rebound_semantics_changed':False,
+              'bos_2004_legacy_clock_21s_only_nonblocking_exception':True,
+            },
+            'games':rows,
+          }
+          Path('/tmp/strict40/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY.json').write_text(json.dumps(out,indent=2)+'\n')
+          with open('/tmp/strict40/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY.csv','w',newline='',encoding='utf-8') as f:
+            w=csv.DictWriter(f,fieldnames=['season','game_id','evidence_hit_count','has_persisted_evidence','lock_engine','lock_code_commit','lock_exclusion'])
+            w.writeheader()
+            for r in rows:
+              w.writerow({**{k:r.get(k) for k in w.fieldnames},'lock_exclusion':json.dumps(r['lock_exclusion'],sort_keys=True)})
+          print(json.dumps({k:out[k] for k in ['status','excluded_games','games_with_persisted_evidence','games_without_persisted_evidence']},indent=2))
+          PY
+
+      - name: Upload inventory
+        uses: actions/upload-artifact@v4
+        with:
+          name: treb-strict-40-exclusion-evidence-inventory-${{ github.run_id }}
+          path: /tmp/strict40/
+          retention-days: 90
+
+      - name: Persist durable inventory checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p treb_automation/status
+          cp /tmp/strict40/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY.json treb_automation/status/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY_LATEST.json
+          cp /tmp/strict40/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY.csv treb_automation/status/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY_LATEST.csv
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add treb_automation/status/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY_LATEST.json treb_automation/status/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY_LATEST.csv
+          git commit -m 'Persist strict 40-game exclusion evidence inventory [skip ci]'
+          git fetch origin agent/treb-final-exact-assembly
+          git rebase origin/agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
