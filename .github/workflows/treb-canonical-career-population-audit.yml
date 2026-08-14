@@ -1,0 +1,62 @@
+name: TREB canonical career population audit
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-canonical-career-population-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Audit immutable V2 population
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip, json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          rows=[]
+          with gzip.open(p,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if line.strip(): rows.append(json.loads(line))
+          keys={(str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0')) for r in rows}
+          players={k[2] for k in keys}
+          seasons={k[0] for k in keys}
+          expected_metric_rows=len(players)*89
+          out={
+              'status':'PASS',
+              'canonical_keys':len(keys),
+              'canonical_unique_players':len(players),
+              'canonical_seasons':len(seasons),
+              'career_metric_rows_at_89_metrics':expected_metric_rows,
+              'hard_asserted_v2_keys':14524,
+              'metric_count':89,
+              'note':'Career population is derived from the immutable positive-minute V2 canonical player-team-season universe; no production values are changed.'
+          }
+          assert len(keys)==14524,out
+          assert len(seasons)==26,out
+          assert expected_metric_rows==len(players)*89
+          Path('canonical_career_population_audit.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-canonical-career-population-${{ github.sha }}
+          path: canonical_career_population_audit.json
+          retention-days: 30
+          if-no-files-found: error
