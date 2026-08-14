@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import math
 from pathlib import Path
@@ -181,6 +182,27 @@ def main() -> int:
     if "player" not in src.columns:
         src["player"] = src.get("subject_player", "")
 
+    # Stage2 intentionally contains a broader 14,600-key metric population. The
+    # final release universe is the independently validated V2 roster-tenure set
+    # of exactly 14,524 keys. Filter only by that immutable manifest; never infer
+    # the release population from Stage2 rows themselves.
+    target_path = Path(__file__).resolve().parent / "impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz"
+    target_rows = []
+    with gzip.open(target_path, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            if line.strip():
+                target_rows.append(json.loads(line))
+    targets = canonicalize(pd.DataFrame(target_rows))[KEYS].drop_duplicates()
+    if len(targets) != EXPECTED_CANONICAL_ROWS:
+        raise RuntimeError(f"authoritative V2 target count mismatch: {len(targets)}")
+    source_keys = src[KEYS].drop_duplicates()
+    missing_targets = targets.merge(source_keys, on=KEYS, how="left", indicator=True)
+    missing_targets = missing_targets[missing_targets._merge == "left_only"]
+    if len(missing_targets):
+        raise RuntimeError(f"Stage2 is missing {len(missing_targets)} authoritative V2 canonical keys")
+    src = src.merge(targets.assign(_v2_canonical=True), on=KEYS, how="inner", validate="many_to_one")
+    src = src.drop(columns=["_v2_canonical"])
+
     metric_names = sorted(src.metric.unique().tolist())
     canonical_keys = src[KEYS].drop_duplicates()
     key_metric_counts = src.groupby(KEYS).metric.nunique()
@@ -188,7 +210,7 @@ def main() -> int:
     if len(metric_names) != EXPECTED_METRICS:
         raise RuntimeError(f"expected 89 Stage2 metrics, got {len(metric_names)}")
     if len(canonical_keys) != EXPECTED_CANONICAL_ROWS:
-        raise RuntimeError(f"Stage2 canonical key count mismatch: {len(canonical_keys)}")
+        raise RuntimeError(f"V2-filtered canonical key count mismatch: {len(canonical_keys)}")
     if len(src) != expected_metric_rows or int(key_metric_counts.min()) != 89 or int(key_metric_counts.max()) != 89:
         raise RuntimeError(
             f"Stage2 canonical metric gate failed rows={len(src)}/{expected_metric_rows} "
@@ -205,7 +227,7 @@ def main() -> int:
     missing_partial = partial_keys.merge(canonical_keys, on=KEYS, how="left", indicator=True)
     missing_partial = missing_partial[missing_partial._merge == "left_only"]
     if len(missing_partial):
-        raise RuntimeError(f"exact partial layer contains {len(missing_partial)} keys outside canonical Stage2")
+        raise RuntimeError(f"exact partial layer contains {len(missing_partial)} keys outside canonical V2 universe")
     full_core_rows = len(canonical_keys) - len(partial_keys)
     if full_core_rows != EXPECTED_FULL_CORE_ROWS:
         raise RuntimeError(f"full-core complement mismatch: {full_core_rows} != {EXPECTED_FULL_CORE_ROWS}")
@@ -298,6 +320,7 @@ def main() -> int:
         "stage2_windows": EXPECTED_STAGE2_WINDOWS,
         "stage2_source_metric_rows": EXPECTED_STAGE2_METRIC_ROWS,
         "metric_count": EXPECTED_METRICS,
+        "canonical_population_source": "authoritative_v2_roster_tenure_manifest",
         "canonical_player_team_season_rows": int(len(canonical_keys)),
         "player_team_season_metric_rows": int(len(detail)),
         "career_players": career_players,
@@ -319,7 +342,7 @@ def main() -> int:
     (out / "README_ALL_89_METRICS.txt").write_text(
         "FINAL 89-METRIC DATABASE\n\n"
         "Primary files: all_metrics_player_team_season_* and all_metrics_career_*.\n"
-        "Every canonical player-team-season has all 89 metrics with ON, OFF and SWING.\n"
+        "Every authoritative V2 canonical player-team-season has all 89 metrics with ON, OFF and SWING.\n"
         "For TREB/OREB/DREB, the 4,877 partial player-team-season rows use exact locked rebound counts aggregated from 5,199 validated tenure segments.\n"
         "The 9,647 full-core rows retain the authoritative Stage2 direct PBP Stats rebound percentages. No rounded percentage is inverted or backsolved into counts anywhere.\n"
         "career_treb_detail.* and career_treb_summary.* are supporting exact partial-lock files, not the complete all-player career tables.\n",
