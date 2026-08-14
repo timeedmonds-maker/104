@@ -1,0 +1,38 @@
+{
+  "status": "PASS",
+  "purpose": "Fast exact-source semantic lock before retained count conflict validation",
+  "controller_sha": "d70cd4777f315e02d7d464bcc819b28da6c9f652",
+  "retained_forensic_commit_sha": "aecbcdde7a0efe9e162f0030032b1d1c16f5b8c3",
+  "authoritative_stage2_commit_sha": "57ba237c36d75f7a3ef2cc998d91aa70a59b3c29",
+  "canonical_population": 14524,
+  "full_core_rows": 9647,
+  "partial_player_team_season_rows": 4877,
+  "partial_segments": 5199,
+  "stage2_metric_rows": 1353334,
+  "stage2_tenure_windows": 15206,
+  "metrics_per_window": 89,
+  "safe_lock_seasons": 26,
+  "safe_lock_segment_targets": 5199,
+  "safe_lock_exceptions": 0,
+  "safe_lock_unmatched_rebound_rows": 0,
+  "accepted_excluded_unique_games": 40,
+  "exact_count_artifact_contract": [
+    "team_oreb_on",
+    "team_dreb_on",
+    "opponent_oreb_on",
+    "opponent_dreb_on",
+    "team_game_treb.csv.gz",
+    "player_game_treb_on.csv.gz"
+  ],
+  "game_fact_refs_snapshotted": 290,
+  "repair_refs_snapshotted": 6,
+  "legacy_percentage_assembly": "QUARANTINED_DO_NOT_EXECUTE",
+  "next_stage": "Compare retained exact-count artifacts under the pinned refs; isolate conflicts by canonical key; do not reconstruct or promote ambiguous evidence.",
+  "integrity_policy": {
+    "reconstruction_permitted": false,
+    "rounded_percentage_backsolve_permitted": false,
+    "legacy_pct_candidates_permitted": false,
+    "automatic_ambiguous_promotion_permitted": false,
+    "accepted_v13_residuals_reopened": false
+  }
+}
