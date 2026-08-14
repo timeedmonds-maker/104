@@ -1,0 +1,214 @@
+name: TREB 23-key canonical reconciliation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-23-key-reconciliation.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-23-key-canonical-reconciliation
+  cancel-in-progress: false
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  TARGET_PATH: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  RESULT_DIR: team_trb_all_players/final_integrity_rebuild/canonical_23_key_reconciliation
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Mount pinned Stage2 source
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          rm -rf /tmp/treb_stage2
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          test -s /tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz
+
+      - name: Reconcile authoritative V2 keys against retained Stage2 source
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, json, os, re
+          from collections import defaultdict, Counter
+          from pathlib import Path
+
+          root=Path('.')
+          stage=Path('/tmp/treb_stage2/team_trb_all_players/impact_database/corrected_off')
+          target_path=root/os.environ['TARGET_PATH']
+          out=root/os.environ['RESULT_DIR']
+          out.mkdir(parents=True,exist_ok=True)
+
+          def norm_id(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def norm_name(v):
+              return re.sub(r'[^a-z0-9]+','',str(v or '').lower())
+          def row_key(r):
+              return (str(r.get('season','')), int(float(r.get('team_id'))), norm_id(r.get('player_id')))
+          def player_name(r):
+              for k in ('player','subject_player','player_name','name'):
+                  if r.get(k) not in (None,''):
+                      return str(r.get(k))
+              return ''
+
+          targets=[]
+          with gzip.open(target_path,'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if line.strip(): targets.append(json.loads(line))
+          target_by_key={row_key(r):r for r in targets}
+          assert len(target_by_key)==14524,(len(target_by_key),'authoritative target count')
+
+          stage_keys=set()
+          stage_name={}
+          by_player_season=defaultdict(set)
+          by_player_team=defaultdict(set)
+          by_season_team=defaultdict(set)
+          by_name_season_team=defaultdict(set)
+          seg_path=stage/'tenure_segment_on_off.jsonl.gz'
+          with gzip.open(seg_path,'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  k=row_key(r)
+                  if k not in stage_keys:
+                      stage_keys.add(k)
+                      nm=player_name(r)
+                      stage_name[k]=nm
+                      season,team,pid=k
+                      by_player_season[(pid,season)].add(team)
+                      by_player_team[(pid,team)].add(season)
+                      by_season_team[(season,team)].add(pid)
+                      if nm:
+                          by_name_season_team[(norm_name(nm),season,team)].add(pid)
+
+          missing=sorted(set(target_by_key)-stage_keys)
+          extra=sorted(stage_keys-set(target_by_key))
+          assert len(missing)==23,(len(missing),missing[:10])
+
+          # Read zero-minute/tail exclusion structures generically and recover any embedded PTS keys.
+          excluded_keys=set()
+          exclusion_hits=defaultdict(list)
+          def walk(obj, source):
+              if isinstance(obj,dict):
+                  if {'season','team_id','player_id'} <= set(obj):
+                      try:
+                          k=row_key(obj); excluded_keys.add(k); exclusion_hits[k].append(source)
+                      except Exception: pass
+                  for v in obj.values(): walk(v,source)
+              elif isinstance(obj,list):
+                  for v in obj: walk(v,source)
+          for fn in ('zero_minute_tail_exclusions.json','tail_materiality_report.json','deferred_failure_queue.json'):
+              p=stage/fn
+              if p.exists():
+                  try: walk(json.loads(p.read_text()),fn)
+                  except Exception: pass
+
+          rows=[]
+          classes=Counter()
+          for k in missing:
+              season,team,pid=k
+              tr=target_by_key[k]
+              nm=player_name(tr)
+              same_ps=sorted(by_player_season.get((pid,season),set()))
+              same_pt=sorted(by_player_team.get((pid,team),set()))
+              same_name_ids=sorted(by_name_season_team.get((norm_name(nm),season,team),set())) if nm else []
+              in_excl=k in excluded_keys
+              if in_excl:
+                  cls='ZERO_MINUTE_OR_TAIL_EXCLUSION'
+              elif same_name_ids and pid not in same_name_ids:
+                  cls='PLAYER_ID_MAPPING_MISMATCH'
+              elif same_ps:
+                  cls='TEAM_ID_OR_TENURE_MAPPING_MISMATCH'
+              elif same_pt:
+                  cls='SEASON_MAPPING_MISMATCH'
+              else:
+                  cls='NO_STAGE2_COUNTERPART_FOUND'
+              classes[cls]+=1
+              rows.append({
+                  'season':season,'team_id':team,'player_id':pid,'player':nm,
+                  'classification':cls,
+                  'zero_tail_sources':';'.join(sorted(set(exclusion_hits.get(k,[])))),
+                  'same_player_season_stage2_teams':';'.join(map(str,same_ps)),
+                  'same_player_team_stage2_seasons':';'.join(same_pt),
+                  'same_name_season_team_stage2_player_ids':';'.join(same_name_ids),
+              })
+
+          # Compact details about the 76 Stage2-only extras, useful for one-to-one reconciliation.
+          extra_rows=[]
+          for season,team,pid in extra:
+              extra_rows.append({'season':season,'team_id':team,'player_id':pid,'player':stage_name.get((season,team,pid),'')})
+
+          with (out/'missing_23_keys.csv').open('w',newline='',encoding='utf-8') as fh:
+              w=csv.DictWriter(fh,fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+          with (out/'stage2_extra_76_keys.csv').open('w',newline='',encoding='utf-8') as fh:
+              w=csv.DictWriter(fh,fieldnames=['season','team_id','player_id','player']); w.writeheader(); w.writerows(extra_rows)
+
+          report={
+              'status':'PASS_DIAGNOSTIC',
+              'stage2_sha':os.environ['STAGE2_SHA'],
+              'authoritative_v2_keys':len(target_by_key),
+              'retained_stage2_keys':len(stage_keys),
+              'intersection_keys':len(set(target_by_key)&stage_keys),
+              'missing_authoritative_keys':len(missing),
+              'stage2_only_extra_keys':len(extra),
+              'classification_counts':dict(sorted(classes.items())),
+              'missing_keys':rows,
+              'production_gate_relaxed':False,
+          }
+          (out/'reconciliation_report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+          md=[
+              '# TREB 23-key canonical reconciliation', '',
+              f"- Authoritative V2 keys: **{len(target_by_key)}**",
+              f"- Retained Stage2 keys: **{len(stage_keys)}**",
+              f"- Intersection: **{len(set(target_by_key)&stage_keys)}**",
+              f"- Missing authoritative keys: **{len(missing)}**",
+              f"- Stage2-only extra keys: **{len(extra)}**", '',
+              '## Classification counts',''
+          ]
+          md += [f'- {k}: **{v}**' for k,v in sorted(classes.items())]
+          md += ['', '## Missing keys','', '| season | team_id | player_id | player | classification | counterpart evidence |', '|---|---:|---:|---|---|---|']
+          for r in rows:
+              ev=[]
+              if r['zero_tail_sources']: ev.append('excluded:'+r['zero_tail_sources'])
+              if r['same_player_season_stage2_teams']: ev.append('same player-season teams='+r['same_player_season_stage2_teams'])
+              if r['same_player_team_stage2_seasons']: ev.append('same player-team seasons='+r['same_player_team_stage2_seasons'])
+              if r['same_name_season_team_stage2_player_ids']: ev.append('same name-season-team ids='+r['same_name_season_team_stage2_player_ids'])
+              md.append(f"| {r['season']} | {r['team_id']} | {r['player_id']} | {r['player']} | {r['classification']} | {'; '.join(ev)} |")
+          (out/'README.md').write_text('\n'.join(md)+'\n',encoding='utf-8')
+          print(json.dumps({k:v for k,v in report.items() if k!='missing_keys'},indent=2))
+          PY
+
+      - name: Persist diagnostic results
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/treb-final-exact-assembly
+          git reset --hard origin/agent/treb-final-exact-assembly
+          git add -f "$RESULT_DIR"
+          git commit -m 'Persist TREB 23-key reconciliation diagnostic'
+          git push origin HEAD:agent/treb-final-exact-assembly
+
+      - name: Upload reconciliation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-23-key-reconciliation-${{ github.run_id }}
+          path: ${{ env.RESULT_DIR }}
+          retention-days: 30
