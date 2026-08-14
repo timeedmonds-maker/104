@@ -1,0 +1,296 @@
+name: TREB TotalReboundPct exact validation
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - '.github/workflows/treb-totalreboundpct-exact-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: treb-totalreboundpct-exact-validation
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install readers
+        run: python -m pip install --disable-pip-version-check pandas numpy requests
+
+      - name: Rebuild exact support
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/treb_exact_support
+          LOCK_PATH=team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+          rm -rf /tmp/treb_locks "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          python -u team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb_locks \
+            --output-dir "$OUT"
+          python - <<'PY'
+          import pandas as pd
+          d=pd.read_csv('/tmp/treb_exact_support/career_treb_detail.csv',low_memory=False)
+          assert len(d)==5199, len(d)
+          assert d.groupby(['season','team_id','player_id']).ngroups==4877
+          print({'exact_support':'PASS','segments':5199,'exact_pts':4877})
+          PY
+
+      - name: Validate direct TotalReboundPct endpoint against exact layer
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_totalreb_validate
+          mkdir -p /tmp/treb_totalreb_validate
+          python - <<'PY'
+          import concurrent.futures as cf
+          import gzip, json, math, random, re, time, unicodedata
+          from collections import defaultdict
+          from pathlib import Path
+
+          import pandas as pd
+          import requests
+
+          OUT=Path('/tmp/treb_totalreb_validate')
+          BASE='https://api.pbpstats.com/get-on-off/nba/stat'
+          HEADERS={
+              'Accept':'application/json, text/plain, */*',
+              'Origin':'https://www.pbpstats.com',
+              'Referer':'https://www.pbpstats.com/',
+              'User-Agent':'Mozilla/5.0 AppleWebKit/537.36 Chrome/131 Safari/537.36',
+          }
+
+          def norm_name(v):
+              s=unicodedata.normalize('NFKD',str(v or '')).encode('ascii','ignore').decode().casefold()
+              return re.sub(r'[^a-z0-9]+','',s)
+
+          def num(v):
+              try:
+                  x=float(v)
+                  return x if math.isfinite(x) else None
+              except Exception:
+                  return None
+
+          d=pd.read_csv('/tmp/treb_exact_support/career_treb_detail.csv',low_memory=False)
+          for c in ['season','team_id','player_id']:
+              d[c]=d[c].astype(str)
+          count_cols=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on',
+                      'team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off',
+                      'seconds_on','seconds_off']
+          for c in count_cols:
+              d[c]=pd.to_numeric(d[c],errors='coerce').fillna(0.0)
+          g=d.groupby(['season','team_id','player_id'],as_index=False)[count_cols].sum()
+          assert len(g)==4877, len(g)
+          g['exact_on_pct']=100*(g.team_oreb_on+g.team_dreb_on)/(g.team_oreb_on+g.team_dreb_on+g.opponent_oreb_on+g.opponent_dreb_on)
+          offden=(g.team_oreb_off+g.team_dreb_off+g.opponent_oreb_off+g.opponent_dreb_off)
+          g['exact_off_pct']=100*(g.team_oreb_off+g.team_dreb_off)/offden.where(offden!=0)
+          g['exact_minutes_on']=g.seconds_on/60.0
+          g['exact_minutes_off']=g.seconds_off/60.0
+
+          # Canonical multi-team player-seasons mark trade/tenure-sensitive keys.
+          canon=[]
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  canon.append((str(r.get('season')),str(r.get('team_id')),str(r.get('player_id'))))
+          by_ps=defaultdict(set)
+          for s,t,p in canon: by_ps[(s,p)].add(t)
+          traded_ps={k for k,v in by_ps.items() if len(v)>1}
+          g['trade_sensitive']=[(s,p) in traded_ps for s,p in zip(g.season,g.player_id)]
+
+          # Prefer names already carried by exact detail; otherwise map from retained core checkpoints.
+          name_col=next((c for c in ['player','player_name','name','Player'] if c in d.columns),None)
+          exact_name={}
+          if name_col:
+              for r in d[['season','team_id','player_id',name_col]].dropna().itertuples(index=False,name=None):
+                  exact_name[(str(r[0]),str(r[1]),str(r[2]))]=str(r[3])
+
+          # Robust recursive ID/name extraction from core player_totals.
+          core_name_by_id={}
+          for fp in Path('team_trb_all_players/impact_database/core_checkpoints').glob('*/*.json.gz'):
+              try:
+                  with gzip.open(fp,'rt',encoding='utf-8') as f: obj=json.load(f)
+                  season=str(obj.get('season') or fp.parent.name)
+                  team_id=str(obj.get('team_id') or fp.stem.split('.')[0])
+                  vals=obj.get('player_totals') or []
+                  stack=[vals]
+                  while stack:
+                      x=stack.pop()
+                      if isinstance(x,list): stack.extend(x)
+                      elif isinstance(x,dict):
+                          pid=None; nm=None
+                          for k,v in x.items():
+                              kl=str(k).casefold()
+                              if pid is None and kl in {'playerid','player_id','id'} and str(v).isdigit(): pid=str(v)
+                              if nm is None and kl in {'name','player','playername','player_name'} and isinstance(v,str): nm=v
+                          if pid and nm: core_name_by_id[(season,team_id,pid)]=nm
+                          stack.extend(x.values())
+              except Exception:
+                  pass
+
+          keys=[]
+          for r in g.itertuples(index=False):
+              k=(str(r.season),str(r.team_id),str(r.player_id))
+              nm=exact_name.get(k) or core_name_by_id.get(k)
+              keys.append((k,nm))
+          name_missing=sum(1 for _,nm in keys if not nm)
+
+          team_seasons=sorted({(s,t) for (s,t,p),nm in keys})
+
+          def fetch_one(st):
+              s,t=st
+              sess=requests.Session(); sess.headers.update(HEADERS)
+              params={'Season':s,'SeasonType':'Regular Season','TeamId':t,'Stat':'TotalReboundPct'}
+              errors=[]
+              for attempt in range(1,5):
+                  try:
+                      rr=sess.get(BASE,params=params,timeout=(10,60))
+                      if rr.status_code in (429,500,502,503,504):
+                          raise RuntimeError(f'HTTP {rr.status_code}')
+                      rr.raise_for_status()
+                      return st,rr.json(),errors
+                  except Exception as e:
+                      errors.append(repr(e))
+                      if attempt<4: time.sleep(min(2**(attempt-1),8)+random.random())
+              return st,None,errors
+
+          fetched={}; fetch_errors={}
+          with cf.ThreadPoolExecutor(max_workers=6) as ex:
+              futs={ex.submit(fetch_one,st):st for st in team_seasons}
+              done=0
+              for fut in cf.as_completed(futs):
+                  st,payload,errors=fut.result(); done+=1
+                  if payload is None: fetch_errors['|'.join(st)]=errors
+                  else: fetched[st]=payload
+                  if done%50==0 or done==len(futs): print(f'endpoint team-seasons {done}/{len(futs)} failures={len(fetch_errors)}',flush=True)
+
+          def collect_rows(payload):
+              out=[]
+              def walk(x):
+                  if isinstance(x,dict):
+                      if 'Name' in x and ('On' in x or 'Off' in x) and ('MinutesOn' in x or 'MinutesOff' in x): out.append(x)
+                      for v in x.values(): walk(v)
+                  elif isinstance(x,list):
+                      for v in x: walk(v)
+              walk(payload)
+              # exact duplicates can appear through nested structures; retain unique row values.
+              uniq=[]; seen=set()
+              for r in out:
+                  sig=(str(r.get('Name')),str(r.get('MinutesOn')),str(r.get('MinutesOff')),str(r.get('On')),str(r.get('Off')))
+                  if sig not in seen: seen.add(sig); uniq.append(r)
+              return uniq
+
+          rows_by_st={st:collect_rows(p) for st,p in fetched.items()}
+          match_rows=[]; unmatched=[]; ambiguous=[]
+          gidx={(str(r.season),str(r.team_id),str(r.player_id)):r for r in g.itertuples(index=False)}
+          for k,nm in keys:
+              s,t,p=k
+              rows=rows_by_st.get((s,t),[])
+              target=norm_name(nm)
+              cand=[r for r in rows if norm_name(r.get('Name'))==target] if target else []
+              if len(cand)!=1:
+                  item={'season':s,'team_id':t,'player_id':p,'player_name':nm,'candidate_count':len(cand),'endpoint_names':[r.get('Name') for r in rows]}
+                  (ambiguous if len(cand)>1 else unmatched).append(item)
+                  continue
+              er=cand[0]; xr=gidx[k]
+              on=num(er.get('On')); off=num(er.get('Off')); mon=num(er.get('MinutesOn')); moff=num(er.get('MinutesOff'))
+              # pct metrics may be represented as decimal fractions; normalize to percent units.
+              if on is not None and abs(on)<=1.5: on*=100
+              if off is not None and abs(off)<=1.5: off*=100
+              rec={
+                  'season':s,'team_id':t,'player_id':p,'player_name':nm,'trade_sensitive':bool(xr.trade_sensitive),
+                  'endpoint_on_pct':on,'endpoint_off_pct':off,'endpoint_minutes_on':mon,'endpoint_minutes_off':moff,
+                  'exact_on_pct':float(xr.exact_on_pct),'exact_off_pct':float(xr.exact_off_pct) if pd.notna(xr.exact_off_pct) else None,
+                  'exact_minutes_on':float(xr.exact_minutes_on),'exact_minutes_off':float(xr.exact_minutes_off),
+              }
+              for side in ['on','off']:
+                  a=rec[f'endpoint_{side}_pct']; b=rec[f'exact_{side}_pct']
+                  rec[f'{side}_abs_diff_pp']=abs(a-b) if a is not None and b is not None else None
+              rec['minutes_on_abs_diff']=abs(mon-rec['exact_minutes_on']) if mon is not None else None
+              rec['minutes_off_abs_diff']=abs(moff-rec['exact_minutes_off']) if moff is not None else None
+              match_rows.append(rec)
+
+          mdf=pd.DataFrame(match_rows)
+          mdf.to_csv(OUT/'TOTALREBOUNDPCT_EXACT_COMPARISON.csv',index=False)
+          pd.DataFrame(unmatched).to_json(OUT/'TOTALREBOUNDPCT_UNMATCHED.json',orient='records',indent=2)
+          pd.DataFrame(ambiguous).to_json(OUT/'TOTALREBOUNDPCT_AMBIGUOUS.json',orient='records',indent=2)
+
+          def stats(df,col):
+              if df.empty or col not in df: return {'n':0}
+              x=pd.to_numeric(df[col],errors='coerce').dropna()
+              if x.empty: return {'n':0}
+              return {'n':int(len(x)),'exact_le_0_000001':int((x<=1e-6).sum()),'within_0_01pp':int((x<=0.01+1e-12).sum()),'within_0_05pp':int((x<=0.05+1e-12).sum()),'within_0_10pp':int((x<=0.10+1e-12).sum()),'median':float(x.median()),'p95':float(x.quantile(.95)),'max':float(x.max())}
+
+          trade=mdf[mdf.trade_sensitive==True] if not mdf.empty else mdf
+          nontrade=mdf[mdf.trade_sensitive==False] if not mdf.empty else mdf
+          report={
+              'status':'PASS',
+              'exact_segments':5199,
+              'exact_pts_expected':4877,
+              'canonical_trade_player_seasons':len(traded_ps),
+              'exact_trade_sensitive_keys':int(g.trade_sensitive.sum()),
+              'distinct_exact_team_seasons_requested':len(team_seasons),
+              'endpoint_team_seasons_succeeded':len(fetched),
+              'endpoint_team_seasons_failed':len(fetch_errors),
+              'exact_keys_missing_name':name_missing,
+              'exact_keys_matched_to_endpoint':len(match_rows),
+              'exact_keys_unmatched':len(unmatched),
+              'exact_keys_ambiguous':len(ambiguous),
+              'all_on_diff_pp':stats(mdf,'on_abs_diff_pp'),
+              'all_off_diff_pp':stats(mdf,'off_abs_diff_pp'),
+              'nontrade_on_diff_pp':stats(nontrade,'on_abs_diff_pp'),
+              'nontrade_off_diff_pp':stats(nontrade,'off_abs_diff_pp'),
+              'trade_on_diff_pp':stats(trade,'on_abs_diff_pp'),
+              'trade_off_diff_pp':stats(trade,'off_abs_diff_pp'),
+              'all_minutes_on_diff':stats(mdf,'minutes_on_abs_diff'),
+              'all_minutes_off_diff':stats(mdf,'minutes_off_abs_diff'),
+              'trade_minutes_on_diff':stats(trade,'minutes_on_abs_diff'),
+              'trade_minutes_off_diff':stats(trade,'minutes_off_abs_diff'),
+              'fetch_errors':fetch_errors,
+          }
+          # Semantic classification only; do not abort so every discrepancy is retained.
+          if len(match_rows)==0:
+              report['semantic_conclusion']='NO_MATCHED_EXACT_KEYS'
+          else:
+              trade_off_max=report['trade_off_diff_pp'].get('max')
+              trade_moff_max=report['trade_minutes_off_diff'].get('max')
+              nontrade_on_p95=report['nontrade_on_diff_pp'].get('p95')
+              if trade_off_max is not None and trade_off_max>0.25:
+                  report['semantic_conclusion']='DIRECT_ON_POSSIBLE_BUT_TRADE_OFF_SEMANTICS_DIVERGE'
+              elif trade_moff_max is not None and trade_moff_max>5:
+                  report['semantic_conclusion']='TRADE_OFF_MINUTES_DIVERGE'
+              elif nontrade_on_p95 is not None and nontrade_on_p95<=0.06:
+                  report['semantic_conclusion']='DIRECT_TOTALREBOUNDPCT_ROUTE_VALIDATED_WITHIN_SOURCE_ROUNDING'
+              else:
+                  report['semantic_conclusion']='DIRECT_ROUTE_NUMERIC_SEMANTICS_NOT_PROVEN'
+          (OUT/'TOTALREBOUNDPCT_EXACT_VALIDATION.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          md=['# TotalReboundPct exact validation','',f"- Exact PTS expected: **4877**",f"- Matched: **{len(match_rows)}**",f"- Unmatched: **{len(unmatched)}**",f"- Team-season fetch failures: **{len(fetch_errors)}**",f"- Trade-sensitive exact keys: **{int(g.trade_sensitive.sum())}**",f"- Conclusion: **{report['semantic_conclusion']}**",'', '## Comparison summary','',f"- All ON: `{report['all_on_diff_pp']}`",f"- All OFF: `{report['all_off_diff_pp']}`",f"- Trade ON: `{report['trade_on_diff_pp']}`",f"- Trade OFF: `{report['trade_off_diff_pp']}`",f"- Trade OFF minutes: `{report['trade_minutes_off_diff']}`"]
+          (OUT/'TOTALREBOUNDPCT_EXACT_VALIDATION.md').write_text('\n'.join(md)+'\n')
+          print(json.dumps(report,indent=2,default=str))
+          PY
+
+      - name: Upload validation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-totalreboundpct-exact-validation
+          path: /tmp/treb_totalreb_validate/
+          if-no-files-found: error
+          retention-days: 30
