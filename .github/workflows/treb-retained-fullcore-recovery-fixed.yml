@@ -1,0 +1,90 @@
+name: TREB retained full-core recovery fixed
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-retained-fullcore-recovery-fixed.yml
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-retained-fullcore-recovery-fixed
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout production branch with full history
+        uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Install recovery dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check pandas
+
+      - name: Fetch retained TREB branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune --no-tags
+          git for-each-ref --format='%(refname:short) %(objectname)' refs/remotes/origin \
+            | grep -i treb \
+            | sort \
+            | tee /tmp/treb_refs.txt
+
+      - name: Execute unchanged retained-source recovery logic
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          src = Path('.github/workflows/treb-retained-fullcore-recovery.yml').read_text()
+          marker = '          from __future__ import annotations\n'
+          start = src.index(marker)
+          end = src.index('\n          PY', start)
+          block = src[start:end]
+          lines = block.splitlines()
+          code = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
+          Path('/tmp/treb_retained_recovery.py').write_text(code)
+          PY
+          python /tmp/treb_retained_recovery.py
+
+      - name: Persist recovery inventory to production branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT='team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery'
+          if [ ! -d "$OUT" ]; then
+            echo 'Recovery output directory was not created'
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$OUT/"
+          if git diff --cached --quiet; then
+            echo 'No recovery output changes to commit'
+          else
+            git commit -m 'TREB: persist retained full-core REB_PCT recovery inventory'
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Upload recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-retained-fullcore-recovery-${{ github.run_id }}
+          path: team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery/
+          if-no-files-found: error
