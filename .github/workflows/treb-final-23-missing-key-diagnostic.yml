@@ -1,0 +1,227 @@
+name: TREB final 23 missing canonical keys diagnostic
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-final-23-missing-key-diagnostic.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-final-23-missing-key-diagnostic
+  cancel-in-progress: false
+
+env:
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+  OUT: team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact-assembly branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install reader
+        run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Compare authoritative targets directly to pinned Stage2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2 "$OUT"
+          mkdir -p "$OUT"
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          python - <<'PY'
+          import csv, gzip, json, os
+          from pathlib import Path
+          import pandas as pd
+
+          ROOT=Path.cwd()
+          OUT=ROOT/os.environ['OUT']
+          TARGET=ROOT/'team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          S2=Path('/tmp/treb_stage2/team_trb_all_players')
+          SEG=S2/'impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          CORE=S2/'impact_database/outputs'
+          KEYS=['season','team_id','player_id']
+
+          def rows(path):
+              with gzip.open(path,'rt',encoding='utf-8') as f:
+                  return [json.loads(line) for line in f if line.strip()]
+          def pid(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def canon(df):
+              x=df.copy()
+              x['season']=x['season'].astype(str)
+              x['team_id']=pd.to_numeric(x['team_id'],errors='raise').astype('int64')
+              x['player_id']=x['player_id'].map(pid).astype(str)
+              return x
+          def safe(v):
+              if pd.isna(v): return None
+              if hasattr(v,'item'):
+                  try: return v.item()
+                  except Exception: pass
+              return v
+
+          t_raw=rows(TARGET)
+          s_raw=rows(SEG)
+          t=canon(pd.DataFrame(t_raw))
+          s=canon(pd.DataFrame(s_raw))
+          tk=t[KEYS].drop_duplicates()
+          sk=s[KEYS].drop_duplicates()
+          if len(tk)!=14524:
+              raise RuntimeError(f'authoritative target count changed: {len(tk)}')
+
+          miss=tk.merge(sk,on=KEYS,how='left',indicator=True)
+          miss=miss[miss['_merge'].eq('left_only')][KEYS].sort_values(KEYS).reset_index(drop=True)
+          extra=sk.merge(tk,on=KEYS,how='left',indicator=True)
+          extra=extra[extra['_merge'].eq('left_only')][KEYS].sort_values(KEYS).reset_index(drop=True)
+          if len(miss)!=23:
+              raise RuntimeError(f'expected 23 missing keys from production failure, found {len(miss)}')
+
+          target_meta=t.merge(miss,on=KEYS,how='inner',validate='many_to_one').copy()
+          target_meta=target_meta.drop_duplicates(KEYS).sort_values(KEYS).reset_index(drop=True)
+
+          # Stage2 neighborhood evidence: same player-season on another team, and same player-team in another season.
+          ps=s[['season','player_id','team_id']].drop_duplicates()
+          pt=s[['player_id','team_id','season']].drop_duplicates()
+          details=[]
+          for _,r in target_meta.iterrows():
+              key={k:safe(r[k]) for k in KEYS}
+              same_ps=ps[(ps.season==r.season)&(ps.player_id==r.player_id)].team_id.astype(int).tolist()
+              same_pt=pt[(pt.player_id==r.player_id)&(pt.team_id==r.team_id)].season.astype(str).tolist()
+              rec={k:safe(v) for k,v in r.to_dict().items()}
+              rec['stage2_same_player_season_other_team_ids']=sorted(set(same_ps))
+              rec['stage2_same_player_team_other_seasons']=sorted(set(same_pt))
+              details.append(rec)
+
+          # Test direct legacy/full-core source availability for each missing key.
+          core_matches={tuple(r[k] for k in KEYS): {'rows':0,'metrics':set(),'players':set(),'minute_fields':{}} for _,r in miss.iterrows()}
+          missing_by_season={season:g.copy() for season,g in miss.groupby('season')}
+          core_columns_by_season={}
+          for season,g in missing_by_season.items():
+              p=CORE/season/'team_on_off_metrics.csv.gz'
+              if not p.exists():
+                  core_columns_by_season[season]={'exists':False}
+                  continue
+              df=pd.read_csv(p,compression='gzip',low_memory=False)
+              core_columns_by_season[season]={'exists':True,'columns':list(df.columns)}
+              if 'subject_player_id' not in df.columns or 'team_id' not in df.columns:
+                  continue
+              df['player_id']=df['subject_player_id'].map(pid).astype(str)
+              df['team_id']=pd.to_numeric(df['team_id'],errors='coerce').astype('Int64')
+              mincols=[c for c in df.columns if 'min' in c.lower()]
+              for _,mr in g.iterrows():
+                  q=df[(df.player_id==mr.player_id)&(df.team_id==int(mr.team_id))]
+                  k=(mr.season,int(mr.team_id),mr.player_id)
+                  info=core_matches[k]
+                  info['rows']=int(len(q))
+                  if 'metric' in q.columns: info['metrics']=set(q.metric.dropna().astype(str))
+                  if 'subject_player' in q.columns: info['players']=set(q.subject_player.dropna().astype(str))
+                  for c in mincols:
+                      vals=pd.to_numeric(q[c],errors='coerce').dropna().unique().tolist()
+                      if vals: info['minute_fields'][c]=[float(x) for x in vals[:10]]
+
+          for rec in details:
+              k=(rec['season'],int(rec['team_id']),str(rec['player_id']))
+              info=core_matches[k]
+              rec['legacy_core_rows']=info['rows']
+              rec['legacy_core_metric_count']=len(info['metrics'])
+              rec['legacy_core_players']=sorted(info['players'])
+              rec['legacy_core_minute_fields']=info['minute_fields']
+
+          # Summaries useful for materiality triage.
+          core89=sum(1 for d in details if d['legacy_core_metric_count']==89)
+          core0=sum(1 for d in details if d['legacy_core_metric_count']==0)
+          any_core=sum(1 for d in details if d['legacy_core_metric_count']>0)
+          same_player_other_team=sum(1 for d in details if d['stage2_same_player_season_other_team_ids'])
+
+          # Numeric target fields: report distributions and totals if present (minutes/games/dates etc.).
+          numeric_summary={}
+          for c in target_meta.columns:
+              vals=pd.to_numeric(target_meta[c],errors='coerce')
+              if vals.notna().any() and c not in ('team_id','player_id'):
+                  numeric_summary[c]={
+                      'non_null':int(vals.notna().sum()),
+                      'sum':float(vals.fillna(0).sum()),
+                      'min':float(vals.min()),
+                      'max':float(vals.max()),
+                  }
+
+          report={
+              'status':'PASS',
+              'purpose':'materiality diagnostic for 23 authoritative V2 canonical keys absent from pinned Stage2 tenure-segment source',
+              'stage2_sha':os.environ['STAGE2_SHA'],
+              'authoritative_v2_keys':int(len(tk)),
+              'stage2_segment_keys':int(len(sk)),
+              'missing_authoritative_keys':int(len(miss)),
+              'stage2_only_keys':int(len(extra)),
+              'missing_with_any_legacy_core_data':any_core,
+              'missing_with_all_89_legacy_core_metrics':core89,
+              'missing_with_zero_legacy_core_metrics':core0,
+              'missing_with_stage2_same_player_season_on_other_team':same_player_other_team,
+              'target_manifest_columns':list(t.columns),
+              'target_numeric_summary_for_missing':numeric_summary,
+              'missing_keys':details,
+              'core_columns_by_missing_season':core_columns_by_season,
+              'classification_rule':{
+                  'material':'meaningful minutes/results absent with no safe established source',
+                  'potentially_technical_or_identity':'zero/near-zero target impact, alias/team-boundary identity, or complete established direct core metrics available',
+              },
+          }
+          (OUT/'STAGE2_MISSING_23_DIAGNOSTIC.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+
+          flat=[]
+          for d in details:
+              flat.append({
+                  'season':d['season'],'team_id':d['team_id'],'player_id':d['player_id'],
+                  'player':d.get('player') or d.get('subject_player') or d.get('player_name') or '',
+                  'legacy_core_metric_count':d['legacy_core_metric_count'],
+                  'legacy_core_rows':d['legacy_core_rows'],
+                  'same_player_season_stage2_team_ids':'|'.join(map(str,d['stage2_same_player_season_other_team_ids'])),
+                  'legacy_core_minute_fields':json.dumps(d['legacy_core_minute_fields'],sort_keys=True),
+                  'target_metadata':json.dumps({k:safe(v) for k,v in d.items() if k not in ['stage2_same_player_season_other_team_ids','stage2_same_player_team_other_seasons','legacy_core_rows','legacy_core_metric_count','legacy_core_players','legacy_core_minute_fields']},sort_keys=True,default=str),
+              })
+          pd.DataFrame(flat).to_csv(OUT/'STAGE2_MISSING_23_KEYS.csv',index=False)
+
+          lines=[
+              '# Stage2 missing 23 canonical keys diagnostic','',
+              f'- Authoritative V2 keys: **{len(tk)}**',
+              f'- Pinned Stage2 segment keys: **{len(sk)}**',
+              f'- Missing authoritative keys: **{len(miss)}**',
+              f'- Stage2-only keys: **{len(extra)}**',
+              f'- Missing keys with any legacy core data: **{any_core}/23**',
+              f'- Missing keys with all 89 legacy core metrics: **{core89}/23**',
+              f'- Missing keys with zero legacy core metrics: **{core0}/23**',
+              f'- Missing keys where Stage2 has same player-season on another team: **{same_player_other_team}/23**','',
+              'See JSON/CSV for exact keys, target metadata, minute-like fields, and source-neighborhood evidence.'
+          ]
+          (OUT/'README.md').write_text('\n'.join(lines)+'\n')
+          print(json.dumps({k:report[k] for k in ['status','authoritative_v2_keys','stage2_segment_keys','missing_authoritative_keys','stage2_only_keys','missing_with_any_legacy_core_data','missing_with_all_89_legacy_core_metrics','missing_with_zero_legacy_core_metrics','missing_with_stage2_same_player_season_on_other_team']},indent=2))
+          PY
+
+      - name: Persist diagnostic evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f "$OUT"
+          git commit -m 'Persist Stage2 missing-23 materiality diagnostic'
+          git push origin HEAD:agent/treb-final-exact-assembly
+
+      - name: Upload diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-stage2-missing-23-diagnostic-${{ github.run_id }}
+          path: ${{ env.OUT }}
+          retention-days: 30
