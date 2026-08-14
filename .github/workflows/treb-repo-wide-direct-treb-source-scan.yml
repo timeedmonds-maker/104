@@ -1,5 +1,6 @@
 name: TREB repo-wide historical direct source scan
 
+# self-trigger: 2026-08-15
 on:
   push:
     branches:
@@ -52,7 +53,6 @@ jobs:
           def sh(*args, text=True):
               return subprocess.check_output(args, text=text, stderr=subprocess.DEVNULL)
 
-          # Every object/path pair ever reachable from any branch/tag.
           lines=sh('git','rev-list','--objects','--all').splitlines()
           objs=[]
           for line in lines:
@@ -60,7 +60,6 @@ jobs:
               sha,path=line.split(' ',1)
               if path_re.search(path): objs.append((sha,path))
 
-          # Deduplicate sha/path pairs; many historical names can point to same blob.
           seen=set(); candidates=[]
           for sha,path in objs:
               key=(sha,path)
@@ -84,7 +83,6 @@ jobs:
                           data=gzip.decompress(raw); compression='gzip'
                       except Exception:
                           continue
-                  # ZIP archives: record name-level candidates separately; do not explode huge archives here.
                   if data[:4]==b'PK\x03\x04':
                       import zipfile
                       try:
@@ -103,11 +101,9 @@ jobs:
                   if not matched: continue
                   first=text.splitlines()[0] if text.splitlines() else ''
                   line_count=text.count('\n') + (1 if text and not text.endswith('\n') else 0)
-                  # Count likely data rows for CSVs, and capture a tiny sample only.
                   sample='\n'.join(text.splitlines()[:4])[:4000]
                   hits.append({'sha':sha,'path':path,'size':size,'compression':compression,'matched_signatures':matched,'header':first[:2000],'line_count':line_count,'sample':sample})
 
-          # Enrich strongest data hits with commits/branches that can recover them.
           strong=[]
           for h in hits:
               m=set(h.get('matched_signatures') or [])
@@ -126,7 +122,6 @@ jobs:
                   hh=dict(h); hh['commits']=commits; hh['branches']=sorted(branches)
                   strong.append(hh)
 
-          # Sort likely full datasets first: direct ON/OFF TRB then row count.
           def score(h):
               m=set(h.get('matched_signatures') or [])
               return (10*({'On TRB%','Off TRB%'} <= m) + 6*('TotalReboundPct' in m) + 4*('OffRebounds' in m and 'DefRebounds' in m), h.get('line_count') or 0, h.get('size') or 0)
