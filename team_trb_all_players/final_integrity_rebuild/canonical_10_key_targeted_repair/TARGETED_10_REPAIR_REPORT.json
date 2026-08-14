@@ -1,0 +1,214 @@
+{
+  "status": "PASS_TARGETED_10_REPAIR",
+  "keys_expected": 10,
+  "keys_repaired": 10,
+  "failure_count": 0,
+  "metric_rows": 890,
+  "null_metric_rows_explicit_undefined": 0,
+  "precision_rule": "canonical V2 minutes may replace PBP Stats minute rounding only when exact same-key interval total duration is known and delta <=0.51 minute",
+  "safety": "same season/team/player only; missing tiny-interval metrics are explicit NULL, never borrowed from whole-season OFF; native 89 metric names preserved; no Stage2 rebuild; no canonical key dropped",
+  "production_gate_relaxed": false,
+  "stage2_full_rebuild_performed": false,
+  "diagnostics": [
+    {
+      "season": "2013-14",
+      "team_id": 1610612745,
+      "player_id": "2694",
+      "player": "Josh Powell",
+      "ok": true,
+      "error": null,
+      "minutes_on": 19.366666666666667,
+      "minutes_off": 3946.633333333333,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 1,
+      "best_interval": {
+        "start": "2014-04-16",
+        "end": "2014-04-16",
+        "metric_count": 89,
+        "minute_source": "exact",
+        "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz"
+      }
+    },
+    {
+      "season": "2015-16",
+      "team_id": 1610612739,
+      "player_id": "2563",
+      "player": "Dahntay Jones",
+      "ok": true,
+      "error": null,
+      "minutes_on": 42.35,
+      "minutes_off": 3928.65,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 1,
+      "best_interval": {
+        "start": "2016-04-13",
+        "end": "2016-04-13",
+        "metric_count": 89,
+        "minute_source": "exact",
+        "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz"
+      }
+    },
+    {
+      "season": "2010-11",
+      "team_id": 1610612747,
+      "player_id": "201234",
+      "player": "Trey Johnson",
+      "ok": true,
+      "error": null,
+      "minutes_on": 13.4,
+      "minutes_off": 3952.6,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 1,
+      "best_interval": {
+        "start": "2011-04-13",
+        "end": "2011-04-13",
+        "metric_count": 89,
+        "minute_source": "exact",
+        "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz"
+      }
+    },
+    {
+      "season": "2012-13",
+      "team_id": 1610612752,
+      "player_id": "2853",
+      "player": "Earl Barron",
+      "ok": true,
+      "error": null,
+      "minutes_on": 36.5,
+      "minutes_off": 3909.5,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 1,
+      "best_interval": {
+        "start": "2013-04-17",
+        "end": "2013-04-17",
+        "metric_count": 89,
+        "minute_source": "exact",
+        "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz"
+      }
+    },
+    {
+      "season": "2017-18",
+      "team_id": 1610612739,
+      "player_id": "2570",
+      "player": "Kendrick Perkins",
+      "ok": true,
+      "error": null,
+      "minutes_on": 14.533333333333333,
+      "minutes_off": 3931.4666666666667,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 1,
+      "best_interval": {
+        "start": "2018-04-11",
+        "end": "2018-04-11",
+        "metric_count": 89,
+        "minute_source": "exact",
+        "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz"
+      }
+    },
+    {
+      "season": "2016-17",
+      "team_id": 1610612739,
+      "player_id": "2563",
+      "player": "Dahntay Jones",
+      "ok": true,
+      "error": null,
+      "minutes_on": 12.0,
+      "minutes_off": 3964.0,
+      "precision_reconciled": false,
+      "null_metric_count": 0,
+      "candidate_count": 1,
+      "best_interval": {
+        "start": "2017-04-12",
+        "end": "2017-04-12",
+        "metric_count": 89,
+        "minute_source": "exact",
+        "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz"
+      }
+    },
+    {
+      "season": "2017-18",
+      "team_id": 1610612745,
+      "player_id": "1628935",
+      "player": "Aaron Jackson",
+      "ok": true,
+      "error": null,
+      "minutes_on": 34.5,
+      "minutes_off": 3915.5,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 1,
+      "best_interval": {
+        "start": "2018-04-11",
+        "end": "2018-04-11",
+        "metric_count": 89,
+        "minute_source": "exact",
+        "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz"
+      }
+    },
+    {
+      "season": "2022-23",
+      "team_id": 1610612751,
+      "player_id": "1630564",
+      "player": "RaiQuan Gray",
+      "ok": true,
+      "error": null,
+      "minutes_on": 35.083333333333336,
+      "minutes_off": 3863.9166666666665,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 2,
+      "best_interval": {
+        "start": "2023-04-09",
+        "end": "2023-04-09",
+        "metric_count": 89,
+        "minute_source": "team_total_fallback",
+        "source": "team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz"
+      }
+    },
+    {
+      "season": "2025-26",
+      "team_id": 1610612741,
+      "player_id": "1631338",
+      "player": "Mouhamadou Gueye",
+      "ok": true,
+      "error": null,
+      "minutes_on": 45.44166666666667,
+      "minutes_off": 3809.5583333333334,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 2,
+      "best_interval": {
+        "start": "2026-04-10",
+        "end": "2026-04-12",
+        "metric_count": 89,
+        "minute_source": "team_total_fallback",
+        "source": "team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz"
+      }
+    },
+    {
+      "season": "2024-25",
+      "team_id": 1610612755,
+      "player_id": "1630600",
+      "player": "Isaiah Mobley",
+      "ok": true,
+      "error": null,
+      "minutes_on": 17.366666666666667,
+      "minutes_off": 3943.633333333333,
+      "precision_reconciled": true,
+      "null_metric_count": 0,
+      "candidate_count": 1,
+      "best_interval": {
+        "start": "2025-04-13",
+        "end": "2025-04-13",
+        "metric_count": 89,
+        "minute_source": "exact",
+        "source": "team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz"
+      }
+    }
+  ]
+}
