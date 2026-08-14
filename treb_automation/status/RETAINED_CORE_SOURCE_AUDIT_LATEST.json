@@ -1,0 +1,4749 @@
+{
+  "status": "PASS",
+  "purpose": "Locate retained full-core TREB source for 9,647-key release overlay complement without rerunning Stage2 or historical reconstruction.",
+  "season_directories": 26,
+  "expected_seasons": 26,
+  "sources": {
+    "team_rebound_derived": {
+      "rows": 14526,
+      "unique_keys": 14526,
+      "duplicate_key_rows": 0,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds",
+        "error"
+      ],
+      "interesting_columns": [
+        "def_rebound_pct_displayed",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_off_rebounds",
+        "team_rebounds"
+      ],
+      "per_season": [
+        {
+          "season": "2000-01",
+          "exists": true,
+          "rows": 491,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2001-02",
+          "exists": true,
+          "rows": 470,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2002-03",
+          "exists": true,
+          "rows": 456,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2003-04",
+          "exists": true,
+          "rows": 517,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2004-05",
+          "exists": true,
+          "rows": 526,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2005-06",
+          "exists": true,
+          "rows": 512,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2006-07",
+          "exists": true,
+          "rows": 487,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2007-08",
+          "exists": true,
+          "rows": 527,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2008-09",
+          "exists": true,
+          "rows": 515,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2009-10",
+          "exists": true,
+          "rows": 512,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2010-11",
+          "exists": true,
+          "rows": 542,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2011-12",
+          "exists": true,
+          "rows": 515,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2012-13",
+          "exists": true,
+          "rows": 523,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2013-14",
+          "exists": true,
+          "rows": 548,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2014-15",
+          "exists": true,
+          "rows": 575,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2015-16",
+          "exists": true,
+          "rows": 528,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2016-17",
+          "exists": true,
+          "rows": 542,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2017-18",
+          "exists": true,
+          "rows": 605,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2018-19",
+          "exists": true,
+          "rows": 622,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2019-20",
+          "exists": true,
+          "rows": 591,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2020-21",
+          "exists": true,
+          "rows": 626,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2021-22",
+          "exists": true,
+          "rows": 715,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2022-23",
+          "exists": true,
+          "rows": 609,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "error",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2023-24",
+          "exists": true,
+          "rows": 657,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2024-25",
+          "exists": true,
+          "rows": 654,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        },
+        {
+          "season": "2025-26",
+          "exists": true,
+          "rows": 661,
+          "columns": [
+            "def_rebound_pct_displayed",
+            "error",
+            "exact",
+            "minutes",
+            "off_rebound_pct_displayed",
+            "opponent_def_rebound_candidates",
+            "opponent_off_rebound_candidates",
+            "opponent_rebound_candidates",
+            "opponent_rebounds_exact",
+            "player",
+            "player_id",
+            "season",
+            "seconds",
+            "team_def_rebounds",
+            "team_id",
+            "team_off_rebounds",
+            "team_rebounds"
+          ]
+        }
+      ]
+    },
+    "team_on_off_metrics": {
+      "rows": 1292814,
+      "metric_count": 89,
+      "rebound_like_metric_names": [
+        "Arc 3 DReb%",
+        "Arc 3 OReb%",
+        "At Rim DReb%",
+        "At Rim OReb%",
+        "Corner 3 DReb%",
+        "Corner 3 OReb%",
+        "DReb%",
+        "DReb% - Missed 2s",
+        "DReb% - Missed 3s",
+        "DReb% - Missed FGs",
+        "DReb% - Missed FTs",
+        "Long Mid-Range DReb%",
+        "Long Mid-Range OReb%",
+        "OReb%",
+        "OReb% - Missed 2s",
+        "OReb% - Missed 3s",
+        "OReb% - Missed FGs",
+        "OReb% - Missed FTs",
+        "Short Mid-Range DReb%",
+        "Short Mid-Range OReb%"
+      ]
+    },
+    "career_team_trb_all_players.csv.gz": {
+      "rows": 2552,
+      "columns": [
+        "rank_10000_minutes",
+        "player_id",
+        "player",
+        "minutes",
+        "seconds",
+        "team_rebounds",
+        "opponent_rebounds_exact",
+        "opponent_rebounds_min",
+        "opponent_rebounds_max",
+        "team_trb_pct_exact",
+        "team_trb_pct_min",
+        "team_trb_pct_max",
+        "exact",
+        "ambiguous_segments",
+        "season_count",
+        "team_count",
+        "seasons",
+        "team_ids",
+        "qualifies_10000_minutes"
+      ]
+    },
+    "career_team_trb_10000_minutes.csv.gz": {
+      "rows": 552,
+      "columns": [
+        "rank_10000_minutes",
+        "player_id",
+        "player",
+        "minutes",
+        "seconds",
+        "team_rebounds",
+        "opponent_rebounds_exact",
+        "opponent_rebounds_min",
+        "opponent_rebounds_max",
+        "team_trb_pct_exact",
+        "team_trb_pct_min",
+        "team_trb_pct_max",
+        "exact",
+        "ambiguous_segments",
+        "season_count",
+        "team_count",
+        "seasons",
+        "team_ids",
+        "qualifies_10000_minutes"
+      ]
+    }
+  },
+  "candidate_files": [
+    {
+      "path": ".github/workflows/career_treb.yml",
+      "bytes": 950
+    },
+    {
+      "path": ".github/workflows/export-treb-core.yml",
+      "bytes": 2231
+    },
+    {
+      "path": ".github/workflows/team-treb-public-arm.yml",
+      "bytes": 5672
+    },
+    {
+      "path": ".github/workflows/team-treb-self-start.yml",
+      "bytes": 5293
+    },
+    {
+      "path": ".github/workflows/treb-2002-canary-failure-diagnostic-v2.yml",
+      "bytes": 7683
+    },
+    {
+      "path": ".github/workflows/treb-2002-canary-failure-diagnostic.yml",
+      "bytes": 7522
+    },
+    {
+      "path": ".github/workflows/treb-2002-exact-adjudication.yml",
+      "bytes": 6915
+    },
+    {
+      "path": ".github/workflows/treb-2002-prior-continuity-control-v2.yml",
+      "bytes": 8724
+    },
+    {
+      "path": ".github/workflows/treb-2002-prior-continuity-control.yml",
+      "bytes": 9426
+    },
+    {
+      "path": ".github/workflows/treb-2002-residual-lineup-diagnostic.yml",
+      "bytes": 4992
+    },
+    {
+      "path": ".github/workflows/treb-2002-target-starter-proof.yml",
+      "bytes": 5028
+    },
+    {
+      "path": ".github/workflows/treb-2004-posthorn-diagnostic.yml",
+      "bytes": 8452
+    },
+    {
+      "path": ".github/workflows/treb-2009-completion-supplement.yml",
+      "bytes": 4645
+    },
+    {
+      "path": ".github/workflows/treb-2009-source-gap-canary.yml",
+      "bytes": 3003
+    },
+    {
+      "path": ".github/workflows/treb-2015-nonunique-micro.yml",
+      "bytes": 10184
+    },
+    {
+      "path": ".github/workflows/treb-2015-nonunique-split.yml",
+      "bytes": 7081
+    },
+    {
+      "path": ".github/workflows/treb-2016-minute-semantics-audit.yml",
+      "bytes": 6590
+    },
+    {
+      "path": ".github/workflows/treb-2023-completion-supplement.yml",
+      "bytes": 5370
+    },
+    {
+      "path": ".github/workflows/treb-2025-adapter-diagnostic.yml",
+      "bytes": 2901
+    },
+    {
+      "path": ".github/workflows/treb-2025-lineup-adapter-canary.yml",
+      "bytes": 3882
+    },
+    {
+      "path": ".github/workflows/treb-2025-official-live-adjudication.yml",
+      "bytes": 2851
+    },
+    {
+      "path": ".github/workflows/treb-2025-production.yml",
+      "bytes": 5982
+    },
+    {
+      "path": ".github/workflows/treb-2025-rebound-action-identity.yml",
+      "bytes": 2543
+    },
+    {
+      "path": ".github/workflows/treb-2025-rebound-discrepancy-context.yml",
+      "bytes": 2753
+    },
+    {
+      "path": ".github/workflows/treb-2025-rebound-reconciliation.yml",
+      "bytes": 2703
+    },
+    {
+      "path": ".github/workflows/treb-2025-rebound-semantics-v2.yml",
+      "bytes": 2804
+    },
+    {
+      "path": ".github/workflows/treb-2025-rebound-semantics.yml",
+      "bytes": 2057
+    },
+    {
+      "path": ".github/workflows/treb-2025-stable-rebound-semantics-audit.yml",
+      "bytes": 2651
+    },
+    {
+      "path": ".github/workflows/treb-20400335-datanba-probe.yml",
+      "bytes": 2202
+    },
+    {
+      "path": ".github/workflows/treb-20400335-transition-probe.yml",
+      "bytes": 2436
+    },
+    {
+      "path": ".github/workflows/treb-21600270-minute-gate.yml",
+      "bytes": 10277
+    },
+    {
+      "path": ".github/workflows/treb-adams-21600211-target.yml",
+      "bytes": 3198
+    },
+    {
+      "path": ".github/workflows/treb-adams-classifier-aggregate-recover.yml",
+      "bytes": 4331
+    },
+    {
+      "path": ".github/workflows/treb-adams-game-lineup-canary.yml",
+      "bytes": 3158
+    },
+    {
+      "path": ".github/workflows/treb-adams-locked-classifier-canary.yml",
+      "bytes": 3852
+    },
+    {
+      "path": ".github/workflows/treb-adams-rebound-classifier-audit-batched.yml",
+      "bytes": 11307
+    },
+    {
+      "path": ".github/workflows/treb-adams-rebound-classifier-audit.yml",
+      "bytes": 10818
+    },
+    {
+      "path": ".github/workflows/treb-adams-rebound-classifier-chunked.yml",
+      "bytes": 6972
+    },
+    {
+      "path": ".github/workflows/treb-adams-rebound-classifier-microchunked.yml",
+      "bytes": 6710
+    },
+    {
+      "path": ".github/workflows/treb-aggregate-exception-diagnostics.yml",
+      "bytes": 1635
+    },
+    {
+      "path": ".github/workflows/treb-aggregate-first-safe-sweep.yml",
+      "bytes": 1830
+    },
+    {
+      "path": ".github/workflows/treb-ambiguity-minute-resolution.yml",
+      "bytes": 1999
+    },
+    {
+      "path": ".github/workflows/treb-authoritative-v2-canonical-gate.yml",
+      "bytes": 4410
+    },
+    {
+      "path": ".github/workflows/treb-bracket-team-prefix-audit.yml",
+      "bytes": 4930
+    },
+    {
+      "path": ".github/workflows/treb-canonical-career-population-audit.yml",
+      "bytes": 2199
+    },
+    {
+      "path": ".github/workflows/treb-canonical-locked-segment-mapping.yml",
+      "bytes": 12473
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "bytes": 14207
+    },
+    {
+      "path": ".github/workflows/treb-canonical-window-audit.yml",
+      "bytes": 9254
+    },
+    {
+      "path": ".github/workflows/treb-cc0-playerstatistics-probe.yml",
+      "bytes": 2331
+    },
+    {
+      "path": ".github/workflows/treb-completion-matrix.yml",
+      "bytes": 11568
+    },
+    {
+      "path": ".github/workflows/treb-completion-supervisor.yml",
+      "bytes": 3121
+    },
+    {
+      "path": ".github/workflows/treb-corrected-off.yml",
+      "bytes": 5620
+    },
+    {
+      "path": ".github/workflows/treb-counter-order-audit.yml",
+      "bytes": 4754
+    },
+    {
+      "path": ".github/workflows/treb-counter-team-truth-audit.yml",
+      "bytes": 4643
+    },
+    {
+      "path": ".github/workflows/treb-datanba-2019-rebound-bridge.yml",
+      "bytes": 2465
+    },
+    {
+      "path": ".github/workflows/treb-datanba-2024-diagnostic.yml",
+      "bytes": 2374
+    },
+    {
+      "path": ".github/workflows/treb-direct-player-identity-audit.yml",
+      "bytes": 5781
+    },
+    {
+      "path": ".github/workflows/treb-direct-team-identity-audit.yml",
+      "bytes": 5690
+    },
+    {
+      "path": ".github/workflows/treb-dreb-22201018-escape.yml",
+      "bytes": 1532
+    },
+    {
+      "path": ".github/workflows/treb-dual-anchor-impact-audit.yml",
+      "bytes": 5168
+    },
+    {
+      "path": ".github/workflows/treb-endpoint-lineup-diagnostic.yml",
+      "bytes": 11903
+    },
+    {
+      "path": ".github/workflows/treb-exact-game-fact-batch.yml",
+      "bytes": 4816
+    },
+    {
+      "path": ".github/workflows/treb-exact-game-fact-fanout.yml",
+      "bytes": 5772
+    },
+    {
+      "path": ".github/workflows/treb-exact-game-recovery-canary.yml",
+      "bytes": 9816
+    },
+    {
+      "path": ".github/workflows/treb-exact-game-union-coverage.yml",
+      "bytes": 5566
+    },
+    {
+      "path": ".github/workflows/treb-exact-identity-rebound-diagnostic-v2.yml",
+      "bytes": 7169
+    },
+    {
+      "path": ".github/workflows/treb-exact-identity-rebound-diagnostic.yml",
+      "bytes": 7142
+    },
+    {
+      "path": ".github/workflows/treb-exact-miss-next-rebound-audit.yml",
+      "bytes": 6564
+    },
+    {
+      "path": ".github/workflows/treb-exact-player-shot-anchor.yml",
+      "bytes": 5665
+    },
+    {
+      "path": ".github/workflows/treb-fast-final-repair-wave.yml",
+      "bytes": 20375
+    },
+    {
+      "path": ".github/workflows/treb-final-11-targeted-source-recovery.yml",
+      "bytes": 9684
+    },
+    {
+      "path": ".github/workflows/treb-final-16-short-tenure-stage2-recovery.yml",
+      "bytes": 10522
+    },
+    {
+      "path": ".github/workflows/treb-final-23-missing-key-diagnostic.yml",
+      "bytes": 11715
+    },
+    {
+      "path": ".github/workflows/treb-final-6-targeted-source-recovery.yml",
+      "bytes": 6951
+    },
+    {
+      "path": ".github/workflows/treb-final-autofinish.yml",
+      "bytes": 18570
+    },
+    {
+      "path": ".github/workflows/treb-final-cached-release-v2.yml",
+      "bytes": 17501
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "bytes": 37049
+    },
+    {
+      "path": ".github/workflows/treb-final-database-export.yml",
+      "bytes": 3625
+    },
+    {
+      "path": ".github/workflows/treb-final-exact-production-release.yml",
+      "bytes": 17595
+    },
+    {
+      "path": ".github/workflows/treb-final-integrity-exclusion-repair-canary.yml",
+      "bytes": 5557
+    },
+    {
+      "path": ".github/workflows/treb-final-integrity-game-facts-2025.yml",
+      "bytes": 3612
+    },
+    {
+      "path": ".github/workflows/treb-final-integrity-reconcile.yml",
+      "bytes": 5593
+    },
+    {
+      "path": ".github/workflows/treb-final-lock-integrity-audit.yml",
+      "bytes": 5338
+    },
+    {
+      "path": ".github/workflows/treb-final-materiality-completion-release.yml",
+      "bytes": 16672
+    },
+    {
+      "path": ".github/workflows/treb-final-production-consolidation.yml",
+      "bytes": 11480
+    },
+    {
+      "path": ".github/workflows/treb-final-production-matrix.yml",
+      "bytes": 12584
+    },
+    {
+      "path": ".github/workflows/treb-final-release-dispatch.yml",
+      "bytes": 564
+    },
+    {
+      "path": ".github/workflows/treb-final-universe-diagnostic.yml",
+      "bytes": 6577
+    },
+    {
+      "path": ".github/workflows/treb-final14-evidence-recovery.yml",
+      "bytes": 4015
+    },
+    {
+      "path": ".github/workflows/treb-final14-source-triage.yml",
+      "bytes": 5010
+    },
+    {
+      "path": ".github/workflows/treb-fix-recovery-canary-manifest-schema.yml",
+      "bytes": 2686
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "bytes": 9163
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-count-semantics-canary.yml",
+      "bytes": 8542
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic-v2.yml",
+      "bytes": 7464
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic.yml",
+      "bytes": 8902
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "bytes": 25082
+    },
+    {
+      "path": ".github/workflows/treb-game-fact-qa-consolidation.yml",
+      "bytes": 6891
+    },
+    {
+      "path": ".github/workflows/treb-game-fact-repair-diagnostics.yml",
+      "bytes": 6598
+    },
+    {
+      "path": ".github/workflows/treb-game-fact-repair-wave1.yml",
+      "bytes": 11297
+    },
+    {
+      "path": ".github/workflows/treb-game-fact-repair-wave2-exact-identity.yml",
+      "bytes": 4282
+    },
+    {
+      "path": ".github/workflows/treb-invariant-lineup-rebound-diagnostic.yml",
+      "bytes": 5881
+    },
+    {
+      "path": ".github/workflows/treb-invariant-semantic-rebound-diagnostic.yml",
+      "bytes": 5570
+    },
+    {
+      "path": ".github/workflows/treb-join-identity-census.yml",
+      "bytes": 4882
+    },
+    {
+      "path": ".github/workflows/treb-join-identity-three-control-diagnostic.yml",
+      "bytes": 5245
+    },
+    {
+      "path": ".github/workflows/treb-laptop-overlap-diagnostic.yml",
+      "bytes": 1119
+    },
+    {
+      "path": ".github/workflows/treb-legacy-lineup-source-diagnostic.yml",
+      "bytes": 2209
+    },
+    {
+      "path": ".github/workflows/treb-lineup-boxscore-minute-solver.yml",
+      "bytes": 3231
+    },
+    {
+      "path": ".github/workflows/treb-live-cdn-2019-probe.yml",
+      "bytes": 2022
+    },
+    {
+      "path": ".github/workflows/treb-modern-dead-rebound-reasons-2024.yml",
+      "bytes": 2294
+    },
+    {
+      "path": ".github/workflows/treb-modern-lineup-bridge-2024.yml",
+      "bytes": 2434
+    },
+    {
+      "path": ".github/workflows/treb-modern-rebound-action-map-2024.yml",
+      "bytes": 2336
+    },
+    {
+      "path": ".github/workflows/treb-modern-team-rebound-bridge-2024.yml",
+      "bytes": 2388
+    },
+    {
+      "path": ".github/workflows/treb-nonlive-unmatched-rebound-diagnostic.yml",
+      "bytes": 6228
+    },
+    {
+      "path": ".github/workflows/treb-nonunique-minute-diagnostics.yml",
+      "bytes": 13665
+    },
+    {
+      "path": ".github/workflows/treb-order-preserving-rebound-diagnostic.yml",
+      "bytes": 5163
+    },
+    {
+      "path": ".github/workflows/treb-overlap-diagnostic.yml",
+      "bytes": 1019
+    },
+    {
+      "path": ".github/workflows/treb-padded-semantic-controls.yml",
+      "bytes": 6061
+    },
+    {
+      "path": ".github/workflows/treb-padded-semantic-rebound-canary.yml",
+      "bytes": 7526
+    },
+    {
+      "path": ".github/workflows/treb-partial-exact-aggregation-gate.yml",
+      "bytes": 5696
+    },
+    {
+      "path": ".github/workflows/treb-pbpstats-game-lineup-probe.yml",
+      "bytes": 2962
+    },
+    {
+      "path": ".github/workflows/treb-period-boxscore-canary.yml",
+      "bytes": 2626
+    },
+    {
+      "path": ".github/workflows/treb-player-dreb-anchor-diagnostic.yml",
+      "bytes": 12663
+    },
+    {
+      "path": ".github/workflows/treb-player-dreb-anchor-v2.yml",
+      "bytes": 5798
+    },
+    {
+      "path": ".github/workflows/treb-pre2015-minute-resolution.yml",
+      "bytes": 2974
+    },
+    {
+      "path": ".github/workflows/treb-prior-miss-lineup-diagnostic.yml",
+      "bytes": 9501
+    },
+    {
+      "path": ".github/workflows/treb-production-takeover.yml",
+      "bytes": 6685
+    },
+    {
+      "path": ".github/workflows/treb-production-windows-direct.yml",
+      "bytes": 7131
+    },
+    {
+      "path": ".github/workflows/treb-promote-direct-team-repairs.yml",
+      "bytes": 2092
+    },
+    {
+      "path": ".github/workflows/treb-promote-order-repairs-v4-r2.yml",
+      "bytes": 11713
+    },
+    {
+      "path": ".github/workflows/treb-promote-order-repairs-v4.yml",
+      "bytes": 10770
+    },
+    {
+      "path": ".github/workflows/treb-promote-rebound-v3.yml",
+      "bytes": 1598
+    },
+    {
+      "path": ".github/workflows/treb-rebound-attribution-invariance.yml",
+      "bytes": 7055
+    },
+    {
+      "path": ".github/workflows/treb-rebound-cache-aggregate-recovery.yml",
+      "bytes": 3292
+    },
+    {
+      "path": ".github/workflows/treb-rebound-forensic-cache.yml",
+      "bytes": 6717
+    },
+    {
+      "path": ".github/workflows/treb-rebound-forensics-chunked.yml",
+      "bytes": 13461
+    },
+    {
+      "path": ".github/workflows/treb-rebound-forensics-v3-rerun.yml",
+      "bytes": 8160
+    },
+    {
+      "path": ".github/workflows/treb-residual-game-scope-v2.yml",
+      "bytes": 26486
+    },
+    {
+      "path": ".github/workflows/treb-residual-game-scope.yml",
+      "bytes": 20882
+    },
+    {
+      "path": ".github/workflows/treb-residual-gap-partition.yml",
+      "bytes": 10597
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "bytes": 10820
+    },
+    {
+      "path": ".github/workflows/treb-retained-recovery-independent-audit.yml",
+      "bytes": 11634
+    },
+    {
+      "path": ".github/workflows/treb-retained-recovery-inventory.yml",
+      "bytes": 17949
+    },
+    {
+      "path": ".github/workflows/treb-roster-tenure-v3-build.yml",
+      "bytes": 4994
+    },
+    {
+      "path": ".github/workflows/treb-roster-tenure-v3-hybrid.yml",
+      "bytes": 1475
+    },
+    {
+      "path": ".github/workflows/treb-runner-probe.yml",
+      "bytes": 699
+    },
+    {
+      "path": ".github/workflows/treb-safe-failure-audit.yml",
+      "bytes": 3352
+    },
+    {
+      "path": ".github/workflows/treb-safe-lock-canonical-overlay.yml",
+      "bytes": 15417
+    },
+    {
+      "path": ".github/workflows/treb-safe-repair-matrix.yml",
+      "bytes": 11804
+    },
+    {
+      "path": ".github/workflows/treb-scatter-renderer.yml",
+      "bytes": 4389
+    },
+    {
+      "path": ".github/workflows/treb-semantic-candidate-residual-canary.yml",
+      "bytes": 7953
+    },
+    {
+      "path": ".github/workflows/treb-solved-cross-era-gate.yml",
+      "bytes": 3515
+    },
+    {
+      "path": ".github/workflows/treb-stage1-historical.yml",
+      "bytes": 1582
+    },
+    {
+      "path": ".github/workflows/treb-stage2-rebound-metric-name-audit.yml",
+      "bytes": 5012
+    },
+    {
+      "path": ".github/workflows/treb-strict-40-exact-count-resolution-audit.yml",
+      "bytes": 11074
+    },
+    {
+      "path": ".github/workflows/treb-strict-40-exclusion-evidence-inventory.yml",
+      "bytes": 7181
+    },
+    {
+      "path": ".github/workflows/treb-targeted-exception-game-diagnostic.yml",
+      "bytes": 2983
+    },
+    {
+      "path": ".github/workflows/treb-targeted-missing-exact-games.yml",
+      "bytes": 7144
+    },
+    {
+      "path": ".github/workflows/treb-targeted-repair-matrix.yml",
+      "bytes": 10796
+    },
+    {
+      "path": ".github/workflows/treb-team-kind-anchor-audit.yml",
+      "bytes": 6204
+    },
+    {
+      "path": ".github/workflows/treb-technical-foul-canary.yml",
+      "bytes": 12799
+    },
+    {
+      "path": ".github/workflows/treb-tenure-repair-evidence.yml",
+      "bytes": 2760
+    },
+    {
+      "path": ".github/workflows/treb-tenure-repair-proposals.yml",
+      "bytes": 1465
+    },
+    {
+      "path": ".github/workflows/treb-trace-invariant-lineup-misses.yml",
+      "bytes": 4399
+    },
+    {
+      "path": ".github/workflows/treb-transition-residual-evidence.yml",
+      "bytes": 5342
+    },
+    {
+      "path": ".github/workflows/treb-unique-window-rebound-diagnostic.yml",
+      "bytes": 5909
+    },
+    {
+      "path": ".github/workflows/treb-unique-window-wrong-control-2017.yml",
+      "bytes": 2969
+    },
+    {
+      "path": ".github/workflows/treb-unmatched-exact-identity-canary-v2.yml",
+      "bytes": 12209
+    },
+    {
+      "path": ".github/workflows/treb-unmatched-exact-identity-canary.yml",
+      "bytes": 12382
+    },
+    {
+      "path": ".github/workflows/treb-unmatched-exact-identity-diagnostics.yml",
+      "bytes": 10877
+    },
+    {
+      "path": ".github/workflows/treb-unmatched-rebound-unique-join-diagnostic.yml",
+      "bytes": 2522
+    },
+    {
+      "path": ".github/workflows/treb-v10-team-anchor-audit.yml",
+      "bytes": 5010
+    },
+    {
+      "path": ".github/workflows/treb-v11-bracket-side-audit.yml",
+      "bytes": 5019
+    },
+    {
+      "path": ".github/workflows/treb-v12-sabonis-promotion-regression.yml",
+      "bytes": 5577
+    },
+    {
+      "path": ".github/workflows/treb-v12-selftest.yml",
+      "bytes": 2911
+    },
+    {
+      "path": ".github/workflows/treb-v13-aggregate-recovery.yml",
+      "bytes": 3684
+    },
+    {
+      "path": ".github/workflows/treb-v13-materiality-recovery.yml",
+      "bytes": 16435
+    },
+    {
+      "path": ".github/workflows/treb-v13-player-event-promotion-regression.yml",
+      "bytes": 5509
+    },
+    {
+      "path": ".github/workflows/treb-v13-selftest.yml",
+      "bytes": 2413
+    },
+    {
+      "path": ".github/workflows/treb-v13-stage1-validation.yml",
+      "bytes": 5032
+    },
+    {
+      "path": ".github/workflows/treb-v14-gsw-team-rebound-diagnostic.yml",
+      "bytes": 20167
+    },
+    {
+      "path": ".github/workflows/treb-v3-2008-escape.yml",
+      "bytes": 1837
+    },
+    {
+      "path": ".github/workflows/treb-v3-forensics-crossrun-aggregate.yml",
+      "bytes": 4992
+    },
+    {
+      "path": ".github/workflows/treb-v3-only-2019-lineup-canary.yml",
+      "bytes": 2401
+    },
+    {
+      "path": ".github/workflows/treb-v3-only-2019-probe.yml",
+      "bytes": 2159
+    },
+    {
+      "path": ".github/workflows/treb-v3-only-2019-schema-probe.yml",
+      "bytes": 2816
+    },
+    {
+      "path": ".github/workflows/treb-v3-team-rebound-2019-validation.yml",
+      "bytes": 2463
+    },
+    {
+      "path": ".github/workflows/treb-v4-zero-impact-nonlive.yml",
+      "bytes": 10835
+    },
+    {
+      "path": ".github/workflows/treb-v5-direct-team-regression.yml",
+      "bytes": 5062
+    },
+    {
+      "path": ".github/workflows/treb-v5-source-only-audit.yml",
+      "bytes": 6244
+    },
+    {
+      "path": ".github/workflows/treb-v6-source-only-regression.yml",
+      "bytes": 5760
+    },
+    {
+      "path": ".github/workflows/treb-v7-named-player-lineup-audit.yml",
+      "bytes": 4402
+    },
+    {
+      "path": ".github/workflows/treb-v7-regression.yml",
+      "bytes": 4726
+    },
+    {
+      "path": ".github/workflows/treb-v8-named-consensus-audit.yml",
+      "bytes": 4178
+    },
+    {
+      "path": ".github/workflows/treb-v8b-promotion-regression.yml",
+      "bytes": 6508
+    },
+    {
+      "path": ".github/workflows/treb-v8b-strict-named-audit.yml",
+      "bytes": 4130
+    },
+    {
+      "path": ".github/workflows/treb-v9-dreb-endpoint-audit.yml",
+      "bytes": 4447
+    },
+    {
+      "path": ".github/workflows/treb-v9-promotion-regression.yml",
+      "bytes": 6532
+    },
+    {
+      "path": ".github/workflows/treb-wire-exact-identity-production.yml",
+      "bytes": 4468
+    },
+    {
+      "path": ".github/workflows/treb-wowy-repair.yml",
+      "bytes": 2546
+    },
+    {
+      "path": ".github/workflows/treb_strict40_exact26_materialize.yml",
+      "bytes": 8030
+    },
+    {
+      "path": "career_treb_detail.csv",
+      "bytes": 60074,
+      "columns": [
+        "Player",
+        "Player ID",
+        "Season",
+        "Season End Year",
+        "Team",
+        "On MP",
+        "On ORB%",
+        "On DRB%",
+        "On TRB%",
+        "Off MP",
+        "Off ORB%",
+        "Off DRB%",
+        "Off TRB%",
+        "TRB% Swing",
+        "Source"
+      ]
+    },
+    {
+      "path": "career_treb_metadata.json",
+      "bytes": 72630
+    },
+    {
+      "path": "career_treb_summary.csv",
+      "bytes": 4696,
+      "columns": [
+        "Rank",
+        "Player",
+        "Player ID",
+        "First Season",
+        "Last Season",
+        "Seasons",
+        "Team Stints",
+        "On MP",
+        "Off MP",
+        "Career On TRB%",
+        "Career Off TRB%",
+        "Career TRB% Swing",
+        "Coverage"
+      ]
+    },
+    {
+      "path": "scripts/build_career_treb.py",
+      "bytes": 12580
+    },
+    {
+      "path": "team_trb_all_players/adams_rebound_classifier_audit_chunk.py",
+      "bytes": 10289
+    },
+    {
+      "path": "team_trb_all_players/adjudicate_2025_rebounds_official_live.py",
+      "bytes": 5894
+    },
+    {
+      "path": "team_trb_all_players/audit_2025_rebound_action_identity.py",
+      "bytes": 4213
+    },
+    {
+      "path": "team_trb_all_players/audit_2025_rebound_discrepancy_context.py",
+      "bytes": 6291
+    },
+    {
+      "path": "team_trb_all_players/audit_2025_rebound_semantics_v2.py",
+      "bytes": 7951
+    },
+    {
+      "path": "team_trb_all_players/audit_2025_stable_rebound_semantics.py",
+      "bytes": 7711
+    },
+    {
+      "path": "team_trb_all_players/diagnose_modern_dead_rebound_reasons_2024.py",
+      "bytes": 6233
+    },
+    {
+      "path": "team_trb_all_players/diagnose_modern_rebound_action_mapping_2024.py",
+      "bytes": 7078
+    },
+    {
+      "path": "team_trb_all_players/diagnose_unmatched_rebound_unique_join.py",
+      "bytes": 5990
+    },
+    {
+      "path": "team_trb_all_players/direct_rebound_fast_build.py",
+      "bytes": 21788
+    },
+    {
+      "path": "team_trb_all_players/exact_identity_rebound_join.py",
+      "bytes": 5984
+    },
+    {
+      "path": "team_trb_all_players/exact_identity_rebound_join_diagnostic.py",
+      "bytes": 11547
+    },
+    {
+      "path": "team_trb_all_players/exact_identity_rebound_join_diagnostic_v2.py",
+      "bytes": 1221
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/ADAMS_REBOUND_CLASSIFIER_AUDIT_CONTROL.json",
+      "bytes": 304
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/ADAMS_REBOUND_CLASSIFIER_BATCHED_CONTROL.json",
+      "bytes": 346
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/ADAMS_REBOUND_CLASSIFIER_CHUNKED_CONTROL.json",
+      "bytes": 322
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/ADAMS_REBOUND_CLASSIFIER_MICRO_CONTROL.json",
+      "bytes": 247
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/DATANBA_2019_REBOUND_BRIDGE_VALIDATION.json",
+      "bytes": 29242
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/EXACT_IDENTITY_REBOUND_DIAG_CONTROL.json",
+      "bytes": 327
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/EXACT_IDENTITY_REBOUND_DIAG_V2_CONTROL.json",
+      "bytes": 295
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/UNIQUE_WINDOW_REBOUND_CONTROL.json",
+      "bytes": 226
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/V3_TEAM_REBOUND_RULE_2019_VALIDATION.json",
+      "bytes": 92494
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/adams_classifier_chunks/ADAMS_REBOUND_CLASSIFIER_CHUNKED_SUMMARY.json",
+      "bytes": 4911
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/adams_classifier_microchunks/ADAMS_REBOUND_CLASSIFIER_MICRO_SUMMARY.json",
+      "bytes": 97584
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/exact_identity_rebound_diagnostic/EXACT_IDENTITY_REBOUND_DIAGNOSTIC_SUMMARY.json",
+      "bytes": 36099
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/exact_identity_rebound_diagnostic_v2/EXACT_IDENTITY_REBOUND_DIAGNOSTIC_V2_SUMMARY.json",
+      "bytes": 32220
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/final_exact_release/TREB_FINAL_UNIVERSE_DIAGNOSTIC.json",
+      "bytes": 16599
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/invariant_lineup_rebound/INVARIANT_LINEUP_REBOUND_SUMMARY.json",
+      "bytes": 258236
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/invariant_semantic_rebound/INVARIANT_LINEUP_CONTROL_MISSES.json",
+      "bytes": 11554
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/invariant_semantic_rebound/INVARIANT_SEMANTIC_REBOUND_SUMMARY.json",
+      "bytes": 284177
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/nonlive_unmatched_rebound/NONLIVE_UNMATCHED_REBOUND_SUMMARY.json",
+      "bytes": 113462
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/order_preserving_rebound/ORDER_PRESERVING_REBOUND_SUMMARY.json",
+      "bytes": 460111
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/padded_semantic_candidate/PADDED_SEMANTIC_REBOUND_CANARY_SUMMARY.json",
+      "bytes": 40158
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/ADJUDICATED_REBOUND_REPAIR_20200077.json",
+      "bytes": 1037
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/ATTRIBUTION_INVARIANCE_SUMMARY.json",
+      "bytes": 85745
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/BRACKET_TEAM_PREFIX_SUMMARY.json",
+      "bytes": 535
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/CHUNKED_REBOUND_MANIFEST.json",
+      "bytes": 3480
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/COUNTER_ORDER_AUDIT_SUMMARY.json",
+      "bytes": 45391
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/COUNTER_TEAM_TRUTH_SUMMARY.json",
+      "bytes": 5733
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/DIRECT_PLAYER_IDENTITY_SUMMARY.json",
+      "bytes": 24497
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/DIRECT_TEAM_IDENTITY_SUMMARY.json",
+      "bytes": 86731
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/DIRECT_TEAM_REBOUND_REPAIRS.json",
+      "bytes": 35154
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/DUAL_ANCHOR_IMPACT_SUMMARY.json",
+      "bytes": 47700
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/ENDPOINT_LINEUP_SUMMARY.json",
+      "bytes": 32909
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/EXACT_MISS_NEXT_REBOUND_SUMMARY.json",
+      "bytes": 1201749
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/EXACT_PLAYER_SHOT_ANCHOR_SUMMARY.json",
+      "bytes": 44764
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/JOIN_IDENTITY_CENSUS_SUMMARY.json",
+      "bytes": 6173
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/JOIN_IDENTITY_THREE_CONTROL_SUMMARY.json",
+      "bytes": 141788
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/ORDER_PRESERVING_REBOUND_REPAIRS.json",
+      "bytes": 17600
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/PLAYER_DREB_ANCHOR_SUMMARY.json",
+      "bytes": 39411
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/PLAYER_DREB_ANCHOR_V2_SUMMARY.json",
+      "bytes": 39924
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/PRIOR_MISS_LINEUP_SUMMARY.json",
+      "bytes": 30313
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_ACTION_IDENTITY_2025.json",
+      "bytes": 32322
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_CACHED_RULE_SWEEP_V2.json",
+      "bytes": 4256
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_DISCREPANCY_CONTEXT_2025.json",
+      "bytes": 132587
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_FORENSICS_CHUNKED_SUMMARY.json",
+      "bytes": 264385
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_FORENSICS_PROMOTION_CANDIDATES.json",
+      "bytes": 516
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_FORENSICS_V3_SUMMARY.json",
+      "bytes": 235178
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_FORENSIC_FEATURE_CACHE_V2.json.gz",
+      "bytes": 1414631
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_FORENSIC_FEATURE_CACHE_V2_SUMMARY.json",
+      "bytes": 957
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_RECONCILIATION_2025.json",
+      "bytes": 43415
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/REBOUND_SEMANTICS_2025_V2.json",
+      "bytes": 30589
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/TEAM_KIND_ANCHOR_SUMMARY.json",
+      "bytes": 55733
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V10_TEAM_ANCHOR_AUDIT.json",
+      "bytes": 437187
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V11_BRACKET_SIDE_AUDIT.json",
+      "bytes": 5387
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V12_PROMOTION_REGRESSION.json",
+      "bytes": 805
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V12_SABONIS_DREB_REPAIR.json",
+      "bytes": 1183
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_NEARBY_PLAYER_REBOUND_AUDIT.json",
+      "bytes": 2139
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_NEARBY_PLAYER_REBOUND_REPAIR.json",
+      "bytes": 1283
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_PROMOTION_REGRESSION.json",
+      "bytes": 1102
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_RESIDUAL_MATERIALITY_RECOVERY.csv",
+      "bytes": 1783,
+      "columns": [
+        "game_id",
+        "pbp_index",
+        "classification",
+        "max_possible_metric_error_pp",
+        "materiality_threshold_pp",
+        "evidence_note",
+        "feature_cache_engine",
+        "feature_cache_production_residual",
+        "feature_cache_nba_backed_control"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V13_RESIDUAL_MATERIALITY_RECOVERY.json",
+      "bytes": 7108
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V14_GSW_TEAM_REBOUND_DIAGNOSTIC.json",
+      "bytes": 732
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V4_REBOUND_TAIL_SUMMARY.json",
+      "bytes": 3085
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V5_DIRECT_TEAM_REGRESSION_SUMMARY.json",
+      "bytes": 4555
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V5_SOURCE_ONLY_SUMMARY.json",
+      "bytes": 427689
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V6_SOURCE_ONLY_PLAYER_REPAIRS.json",
+      "bytes": 3153
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V6_SOURCE_ONLY_REGRESSION.json",
+      "bytes": 28784
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V7_NAMED_PLAYER_LINEUP_AUDIT.json",
+      "bytes": 757
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V7_NAMED_PLAYER_REPAIR.json",
+      "bytes": 661
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V7_REGRESSION.json",
+      "bytes": 27620
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V8B_PROMOTION_REGRESSION.json",
+      "bytes": 23533
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V8B_STRICT_NAMED_AUDIT.json",
+      "bytes": 6692
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V8B_STRICT_NAMED_REPAIR.json",
+      "bytes": 1560
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V8_NAMED_CONSENSUS_AUDIT.json",
+      "bytes": 6667
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V9_DREB_ENDPOINT_AUDIT.json",
+      "bytes": 1894
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V9_DREB_ENDPOINT_REPAIR.json",
+      "bytes": 1001
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/V9_PROMOTION_REGRESSION.json",
+      "bytes": 21561
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/rebound_forensics/ZERO_IMPACT_NONLIVE_SUMMARY.json",
+      "bytes": 33241
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/unique_window_rebound/UNIQUE_WINDOW_REBOUND_SUMMARY.json",
+      "bytes": 440811
+    },
+    {
+      "path": "team_trb_all_players/final_integrity_rebuild/unique_window_rebound/WRONG_CONTROL_2017.json",
+      "bytes": 3182
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_database.py",
+      "bytes": 10586
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "bytes": 18839
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "bytes": 18770
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract_v2.py",
+      "bytes": 2396
+    },
+    {
+      "path": "team_trb_all_players/impact_database/final_exact_exclusion_recovery/exact_26_player_game_treb_on.csv",
+      "bytes": 21809,
+      "columns": [
+        "game_id",
+        "team_id",
+        "player_id",
+        "seconds_on",
+        "team_oreb_on",
+        "team_dreb_on",
+        "opp_oreb_on",
+        "opp_dreb_on"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/final_exact_exclusion_recovery/exact_26_team_game_treb.csv",
+      "bytes": 1743,
+      "columns": [
+        "game_id",
+        "team_id",
+        "team_oreb",
+        "team_dreb",
+        "opp_oreb",
+        "opp_dreb"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2000-01/team_rebound_derived.csv.gz",
+      "bytes": 28476,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2001-02/team_rebound_derived.csv.gz",
+      "bytes": 27482,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2002-03/team_rebound_derived.csv.gz",
+      "bytes": 27242,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2003-04/team_rebound_derived.csv.gz",
+      "bytes": 29377,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2004-05/team_rebound_derived.csv.gz",
+      "bytes": 29996,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2005-06/team_rebound_derived.csv.gz",
+      "bytes": 29661,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2006-07/team_rebound_derived.csv.gz",
+      "bytes": 28272,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2007-08/team_rebound_derived.csv.gz",
+      "bytes": 30092,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2008-09/team_rebound_derived.csv.gz",
+      "bytes": 29374,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2009-10/team_rebound_derived.csv.gz",
+      "bytes": 29447,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2010-11/team_rebound_derived.csv.gz",
+      "bytes": 30484,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2011-12/team_rebound_derived.csv.gz",
+      "bytes": 27706,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2012-13/team_rebound_derived.csv.gz",
+      "bytes": 29962,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2013-14/team_rebound_derived.csv.gz",
+      "bytes": 31160,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2014-15/team_rebound_derived.csv.gz",
+      "bytes": 32444,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2015-16/team_rebound_derived.csv.gz",
+      "bytes": 31331,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2016-17/team_rebound_derived.csv.gz",
+      "bytes": 31924,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2017-18/team_rebound_derived.csv.gz",
+      "bytes": 34317,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2018-19/team_rebound_derived.csv.gz",
+      "bytes": 35180,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2019-20/team_rebound_derived.csv.gz",
+      "bytes": 32483,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2020-21/team_rebound_derived.csv.gz",
+      "bytes": 33893,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2021-22/team_rebound_derived.csv.gz",
+      "bytes": 38376,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2022-23/team_rebound_derived.csv.gz",
+      "bytes": 34148,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "error",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2023-24/team_rebound_derived.csv.gz",
+      "bytes": 36271,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2024-25/team_rebound_derived.csv.gz",
+      "bytes": 36171,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/outputs/2025-26/team_rebound_derived.csv.gz",
+      "bytes": 37613,
+      "columns": [
+        "def_rebound_pct_displayed",
+        "error",
+        "exact",
+        "minutes",
+        "off_rebound_pct_displayed",
+        "opponent_def_rebound_candidates",
+        "opponent_off_rebound_candidates",
+        "opponent_rebound_candidates",
+        "opponent_rebounds_exact",
+        "player",
+        "player_id",
+        "season",
+        "seconds",
+        "team_def_rebounds",
+        "team_id",
+        "team_off_rebounds",
+        "team_rebounds"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/impact_database/treb_codespace_status.json",
+      "bytes": 137
+    },
+    {
+      "path": "team_trb_all_players/impact_database/treb_supervisor_status.json",
+      "bytes": 183
+    },
+    {
+      "path": "team_trb_all_players/invariant_lineup_rebound_diagnostic.py",
+      "bytes": 6913
+    },
+    {
+      "path": "team_trb_all_players/invariant_semantic_rebound_diagnostic.py",
+      "bytes": 5260
+    },
+    {
+      "path": "team_trb_all_players/local_treb_rebuild.py",
+      "bytes": 16921
+    },
+    {
+      "path": "team_trb_all_players/nonlive_unmatched_rebound_diagnostic.py",
+      "bytes": 4541
+    },
+    {
+      "path": "team_trb_all_players/on_off_rebound_probe.py",
+      "bytes": 6670
+    },
+    {
+      "path": "team_trb_all_players/on_off_rebound_probe_output/raw.json",
+      "bytes": 305428
+    },
+    {
+      "path": "team_trb_all_players/on_off_rebound_probe_output/summary.json",
+      "bytes": 385775
+    },
+    {
+      "path": "team_trb_all_players/order_preserving_rebound_diagnostic.py",
+      "bytes": 7510
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_consensus_candidate.py",
+      "bytes": 8506
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_semantic_candidate.py",
+      "bytes": 7327
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_semantic_candidate_padded.py",
+      "bytes": 932
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v12.py",
+      "bytes": 3473
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v13.py",
+      "bytes": 5450
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v2.py",
+      "bytes": 6834
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v3.py",
+      "bytes": 657
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v4.py",
+      "bytes": 6051
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v5.py",
+      "bytes": 4708
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v6.py",
+      "bytes": 3555
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v7.py",
+      "bytes": 2305
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v8.py",
+      "bytes": 3284
+    },
+    {
+      "path": "team_trb_all_players/production_rebound_v9.py",
+      "bytes": 3384
+    },
+    {
+      "path": "team_trb_all_players/production_treb_engine.py",
+      "bytes": 10161
+    },
+    {
+      "path": "team_trb_all_players/production_treb_engine_completion.py",
+      "bytes": 2267
+    },
+    {
+      "path": "team_trb_all_players/production_treb_engine_recovered.py",
+      "bytes": 8199
+    },
+    {
+      "path": "team_trb_all_players/production_treb_engine_tolerant.py",
+      "bytes": 2276
+    },
+    {
+      "path": "team_trb_all_players/production_treb_engine_v3.py",
+      "bytes": 15242
+    },
+    {
+      "path": "team_trb_all_players/promote_direct_team_rebound_repairs.py",
+      "bytes": 2943
+    },
+    {
+      "path": "team_trb_all_players/query_steven_adams_treb.py",
+      "bytes": 4565
+    },
+    {
+      "path": "team_trb_all_players/rebound_bracket_team_prefix_audit.py",
+      "bytes": 4349
+    },
+    {
+      "path": "team_trb_all_players/rebound_cache_aggregate.py",
+      "bytes": 3558
+    },
+    {
+      "path": "team_trb_all_players/rebound_cached_rule_sweep.py",
+      "bytes": 6084
+    },
+    {
+      "path": "team_trb_all_players/rebound_counter_order_audit.py",
+      "bytes": 4869
+    },
+    {
+      "path": "team_trb_all_players/rebound_counter_team_truth_audit.py",
+      "bytes": 5076
+    },
+    {
+      "path": "team_trb_all_players/rebound_direct_player_identity_audit.py",
+      "bytes": 8242
+    },
+    {
+      "path": "team_trb_all_players/rebound_direct_team_identity_audit.py",
+      "bytes": 9821
+    },
+    {
+      "path": "team_trb_all_players/rebound_dual_anchor_impact_audit.py",
+      "bytes": 7781
+    },
+    {
+      "path": "team_trb_all_players/rebound_exact_miss_next_rebound_audit.py",
+      "bytes": 11730
+    },
+    {
+      "path": "team_trb_all_players/rebound_exact_player_shot_anchor.py",
+      "bytes": 7886
+    },
+    {
+      "path": "team_trb_all_players/rebound_forensic_feature_cache.py",
+      "bytes": 10390
+    },
+    {
+      "path": "team_trb_all_players/rebound_join_identity_census.py",
+      "bytes": 7627
+    },
+    {
+      "path": "team_trb_all_players/rebound_join_identity_diagnostic.py",
+      "bytes": 8352
+    },
+    {
+      "path": "team_trb_all_players/rebound_team_kind_anchor_diagnostic.py",
+      "bytes": 8728
+    },
+    {
+      "path": "team_trb_all_players/rebound_v10_team_anchor_audit.py",
+      "bytes": 4843
+    },
+    {
+      "path": "team_trb_all_players/rebound_v11_bracket_side_audit.py",
+      "bytes": 4836
+    },
+    {
+      "path": "team_trb_all_players/rebound_v12_regression.py",
+      "bytes": 330
+    },
+    {
+      "path": "team_trb_all_players/rebound_v13_regression.py",
+      "bytes": 315
+    },
+    {
+      "path": "team_trb_all_players/rebound_v5_regression.py",
+      "bytes": 3099
+    },
+    {
+      "path": "team_trb_all_players/rebound_v5_source_only_audit.py",
+      "bytes": 8943
+    },
+    {
+      "path": "team_trb_all_players/rebound_v6_source_only_regression.py",
+      "bytes": 322
+    },
+    {
+      "path": "team_trb_all_players/rebound_v7_named_player_lineup_audit.py",
+      "bytes": 4246
+    },
+    {
+      "path": "team_trb_all_players/rebound_v7_regression.py",
+      "bytes": 289
+    },
+    {
+      "path": "team_trb_all_players/rebound_v8_named_consensus_audit.py",
+      "bytes": 4130
+    },
+    {
+      "path": "team_trb_all_players/rebound_v8_regression.py",
+      "bytes": 316
+    },
+    {
+      "path": "team_trb_all_players/rebound_v8b_strict_named_audit.py",
+      "bytes": 3842
+    },
+    {
+      "path": "team_trb_all_players/rebound_v9_dreb_endpoint_audit.py",
+      "bytes": 3759
+    },
+    {
+      "path": "team_trb_all_players/rebound_v9_regression.py",
+      "bytes": 319
+    },
+    {
+      "path": "team_trb_all_players/reconcile_2025_rebound_discrepancies.py",
+      "bytes": 7272
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "bytes": 12750
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_modern_2025.py",
+      "bytes": 1611
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_production.py",
+      "bytes": 2703
+    },
+    {
+      "path": "team_trb_all_players/run_local_treb_production.py",
+      "bytes": 12836
+    },
+    {
+      "path": "team_trb_all_players/run_local_treb_production_completion.py",
+      "bytes": 11111
+    },
+    {
+      "path": "team_trb_all_players/run_local_treb_production_completion_2009.py",
+      "bytes": 1266
+    },
+    {
+      "path": "team_trb_all_players/run_local_treb_production_recovered.py",
+      "bytes": 1005
+    },
+    {
+      "path": "team_trb_all_players/run_modern_treb_production_2025.py",
+      "bytes": 12556
+    },
+    {
+      "path": "team_trb_all_players/treb_validated_2016_recovery.json",
+      "bytes": 1218
+    },
+    {
+      "path": "team_trb_all_players/unique_window_rebound_diagnostic.py",
+      "bytes": 8632
+    },
+    {
+      "path": "team_trb_all_players/validate_2025_rebound_semantics.py",
+      "bytes": 11566
+    },
+    {
+      "path": "team_trb_all_players/validate_datanba_2019_rebound_bridge.py",
+      "bytes": 7190
+    },
+    {
+      "path": "team_trb_all_players/validate_modern_team_rebound_rule_2024.py",
+      "bytes": 10454
+    },
+    {
+      "path": "treb_automation/status/AUTOFINISH_LATEST.json",
+      "bytes": 16010
+    },
+    {
+      "path": "treb_automation/status/AUTOFINISH_V2_LATEST.json",
+      "bytes": 20635
+    },
+    {
+      "path": "treb_automation/status/EXACT_SOURCE_SAFE_LOCK_COMMITS.json",
+      "bytes": 8613
+    },
+    {
+      "path": "treb_automation/status/EXACT_SOURCE_SEMANTIC_LOCK_LATEST.json",
+      "bytes": 1491
+    },
+    {
+      "path": "treb_automation/status/REBOUND_SEMANTICS_2025_CANARY_LATEST.json",
+      "bytes": 976616
+    },
+    {
+      "path": "treb_automation/status/STAGE2_REBOUND_METRIC_NAME_AUDIT_LATEST.json",
+      "bytes": 3646
+    },
+    {
+      "path": "treb_automation/status/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT_LATEST.csv",
+      "bytes": 1568,
+      "columns": [
+        "game_id",
+        "classification",
+        "team_source_count",
+        "player_source_count",
+        "unique_team_tuple_sets",
+        "unique_player_tuple_sets"
+      ]
+    },
+    {
+      "path": "treb_automation/status/STRICT_40_EXACT_COUNT_RESOLUTION_AUDIT_LATEST.json",
+      "bytes": 297897
+    },
+    {
+      "path": "treb_automation/status/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY_LATEST.csv",
+      "bytes": 14509,
+      "columns": [
+        "season",
+        "game_id",
+        "evidence_hit_count",
+        "has_persisted_evidence",
+        "lock_engine",
+        "lock_code_commit",
+        "lock_exclusion"
+      ]
+    },
+    {
+      "path": "treb_automation/status/STRICT_40_EXCLUSION_EVIDENCE_INVENTORY_LATEST.json",
+      "bytes": 728150
+    },
+    {
+      "path": "treb_automation/status/latest.json",
+      "bytes": 92554
+    },
+    {
+      "path": "treb_automation/status/retained_evidence_inventory_latest.json",
+      "bytes": 6568093
+    }
+  ],
+  "code_references": [
+    {
+      "path": "team_trb_all_players/run_cross_era_regression_recovered.py",
+      "line": 163,
+      "text": "core = pd.read_csv(args.core / season / \"team_rebound_derived.csv.gz\")"
+    },
+    {
+      "path": "team_trb_all_players/run_exact_identity_repair_wave.py",
+      "line": 93,
+      "text": "pd.DataFrame(player_rows).to_csv(out / \"player_game_treb_on.csv.gz\", index=False, compression=\"gzip\")"
+    },
+    {
+      "path": "team_trb_all_players/render_funakistats_career_impact.py",
+      "line": 50,
+      "text": "\"TotalReboundPct\": \"TREB%\","
+    },
+    {
+      "path": "team_trb_all_players/run_corrected_off_batch_v4.py",
+      "line": 113,
+      "text": "\"policy\": \"Persistent O(1) membership index for completed 780/780 core reuse; avoids rebuilding full core results on every Stage2 batch.\","
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 16,
+      "text": "EXPECTED_FULL_CORE_ROWS = 9647"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 27,
+      "text": "\"TotalReboundPct\": (\"treb_on\", \"treb_off\"),"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 95,
+      "text": "p[\"treb_on\"] = ratio(team_reb_on, opp_reb_on)"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 96,
+      "text": "p[\"treb_off\"] = ratio(team_reb_off, opp_reb_off)"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 231,
+      "text": "full_core_rows = len(canonical_keys) - len(partial_keys)"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 232,
+      "text": "if full_core_rows != EXPECTED_FULL_CORE_ROWS:"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 233,
+      "text": "raise RuntimeError(f\"full-core complement mismatch: {full_core_rows} != {EXPECTED_FULL_CORE_ROWS}\")"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 330,
+      "text": "\"full_core_stage2_direct_rows\": int(full_core_rows),"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 332,
+      "text": "\"stage2_direct_rebound_metric_rows\": EXPECTED_FULL_CORE_ROWS * len(REB_OVERLAY),"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_full_89_database.py",
+      "line": 338,
+      "text": "\"rebound_full_core_policy\": \"retain authoritative Stage2 direct PBP Stats metric; never infer counts from rounded percentages\","
+    },
+    {
+      "path": "team_trb_all_players/build_exact_game_fact_layer.py",
+      "line": 205,
+      "text": "player_df.to_csv(args.output_dir / \"player_game_treb_on.csv.gz\", index=False, compression=\"gzip\")"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v2.py",
+      "line": 79,
+      "text": "parts = [pd.read_csv(p, compression=\"gzip\") for p in sorted(CORE_OUT.glob(\"*/team_rebound_derived.csv.gz\"))]"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v2.py",
+      "line": 262,
+      "text": "row[\"full_core_reuse\"] = len(ids) == row[\"total_team_games\"]"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v2.py",
+      "line": 282,
+      "text": "full_rows = sum(1 for r in rows if r[\"full_core_reuse\"])"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v2.py",
+      "line": 286,
+      "text": "if row[\"full_core_reuse\"]:"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v2.py",
+      "line": 313,
+      "text": "assert full_rows == 9647, full_rows"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v2.py",
+      "line": 332,
+      "text": "\"full_core_reuse_rows\": full_rows,"
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_modern_2025.py",
+      "line": 11,
+      "text": "TARGETS=IMPACT/\"roster_tenure_v2\"/\"full_core_segments.jsonl.gz\""
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_modern_2025.py",
+      "line": 12,
+      "text": "OUT=IMPACT/\"final_full_core_rebuild\""
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_modern_2025.py",
+      "line": 13,
+      "text": "EXPECTED_TOTAL=9647"
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_modern_2025.py",
+      "line": 20,
+      "text": "base.atomic_json(manifest,{\"target_segments\":EXPECTED_TOTAL,\"layer\":\"full_core_exact_rebuild\",\"seasons\":{}})"
+    },
+    {
+      "path": "team_trb_all_players/impact_database_build.py",
+      "line": 865,
+      "text": "\"rebound_rows\": write_csv_gz(season_dir / \"team_rebound_derived.csv.gz\", rebound_rows, rebound_fields) if rebound_fields else 0,"
+    },
+    {
+      "path": "team_trb_all_players/impact_database_build.py",
+      "line": 940,
+      "text": "write_csv_gz(OUTPUT_ROOT / \"career_team_trb_all_players.csv.gz\", career_rows, career_fields)"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract_v2.py",
+      "line": 37,
+      "text": "\"treb_on\", \"treb_off\","
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract_v2.py",
+      "line": 44,
+      "text": "career[\"treb_swing\"] = pd.to_numeric(career[\"treb_on\"], errors=\"coerce\") - pd.to_numeric(career[\"treb_off\"], errors=\"coerce\")"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v3_hybrid.py",
+      "line": 127,
+      "text": "ids=game_ids(row);row['team_games_in_tenure']=len(ids);row['total_team_games']=len(team_games[(row['season'],row['team_id'])]);row['full_core_reuse']=len(ids)==row['total_team_games']"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v3_hybrid.py",
+      "line": 144,
+      "text": "full=sum(r['full_core_reuse'] for r in rows);partial=len(rows)-full;targets=[]"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v3_hybrid.py",
+      "line": 146,
+      "text": "if row['full_core_reuse']:continue"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v3_hybrid.py",
+      "line": 161,
+      "text": "summary={'version':'roster_repair_v3_hybrid','validated_player_team_season_rows':len(rows),'full_core_reuse_rows':int(full),'partial_player_team_season_rows':int(partial),'wowy_game_bearing_segments':len(targets),'tenure_game_count_failures':len(failures),'empty_played_tenures':len(empty),'impossible_minute_rows':len(impossible),'cross_team_overlap_pairs':len(overlaps),'status':'PASS' if not(failures or empty or impossible or overlaps) else 'REPAIR_REQUIRED','changes_from_v2':['same-day departur"
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_production.py",
+      "line": 13,
+      "text": "TARGETS=IMPACT/\"roster_tenure_v2\"/\"full_core_segments.jsonl.gz\""
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_production.py",
+      "line": 15,
+      "text": "DEFAULT_OUT=IMPACT/\"final_full_core_rebuild\""
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_production.py",
+      "line": 16,
+      "text": "EXPECTED_TOTAL=9647"
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_production.py",
+      "line": 25,
+      "text": "d={\"target_segments\":EXPECTED_TOTAL,\"batch_size\":batch_size,\"layer\":\"full_core_exact_rebuild\",\"seasons\":{}}"
+    },
+    {
+      "path": "team_trb_all_players/run_full_core_treb_production.py",
+      "line": 60,
+      "text": "print(\"FULL_CORE_SECONDS_AUDIT\",json.dumps({k:v for k,v in a.items() if k!=\"seconds_mismatch_rows\"},sort_keys=True),flush=True)"
+    },
+    {
+      "path": "team_trb_all_players/run_local_treb_production.py",
+      "line": 140,
+      "text": "out[\"treb_on\"] = out[\"team_rebounds_on\"] / on_den if on_den else None"
+    },
+    {
+      "path": "team_trb_all_players/run_local_treb_production.py",
+      "line": 141,
+      "text": "out[\"treb_off\"] = out[\"team_rebounds_off\"] / off_den if off_den else None"
+    },
+    {
+      "path": "team_trb_all_players/run_local_treb_production.py",
+      "line": 142,
+      "text": "out[\"treb_swing_pp\"] = ((out[\"treb_on\"] - out[\"treb_off\"]) * 100.0"
+    },
+    {
+      "path": "team_trb_all_players/run_local_treb_production.py",
+      "line": 143,
+      "text": "if out[\"treb_on\"] is not None and out[\"treb_off\"] is not None else None)"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v3_from_boxscores.py",
+      "line": 151,
+      "text": "'roster_games':roster_games,'total_team_games':total_team_games,'segment_count':len(segs),'full_core_reuse_candidate':bool(full),"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v3_from_boxscores.py",
+      "line": 169,
+      "text": "full=sum(bool(r['full_core_reuse_candidate']) for r in targets); partial=len(targets)-full"
+    },
+    {
+      "path": "team_trb_all_players/build_roster_targets_v3_from_boxscores.py",
+      "line": 179,
+      "text": "'v3_full_core_reuse_candidates':int(full),'v3_partial_pts':int(partial),'v3_roster_segments':int(len(segments)),"
+    },
+    {
+      "path": "team_trb_all_players/funakistats_metric_semantics.py",
+      "line": 31,
+      "text": "\"TotalReboundPct\": MetricSemantics(+1, \"TREB%\", \"A higher team share of available rebounds is favorable.\"),"
+    },
+    {
+      "path": "team_trb_all_players/build_exact_game_fact_batch.py",
+      "line": 41,
+      "text": "pd.DataFrame(player_rows).to_csv(args.output_dir/'player_game_treb_on.csv.gz',index=False,compression='gzip')"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "line": 29,
+      "text": "\"TotalReboundPct\": (\"treb_on\", \"treb_off\"),"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "line": 106,
+      "text": "p[\"treb_on\"] = ratio(p.team_oreb_on + p.team_dreb_on, p.opponent_oreb_on + p.opponent_dreb_on)"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "line": 107,
+      "text": "p[\"treb_off\"] = ratio(p.team_oreb_off + p.team_dreb_off, p.opponent_oreb_off + p.opponent_dreb_off)"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "line": 112,
+      "text": "p[\"treb_swing\"] = p.treb_on - p.treb_off"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "line": 262,
+      "text": "\"treb_on\": \"TotalReboundPct__on\", \"treb_off\": \"TotalReboundPct__off\", \"treb_swing\": \"TotalReboundPct__swing\","
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "line": 305,
+      "text": "{\"metric\": \"TotalReboundPct\", \"metric_family\": \"exact_rebound_overlay\", \"on_source\": \"treb_on\","
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "line": 306,
+      "text": "\"off_source\": \"treb_off\", \"definition\": \"team total rebound share while player is ON/OFF\"},"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_release_contract.py",
+      "line": 360,
+      "text": "\"TotalReboundPct, OffReboundPct and DefReboundPct are a separate exact-count overlay family and are not required to exist as Stage2-native metric names.\\n\""
+    },
+    {
+      "path": "team_trb_all_players/build_exact_game_fact_layer_2025.py",
+      "line": 128,
+      "text": "player_df.to_csv(args.output_dir / \"player_game_treb_on.csv.gz\", index=False, compression=\"gzip\")"
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 5,
+      "text": "classified as full_core_reuse and expands each to exactly one whole-team-season"
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 23,
+      "text": "OUT = IMPACT / \"roster_tenure_v2\" / \"full_core_segments.jsonl.gz\""
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 24,
+      "text": "SUMMARY = IMPACT / \"roster_tenure_v2\" / \"full_core_segments_summary.json\""
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 25,
+      "text": "EXPECTED = 9647"
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 57,
+      "text": "full=[r for r in pts if bool(r.get(\"full_core_reuse\"))]"
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 94,
+      "text": "\"source\":\"full_core_exact_rebuild_v1\","
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 95,
+      "text": "\"boundary_reason\":\"full_core_all_team_games\","
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 106,
+      "text": "\"source_v2_full_core_rows\":len(full),"
+    },
+    {
+      "path": "team_trb_all_players/build_full_core_targets.py",
+      "line": 108,
+      "text": "\"policy\":\"One exact whole-team-season PBP reconstruction target per V2 full_core_reuse PTS row; no rounded legacy TREB inference.\","
+    },
+    {
+      "path": "team_trb_all_players/on_off_rebound_probe.py",
+      "line": 28,
+      "text": "\"TotalReboundPct\", \"ReboundPct\", \"OffRebounds\", \"DefRebounds\","
+    },
+    {
+      "path": "team_trb_all_players/export_core_database.py",
+      "line": 85,
+      "text": "p,l,r = read(SRC/season/\"player_team_totals.csv.gz\"), read(SRC/season/\"team_on_off_metrics.csv.gz\"), read(SRC/season/\"team_rebound_derived.csv.gz\")"
+    },
+    {
+      "path": "team_trb_all_players/export_core_database.py",
+      "line": 114,
+      "text": "career_all, career_10k = read(SRC/\"career_team_trb_all_players.csv.gz\"), read(SRC/\"career_team_trb_10000_minutes.csv.gz\")"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_database.py",
+      "line": 53,
+      "text": "frame[\"treb_on\"] = [pct(a, a+b) for a,b in zip(frame.team_rebounds_on, frame.opponent_rebounds_on)]"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_database.py",
+      "line": 54,
+      "text": "frame[\"treb_off\"] = [pct(a, a+b) for a,b in zip(frame.team_rebounds_off, frame.opponent_rebounds_off)]"
+    },
+    {
+      "path": "team_trb_all_players/finalize_treb_database.py",
+      "line": 55,
+      "text": "frame[\"treb_swing_pp\"] = [((a-b)*100.0 if a is not None and b is not None else None) for a,b in zip(frame.treb_on, frame.treb_off)]"
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 82,
+      "text": "player_path = season_dir / \"player_game_treb_on.csv.gz\""
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 125,
+      "text": "agg[\"treb_on\"] = on_team / (on_team + on_opp)"
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 126,
+      "text": "agg[\"treb_off\"] = off_team / (off_team + off_opp)"
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 127,
+      "text": "agg[\"treb_swing_pp\"] = 100.0 * (agg.treb_on - agg.treb_off)"
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 231,
+      "text": "treb_on = _ratio(team_on, team_on + opp_on)"
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 232,
+      "text": "treb_off = _ratio(team_off, team_off + opp_off)"
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 245,
+      "text": "\"treb_on\": treb_on,"
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 246,
+      "text": "\"treb_off\": treb_off,"
+    },
+    {
+      "path": "team_trb_all_players/reconcile_exact_treb_from_game_facts.py",
+      "line": 247,
+      "text": "\"treb_swing_pp\": None if treb_on is None or treb_off is None else 100.0 * (treb_on - treb_off),"
+    },
+    {
+      "path": "team_trb_all_players/build_patch_forward_stage2_export.py",
+      "line": 174,
+      "text": "full_core = bool(meta.get(\"full_core_reuse\"))"
+    },
+    {
+      "path": "team_trb_all_players/build_patch_forward_stage2_export.py",
+      "line": 181,
+      "text": "if full_core:"
+    },
+    {
+      "path": "team_trb_all_players/build_patch_forward_stage2_export.py",
+      "line": 182,
+      "text": "source_kind = \"established_full_core_direct_supplement\""
+    },
+    {
+      "path": "team_trb_all_players/build_patch_forward_stage2_export.py",
+      "line": 190,
+      "text": "minute_method = \"established_full_core_display_minutes\""
+    },
+    {
+      "path": "team_trb_all_players/build_patch_forward_stage2_export.py",
+      "line": 278,
+      "text": "\"full_core_reuse\": full_core,"
+    },
+    {
+      "path": "team_trb_all_players/build_patch_forward_stage2_export.py",
+      "line": 333,
+      "text": "\"For validated partial-tenure rows, TotalReboundPct, OffReboundPct and DefReboundPct are overwritten downstream from locked exact rebound counts.\","
+    },
+    {
+      "path": ".github/workflows/treb-stage2-rebound-metric-name-audit.yml",
+      "line": 70,
+      "text": "legacy_expected = ['TotalReboundPct','OffReboundPct','DefReboundPct']"
+    },
+    {
+      "path": ".github/workflows/treb-2004-posthorn-diagnostic.yml",
+      "line": 68,
+      "text": "core_df=pd.read_csv('team_trb_all_players/impact_database/outputs/2004-05/team_rebound_derived.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-count-semantics-canary.yml",
+      "line": 44,
+      "text": "assert d['full_core_reuse_rows']==9647, d"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-count-semantics-canary.yml",
+      "line": 66,
+      "text": "assert report['canonical']['full_core_rows']==9647"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-count-semantics-canary.yml",
+      "line": 101,
+      "text": "if r['season']==SEASON and bool(r['full_core_reuse']): targets.append(r)"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-count-semantics-canary.yml",
+      "line": 140,
+      "text": "'targets_full_core':len(targets),"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-window-audit.yml",
+      "line": 79,
+      "text": "full=[r for r in canonical if bool(r.get('full_core_reuse'))]"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-window-audit.yml",
+      "line": 80,
+      "text": "partial=[r for r in canonical if not bool(r.get('full_core_reuse'))]"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-window-audit.yml",
+      "line": 106,
+      "text": "season_rows.append({'season':s,'canonical_tenures':c,'full_core_tenures':f,'partial_tenures':p,'expected_partial_segments':es,'locked_partial_segments':ls})"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-window-audit.yml",
+      "line": 115,
+      "text": "'full_core_reuse_tenures':len(full),"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-window-audit.yml",
+      "line": 133,
+      "text": "'composition':'9647 unchanged full-team core tenure rows + 4877 partial tenure rows reconstructed from 5199 validated segment locks',"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-window-audit.yml",
+      "line": 139,
+      "text": "'full_core_reuse_tenures':9647,"
+    },
+    {
+      "path": ".github/workflows/treb-residual-game-scope.yml",
+      "line": 250,
+      "text": "'affected_full_core_keys':imp['classifications'].get('full_core',0),"
+    },
+    {
+      "path": ".github/workflows/treb-residual-game-scope.yml",
+      "line": 274,
+      "text": "miss_fields=['season','game_id','game_date','home_team_id','away_team_id','affected_residual_keys','affected_team_ids','affected_full_core_keys','affected_partial_keys','coverage_reason']"
+    },
+    {
+      "path": ".github/workflows/treb-safe-repair-matrix.yml",
+      "line": 63,
+      "text": "expected={'validated_player_team_season_rows':14524,'full_core_reuse_rows':9647,'partial_player_team_season_rows':4877,'wowy_game_bearing_segments':5199,'cross_team_overlap_pairs':0,'impossible_minute_rows':0,'empty_played_tenures':0}"
+    },
+    {
+      "path": ".github/workflows/treb-completion-matrix.yml",
+      "line": 63,
+      "text": "expected={'validated_player_team_season_rows':14524,'full_core_reuse_rows':9647,'partial_player_team_season_rows':4877,'wowy_game_bearing_segments':5199,'cross_team_overlap_pairs':0,'impossible_minute_rows':0,'empty_played_tenures':0}"
+    },
+    {
+      "path": ".github/workflows/treb_strict40_exact26_materialize.yml",
+      "line": 114,
+      "text": "with (out/'exact_26_player_game_treb_on.csv').open('w',newline='') as f:"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic.yml",
+      "line": 60,
+      "text": "full=[r for r in canon if bool(r.get('full_core_reuse'))]"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic.yml",
+      "line": 61,
+      "text": "assert len(canon)==14524 and len(full)==9647,(len(canon),len(full))"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic.yml",
+      "line": 67,
+      "text": "d=read_csv_gz(STAGE,f'team_trb_all_players/impact_database/outputs/{s}/team_rebound_derived.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic.yml",
+      "line": 92,
+      "text": "elif nm.endswith('/player_game_treb_on.csv.gz') and f'exact_game_fact_batches/{s}/' in nm:"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic.yml",
+      "line": 97,
+      "text": "x=read_csv_gz(ref,base+'/team_game_treb.csv.gz'); p=read_csv_gz(ref,base+'/player_game_treb_on.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-fast-final-repair-wave.yml",
+      "line": 202,
+      "text": "pd.DataFrame(tr_all).to_csv(out/'team_game_treb.csv.gz',index=False,compression='gzip'); pd.DataFrame(pr_all).to_csv(out/'player_game_treb_on.csv.gz',index=False,compression='gzip')"
+    },
+    {
+      "path": ".github/workflows/treb-strict-40-exact-count-resolution-audit.yml",
+      "line": 100,
+      "text": "interesting=[p for p in paths if p.endswith('team_game_treb.csv.gz') or p.endswith('player_game_treb_on.csv.gz')]"
+    },
+    {
+      "path": ".github/workflows/treb-final-autofinish.yml",
+      "line": 197,
+      "text": "assert set(q['exact_overlay_metrics'])=={'TotalReboundPct','OffReboundPct','DefReboundPct'},q"
+    },
+    {
+      "path": ".github/workflows/treb-final-autofinish.yml",
+      "line": 208,
+      "text": "assert len(e_csv)==4877*3 and set(e_csv.metric.unique())=={'TotalReboundPct','OffReboundPct','DefReboundPct'}"
+    },
+    {
+      "path": ".github/workflows/treb-final-autofinish.yml",
+      "line": 274,
+      "text": "--notes \"Automated final release. Native Stage2 gate: 89 metrics. Exact TotalReboundPct/OffReboundPct/DefReboundPct are a separate exact-count overlay family. No rounded-percentage backsolve.\""
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 117,
+      "text": "full = [r for r in canon if bool(r['full_core_reuse'])]"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 119,
+      "text": "assert len(full) == 9647, len(full)"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 165,
+      "text": "if name in {'team_game_treb.csv.gz', 'player_game_treb_on.csv.gz'}:"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 172,
+      "text": "if set(files) != {'team_game_treb.csv.gz', 'player_game_treb_on.csv.gz'}:"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 180,
+      "text": "key = (files['team_game_treb.csv.gz']['blob_sha'], files['player_game_treb_on.csv.gz']['blob_sha'])"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 191,
+      "text": "'player_path': files['player_game_treb_on.csv.gz']['path'],"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 393,
+      "text": "'full_core_rows': len(full),"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 402,
+      "text": "'opponent_counts_source': 'exact team_game_treb/player_game_treb_on integer fields only',"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 419,
+      "text": "'full_core_totals': dict(totals),"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 421,
+      "text": "'expected_full_core_rows': 9647,"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-source-manifest-v3.yml",
+      "line": 424,
+      "text": "'pass': totals.get('rows_verified_ready', 0) == 9647,"
+    },
+    {
+      "path": ".github/workflows/treb-authoritative-v2-canonical-gate.yml",
+      "line": 42,
+      "text": "'full_core_reuse_rows':9647,"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 97,
+      "text": "p = csvgz(ref, base + '/player_game_treb_on.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 103,
+      "text": "source_manifest.append({'season':season,'source_type':'historical_exact_batch','ref':ref,'file':'player_game_treb_on','rows':int(len(p))})"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 111,
+      "text": "p = csvgz(ref, base + '/player_game_treb_on.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 117,
+      "text": "source_manifest.append({'season':season,'source_type':source_type,'ref':ref,'file':'player_game_treb_on','rows':int(len(p))})"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 165,
+      "text": "is_full = m['canonical_classification'].eq('full_core')"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 166,
+      "text": "m['exact_full_core_sufficient'] = ("
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 174,
+      "text": "if bool(row['exact_full_core_sufficient']):"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 181,
+      "text": "m['locked_source_superseded_by_exact'] = m['exact_full_core_sufficient'] & m['locked_source_supplied'].eq(1)"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 195,
+      "text": "'exact_full_core_sufficient_rows': int(m['exact_full_core_sufficient'].sum()),"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 216,
+      "text": "'exact_full_core_sufficient','locked_source_superseded_by_exact','selected_source_layer','covered_after_this_overlay'"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-source-overlay-mapping.yml",
+      "line": 228,
+      "text": "f'- Exact full-core rows source-sufficient: **{summary[\"exact_full_core_sufficient_rows\"]:,}**\\n'"
+    },
+    {
+      "path": ".github/workflows/treb-exact-game-union-coverage.yml",
+      "line": 47,
+      "text": "t=csvgz(ref,base+'/team_game_treb.csv.gz'); p=csvgz(ref,base+'/player_game_treb_on.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-exact-game-union-coverage.yml",
+      "line": 53,
+      "text": "t=csvgz(ref,base+'/team_game_treb.csv.gz'); p=csvgz(ref,base+'/player_game_treb_on.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-production-takeover.yml",
+      "line": 61,
+      "text": "assert d['safe_full_core_reuse_rows']==9647, d"
+    },
+    {
+      "path": ".github/workflows/treb-game-fact-repair-wave1.yml",
+      "line": 142,
+      "text": "player_df.to_csv(out/'player_game_treb_on.csv.gz',index=False,compression='gzip')"
+    },
+    {
+      "path": ".github/workflows/treb-v13-materiality-recovery.yml",
+      "line": 130,
+      "text": "pct_aliases = {'on_reb_pct','off_reb_pct','swing_pp','treb_on','treb_off','treb_impact'}"
+    },
+    {
+      "path": ".github/workflows/treb-targeted-repair-matrix.yml",
+      "line": 63,
+      "text": "expected={'validated_player_team_season_rows':14524,'full_core_reuse_rows':9647,'partial_player_team_season_rows':4877,'wowy_game_bearing_segments':5199,'cross_team_overlap_pairs':0,'impossible_minute_rows':0,'empty_played_tenures':0}"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 13,
+      "text": "OUT: /tmp/treb_full_core_total_audit"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 60,
+      "text": "assert summary['full_core_reuse_rows']==9647"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 63,
+      "text": "full=[r for r in targets if bool(r['full_core_reuse'])]"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 65,
+      "text": "assert len(full_keys)==9647"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 70,
+      "text": "for p in sorted(outputs.glob('*/team_rebound_derived.csv.gz')):"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 80,
+      "text": "'v2':{'total':14524,'full':9647,'partial':4877,'segments':5199},"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 83,
+      "text": "'full_rows':9647,"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 154,
+      "text": "(out/'FULL_CORE_TOTAL_COUNT_AUDIT.json').write_text(json.dumps(report,indent=2)+'\\n')"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 160,
+      "text": "path: /tmp/treb_full_core_total_audit/FULL_CORE_TOTAL_COUNT_AUDIT.json"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 166,
+      "text": "cp \"$OUT/FULL_CORE_TOTAL_COUNT_AUDIT.json\" team_trb_all_players/final_integrity_rebuild/final_exact_release/"
+    },
+    {
+      "path": ".github/workflows/treb-full-core-total-count-audit.yml",
+      "line": 169,
+      "text": "git add team_trb_all_players/final_integrity_rebuild/final_exact_release/FULL_CORE_TOTAL_COUNT_AUDIT.json"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 18,
+      "text": "EXPECTED_FULL: '9647'"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 87,
+      "text": "RATE_COLS=['treb_on','treb_off','treb_swing_pp','oreb_pct_on','oreb_pct_off','oreb_swing_pp','dreb_pct_on','dreb_pct_off','dreb_swing_pp']"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 145,
+      "text": "f['treb_on']=[pct(a,a+b) for a,b in zip(f.team_rebounds_on,f.opponent_rebounds_on)]"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 146,
+      "text": "f['treb_off']=[pct(a,a+b) for a,b in zip(f.team_rebounds_off,f.opponent_rebounds_off)]"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 147,
+      "text": "f['treb_swing_pp']=(f.treb_on-f.treb_off)*100.0"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 161,
+      "text": "assert summary['full_core_reuse_rows']==int(os.environ['EXPECTED_FULL'])==9647"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 165,
+      "text": "full=[r for r in canonical if bool(r['full_core_reuse'])]"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 166,
+      "text": "partial=[r for r in canonical if not bool(r['full_core_reuse'])]"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 179,
+      "text": "for p in sorted(core.glob('*/team_rebound_derived.csv.gz')):"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 283,
+      "text": "(out/'FULL_CORE_RESOLUTION_FAILURES.json').write_text(json.dumps(full_resolution_fail[:500],indent=2)+'\\n')"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 284,
+      "text": "raise RuntimeError(f'full core row resolution failures={len(full_resolution_fail)}')"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 285,
+      "text": "assert len(full_rows)==9647"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 326,
+      "text": "assert int((detail.source_type=='full_team_schedule_core').sum())==9647"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 348,
+      "text": "specs=[('TREB%','treb_on','treb_off','treb_swing_pp'),('OREB%','oreb_pct_on','oreb_pct_off','oreb_swing_pp'),('DREB%','dreb_pct_on','dreb_pct_off','dreb_swing_pp')]"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 392,
+      "text": "qa={'status':'PASS','season_range':['2000-01','2025-26'],'seasons':26,'canonical_tenure_rows':14524,'canonical_unique_tenure_keys':14524,'career_players':2584,'full_core_reuse_tenures':9647,'partial_tenures':4877,'validated_partial_segments':5199,'zero_minute_windows_excluded':221,'stale_core_affiliations_excluded':2,'lock_files':26,'lock_exceptions':0,'lock_unmatched_rebound_rows':0,'accepted_excluded_games':40,'accepted_exclusion_ledger_exact_match':True,'captains_call_residual_rebounds_accept"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 423,
+      "text": "rate_cols=['treb_on','treb_off','treb_swing_pp','oreb_pct_on','oreb_pct_off','oreb_swing_pp','dreb_pct_on','dreb_pct_off','dreb_swing_pp']"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 429,
+      "text": "z['treb_on']=(to_on+td_on)/(to_on+td_on+oo_on+od_on); z['treb_off']=(to_off+td_off)/(to_off+td_off+oo_off+od_off); z['treb_swing_pp']=(z['treb_on']-z['treb_off'])*100"
+    },
+    {
+      "path": ".github/workflows/treb-final-canonical-assembly.yml",
+      "line": 465,
+      "text": "report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_branch':os.environ['GITHUB_REF_NAME'],'source_commit':os.environ['GITHUB_SHA'],'season_range':['2000-01','2025-26'],'canonical_tenure_rows':14524,'career_players':2584,'full_core_reuse_tenures':9647,'partial_tenures':4877,'validated_partial_segments':5199,'zero_minute_windows_excluded':221,'captains_call_residual_rebounds_accepted':13,'captains_call_unique_games':10,'structural_gates_relaxed':False,'qa_status':qa["
+    },
+    {
+      "path": ".github/workflows/treb-final-16-short-tenure-stage2-recovery.yml",
+      "line": 59,
+      "text": "targets=[d for d in diag['missing_keys'] if d.get('full_core_reuse') is False]"
+    },
+    {
+      "path": ".github/workflows/treb-final-integrity-reconcile.yml",
+      "line": 48,
+      "text": "for FILE in qa.json failures.json team_game_treb.csv.gz player_game_treb_on.csv.gz; do"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic-v2.yml",
+      "line": 48,
+      "text": "full=[r for r in canon if bool(r['full_core_reuse'])]"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic-v2.yml",
+      "line": 49,
+      "text": "assert (len(canon),len(full),len({ids(r['player_id']) for r in canon}))==(14524,9647,2584)"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic-v2.yml",
+      "line": 50,
+      "text": "report={'canonical_rows':14524,'full_rows':9647,'unique_players':2584,'core_evidence':{},'exact_scope':{}}"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic-v2.yml",
+      "line": 54,
+      "text": "d=csvgz(STAGE,f'team_trb_all_players/impact_database/outputs/{s}/team_rebound_derived.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic-v2.yml",
+      "line": 75,
+      "text": "elif nm.endswith('/player_game_treb_on.csv.gz'):"
+    },
+    {
+      "path": ".github/workflows/treb-fullcore-exact-scope-diagnostic-v2.yml",
+      "line": 78,
+      "text": "x=csvgz(ref,base+'/team_game_treb.csv.gz'); p=csvgz(ref,base+'/player_game_treb_on.csv.gz')"
+    },
+    {
+      "path": ".github/workflows/treb-final-universe-diagnostic.yml",
+      "line": 72,
+      "text": "for c in ['full_core_reuse','reuse_full_core','needs_partial','partial']:"
+    },
+    {
+      "path": ".github/workflows/treb-exact-game-recovery-canary.yml",
+      "line": 164,
+      "text": "pdf.to_csv(out/'player_game_treb_on.csv.gz',index=False,compression='gzip')"
+    },
+    {
+      "path": ".github/workflows/treb-final-materiality-completion-release.yml",
+      "line": 26,
+      "text": "EXPECTED_FULL_CORE_ROWS: '9647'"
+    },
+    {
+      "path": ".github/workflows/treb-final-materiality-completion-release.yml",
+      "line": 195,
+      "text": "assert q['full_core_stage2_direct_rows']==9647,q"
+    },
+    {
+      "path": ".github/workflows/treb-safe-lock-canonical-overlay.yml",
+      "line": 138,
+      "text": "**agg,'safe_treb_on':on,'safe_treb_off':off,"
+    },
+    {
+      "path": ".github/workflows/treb-safe-lock-canonical-overlay.yml",
+      "line": 166,
+      "text": "locked_numeric[k]={'locked_treb_on':on,'locked_treb_off':off,'locked_treb_swing_pp':(on-off)*100}"
+    },
+    {
+      "path": ".github/workflows/treb-safe-lock-canonical-overlay.yml",
+      "line": 185,
+      "text": "for field in COUNT_COLS+['seconds_on','seconds_off','games_processed','safe_treb_on','safe_treb_off','safe_treb_swing_pp','safe_lock_segment_rows']:"
+    },
+    {
+      "path": ".github/workflows/treb-safe-lock-canonical-overlay.yml",
+      "line": 191,
+      "text": "row['safe_vs_locked_on_diff_pp']=(s['safe_treb_on']-ln['locked_treb_on'])*100"
+    },
+    {
+      "path": ".github/workflows/treb-safe-lock-canonical-overlay.yml",
+      "line": 192,
+      "text": "row['safe_vs_locked_off_diff_pp']=(s['safe_treb_off']-ln['locked_treb_off'])*100"
+    },
+    {
+      "path": ".github/workflows/treb-targeted-missing-exact-games.yml",
+      "line": 50,
+      "text": "assert report['canonical']['full_core_rows']==9647"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 69,
+      "text": "p = sp / 'team_rebound_derived.csv.gz'"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 87,
+      "text": "report['sources']['team_rebound_derived'] = {"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 94,
+      "text": "report['steven_adams']['team_rebound_derived_rows'] = int(len(ad))"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 95,
+      "text": "report['steven_adams']['team_rebound_derived_sample'] = ad.head(20).where(pd.notna(ad), None).to_dict('records')"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 97,
+      "text": "report['sources']['team_rebound_derived'] = {'rows': 0, 'unique_keys': 0, 'per_season': per}"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 121,
+      "text": "for fn in ('career_team_trb_all_players.csv.gz','career_team_trb_10000_minutes.csv.gz'):"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 153,
+      "text": "needles=('full_core','full core','9647','team_rebound_derived','career_team_trb_all_players','TotalReboundPct','treb_on','treb_off')"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 164,
+      "text": "src=report.get('sources',{}).get('team_rebound_derived',{})"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 167,
+      "text": "'team_rebound_derived_unique_keys': src.get('unique_keys'),"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 170,
+      "text": "'required_complement':9647,"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 171,
+      "text": "'team_rebound_derived_has_full_canonical_key_shape': src.get('unique_keys')==14524,"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 172,
+      "text": "'steven_adams_found_in_retained_core': report.get('steven_adams',{}).get('team_rebound_derived_rows',0)>0,"
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 183,
+      "text": "f\"- team_rebound_derived unique keys: {s.get('team_rebound_derived_unique_keys')}\","
+    },
+    {
+      "path": ".github/workflows/treb-retained-core-source-audit.yml",
+      "line": 187,
+      "text": "f\"- Full canonical key shape: {s.get('team_rebound_derived_has_full_canonical_key_shape')}\","
+    },
+    {
+      "path": ".github/workflows/treb-final-exact-production-release.yml",
+      "line": 24,
+      "text": "EXPECTED_FULL_CORE_ROWS: '9647'"
+    },
+    {
+      "path": ".github/workflows/treb-final-exact-production-release.yml",
+      "line": 94,
+      "text": "'treb_on':ratio(detail.team_oreb_on+detail.team_dreb_on,detail.opponent_oreb_on+detail.opponent_dreb_on),"
+    },
+    {
+      "path": ".github/workflows/treb-final-exact-production-release.yml",
+      "line": 95,
+      "text": "'treb_off':ratio(detail.team_oreb_off+detail.team_dreb_off,detail.opponent_oreb_off+detail.opponent_dreb_off),"
+    },
+    {
+      "path": ".github/workflows/treb-final-exact-production-release.yml",
+      "line": 179,
+      "text": "assert q['full_core_stage2_direct_rows']==int(os.environ['EXPECTED_FULL_CORE_ROWS'])==9647,q"
+    },
+    {
+      "path": ".github/workflows/treb-final-exact-production-release.yml",
+      "line": 183,
+      "text": "assert set(q['exact_count_overlay_metrics'])=={'TotalReboundPct','OffReboundPct','DefReboundPct'},q"
+    },
+    {
+      "path": ".github/workflows/treb-final-exact-production-release.yml",
+      "line": 185,
+      "text": "assert q['stage2_direct_rebound_metric_rows']==9647*3,q"
+    },
+    {
+      "path": ".github/workflows/treb-final-exact-production-release.yml",
+      "line": 271,
+      "text": "'full_core_rows':all89['full_core_stage2_direct_rows'],"
+    },
+    {
+      "path": ".github/workflows/treb-final-production-consolidation.yml",
+      "line": 161,
+      "text": "stored = pd.to_numeric(frame.treb_on)"
+    },
+    {
+      "path": ".github/workflows/treb-final-production-consolidation.yml",
+      "line": 171,
+      "text": "'treb_on_formula_recomputed': True,"
+    },
+    {
+      "path": ".github/workflows/treb-partial-exact-aggregation-gate.yml",
+      "line": 72,
+      "text": "assert summary['full_core_reuse_rows']==9647"
+    },
+    {
+      "path": ".github/workflows/treb-partial-exact-aggregation-gate.yml",
+      "line": 78,
+      "text": "expected={(str(r['season']),pid(r['player_id']),int(r['team_id'])) for r in targets if not bool(r['full_core_reuse'])}"
+    },
+    {
+      "path": ".github/workflows/treb-partial-exact-aggregation-gate.yml",
+      "line": 89,
+      "text": "'v2_full_core_rows':9647,"
+    },
+    {
+      "path": ".github/workflows/treb-partial-exact-aggregation-gate.yml",
+      "line": 92,
+      "text": "'full_core_exact_rows_still_required':9647,"
+    },
+    {
+      "path": ".github/workflows/treb-final-cached-release-v2.yml",
+      "line": 160,
+      "text": "assert set(q['exact_overlay_metrics'])=={'TotalReboundPct','OffReboundPct','DefReboundPct'},q"
+    },
+    {
+      "path": ".github/workflows/treb-final-cached-release-v2.yml",
+      "line": 179,
+      "text": "assert len(e_csv)==4877*3 and set(e_csv.metric.unique())=={'TotalReboundPct','OffReboundPct','DefReboundPct'}"
+    },
+    {
+      "path": ".github/workflows/treb-final-cached-release-v2.yml",
+      "line": 182,
+      "text": "for col in ['TotalReboundPct__on','TotalReboundPct__off','TotalReboundPct__swing','OffReboundPct__on','OffReboundPct__off','OffReboundPct__swing','DefReboundPct__on','DefReboundPct__off','DefReboundPct__swing']:"
+    },
+    {
+      "path": ".github/workflows/treb-final-cached-release-v2.yml",
+      "line": 254,
+      "text": "--notes \"Cached production release. Canonical universe: 14,524 player-team-season keys with all 89 native Stage2 metrics. Career rows are derived from that canonical universe. Exact TotalReboundPct/OffReboundPct/DefReboundPct are a separate exact-count overlay family. No rounded-percentage backsolve.\""
+    },
+    {
+      "path": ".github/workflows/treb-canonical-locked-segment-mapping.yml",
+      "line": 114,
+      "text": "for k in ('is_full_core','full_core','full_core_reuse','core_reuse'):"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-locked-segment-mapping.yml",
+      "line": 118,
+      "text": "return 'full_core' if v else 'partial'"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-locked-segment-mapping.yml",
+      "line": 120,
+      "text": "if sv in ('true','1','yes','full','full_core'):"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-locked-segment-mapping.yml",
+      "line": 121,
+      "text": "return 'full_core'"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-locked-segment-mapping.yml",
+      "line": 129,
+      "text": "if 'full_core' in sv or sv in ('full','core','core_reuse','full_core_reuse'):"
+    },
+    {
+      "path": ".github/workflows/treb-canonical-locked-segment-mapping.yml",
+      "line": 130,
+      "text": "return 'full_core'"
+    },
+    {
+      "path": ".github/workflows/treb-production-windows-direct.yml",
+      "line": 43,
+      "text": "assert d['safe_full_core_reuse_rows']==9647, d"
+    },
+    {
+      "path": ".github/workflows/treb-final-production-matrix.yml",
+      "line": 69,
+      "text": "'full_core_reuse_rows':9647,"
+    },
+    {
+      "path": ".github/workflows/treb-residual-game-scope-v2.yml",
+      "line": 270,
+      "text": "unique_missing.append({'season':s,'game_id':gid,'game_date':g['game_date'],'home_team_id':g['home_team_id'],'away_team_id':g['away_team_id'],'affected_residual_keys':len(imp['keys']),'affected_team_ids':len(imp['teams']),'affected_full_core_keys':imp['classes'].get('full_core',0),'affected_partial_keys':imp['classes'].get('partial',0),'coverage_reason':('edge_season_no_validated_exact_game_union' if s in {'2000-01','2001-02','2025-26'} else 'missing_from_positively_recovered_exact_game_union')})"
+    },
+    {
+      "path": ".github/workflows/treb-residual-game-scope-v2.yml",
+      "line": 281,
+      "text": "miss_fields=['season','game_id','game_date','home_team_id','away_team_id','affected_residual_keys','affected_team_ids','affected_full_core_keys','affected_partial_keys','coverage_reason']"
+    }
+  ],
+  "steven_adams": {
+    "team_rebound_derived_rows": 12,
+    "team_rebound_derived_sample": [
+      {
+        "def_rebound_pct_displayed": 0.733,
+        "exact": false,
+        "minutes": 1197.3666666666666,
+        "off_rebound_pct_displayed": 0.33,
+        "opponent_def_rebound_candidates": "[764,765,766,767]",
+        "opponent_off_rebound_candidates": "[315,316]",
+        "opponent_rebound_candidates": "[1079,1080,1081,1082,1083]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2013-14",
+        "seconds": 71842.0,
+        "team_def_rebounds": 866.0,
+        "team_id": 1610612760,
+        "team_off_rebounds": 377.0,
+        "team_rebounds": 1243.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.74,
+        "exact": false,
+        "minutes": 1770.7,
+        "off_rebound_pct_displayed": 0.321,
+        "opponent_def_rebound_candidates": "[1250,1251,1252,1253,1254,1255]",
+        "opponent_off_rebound_candidates": "[464,465,466]",
+        "opponent_rebound_candidates": "[1714,1715,1716,1717,1718,1719,1720,1721]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2014-15",
+        "seconds": 106242.0,
+        "team_def_rebounds": 1323.0,
+        "team_id": 1610612760,
+        "team_off_rebounds": 592.0,
+        "team_rebounds": 1915.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.738,
+        "exact": false,
+        "minutes": 2014.5666666666664,
+        "off_rebound_pct_displayed": 0.327,
+        "opponent_def_rebound_candidates": "[1333,1334,1335,1336,1337,1338]",
+        "opponent_off_rebound_candidates": "[571,572,573]",
+        "opponent_rebound_candidates": "[1904,1905,1906,1907,1908,1909,1910,1911]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2015-16",
+        "seconds": 120874.0,
+        "team_def_rebounds": 1610.0,
+        "team_id": 1610612760,
+        "team_off_rebounds": 649.0,
+        "team_rebounds": 2259.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.766,
+        "exact": false,
+        "minutes": 2389.4666666666667,
+        "off_rebound_pct_displayed": 0.323,
+        "opponent_def_rebound_candidates": "[1707,1708,1709,1710,1711,1712,1713,1714]",
+        "opponent_off_rebound_candidates": "[563,564,565]",
+        "opponent_rebound_candidates": "[2270,2271,2272,2273,2274,2275,2276,2277,2278,2279]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2016-17",
+        "seconds": 143368.0,
+        "team_def_rebounds": 1846.0,
+        "team_id": 1610612760,
+        "team_off_rebounds": 816.0,
+        "team_rebounds": 2662.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.757,
+        "exact": false,
+        "minutes": 2487.0,
+        "off_rebound_pct_displayed": 0.342,
+        "opponent_def_rebound_candidates": "[1747,1748,1749,1750,1751,1752,1753,1754]",
+        "opponent_off_rebound_candidates": "[581,582,583]",
+        "opponent_rebound_candidates": "[2328,2329,2330,2331,2332,2333,2334,2335,2336,2337]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2017-18",
+        "seconds": 149220.0,
+        "team_def_rebounds": 1814.0,
+        "team_id": 1610612760,
+        "team_off_rebounds": 910.0,
+        "team_rebounds": 2724.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.775,
+        "exact": false,
+        "minutes": 2669.45,
+        "off_rebound_pct_displayed": 0.298,
+        "opponent_def_rebound_candidates": "[2104,2105,2106,2107,2108,2109,2110,2111,2112,2113]",
+        "opponent_off_rebound_candidates": "[612,613,614,615]",
+        "opponent_rebound_candidates": "[2716,2717,2718,2719,2720,2721,2722,2723,2724,2725,2726,2727,2728]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2018-19",
+        "seconds": 160167.0,
+        "team_def_rebounds": 2113.0,
+        "team_id": 1610612760,
+        "team_off_rebounds": 895.0,
+        "team_rebounds": 3008.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.758,
+        "exact": false,
+        "minutes": 1680.4666666666667,
+        "off_rebound_pct_displayed": 0.252,
+        "opponent_def_rebound_candidates": "[1176,1177,1178,1179,1180,1181]",
+        "opponent_off_rebound_candidates": "[413,414,415]",
+        "opponent_rebound_candidates": "[1589,1590,1591,1592,1593,1594,1595,1596]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2019-20",
+        "seconds": 100828.0,
+        "team_def_rebounds": 1297.0,
+        "team_id": 1610612760,
+        "team_off_rebounds": 397.0,
+        "team_rebounds": 1694.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.787,
+        "exact": false,
+        "minutes": 1604.65,
+        "off_rebound_pct_displayed": 0.301,
+        "opponent_def_rebound_candidates": "[1106,1107,1108,1109,1110]",
+        "opponent_off_rebound_candidates": "[338,339]",
+        "opponent_rebound_candidates": "[1444,1445,1446,1447,1448,1449]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2020-21",
+        "seconds": 96279.0,
+        "team_def_rebounds": 1251.0,
+        "team_id": 1610612740,
+        "team_off_rebounds": 477.0,
+        "team_rebounds": 1728.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.757,
+        "exact": false,
+        "minutes": 1998.7166666666667,
+        "off_rebound_pct_displayed": 0.361,
+        "opponent_def_rebound_candidates": "[1383,1384,1385,1386,1387,1388]",
+        "opponent_off_rebound_candidates": "[498,499]",
+        "opponent_rebound_candidates": "[1881,1882,1883,1884,1885,1886,1887]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2021-22",
+        "seconds": 119923.0,
+        "team_def_rebounds": 1553.0,
+        "team_id": 1610612763,
+        "team_off_rebounds": 783.0,
+        "team_rebounds": 2336.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.756,
+        "exact": false,
+        "minutes": 1133.3333333333333,
+        "off_rebound_pct_displayed": 0.367,
+        "opponent_def_rebound_candidates": "[780,781,782,783]",
+        "opponent_off_rebound_candidates": "[294,295]",
+        "opponent_rebound_candidates": "[1074,1075,1076,1077,1078]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2022-23",
+        "seconds": 68000.0,
+        "team_def_rebounds": 913.0,
+        "team_id": 1610612763,
+        "team_off_rebounds": 453.0,
+        "team_rebounds": 1366.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.74,
+        "exact": false,
+        "minutes": 795.4833333333333,
+        "off_rebound_pct_displayed": 0.438,
+        "opponent_def_rebound_candidates": "[502,503,504]",
+        "opponent_off_rebound_candidates": "[210,211]",
+        "opponent_rebound_candidates": "[712,713,714,715]",
+        "opponent_rebounds_exact": NaN,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2024-25",
+        "seconds": 47729.0,
+        "team_def_rebounds": 599.0,
+        "team_id": 1610612745,
+        "team_off_rebounds": 392.0,
+        "team_rebounds": 991.0,
+        "error": NaN
+      },
+      {
+        "def_rebound_pct_displayed": 0.744,
+        "exact": true,
+        "minutes": 730.365,
+        "off_rebound_pct_displayed": 0.438,
+        "opponent_def_rebound_candidates": "[421]",
+        "opponent_off_rebound_candidates": "[199]",
+        "opponent_rebound_candidates": "[620]",
+        "opponent_rebounds_exact": 620.0,
+        "player": "Steven Adams",
+        "player_id": "203500",
+        "season": "2025-26",
+        "seconds": 43821.9,
+        "team_def_rebounds": 577.0,
+        "team_id": 1610612745,
+        "team_off_rebounds": 328.0,
+        "team_rebounds": 905.0,
+        "error": NaN
+      }
+    ],
+    "team_on_off_metric_rows": 1068,
+    "rebound_like_on_off_sample": [
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb% - Missed FTs",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.92,
+        "off": 0.848,
+        "on_off": 0.072,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb% - Missed FTs",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.145,
+        "off": 0.12,
+        "on_off": 0.025,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb% - Missed 2s",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.709,
+        "off": 0.71,
+        "on_off": -0.001,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb% - Missed 2s",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.36,
+        "off": 0.298,
+        "on_off": 0.062,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb% - Missed 3s",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.744,
+        "off": 0.74,
+        "on_off": 0.004,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb% - Missed 3s",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.296,
+        "off": 0.222,
+        "on_off": 0.074,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb% - Missed FGs",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.721,
+        "off": 0.72,
+        "on_off": 0.001,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb% - Missed FGs",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.341,
+        "off": 0.273,
+        "on_off": 0.068,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "At Rim OReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.484,
+        "off": 0.384,
+        "on_off": 0.1,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Short Mid-Range OReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.329,
+        "off": 0.3,
+        "on_off": 0.03,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Long Mid-Range OReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.268,
+        "off": 0.226,
+        "on_off": 0.042,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Arc 3 OReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.305,
+        "off": 0.216,
+        "on_off": 0.089,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Corner 3 OReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.267,
+        "off": 0.239,
+        "on_off": 0.027,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "At Rim DReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.625,
+        "off": 0.637,
+        "on_off": -0.011,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Short Mid-Range DReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.681,
+        "off": 0.724,
+        "on_off": -0.043,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Long Mid-Range DReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.819,
+        "off": 0.788,
+        "on_off": 0.03,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Arc 3 DReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.741,
+        "off": 0.73,
+        "on_off": 0.011,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Corner 3 DReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.756,
+        "off": 0.771,
+        "on_off": -0.016,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.733,
+        "off": 0.729,
+        "on_off": 0.004,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2013-14",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb%",
+        "minutes_on": 1197.0,
+        "minutes_off": 2764.0,
+        "on": 0.33,
+        "off": 0.266,
+        "on_off": 0.065,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb% - Missed FTs",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.872,
+        "off": 0.887,
+        "on_off": -0.015,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb% - Missed FTs",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.267,
+        "off": 0.226,
+        "on_off": 0.041,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb% - Missed 2s",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.708,
+        "off": 0.689,
+        "on_off": 0.018,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb% - Missed 2s",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.35,
+        "off": 0.324,
+        "on_off": 0.026,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb% - Missed 3s",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.792,
+        "off": 0.786,
+        "on_off": 0.006,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb% - Missed 3s",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.263,
+        "off": 0.265,
+        "on_off": -0.002,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "DReb% - Missed FGs",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.733,
+        "off": 0.723,
+        "on_off": 0.01,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "OReb% - Missed FGs",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.326,
+        "off": 0.305,
+        "on_off": 0.021,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "At Rim OReb%",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.411,
+        "off": 0.405,
+        "on_off": 0.005,
+        "source_extra": "{}"
+      },
+      {
+        "season": "2014-15",
+        "team_id": 1610612760,
+        "subject_player_id": "203500",
+        "subject_player": "Steven Adams",
+        "metric": "Short Mid-Range OReb%",
+        "minutes_on": 1771.0,
+        "minutes_off": 2195.0,
+        "on": 0.335,
+        "off": 0.34,
+        "on_off": -0.004,
+        "source_extra": "{}"
+      }
+    ],
+    "career_team_trb_all_players.csv.gz": [
+      {
+        "rank_10000_minutes": 1.0,
+        "player_id": "203500",
+        "player": "Steven Adams",
+        "minutes": 20471.565,
+        "seconds": 1228293.9,
+        "team_rebounds": 22831,
+        "opponent_rebounds_exact": NaN,
+        "opponent_rebounds_min": 19331,
+        "opponent_rebounds_max": 19404,
+        "team_trb_pct_exact": NaN,
+        "team_trb_pct_min": 54.057061678702496,
+        "team_trb_pct_max": 54.15065698970637,
+        "exact": false,
+        "ambiguous_segments": 11,
+        "season_count": 12,
+        "team_count": 4,
+        "seasons": "2013-14,2014-15,2015-16,2016-17,2017-18,2018-19,2019-20,2020-21,2021-22,2022-23,2024-25,2025-26",
+        "team_ids": "1610612740,1610612745,1610612760,1610612763",
+        "qualifies_10000_minutes": true
+      }
+    ],
+    "career_team_trb_10000_minutes.csv.gz": [
+      {
+        "rank_10000_minutes": 1,
+        "player_id": "203500",
+        "player": "Steven Adams",
+        "minutes": 20471.565,
+        "seconds": 1228293.9,
+        "team_rebounds": 22831,
+        "opponent_rebounds_exact": NaN,
+        "opponent_rebounds_min": 19331,
+        "opponent_rebounds_max": 19404,
+        "team_trb_pct_exact": NaN,
+        "team_trb_pct_min": 54.057061678702496,
+        "team_trb_pct_max": 54.15065698970637,
+        "exact": false,
+        "ambiguous_segments": 11,
+        "season_count": 12,
+        "team_count": 4,
+        "seasons": "2013-14,2014-15,2015-16,2016-17,2017-18,2018-19,2019-20,2020-21,2021-22,2022-23,2024-25,2025-26",
+        "team_ids": "1610612740,1610612745,1610612760,1610612763",
+        "qualifies_10000_minutes": true
+      }
+    ]
+  },
+  "summary": {
+    "season_count_ok": true,
+    "team_rebound_derived_unique_keys": 14526,
+    "canonical_target": 14524,
+    "exact_overlay_keys": 4877,
+    "required_complement": 9647,
+    "team_rebound_derived_has_full_canonical_key_shape": false,
+    "steven_adams_found_in_retained_core": true
+  }
+}
