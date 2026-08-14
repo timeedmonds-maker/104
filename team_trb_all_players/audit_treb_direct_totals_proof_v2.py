@@ -55,7 +55,7 @@ def family(path, root):
     rel=str(path.relative_to(root)); return SEASON_RE.sub('{season}',rel)
 
 def attempt_team_game(path, root):
-    cols=schema(path); ns={c:norm(c) for c in cols}
+    cols=schema(path)
     game=pick(cols, exact=('game_id','gameid'), contains=('game','id'))
     team=pick(cols, exact=('team_id','teamid'), contains=('team','id'))
     treb=pick(cols, exact=('rebounds','team_rebounds','total_rebounds'))
@@ -106,7 +106,6 @@ def main():
     for dc,ec in [('team_off_rebounds','team_oreb_on'),('team_def_rebounds','team_dreb_on'),('team_rebounds','team_rebounds_on'),('opponent_rebounds_exact','opponent_rebounds_on'),('seconds','seconds_on'),('minutes','minutes_on')]:
         if dc in z and ec in z: comparisons[f'{dc}__vs__{ec}']=compare(z[dc],z[ec])
 
-    # Find source-code provenance with useful context.
     needles=['team_rebound_derived','opponent_rebounds_exact','team_off_rebounds','team_def_rebounds','off_rebound_pct_displayed']
     code=[]
     for p in root.rglob('*.py'):
@@ -117,7 +116,6 @@ def main():
             if any(n in line for n in needles): hits.append({'line':i+1,'context':lines[max(0,i-6):min(len(lines),i+7)]})
         if hits: code.append({'path':str(p),'hits':hits[:50]})
 
-    # Enumerate and actually test every game/team/raw-rebound candidate family.
     candidate_paths=[]
     for p in root.rglob('*'):
         if not p.is_file() or not (str(p).endswith('.csv') or str(p).endswith('.csv.gz') or str(p).endswith('.parquet')): continue
@@ -137,17 +135,15 @@ def main():
     family_results=[]; best=None
     for f,rs in fam.items():
         d=pd.concat([r['data'] for r in rs],ignore_index=True)
-        # dedupe repeated copies, but reject conflicts.
         n=d.groupby(['_season','_game','_team'])['_reb'].nunique(); conflicts=int((n>1).sum())
         d=d.groupby(['_season','_game','_team'],as_index=False)['_reb'].first()
         pair_counts=d.groupby(['_season','_game'])['_team'].nunique(); two=int((pair_counts==2).sum()); bad=int((pair_counts!=2).sum())
         valid_games=set(map(tuple,pair_counts[pair_counts==2].reset_index()[['_season','_game']].to_records(index=False)))
         if valid_games:
             key=list(zip(d._season,d._game)); d=d[[k in valid_games for k in key]].copy()
-        # opponent rebound is other team row in same game
         opp=d.rename(columns={'_team':'_opp_team','_reb':'_opp_reb'})
-        q=d.merge(opp,on=['_season','_game'],how='inner'); q=q[q._team!=q._opp_team]
-        own=q.groupby(['_season','_team'],as_index=False).agg(team_season_rebounds=('_reb','sum'),opponent_season_rebounds=('opp_reb','sum'),games=('_game','nunique'))
+        q=d.merge(opp,on=['_season','_game'],how='inner'); q=q[q['_team']!=q['_opp_team']]
+        own=q.groupby(['_season','_team'],as_index=False).agg(team_season_rebounds=('_reb','sum'),opponent_season_rebounds=('_opp_reb','sum'),games=('_game','nunique'))
         rec={'family':f,'files':len(rs),'seasons':int(own._season.nunique()),'season_teams':int(len(own)),'games_two_team':two,'games_bad_team_count':bad,'conflicts':conflicts,'negative_counts':int((own[['team_season_rebounds','opponent_season_rebounds']]<0).any(axis=1).sum())}
         family_results.append(rec)
         score=(rec['seasons'],rec['season_teams'],-rec['conflicts'],-rec['games_bad_team_count'])
@@ -157,7 +153,6 @@ def main():
     if best:
         rec,own=best[1],best[2]; best_summary=rec.copy()
         own.to_csv(out/'BEST_TEAM_SEASON_REBOUND_TOTALS.csv.gz',index=False,compression='gzip')
-        # Test whether subtracting retained player counts is numerically possible for all canonical rows.
         mapdf=own.rename(columns={'_season':'season','_team':'team_id'})
         t=derived.merge(mapdf,on=['season','team_id'],how='left')
         tr=pd.to_numeric(t.get('team_rebounds'),errors='coerce'); rr=pd.to_numeric(t.get('opponent_rebounds_exact'),errors='coerce')
@@ -166,7 +161,6 @@ def main():
         t['_off_team']=off_team; t['_off_opp']=off_opp
         best_summary.update({'canonical_with_totals':int(t.team_season_rebounds.notna().sum()),'complement_with_totals':int(t.merge(complement[KEYS],on=KEYS,how='inner').team_season_rebounds.notna().sum()),'negative_off_team':int((off_team<0).sum()),'negative_off_opponent':int((off_opp<0).sum()),'positive_off_denominator':int((off_team+off_opp>0).sum())})
 
-    # Strip embedded data before JSON.
     clean_attempts=[]
     for r in attempts:
         x={k:v for k,v in r.items() if k!='data'}; clean_attempts.append(x)
