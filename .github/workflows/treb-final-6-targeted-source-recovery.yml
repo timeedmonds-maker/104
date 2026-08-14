@@ -1,0 +1,118 @@
+name: TREB final 6 targeted source recovery
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: ['.github/workflows/treb-final-6-targeted-source-recovery.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-final-6-targeted-source-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+      BASE: team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/final_11_targeted_recovery
+      OUT: team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/final_6_targeted_recovery
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install request dependency
+        run: python -m pip install --disable-pip-version-check requests
+      - name: Retry only remaining six keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/treb_stage2 "$OUT"
+          mkdir -p "$OUT"
+          git fetch --no-tags origin treb-stage2-actions-live
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+          python - <<'PY'
+          import gzip, json, math, os, sys, time
+          from pathlib import Path
+          ROOT=Path.cwd(); BASE=ROOT/os.environ['BASE']; OUT=ROOT/os.environ['OUT']
+          S2=Path('/tmp/treb_stage2/team_trb_all_players'); sys.path.insert(0,str(S2))
+          import build_corrected_tenure_off as core
+          qa=json.loads((BASE/'FINAL_11_RECOVERY_QA.json').read_text())
+          minute_targets=qa['minute_failures']; team_targets=qa['team_failures']
+          if len(minute_targets)!=2 or len(team_targets)!=4:
+              raise RuntimeError(f'failure-set drift minutes={len(minute_targets)} teams={len(team_targets)}')
+          def finite(v):
+              try: x=float(v)
+              except Exception: return None
+              return x if math.isfinite(x) else None
+          def request_stat(window, rounds=6):
+              params={'Season':str(window['season']),'SeasonType':'Regular Season','TeamId':str(int(window['team_id'])),'Stat':'OffRebounds','FromDate':str(window['query_start_date']),'ToDate':str(window['query_end_date'])}
+              metas=[]
+              for n in range(1,rounds+1):
+                  payload,meta=core.request_json(core.STAT_URL,params,attempts=4); metas.append(meta)
+                  if meta.get('ok'): return payload,metas
+                  if n<rounds: time.sleep(8*n)
+              return {},metas
+          minute_repairs=[]; minute_failures=[]
+          for f in minute_targets:
+              w=f; target=float(w['target_minutes_on']); payload,metas=request_stat(w)
+              mon=moff=row=None; method=None
+              if payload:
+                  mon,moff,row=core.stat_minutes(payload,str(w['player_id']),str(w['player']))
+                  if mon is not None and moff is not None: method='pinned_stat_minutes_exact_id_or_name'
+                  else:
+                      cand=[]
+                      for r in core.rows(payload):
+                          cm=finite(r.get('MinutesOn')); cf=finite(r.get('MinutesOff'))
+                          if cm is not None and cf is not None: cand.append((abs(cm-target),cm,cf,r))
+                      close=sorted(x for x in cand if x[0] <= 1.0)
+                      if close and (len(close)==1 or close[0][0] < close[1][0]-1e-9):
+                          _,mon,moff,row=close[0]; method='unique_nearest_authoritative_minutes_on_within_1min'
+              rec={**w,'minutes_on':mon,'minutes_off':moff,'minute_resolution_method':method,'request_attempt_groups':metas}
+              (minute_repairs if mon is not None and moff is not None else minute_failures).append(rec)
+          team_repairs=[]; team_failures=[]
+          for f in team_targets:
+              w=f['window']; attempts=[]; result=None
+              for n in range(1,6):
+                  try: result=core.collect_window(w)
+                  except Exception as exc: attempts.append({'round':n,'error':repr(exc)}); result=None
+                  else: attempts.append({'round':n,'complete':bool(result.get('complete')),'metric_count':len(result.get('metrics') or []),'requests':result.get('requests')})
+                  if result and result.get('complete') and len(result.get('metrics') or [])==89: break
+                  if n<5: time.sleep(10*n)
+              rec={'window':w,'attempts':attempts,'result':result}
+              (team_repairs if result and result.get('complete') and len(result.get('metrics') or [])==89 else team_failures).append(rec)
+          report={'status':'PASS' if len(minute_repairs)==2 and len(team_repairs)==4 else 'FAIL','stage2_sha':os.environ['STAGE2_SHA'],'scope':'only six unresolved keys from prior final-11 targeted pass','minute_target_keys':2,'minute_recovered':len(minute_repairs),'minute_failed':len(minute_failures),'team_target_keys':4,'team_recovered':len(team_repairs),'team_failed':len(team_failures),'previously_recovered_keys_requeried':False,'historical_stage2_rebuild':False,'minute_repairs':minute_repairs,'minute_failures':minute_failures,'team_repairs':team_repairs,'team_failures':team_failures}
+          (OUT/'FINAL_6_RECOVERY_QA.json').write_text(json.dumps(report,indent=2,ensure_ascii=False,default=str)+'\n')
+          with gzip.open(OUT/'recovered_final_6.jsonl.gz','wt',encoding='utf-8') as fh:
+              for rec in minute_repairs: fh.write(json.dumps({'type':'minute_only_recovery',**rec},ensure_ascii=False,default=str)+'\n')
+              for rec in team_repairs: fh.write(json.dumps({'type':'team_profile_recovery',**(rec['result'] or {})},ensure_ascii=False,default=str)+'\n')
+          print(json.dumps({k:report[k] for k in ['status','minute_recovered','minute_failed','team_recovered','team_failed','previously_recovered_keys_requeried','historical_stage2_rebuild']},indent=2))
+          if report['status']!='PASS': raise RuntimeError('final six targeted recovery incomplete; evidence persisted below')
+          PY
+      - name: Persist targeted recovery evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ -d "$OUT" ]; then
+            git add -f "$OUT"
+            if ! git diff --cached --quiet; then
+              git commit -m 'Persist final 6 targeted Stage2 recovery'
+              git push origin HEAD:agent/treb-final-exact-assembly
+            fi
+          fi
+      - name: Upload targeted recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-6-targeted-recovery-${{ github.run_id }}
+          path: ${{ env.OUT }}
+          retention-days: 30
