@@ -1,0 +1,353 @@
+name: TREB final cached release v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - team_trb_all_players/finalize_treb_release_contract_v2.py
+      - .github/workflows/treb-final-cached-release-v2.yml
+
+concurrency:
+  group: treb-final-cached-release-v2
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  finish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      LOCK_PATH: team_trb_all_players/impact_database/final_local_rebuild/locked_seasons
+      OUT: /tmp/treb_final_exact
+      STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+      STAGE2_CACHE: /tmp/treb_stage2_export_cache
+      STAGE2_RELEASE: /tmp/treb_stage2_release_export
+      STATUS_DIR: /tmp/treb_cached_release_status
+
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install release readers
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+
+      - name: Restore saved Stage2 aggregate cache only
+        id: cache
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.STAGE2_CACHE }}
+          key: treb-stage2-final-export-${{ env.STAGE2_SHA }}-jsonstruct-v1
+          fail-on-cache-miss: true
+
+      - name: Rebuild and gate exact-count support
+        id: exact
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$STATUS_DIR"
+          rm -rf /tmp/treb_locks "$OUT"
+          mkdir -p /tmp/treb_locks "$OUT"
+          for y in $(seq 2000 2025); do
+            b="treb-final-safe-lock-${y}"
+            season="$(printf '%d-%02d' "$y" "$(( (y + 1) % 100 ))")"
+            git show "refs/remotes/origin/${b}:${LOCK_PATH}/${season}.json" > "/tmp/treb_locks/${season}.json"
+          done
+          test "$(find /tmp/treb_locks -maxdepth 1 -name '*.json' | wc -l)" -eq 26
+          python -u team_trb_all_players/finalize_treb_database.py \
+            --locks-dir /tmp/treb_locks \
+            --output-dir "$OUT" | tee "$STATUS_DIR/exact_build.log"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          import pandas as pd
+          out=Path(os.environ['OUT'])
+          d=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
+          q=json.loads((out/'qa_report.json').read_text())
+          assert q['status']=='PASS' and q['seasons_complete']==26,q
+          assert q['duplicate_tenure_keys']==0 and q['unexpected_exceptions']==0 and q['unmatched_rebound_rows']==0,q
+          assert q['accepted_exclusion_ledger_exact_match'] is True,q
+          assert len(d)==5199,len(d)
+          counts=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off']
+          for col in counts+['seconds_on','seconds_off','games_processed']:
+              s=pd.to_numeric(d[col],errors='raise')
+              assert s.notna().all() and (s>=0).all(),col
+              assert float((s-s.round()).abs().max())<1e-9,col
+          d.to_parquet(out/'career_treb_detail.parquet',index=False)
+          pd.read_csv(out/'career_treb_summary.csv',low_memory=False).to_parquet(out/'career_treb_summary.parquet',index=False)
+          gate={'status':'PASS','exact_count_segment_rows':len(d),'seasons':26,'rounded_percentage_backsolve_used':False,'rates_recomputed_from_exact_counts':True}
+          (out/'EXACT_COUNT_RELEASE_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2))
+          PY
+
+      - name: Verify cache and prepare pinned Stage2 worktree
+        id: prep
+        if: always() && steps.cache.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['STAGE2_CACHE'])
+          q=json.loads((p/'quality_report.json').read_text())
+          assert int(q['metric_count'])==89,q
+          assert int(q['tenure_segment_metric_rows'])==1353334,q
+          assert (p/'player_team_season_corrected_on_off.parquet').exists()
+          print(json.dumps({'status':'PASS','cache_reused':True,'metric_count':89,'source_rows':1353334},indent=2))
+          PY
+          rm -rf /tmp/treb_stage2
+          git cat-file -e "${STAGE2_SHA}^{commit}"
+          git worktree add --detach /tmp/treb_stage2 "$STAGE2_SHA"
+
+      - name: Patch forward bounded canonical Stage2 gap
+        id: patch
+        if: always() && steps.prep.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$STAGE2_RELEASE"
+          mkdir -p "$STAGE2_RELEASE"
+          cp -a "$STAGE2_CACHE/." "$STAGE2_RELEASE/"
+          ARGS=(--stage2-export-dir "$STAGE2_RELEASE" --stage2-root /tmp/treb_stage2/team_trb_all_players --ledger "$OUT/PATCH_FORWARD_EXCEPTION_LEDGER.json")
+          FINAL6=team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/final_6_targeted_recovery/FINAL_6_RECOVERY_QA.json
+          if [ -s "$FINAL6" ]; then ARGS+=(--optional-final6-json "$FINAL6"); fi
+          python -u team_trb_all_players/build_patch_forward_stage2_export.py "${ARGS[@]}" | tee "$STATUS_DIR/patch_forward.log"
+
+      - name: Assemble canonical release contract
+        id: assemble
+        if: always() && steps.exact.outcome == 'success' && steps.patch.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/finalize_treb_release_contract_v2.py \
+            --stage2-export-dir "$STAGE2_RELEASE" \
+            --exact-dir "$OUT" \
+            --stage2-sha "$STAGE2_SHA" | tee "$STATUS_DIR/assemble.log"
+
+      - name: Run independent final validations
+        id: validate
+        if: always() && steps.assemble.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import duckdb, json, os
+          from pathlib import Path
+          import pandas as pd
+          out=Path(os.environ['OUT'])
+          q=json.loads((out/'ALL_89_METRICS_QA.json').read_text())
+          assert q['status']=='PASS',q
+          assert q['native_metric_count']==89,q
+          assert q['canonical_player_team_season_rows']==14524,q
+          assert q['native_player_team_metric_rows']==14524*89,q
+          assert q['exact_count_segment_rows']==5199,q
+          assert q['exact_count_player_team_rows']==4877,q
+          assert q['exact_overlay_metric_count']==3,q
+          assert set(q['exact_overlay_metrics'])=={'TotalReboundPct','OffReboundPct','DefReboundPct'},q
+          assert q['native_gate_requires_exact_overlay_names'] is False,q
+          assert q['rounded_percentage_backsolve_used'] is False,q
+          assert q['exact_rates_recomputed_from_stored_integer_counts'] is True,q
+
+          n_csv=pd.read_csv(out/'all_metrics_player_team_season.csv.gz',compression='gzip',low_memory=False)
+          n_pq=pd.read_parquet(out/'all_metrics_player_team_season.parquet')
+          c_csv=pd.read_csv(out/'all_metrics_career.csv.gz',compression='gzip',low_memory=False)
+          e_csv=pd.read_csv(out/'exact_rebound_overlay_player_team_season_long.csv.gz',compression='gzip',low_memory=False)
+
+          assert len(n_csv)==len(n_pq)==14524*89
+          assert n_csv.metric.nunique()==89
+          assert n_csv.groupby(['season','team_id','player_id']).metric.nunique().eq(89).all()
+          canonical_players=int(n_csv['player_id'].astype(str).nunique())
+          assert canonical_players==int(q['career_players']), (canonical_players,q['career_players'])
+          assert len(c_csv)==canonical_players*89
+          assert int(c_csv['player_id'].astype(str).nunique())==canonical_players
+          assert c_csv.metric.nunique()==89
+          assert c_csv.groupby('player_id').metric.nunique().eq(89).all()
+          assert len(e_csv)==4877*3 and set(e_csv.metric.unique())=={'TotalReboundPct','OffReboundPct','DefReboundPct'}
+
+          combined_career=pd.read_parquet(out/'final_combined_career_wide.parquet')
+          for col in ['TotalReboundPct__on','TotalReboundPct__off','TotalReboundPct__swing','OffReboundPct__on','OffReboundPct__off','OffReboundPct__swing','DefReboundPct__on','DefReboundPct__off','DefReboundPct__swing']:
+              assert col in combined_career.columns,col
+
+          con=duckdb.connect(str(out/'TREB_all_metrics.duckdb'),read_only=True)
+          checks={
+            'native_pts':con.execute('select count(*) from all_metrics_player_team_season').fetchone()[0],
+            'native_career':con.execute('select count(*) from all_metrics_career').fetchone()[0],
+            'exact_overlay':con.execute('select count(*) from exact_rebound_overlay_player_team_season_long').fetchone()[0],
+            'native_dictionary':con.execute('select count(*) from metric_dictionary').fetchone()[0],
+            'overlay_dictionary':con.execute('select count(*) from exact_rebound_overlay_dictionary').fetchone()[0],
+          }
+          con.close()
+          expected={'native_pts':14524*89,'native_career':canonical_players*89,'exact_overlay':4877*3,'native_dictionary':89,'overlay_dictionary':3}
+          assert checks==expected,(checks,expected)
+          report={'status':'PASS','csv_parquet_duckdb_cross_reader':True,'canonical_career_players':canonical_players,**checks}
+          (out/'reader_validation.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+
+      - name: Record accepted residual provenance
+        id: residuals
+        if: always() && steps.assemble.outcome == 'success'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          residuals=[[21700032,4988],[21700042,7322],[21700494,7412],[21800689,1396],[21800689,1398],[22101023,256],[22200322,3388],[22200331,3717],[22200331,3912],[22200733,5955],[22201187,1569],[22201187,1573],[22400072,288]]
+          d={'status':'ACCEPTED_IMMATERIAL_CAPTAINS_CALL','accepted_date':'2026-08-13','residual_rebound_events':13,'unique_games':len({x[0] for x in residuals}),'residual_keys':residuals,'structural_gates_relaxed':False}
+          Path(os.environ['OUT'],'captains_call_accepted_residuals.json').write_text(json.dumps(d,indent=2)+'\n')
+          PY
+
+      - name: Package final database
+        id: package
+        if: always() && steps.validate.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$OUT"
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          zip -9 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
+          sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip > /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+
+      - name: Upload final ZIP artifact
+        id: final_artifact
+        if: always() && steps.package.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-2000-01-to-2025-26
+          path: |
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Publish permanent GitHub Release
+        id: release
+        if: always() && steps.package.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="treb-final-database-${GITHUB_RUN_ID}"
+          gh release create "$tag" \
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip \
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256 \
+            --target "$GITHUB_SHA" \
+            --title "TREB final database 2000-01 to 2025-26" \
+            --notes "Cached production release. Canonical universe: 14,524 player-team-season keys with all 89 native Stage2 metrics. Career rows are derived from that canonical universe. Exact TotalReboundPct/OffReboundPct/DefReboundPct are a separate exact-count overlay family. No rounded-percentage backsolve."
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}" > "$STATUS_DIR/release_url.txt"
+
+      - name: Write aggregate PASS/FAIL report
+        id: report
+        if: always()
+        shell: bash
+        env:
+          CACHE_OUTCOME: ${{ steps.cache.outcome }}
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+          EXACT_OUTCOME: ${{ steps.exact.outcome }}
+          PREP_OUTCOME: ${{ steps.prep.outcome }}
+          PATCH_OUTCOME: ${{ steps.patch.outcome }}
+          ASSEMBLE_OUTCOME: ${{ steps.assemble.outcome }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          PACKAGE_OUTCOME: ${{ steps.package.outcome }}
+          ARTIFACT_OUTCOME: ${{ steps.final_artifact.outcome }}
+          RELEASE_OUTCOME: ${{ steps.release.outcome }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$STATUS_DIR"
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          sdir=Path(os.environ['STATUS_DIR']); out=Path(os.environ['OUT'])
+          outcomes={k:os.environ.get(k.upper()+'_OUTCOME','skipped') for k in ['cache','exact','prep','patch','assemble','validate','package','artifact','release']}
+          qa={}
+          for f in ['qa_report.json','EXACT_COUNT_RELEASE_GATE.json','PATCH_FORWARD_EXCEPTION_LEDGER.json','ALL_89_METRICS_QA.json','reader_validation.json']:
+              p=out/f
+              if p.exists():
+                  try: qa[f]=json.loads(p.read_text())
+                  except Exception as e: qa[f]={'parse_error':str(e)}
+          release_url=(sdir/'release_url.txt').read_text().strip() if (sdir/'release_url.txt').exists() else None
+          required=['cache','exact','prep','patch','assemble','validate','package','artifact','release']
+          status='PASS' if all(outcomes.get(k)=='success' for k in required) else 'FAIL'
+          report={
+              'status':status,
+              'workflow_run_id':int(os.environ['GITHUB_RUN_ID']),
+              'source_commit':os.environ['GITHUB_SHA'],
+              'stage2_cache_hit':os.environ.get('CACHE_HIT'),
+              'stage2_rebuild_permitted':False,
+              'step_outcomes':outcomes,
+              'release_url':release_url,
+              'qa':qa,
+              'failure_policy':'cache-only release; all steps run as far as prerequisites permit; final failure emitted only after aggregate report',
+          }
+          (sdir/'AUTOFINISH_V2_LATEST.json').write_text(json.dumps(report,indent=2)+'\n')
+          lines=['# TREB cached release v2 latest','',f"Status: **{status}**",f"Run: `{report['workflow_run_id']}`",f"Source: `{report['source_commit']}`",f"Stage2 cache hit: `{report['stage2_cache_hit']}`",'','## Step outcomes']
+          lines += [f"- {k}: **{v}**" for k,v in outcomes.items()]
+          if release_url:
+              lines += ['', f"Release: {release_url}"]
+          (sdir/'AUTOFINISH_V2_LATEST.md').write_text('\n'.join(lines)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+
+      - name: Upload aggregate diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-cached-release-v2-diagnostics-${{ github.run_id }}
+          path: |
+            /tmp/treb_cached_release_status
+            /tmp/treb_final_exact/*QA*.json
+            /tmp/treb_final_exact/*GATE*.json
+            /tmp/treb_final_exact/*LEDGER*.json
+            /tmp/treb_final_exact/reader_validation.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Persist latest v2 status to branch
+        if: always()
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p treb_automation/status
+          cp "$STATUS_DIR/AUTOFINISH_V2_LATEST.json" treb_automation/status/AUTOFINISH_V2_LATEST.json
+          cp "$STATUS_DIR/AUTOFINISH_V2_LATEST.md" treb_automation/status/AUTOFINISH_V2_LATEST.md
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add treb_automation/status/AUTOFINISH_V2_LATEST.json treb_automation/status/AUTOFINISH_V2_LATEST.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Persist TREB cached release v2 result [skip ci]"
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+
+      - name: Final aggregate gate
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path(os.environ['STATUS_DIR'])/'AUTOFINISH_V2_LATEST.json'
+          r=json.loads(p.read_text())
+          if r['status']!='PASS':
+              raise SystemExit('TREB cached release v2 aggregate result: FAIL; inspect AUTOFINISH_V2_LATEST.json')
+          print('TREB cached release v2 aggregate result: PASS')
+          print(r.get('release_url') or '')
+          PY
