@@ -23,6 +23,9 @@ HEADERS = {
     "x-nba-stats-origin": "stats",
     "x-nba-stats-token": "true",
 }
+DIRECT_ATTEMPTS = 1
+DIRECT_TIMEOUT_SECONDS = 7
+RELAY_TIMEOUT_SECONDS = 12
 
 
 def ids(v) -> str:
@@ -108,9 +111,9 @@ def fetch(session: requests.Session, season: str, team_id: int, cache_dir: Path)
     p = params(season, team_id)
     errors: list[str] = []
     url = f"{BASE}/teamplayeronoffdetails"
-    for attempt in range(3):
+    for attempt in range(DIRECT_ATTEMPTS):
         try:
-            r = session.get(url, params=p, timeout=50)
+            r = session.get(url, params=p, timeout=DIRECT_TIMEOUT_SECONDS)
             r.raise_for_status()
             d = r.json()
             choose_sets(d)
@@ -118,10 +121,11 @@ def fetch(session: requests.Session, season: str, team_id: int, cache_dir: Path)
             return d, "stats.nba.com/teamplayeronoffdetails"
         except Exception as exc:
             errors.append(f"direct[{attempt}]={exc!r}")
-            time.sleep((1.2 * (2 ** attempt)) + random.random() * 0.4)
+            if attempt + 1 < DIRECT_ATTEMPTS:
+                time.sleep(0.5 + random.random() * 0.25)
     try:
         relay = f"{JINA}/teamplayeronoffdetails?{urlencode(p)}"
-        r = requests.get(relay, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=120)
+        r = requests.get(relay, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=RELAY_TIMEOUT_SECONDS)
         r.raise_for_status()
         d = parse_payload_text(r.text)
         choose_sets(d)
@@ -161,6 +165,52 @@ def read_targets(path: Path, season: str) -> list[dict]:
     return out
 
 
+def write_checkpoint(
+    output: Path,
+    season: str,
+    targets: list[dict],
+    by_team: dict[int, list[dict]],
+    output_rows: list[dict],
+    team_report: list[dict],
+    complete: bool,
+) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    columns = [
+        "season", "team_id", "player_id", "player", "direct_treb_on", "direct_treb_off",
+        "direct_minutes_on", "direct_minutes_off", "target_minutes_on", "status", "error", "source",
+        "on_result_set", "off_result_set",
+    ]
+    df = pd.DataFrame(output_rows)
+    if df.empty:
+        df = pd.DataFrame(columns=columns)
+    else:
+        for c in columns:
+            if c not in df.columns:
+                df[c] = pd.NA
+        df = df[columns]
+    df.to_csv(output, index=False)
+    report = {
+        "season": season,
+        "expected_full_core_rows": len(targets),
+        "output_rows": len(df),
+        "pass_rows": int(df.status.astype(str).eq("PASS").sum()) if "status" in df else 0,
+        "failure_rows": int((~df.status.astype(str).eq("PASS")).sum()) if len(df) else 0,
+        "team_count": len(by_team),
+        "teams_completed": len(team_report),
+        "collection_complete": complete,
+        "teams": team_report,
+        "transport_budget": {
+            "direct_attempts": DIRECT_ATTEMPTS,
+            "direct_timeout_seconds": DIRECT_TIMEOUT_SECONDS,
+            "relay_timeout_seconds": RELAY_TIMEOUT_SECONDS,
+        },
+        "source_semantics": "direct NBA Stats teamplayeronoffdetails Advanced REB_PCT from PlayersOnCourt and PlayersOffCourt result sets",
+        "rounded_percentage_backsolve_used": False,
+        "opponent_rebound_inference_used": False,
+    }
+    output.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", type=int, required=True)
@@ -180,8 +230,16 @@ def main() -> int:
     session.headers.update(HEADERS)
     output_rows: list[dict] = []
     team_report: list[dict] = []
-    for team_id in sorted(by_team):
+    team_ids = sorted(by_team)
+    write_checkpoint(args.output, season, targets, by_team, output_rows, team_report, complete=False)
+
+    for team_index, team_id in enumerate(team_ids, start=1):
         team_targets = by_team[team_id]
+        print(json.dumps({
+            "event": "TEAM_START", "season": season, "team_index": team_index,
+            "team_count": len(team_ids), "team_id": team_id, "target_rows": len(team_targets),
+        }), flush=True)
+        team_status = "FETCH_FAIL"
         try:
             payload, source = fetch(session, season, team_id, args.cache_dir)
             on_rs, off_rs = choose_sets(payload)
@@ -222,32 +280,41 @@ def main() -> int:
                         "player": t.get("player", ""), "status": "INVALID_DIRECT_ROW",
                         "error": repr(exc), "source": source,
                     })
-            team_report.append({"season": season, "team_id": team_id, "status": "PASS", "target_rows": len(team_targets), "missing_rows": missing, "source": source})
+            team_status = "PASS"
+            team_report.append({
+                "season": season, "team_id": team_id, "status": "PASS",
+                "target_rows": len(team_targets), "missing_rows": missing, "source": source,
+            })
         except Exception as exc:
-            team_report.append({"season": season, "team_id": team_id, "status": "FETCH_FAIL", "target_rows": len(team_targets), "missing_rows": len(team_targets), "error": repr(exc)})
+            error = repr(exc)
+            team_report.append({
+                "season": season, "team_id": team_id, "status": "FETCH_FAIL",
+                "target_rows": len(team_targets), "missing_rows": len(team_targets), "error": error,
+            })
             for t in team_targets:
                 output_rows.append({
                     "season": season, "team_id": team_id, "player_id": ids(t["player_id"]),
-                    "player": t.get("player", ""), "status": "FETCH_FAIL", "error": repr(exc), "source": "",
+                    "player": t.get("player", ""), "status": "FETCH_FAIL", "error": error, "source": "",
                 })
+        write_checkpoint(
+            args.output, season, targets, by_team, output_rows, team_report,
+            complete=(team_index == len(team_ids)),
+        )
+        print(json.dumps({
+            "event": "TEAM_CHECKPOINT", "season": season, "team_index": team_index,
+            "team_count": len(team_ids), "team_id": team_id, "team_status": team_status,
+            "rows_checkpointed": len(output_rows),
+        }), flush=True)
 
     df = pd.DataFrame(output_rows)
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(args.output, index=False)
-    report = {
+    print(json.dumps({
         "season": season,
         "expected_full_core_rows": len(targets),
-        "output_rows": len(df),
-        "pass_rows": int(df.status.eq("PASS").sum()),
-        "failure_rows": int((~df.status.eq("PASS")).sum()),
+        "pass_rows": int(df.status.astype(str).eq("PASS").sum()),
+        "failure_rows": int((~df.status.astype(str).eq("PASS")).sum()),
         "team_count": len(by_team),
-        "teams": team_report,
-        "source_semantics": "direct NBA Stats teamplayeronoffdetails Advanced REB_PCT from PlayersOnCourt and PlayersOffCourt result sets",
-        "rounded_percentage_backsolve_used": False,
-        "opponent_rebound_inference_used": False,
-    }
-    args.output.with_suffix(".json").write_text(json.dumps(report, indent=2) + "\n")
-    print(json.dumps({k: report[k] for k in ["season", "expected_full_core_rows", "pass_rows", "failure_rows", "team_count"]}, indent=2))
+        "teams_completed": len(team_report),
+    }, indent=2), flush=True)
     return 0
 
 
