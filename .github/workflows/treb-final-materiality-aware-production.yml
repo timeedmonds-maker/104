@@ -76,7 +76,6 @@ jobs:
           import pandas as pd
           out=Path(os.environ['OUT'])
           d=pd.read_csv(out/'career_treb_detail.csv',low_memory=False)
-          c=pd.read_csv(out/'career_treb_summary.csv',low_memory=False)
           q=json.loads((out/'qa_report.json').read_text())
           keys=d[['season','player_id','team_id']].drop_duplicates()
           assert q['status']=='PASS',q
@@ -91,12 +90,7 @@ jobs:
           for col in counts:
             s=pd.to_numeric(d[col],errors='raise')
             assert s.notna().all() and (s>=0).all(),col
-          # Steven Adams is a material regression gate.
-          ad=c[c['player_id'].astype(str).str.replace('.0','',regex=False)=='203500']
-          assert len(ad)==1,'Steven Adams 203500 absent/duplicated from exact career support'
-          mins=float(pd.to_numeric(ad.iloc[0]['minutes_on'],errors='raise'))
-          assert 20460.0 <= mins <= 20485.0,f'Steven Adams career minutes regression: {mins}'
-          gate={'status':'PASS','exact_segments':len(d),'exact_pts':len(keys),'seasons':26,'steven_adams_minutes':mins,'rounded_percentage_backsolve_used':False}
+          gate={'status':'PASS','exact_segments':len(d),'exact_pts':len(keys),'seasons':26,'rounded_percentage_backsolve_used':False,'steven_adams_regression_scope':'deferred_to_complete_canonical_database'}
           (out/'MATERIAL_EXACT_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
           print(json.dumps(gate,indent=2))
           PY
@@ -139,6 +133,7 @@ jobs:
           python - <<'PY'
           import json, os
           from pathlib import Path
+          import pandas as pd
           out=Path(os.environ['OUT'])
           q=json.loads((out/'ALL_89_METRICS_QA.json').read_text())
           assert q['status']=='PASS',q
@@ -158,7 +153,19 @@ jobs:
           assert q['all_89_metrics_present_for_every_canonical_key'] is True,q
           assert q['career_89_metrics_present_for_every_player'] is True,q
           assert q['rounded_percentage_backsolve_used'] is False,q
-          gate={'status':'PASS','canonical_pts':14524,'exact_pts':4877,'full_core_pts':9647,'metric_count':89,'player_team_metric_rows':1292636,'career_players':3122,'career_metric_rows':277858,'material_release_ready':True}
+
+          career=pd.read_parquet(out/'all_metrics_career.parquet')
+          pid=career['player_id'].astype(str).str.replace('.0','',regex=False)
+          ad=career[(pid=='203500') & (career['metric'].astype(str)=='TotalReboundPct')]
+          assert len(ad)==1,f'Steven Adams TotalReboundPct final-career row count={len(ad)}'
+          mins=float(pd.to_numeric(ad.iloc[0]['minutes_on'],errors='raise'))
+          assert 20460.0 <= mins <= 20485.0,f'Steven Adams final career minutes regression: {mins}'
+          treb=career[career['metric'].astype(str)=='TotalReboundPct'].copy()
+          treb_mins=pd.to_numeric(treb['minutes_on'],errors='coerce')
+          pop_10000=int((treb_mins>=10000.0).sum())
+          assert 540 <= pop_10000 <= 565,f'Final TotalReboundPct >=10k population materially implausible: {pop_10000}'
+
+          gate={'status':'PASS','canonical_pts':14524,'exact_pts':4877,'full_core_pts':9647,'metric_count':89,'player_team_metric_rows':1292636,'career_players':3122,'career_metric_rows':277858,'steven_adams_minutes':mins,'total_rebound_pct_players_10000_minutes':pop_10000,'material_release_ready':True}
           (out/'MATERIAL_RELEASE_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
           print(json.dumps(gate,indent=2))
           PY
@@ -177,12 +184,11 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import hashlib,json,os
+          import json,os
           from pathlib import Path
           out=Path(os.environ['OUT'])
-          exact=json.loads((out/'MATERIAL_EXACT_GATE.json').read_text())
           full=json.loads((out/'MATERIAL_RELEASE_GATE.json').read_text())
-          report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit':os.environ['GITHUB_SHA'],'stage2_sha':os.environ['STAGE2_SHA'],'material_integrity_gate':'PASS','canonical_pts':full['canonical_pts'],'exact_pts':full['exact_pts'],'full_core_pts':full['full_core_pts'],'metrics':full['metric_count'],'steven_adams_minutes':exact['steven_adams_minutes'],'captains_call_residual_rebounds_accepted':13,'rounded_percentage_backsolve_used':False,'supporting_checks_block_release':False}
+          report={'status':'PASS','workflow_run_id':int(os.environ['GITHUB_RUN_ID']),'source_commit':os.environ['GITHUB_SHA'],'stage2_sha':os.environ['STAGE2_SHA'],'material_integrity_gate':'PASS','canonical_pts':full['canonical_pts'],'exact_pts':full['exact_pts'],'full_core_pts':full['full_core_pts'],'metrics':full['metric_count'],'steven_adams_minutes':full['steven_adams_minutes'],'total_rebound_pct_players_10000_minutes':full['total_rebound_pct_players_10000_minutes'],'captains_call_residual_rebounds_accepted':13,'rounded_percentage_backsolve_used':False,'supporting_checks_block_release':False}
           (out/'FINAL_MATERIAL_PRODUCTION_REPORT.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
           PY
@@ -202,7 +208,7 @@ jobs:
         run: |
           set +e
           python - <<'PY'
-          import json,os,traceback,sqlite3
+          import json,os
           from pathlib import Path
           out=Path(os.environ['OUT'])
           report={'status':'PASS','blocking':False,'warnings':[]}
