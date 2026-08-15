@@ -1,0 +1,60 @@
+name: Native89 exposure identity diagnostic
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-exposure-diagnostic.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+      - name: Inspect schemas and representative rows
+        run: |
+          python - <<'PY'
+          import gzip,json,csv,pathlib
+          files={
+            'corrected':'team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz',
+            'targets':'team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz',
+            'windows':'team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz',
+            'ledger':'team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz',
+          }
+          out={}
+          with gzip.open(files['corrected'],'rt') as f:
+            samples=[]; fields=set(); wanted={'OReb%','Pts per 100 Possessions','Pts per 100 Possessions - Defense'}
+            for line in f:
+              if not line.strip(): continue
+              r=json.loads(line); fields.update(r.keys())
+              if r.get('metric') in wanted and len([x for x in samples if x.get('metric')==r.get('metric')])<2: samples.append(r)
+              if len(samples)>=6: break
+            out['corrected_fields']=sorted(fields); out['corrected_samples']=samples
+          with gzip.open(files['targets'],'rt') as f:
+            rows=[]; fields=set()
+            for line in f:
+              if not line.strip():continue
+              r=json.loads(line);fields.update(r.keys()); rows.append(r)
+              if len(rows)>=3:break
+            out['target_fields']=sorted(fields);out['target_samples']=rows
+          with gzip.open(files['windows'],'rt') as f:
+            rows=[];fields=set()
+            for line in f:
+              if not line.strip():continue
+              r=json.loads(line);fields.update(r.keys());rows.append(r)
+              if len(rows)>=3:break
+            out['window_fields']=sorted(fields);out['window_samples']=rows
+          with gzip.open(files['ledger'],'rt',newline='') as f:
+            rd=csv.DictReader(f); out['ledger_fields']=rd.fieldnames; out['ledger_samples']=[next(rd) for _ in range(3)]
+          pathlib.Path('native89_exposure_schema.json').write_text(json.dumps(out,indent=2,default=str)+'\n')
+          print(json.dumps(out,indent=2,default=str))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-exposure-diagnostic-${{ github.run_id }}
+          path: native89_exposure_schema.json
+          retention-days: 30
+          if-no-files-found: error
