@@ -1,0 +1,76 @@
+name: Native89 analysis-ready FINAL release
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/triggers/native89-final-assemble.txt]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Download fail-closed complete raw tenure artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: native89-raw-tenure-COMPLETE-31915620206
+          path: raw_complete
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31915620206'
+      - name: Build self-contained final release
+        run: |
+          python team_trb_all_players/build_native89_analysis_ready_final.py --raw-dir raw_complete --out-dir native89_analysis_ready_final
+      - name: Independently inspect final ZIP and fail closed on QA
+        run: |
+          python - <<'PY'
+          import zipfile,json,csv,io,gzip,pathlib
+          z=pathlib.Path('NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip')
+          assert z.exists() and z.stat().st_size>0
+          with zipfile.ZipFile(z) as q:
+            assert q.testzip() is None
+            names=set(q.namelist())
+            required={'README_FIRST.txt','METRIC_CATALOG.csv','native_89_metrics_LONG_WITH_EXPOSURES.csv.gz','TENURE_EXPOSURES.csv.gz','RAW_WOWY_COMPONENTS_BY_TENURE.csv.gz','OREB_NET_RATING_RAW_SUFFICIENT_STATS_BY_TENURE.csv.gz','NET_RATING_ESTABLISHED_EQUIVALENT_STATS_BY_TENURE.csv.gz','ACCEPTANCE_2021-22_to_2025-26_MIN2000.csv','FINAL_QA.json'}
+            assert required<=names, required-names
+            qa=json.loads(q.read('FINAL_QA.json'))
+            assert qa['status']=='PASS',qa
+            assert qa['native_metric_count']==89 and qa['season_count']==26
+            assert qa['first_season']=='2000-01' and qa['last_season']=='2025-26'
+            assert qa['treb_excluded'] is True
+            assert qa['native_metric_rows']==1353334 and qa['native_tenure_segments']==15206 and qa['raw_tenure_segments']==15206
+            assert qa['player_names_populated'] is True and qa['on_off_minutes_populated'] is True
+            assert qa['native_values_modified'] is False
+            assert qa['oreb_on_reconstructable_from_summed_explicit_counts'] is True
+            assert qa['net_rating_on_reconstructable_from_sufficient_stats'] is True and qa['net_rating_corrected_off_reconstructable_from_sufficient_stats'] is True
+            assert qa['swing_calculated_after_aggregation'] is True and qa['simple_rate_averaging_used'] is False
+            assert qa['acceptance_nonempty'] is True and qa['acceptance_players']>0 and qa['acceptance_transaction_test_players']>0
+            assert qa['raw_to_native_equivalence_failures']==0
+            # Acceptance schema and 2,000 minute threshold.
+            acc=list(csv.DictReader(io.StringIO(q.read('ACCEPTANCE_2021-22_to_2025-26_MIN2000.csv').decode('utf-8'))))
+            assert acc
+            need={'player_id','player_name','on_court_minutes','oreb_pct_on','net_rating_on','net_rating_corrected_off','net_rating_swing'}
+            assert need<=set(acc[0]),need-set(acc[0])
+            assert min(float(r['on_court_minutes']) for r in acc)>=2000
+            assert all(r['player_name'].strip() for r in acc)
+            cat=list(csv.DictReader(io.StringIO(q.read('METRIC_CATALOG.csv').decode('utf-8'))))
+            assert len(cat)==89 and len({r['metric'] for r in cat})==89
+            ore=next(r for r in cat if r['metric']=='OReb%')
+            assert ore['sufficient_stat_fields']=='team.OffRebounds;opponent.DefRebounds'
+          pathlib.Path('FINAL_RELEASE_GATE.json').write_text(json.dumps({'status':'PASS','zip':z.name,'zip_bytes':z.stat().st_size,'acceptance_players':len(acc),'metric_catalog_rows':len(cat)},indent=2)+'\n')
+          print(pathlib.Path('FINAL_RELEASE_GATE.json').read_text())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NBA-native-89-ANALYSIS-READY-FINAL-${{ github.run_id }}
+          path: |
+            NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip
+            NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip.sha256
+            FINAL_RELEASE_GATE.json
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 0
