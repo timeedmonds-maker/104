@@ -1,0 +1,16 @@
+name: TREB residual materiality autopilot relaunch emptyfix
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-residual-materiality-autopilot-relaunch-emptyfix.yml]
+permissions:
+  actions: write
+  contents: read
+jobs:
+  relaunch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch repaired materiality autopilot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run treb-residual-materiality-autopilot.yml --repo timeedmonds-maker/104 --ref agent/treb-final-exact-assembly
