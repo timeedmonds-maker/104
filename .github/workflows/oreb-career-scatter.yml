@@ -19,29 +19,151 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: pip install pandas matplotlib adjustText
-      - name: Inspect production source and build diagnostic
+      - name: Build career OREB scatter
         run: |
           python - <<'PY'
           import gzip, json, pathlib
-          src=pathlib.Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
-          out=pathlib.Path('oreb_scatter_out'); out.mkdir(exist_ok=True)
+          import numpy as np
+          import pandas as pd
+          import matplotlib.pyplot as plt
+          from matplotlib import font_manager
+          from matplotlib.ticker import FuncFormatter
+          from adjustText import adjust_text
+
+          SRC = pathlib.Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
+          OUT = pathlib.Path('oreb_scatter_out'); OUT.mkdir(exist_ok=True)
+          MIN_MINUTES = 5000.0
+
           rows=[]
-          with gzip.open(src,'rt',encoding='utf-8') as f:
-              for i,line in enumerate(f):
-                  if line.strip(): rows.append(json.loads(line))
-                  if len(rows)>=20: break
-          diag={
-              'source':str(src),
-              'sample_count':len(rows),
-              'keys':sorted(rows[0].keys()) if rows else [],
-              'sample':rows[:3]
+          with gzip.open(SRC,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip():
+                      continue
+                  r=json.loads(line)
+                  if r.get('complete') is True and r.get('metric') == 'OReb%':
+                      rows.append({
+                          'player_id': str(r.get('player_id')),
+                          'player': r.get('player'),
+                          'season': r.get('season'),
+                          'team_id': r.get('team_id'),
+                          'team_abbr': r.get('team_abbr'),
+                          'minutes_on': r.get('minutes_on'),
+                          'minutes_off': r.get('minutes_off'),
+                          'on': r.get('on'),
+                          'off': r.get('off_corrected'),
+                          'row_swing': r.get('on_minus_off_corrected'),
+                      })
+          d=pd.DataFrame(rows)
+          if d.empty:
+              raise SystemExit('No OReb% rows found')
+          for c in ['minutes_on','minutes_off','on','off','row_swing']:
+              d[c]=pd.to_numeric(d[c],errors='coerce')
+
+          def most_common_name(s):
+              s=s.dropna().astype(str)
+              return s.mode().iloc[0] if len(s) else ''
+
+          career=[]
+          for pid,g in d.groupby('player_id',sort=False):
+              gon=g[g['on'].notna() & g['minutes_on'].gt(0)]
+              goff=g[g['off'].notna() & g['minutes_off'].gt(0)]
+              min_on=float(g['minutes_on'].fillna(0).sum())
+              min_off=float(g['minutes_off'].fillna(0).sum())
+              on=float(np.average(gon['on'],weights=gon['minutes_on'])) if len(gon) else np.nan
+              off=float(np.average(goff['off'],weights=goff['minutes_off'])) if len(goff) else np.nan
+              career.append({
+                  'player_id':pid,
+                  'player':most_common_name(g['player']),
+                  'minutes_on':min_on,
+                  'minutes_off':min_off,
+                  'oreb_on_pct':on*100.0,
+                  'oreb_off_pct':off*100.0,
+                  'oreb_swing_pp':(on-off)*100.0 if np.isfinite(on) and np.isfinite(off) else np.nan,
+                  'seasons':g['season'].nunique(),
+                  'segments':len(g),
+              })
+          c=pd.DataFrame(career)
+          c=c[(c.minutes_on >= MIN_MINUTES) & c.oreb_on_pct.notna() & c.oreb_swing_pp.notna()].copy()
+          c=c.sort_values('oreb_swing_pp').reset_index(drop=True)
+          if c.empty:
+              raise SystemExit('No eligible players')
+          c.to_csv(OUT/'oreb_career_scatter_data.csv',index=False)
+
+          # Condensed font where available.
+          narrow=pathlib.Path('fonts-local/etc/fonts/TTF/LiberationSansNarrow-Bold.ttf')
+          regular=pathlib.Path('fonts-local/etc/fonts/TTF/LiberationSans-Regular.ttf')
+          bold=pathlib.Path('fonts-local/etc/fonts/TTF/LiberationSans-Bold.ttf')
+          for p in [narrow,regular,bold]:
+              if p.exists(): font_manager.fontManager.addfont(str(p))
+          headline_font=font_manager.FontProperties(fname=str(narrow)) if narrow.exists() else font_manager.FontProperties(weight='bold')
+          body_font=font_manager.FontProperties(fname=str(regular)) if regular.exists() else font_manager.FontProperties()
+          body_bold=font_manager.FontProperties(fname=str(bold)) if bold.exists() else font_manager.FontProperties(weight='bold')
+
+          fig=plt.figure(figsize=(7.5,10),dpi=200,facecolor='#f2f2f2')
+          ax=fig.add_axes([0.13,0.13,0.80,0.69],facecolor='#efefef')
+          ax.scatter(c.oreb_swing_pp,c.oreb_on_pct,s=29,c='#203a56',edgecolors='#a7c1d5',linewidths=0.65,alpha=0.88,zorder=3)
+          ax.axvline(0,color='#777777',linestyle=(0,(3,4)),linewidth=1.0,alpha=0.75,zorder=1)
+          ax.grid(True,axis='both',color='#d4d4d4',linewidth=0.55,alpha=0.65,zorder=0)
+          for spine in ax.spines.values(): spine.set_visible(False)
+          ax.tick_params(axis='both',labelsize=9,length=0,pad=7)
+          for lbl in ax.get_xticklabels()+ax.get_yticklabels(): lbl.set_fontproperties(body_font)
+          ax.xaxis.set_major_formatter(FuncFormatter(lambda x,pos: f'{x:+.1f}'))
+          ax.yaxis.set_major_formatter(FuncFormatter(lambda y,pos: f'{y:.1f}%'))
+          ax.set_xlabel('OREB% SWING  •  ON − OFF (PCT. PTS.)',fontproperties=body_bold,fontsize=10.5,labelpad=12,color='#c62828')
+          ax.set_ylabel('ON-COURT OREB%',fontproperties=body_bold,fontsize=10.5,labelpad=12,color='#222222')
+
+          # Label the strongest/weakest swings and highest on-court rates, de-duplicated.
+          ids=[]
+          for frame in [c.nsmallest(5,'oreb_swing_pp'),c.nlargest(5,'oreb_swing_pp'),c.nlargest(4,'oreb_on_pct')]:
+              for i in frame.index:
+                  if i not in ids: ids.append(i)
+          texts=[]
+          for i in ids:
+              r=c.loc[i]
+              texts.append(ax.text(r.oreb_swing_pp,r.oreb_on_pct,r.player,
+                                   fontproperties=body_bold,fontsize=7.4,color='#202020',zorder=5))
+          adjust_text(texts,ax=ax,expand=(1.16,1.25),force_text=(0.35,0.55),force_points=(0.18,0.25),
+                      arrowprops=dict(arrowstyle='-',color='#7f7f7f',lw=0.65,alpha=0.8),
+                      min_arrow_len=5)
+
+          fig.text(0.065,0.955,'OFFENSIVE REBOUNDING',fontproperties=headline_font,fontsize=29,va='top',color='#202020')
+          fig.text(0.065,0.905,'ON COURT vs. ON−OFF IMPACT',fontproperties=headline_font,fontsize=25,va='top',color='#c62828')
+          fig.text(0.067,0.858,'NBA regular season • 2000-01 to 2025-26 • Minimum 5,000 on-court minutes',
+                   fontproperties=body_font,fontsize=9.5,va='top',color='#555555')
+          fig.text(0.067,0.835,f'{len(c):,} qualifying players • Each dot is one career',
+                   fontproperties=body_font,fontsize=9.0,va='top',color='#777777')
+          fig.text(0.065,0.060,'Career ON and corrected OFF rates are exposure-weighted across retained tenure segments.',
+                   fontproperties=body_font,fontsize=7.2,color='#666666')
+          fig.text(0.065,0.039,'Source: final 89-metric production database • @funakistats',
+                   fontproperties=body_font,fontsize=7.2,color='#666666')
+          fig.text(0.925,0.035,'@funakistats',ha='right',fontproperties=body_bold,fontsize=8.7,color='#333333')
+          fig.text(0.50,0.47,'@funakistats',ha='center',va='center',rotation=24,
+                   fontproperties=headline_font,fontsize=42,color='#b8b8b8',alpha=0.11,zorder=0)
+
+          # Padding based on data ranges.
+          xr=max(c.oreb_swing_pp.max()-c.oreb_swing_pp.min(),1.0)
+          yr=max(c.oreb_on_pct.max()-c.oreb_on_pct.min(),1.0)
+          ax.set_xlim(c.oreb_swing_pp.min()-0.08*xr,c.oreb_swing_pp.max()+0.10*xr)
+          ax.set_ylim(c.oreb_on_pct.min()-0.08*yr,c.oreb_on_pct.max()+0.12*yr)
+
+          fig.savefig(OUT/'oreb_oncourt_vs_swing_5000min.png',dpi=240,facecolor=fig.get_facecolor())
+          fig.savefig(OUT/'oreb_oncourt_vs_swing_5000min.svg',facecolor=fig.get_facecolor())
+          plt.close(fig)
+
+          audit={
+              'status':'PASS','source':str(SRC),'metric':'OReb%','seasons':'2000-01 to 2025-26',
+              'min_minutes_on':MIN_MINUTES,'qualifying_players':int(len(c)),
+              'career_aggregation':'ON weighted by minutes_on; corrected OFF weighted by minutes_off; swing = aggregated ON - aggregated OFF',
+              'x_min':float(c.oreb_swing_pp.min()),'x_max':float(c.oreb_swing_pp.max()),
+              'y_min':float(c.oreb_on_pct.min()),'y_max':float(c.oreb_on_pct.max()),
+              'labelled_players':[str(c.loc[i,'player']) for i in ids]
           }
-          (out/'source_schema_sample.json').write_text(json.dumps(diag,indent=2,default=str))
-          print(json.dumps(diag,indent=2,default=str)[:30000])
+          (OUT/'oreb_scatter_audit.json').write_text(json.dumps(audit,indent=2))
+          print(json.dumps(audit,indent=2))
           PY
-      - name: Upload diagnostic
+      - name: Upload finished scatter
         uses: actions/upload-artifact@v4
         with:
-          name: oreb-career-scatter-diagnostic
+          name: oreb-oncourt-vs-swing-5000min
           path: oreb_scatter_out/
           if-no-files-found: error
