@@ -1,0 +1,276 @@
+name: TREB exact full-core checkpoint resume
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - team_trb_all_players/fullcore_resume_trigger.txt
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-fullcore-exact-resume
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  SOURCE_RUN_ID: '31854913173'
+
+jobs:
+  resume:
+    name: resume exact full-core ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 58
+    strategy:
+      fail-fast: false
+      max-parallel: 11
+      matrix:
+        year: [2000,2004,2005,2007,2008,2011,2012,2018,2020,2022,2024]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact reconstruction dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Download retained checkpoint from failed season job
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-exact-${{ matrix.year }}-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/resume
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.SOURCE_RUN_ID }}
+
+      - name: Download three retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 \
+            --output /tmp/list_data.txt \
+            https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals:
+                  raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            echo "SOURCE_FETCH year=$y prefix=$prefix url=$url"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
+              --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do
+            test -s "/tmp/src/${prefix}_${y}.csv"
+          done
+
+      - name: Resume exact reconstruction from retained checkpoint
+        timeout-minutes: 40
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          (
+            while sleep 120; do
+              echo "RESUME_HEARTBEAT year=$y utc=$(date -u +%FT%TZ)"
+              if [ -f /tmp/out/progress.json ]; then cat /tmp/out/progress.json; fi
+            done
+          ) &
+          hb=$!
+          trap 'kill "$hb" 2>/dev/null || true' EXIT
+          python -u team_trb_all_players/resume_fullcore_treb_fanout.py \
+            --year "$y" \
+            --targets "$TARGETS" \
+            --nba "/tmp/src/nbastats_${y}.csv" \
+            --v3 "/tmp/src/nbastatsv3_${y}.csv" \
+            --pbp "/tmp/src/pbpstats_${y}.csv" \
+            --resume-dir /tmp/resume \
+            --resume-run-id "$SOURCE_RUN_ID" \
+            --output-dir /tmp/out
+          kill "$hb" 2>/dev/null || true
+          trap - EXIT
+
+      - name: Upload resumed season result and checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-fullcore-resume-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+  consolidate:
+    name: merge resumed PASS rows with retained successful base
+    needs: resume
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Download original consolidated PASS base
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-exact-consolidated-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/base
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.SOURCE_RUN_ID }}
+
+      - name: Download resumed season outputs
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: TREB-fullcore-resume-*-${{ github.run_id }}
+          path: /tmp/resumed
+          merge-multiple: false
+
+      - name: Consolidate retained base plus resumed exact PASS rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          import pandas as pd
+
+          keys=['season','team_id','player_id']
+          target_path=Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          targets=[]
+          with gzip.open(target_path,'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip():
+                      continue
+                  r=json.loads(line)
+                  if bool(r.get('full_core_reuse')):
+                      targets.append((str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0')))
+          target=set(targets)
+          assert len(targets)==9647 and len(target)==9647,(len(targets),len(target))
+
+          base_path=Path('/tmp/base/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz')
+          if not base_path.is_file():
+              raise SystemExit(f'MISSING_BASE_PASS_ROWS {base_path}')
+          base=pd.read_csv(base_path,low_memory=False)
+          retry_parts=[]
+          gates=[]
+          for p in sorted(Path('/tmp/resumed').rglob('fresh_fullcore_*.csv')):
+              retry_parts.append(pd.read_csv(p,low_memory=False))
+          for p in sorted(Path('/tmp/resumed').rglob('season_gate.json')):
+              try:
+                  gates.append(json.loads(p.read_text()))
+              except Exception as exc:
+                  gates.append({'file':str(p),'gate_read_error':repr(exc)})
+
+          def norm(d):
+              d=d.copy()
+              d['season']=d.season.astype(str)
+              d['team_id']=pd.to_numeric(d.team_id,errors='raise').astype('int64')
+              d['player_id']=d.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+              return d
+
+          base=norm(base)
+          if retry_parts:
+              retry=norm(pd.concat(retry_parts,ignore_index=True,sort=False))
+          else:
+              retry=pd.DataFrame(columns=base.columns)
+          retry_pass=retry[retry.status.astype(str).eq('PASS')].copy() if len(retry) else retry.copy()
+
+          combined=pd.concat([base,retry_pass],ignore_index=True,sort=False)
+          raw_duplicate_rows=int(combined.duplicated(keys).sum())
+          combined=combined.drop_duplicates(keys,keep='last').copy()
+          combined['_key']=list(zip(combined.season,combined.team_id,combined.player_id))
+          pass_keys=set(combined['_key'])
+          missing=sorted(target-pass_keys)
+          extra=sorted(pass_keys-target)
+          exact_match=(len(combined)==9647 and len(pass_keys)==9647 and not missing and not extra)
+
+          combined=combined.sort_values(keys,kind='stable')
+          combined.drop(columns=['_key'],errors='ignore').to_csv(
+              '/tmp/final/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz',
+              index=False,compression='gzip'
+          )
+          if exact_match:
+              combined.drop(columns=['_key'],errors='ignore').to_csv(
+                  '/tmp/final/FULLCORE_TOTALREBOUNDPCT_EXACT_9647.csv.gz',
+                  index=False,compression='gzip'
+              )
+          if missing:
+              pd.DataFrame(missing,columns=keys).to_csv('/tmp/final/MISSING_FULLCORE_KEYS.csv',index=False)
+
+          retry_fail=retry[~retry.status.astype(str).eq('PASS')].copy() if len(retry) else retry
+          if len(retry_fail):
+              retry_fail.to_csv('/tmp/final/RESUME_FAILURE_ROWS.csv',index=False)
+
+          summary={
+              'status':'PASS' if exact_match else 'INCOMPLETE',
+              'required_full_core_keys':9647,
+              'source_run_id':31854913173,
+              'base_pass_rows':int(len(base)),
+              'resume_result_files':int(len(retry_parts)),
+              'resume_rows_returned':int(len(retry)),
+              'resume_pass_rows':int(len(retry_pass)),
+              'merged_pass_rows':int(len(combined)),
+              'unique_pass_keys':int(len(pass_keys)),
+              'missing_keys':int(len(missing)),
+              'extra_keys':int(len(extra)),
+              'raw_duplicate_rows_before_prefer_resume':raw_duplicate_rows,
+              'season_gates':gates,
+              'rounded_percentage_backsolve_used':False,
+              'opponent_rebound_inference_used':False,
+              'whole_team_subtraction_across_partial_tenure_used':False,
+              'full_core_only':True,
+              'next_retry_scope':'remaining_missing_keys_and_failed_games_only',
+          }
+          Path('/tmp/final/RESUME_GATE.json').write_text(json.dumps(summary,indent=2)+'\n')
+          Path('/tmp/final/README.txt').write_text(
+              'Checkpoint-resumed exact TotalReboundPct recovery. Successful rows from the original fanout are retained; '
+              'only failed timeout seasons are resumed from their saved deterministic processed prefixes.\n'
+              '2025-26 is intentionally excluded because its failure is missing source discovery, not timeout.\n'
+          )
+          print(json.dumps({
+              k:summary[k] for k in [
+                  'status','base_pass_rows','resume_result_files','resume_rows_returned',
+                  'resume_pass_rows','merged_pass_rows','missing_keys'
+              ]
+          },indent=2))
+          PY
+
+      - name: Upload merged checkpoint-resume recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-fullcore-resume-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
