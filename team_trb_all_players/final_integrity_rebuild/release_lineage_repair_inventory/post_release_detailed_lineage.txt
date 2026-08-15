@@ -1,0 +1,301 @@
+COMMIT	04c484548ed3232a09a3077be196170cc0ce2e8b	2026-08-14T19:56:22+12:00	Audit canonical TREB career population
+
+A	.github/workflows/treb-canonical-career-population-audit.yml
+COMMIT	c27bc0fed7ff8ab22e4f9768b61321b977ecf5ba	2026-08-14T21:20:34+12:00	Launch runner materialization of 26 exact historical recoveries
+
+A	.github/workflows/treb_strict40_exact26_materialize.yml
+COMMIT	4d8fdb0297afd3616b36f9a783075e6add239977	2026-08-14T09:20:48Z	Persist 26 exact historical exclusion recoveries
+
+A	team_trb_all_players/impact_database/final_exact_exclusion_recovery/MATERIALIZATION_QA.json
+A	team_trb_all_players/impact_database/final_exact_exclusion_recovery/exact_26_player_game_treb_on.csv
+A	team_trb_all_players/impact_database/final_exact_exclusion_recovery/exact_26_source_manifest.json
+A	team_trb_all_players/impact_database/final_exact_exclusion_recovery/exact_26_team_game_treb.csv
+A	team_trb_all_players/impact_database/final_exact_exclusion_recovery/remaining_14_unresolved.json
+COMMIT	8af4da8d01fb061eb832e19b8a4b400cc14bb4d9	2026-08-14T21:34:36+12:00	Launch strict final-14 evidence recovery
+
+A	.github/workflows/treb-final14-evidence-recovery.yml
+COMMIT	c39632880e762aad2c55b03e6abfc85b219dc7d1	2026-08-14T09:34:51Z	Persist strict final-14 evidence inventory
+
+A	team_trb_all_players/impact_database/final14_evidence_recovery/FINAL14_EVIDENCE_INVENTORY.json
+COMMIT	945d3a4cb1a1771b0a890cbad5c69fb093ddbcd5	2026-08-14T21:56:07+12:00	Launch final-14 source triage
+
+A	.github/workflows/treb-final14-source-triage.yml
+COMMIT	02ab190669509eb9316251c879b8ac4a3b20bb8e	2026-08-14T09:58:17Z	Persist final-14 source triage
+
+A	team_trb_all_players/impact_database/final14_source_triage/FINAL14_SOURCE_TRIAGE.json
+COMMIT	0ac3450c16335c43f6a383f5cf44e43cfbb82890	2026-08-14T22:13:28+12:00	Launch retained TREB core source audit
+
+A	.github/workflows/treb-retained-core-source-audit.yml
+COMMIT	b2db19031173a1f8ba25925f214fb11bee7d155c	2026-08-14T22:15:42+12:00	Launch strict exact reconstruction for full-source final-14 games
+
+A	.github/workflows/treb-final14-exact-reconstruct.yml
+COMMIT	cba03c226adbdf7c7f734ad1d8dc6033bc0ae60d	2026-08-14T10:17:56Z	Persist strict final-14 exact reconstruction diagnostic
+
+A	team_trb_all_players/impact_database/final14_exact_reconstruction/QA.json
+A	team_trb_all_players/impact_database/final14_exact_reconstruction/failures.json
+A	team_trb_all_players/impact_database/final14_exact_reconstruction/game_audit.json
+A	team_trb_all_players/impact_database/final14_exact_reconstruction/player_game_treb_on.csv.gz
+A	team_trb_all_players/impact_database/final14_exact_reconstruction/team_game_treb.csv.gz
+COMMIT	a85b36fd5aa2edfad94bd1529c8ec985e560bbda	2026-08-14T22:29:52+12:00	Launch corrected full TREB overlay release
+
+A	.github/workflows/treb-corrected-full-overlay-release.yml
+COMMIT	6353fe12cf81de0e4f00f861670e63d25334e4a8	2026-08-14T22:35:55+12:00	Add dynamic rebound metric resolver for corrected release
+
+A	team_trb_all_players/finalize_treb_full_89_database_v2.py
+COMMIT	f4b322401d11d6317b9f96f4aaa6e7ce9a891b71	2026-08-14T22:36:46+12:00	Launch corrected full TREB overlay release v2
+
+A	.github/workflows/treb-corrected-full-overlay-release-v2.yml
+COMMIT	42d00d75d80251d35d147c2e3dd3d13857519ce2	2026-08-14T22:37:53+12:00	Trigger corrected full TREB overlay release v2
+
+M	.github/workflows/treb-corrected-full-overlay-release-v2.yml
+COMMIT	ae30b650b064e8de52dfd7b18d83e9c74d1a7fcd	2026-08-14T22:43:29+12:00	Audit raw rebound counts for full TREB complement
+
+A	.github/workflows/treb-raw-rebound-count-coverage-audit.yml
+COMMIT	39b57cab3a374a88ed1952c1905c80cbc8983c34	2026-08-14T22:46:51+12:00	Add retained ON/OFF rebound accumulator audit
+
+A	team_trb_all_players/audit_retained_onoff_rebound_accumulators.py
+COMMIT	c7f53dd6e5f20a2016f80922fa08b380ffec42f7	2026-08-14T22:47:05+12:00	Launch retained ON/OFF rebound accumulator audit
+
+A	.github/workflows/treb-retained-onoff-rebound-accumulator-audit.yml
+COMMIT	fef0becbac93d4d2bb991e49d2e4ae093d5e3ae3	2026-08-14T22:47:26+12:00	Trigger retained ON/OFF rebound accumulator audit
+
+M	.github/workflows/treb-retained-onoff-rebound-accumulator-audit.yml
+COMMIT	e0cb047d66216c9ea6501cd05f95528f690ad4ba	2026-08-14T22:56:01+12:00	Add TREB ON/OFF subtraction proof audit
+
+A	team_trb_all_players/audit_treb_onoff_subtraction_proof.py
+COMMIT	2484dcd046c280c76995dff1fa27d0748b3d1909	2026-08-14T22:56:12+12:00	Launch TREB ON/OFF subtraction proof
+
+A	.github/workflows/treb-onoff-subtraction-proof.yml
+COMMIT	90f0a98d2dba241a95463a5d07752dd27abefe3b	2026-08-14T23:00:03+12:00	Add direct TREB totals semantics proof v2
+
+A	team_trb_all_players/audit_treb_direct_totals_proof_v2.py
+COMMIT	64a3b021368c3c042033da4cb87ed8842d9b1b7f	2026-08-14T23:00:14+12:00	Launch direct TREB totals proof v2
+
+A	.github/workflows/treb-direct-totals-proof-v2.yml
+COMMIT	5f8d22724d0d47aa8d6b9f2065c8a029c6bc37b6	2026-08-14T23:02:15+12:00	Fix opponent rebound merge in direct totals proof
+
+A	.github/workflows/treb-direct-totals-proof-v3.yml
+COMMIT	cf43b160a3930657fb2c6d4e6312c8b11cfbd0cd	2026-08-14T23:02:38+12:00	Trigger direct TREB totals proof v3
+
+M	.github/workflows/treb-direct-totals-proof-v3.yml
+COMMIT	e4e7992863a8187178374d73352acf6b8fade8c9	2026-08-14T23:04:54+12:00	Fix opponent rebound merge in direct totals proof
+
+M	team_trb_all_players/audit_treb_direct_totals_proof_v2.py
+COMMIT	ce13fc45c1cbe4d5eb656203970b748fc0092ff3	2026-08-14T23:05:06+12:00	Launch clean direct TREB totals proof v4
+
+A	.github/workflows/treb-direct-totals-proof-v4.yml
+COMMIT	c1191a82090c6c904267239a3daaed2491ed2cfd	2026-08-14T23:05:28+12:00	Trigger clean direct TREB totals proof v4
+
+M	.github/workflows/treb-direct-totals-proof-v4.yml
+COMMIT	410636ccda3e89ec14e0e924143f175a0846c9bf	2026-08-14T23:09:31+12:00	Add retained core raw rebound audit
+
+A	.github/workflows/treb-core-checkpoint-raw-rebound-audit.yml
+COMMIT	c25ea8553c8b61265f614ef53901e2ad11515a28	2026-08-14T23:09:54+12:00	Trigger retained core raw rebound audit
+
+M	.github/workflows/treb-core-checkpoint-raw-rebound-audit.yml
+COMMIT	a38debf57ba1dc2b5c1072882312fb52f85d926d	2026-08-14T23:25:03+12:00	Launch targeted evidence audit for final 9 historical games
+
+A	.github/workflows/treb-final9-targeted-evidence.yml
+COMMIT	3dab5e5192bc52f81fe176e4a874c57b44940b05	2026-08-14T11:26:27Z	Persist targeted evidence for final 9 historical games
+
+A	team_trb_all_players/impact_database/final9_targeted_evidence/FAILED6_PERIOD_EVIDENCE.json
+A	team_trb_all_players/impact_database/final9_targeted_evidence/QA.json
+A	team_trb_all_players/impact_database/final9_targeted_evidence/SOURCE_GAP_2019_EVIDENCE.json
+COMMIT	764d589af5fa392de2b5eadb8818f8ee969ef3ee	2026-08-15T00:18:00+12:00	Launch 2019 v3-only source-gap canary
+
+A	.github/workflows/treb-2019-v3-only-gap-canary.yml
+COMMIT	690aeac9e2b34c4ee55f66c8474066322c7482d8	2026-08-15T00:54:46+12:00	Fix 2019 V3 canary JSON serialization
+
+M	.github/workflows/treb-2019-v3-only-gap-canary.yml
+COMMIT	c85743da0bedc02e479bba28d33eba3c9b2dfa83	2026-08-14T12:55:18Z	Persist 2019 v3-only source-gap canary
+
+A	team_trb_all_players/impact_database/2019_v3_only_gap_canary/QA.json
+COMMIT	8483858891608d06d008220ca44690cabad0103e	2026-08-15T01:19:18+12:00	Launch wide 2019 source-gap inventory
+
+A	.github/workflows/treb-2019-source-gap-wide-inventory.yml
+COMMIT	08607b15716ccac42ebe71df1cd8485c27353b3b	2026-08-14T13:20:24Z	Persist wide 2019 source-gap inventory
+
+A	team_trb_all_players/impact_database/2019_source_gap_wide_inventory/INVENTORY.json
+COMMIT	65e0cc3c1d6e61bee1e3c6d2e6ac9a387f243039	2026-08-15T01:55:45+12:00	Replace invalid 2019 V3 counter proxy with rebound identity controls
+
+M	.github/workflows/treb-2019-v3-only-gap-canary.yml
+COMMIT	12d919519f1c6ffb3b3538549ed878b5a6941b29	2026-08-15T02:17:54+12:00	Launch 2019 V3+shotdetail bridge control canary
+
+A	.github/workflows/treb-2019-v3-shotdetail-bridge-canary.yml
+COMMIT	a06bd3e4b122d980f3bfd92eee60aa88b5a4a550	2026-08-15T02:50:14+12:00	Fix NaN identity handling in 2019 V3 canary
+
+M	.github/workflows/treb-2019-v3-only-gap-canary.yml
+COMMIT	c0522c1f0e0eb116ec5f8629453a99b2f5baa740	2026-08-14T14:50:48Z	Persist 2019 V3 rebound-identity control audit
+
+M	team_trb_all_players/impact_database/2019_v3_only_gap_canary/QA.json
+COMMIT	747ed390e7a2c99b955444000203d6cd6848ec4f	2026-08-15T03:20:38+12:00	Fix 2019 bridge canary neutral team handling
+
+M	.github/workflows/treb-2019-v3-shotdetail-bridge-canary.yml
+COMMIT	86574ec1d169c42d315219386fe6232e58770785	2026-08-14T15:21:14Z	Persist corrected 2019 V3+shotdetail structural canary
+
+A	team_trb_all_players/impact_database/2019_v3_shotdetail_bridge/STRUCTURAL_CANARY.json
+COMMIT	ab583e26a8675922719751827630b0668b62ef69	2026-08-15T03:56:22+12:00	Add 2019 V3 clock normalization control canary
+
+A	.github/workflows/treb-2019-v3-clock-normalization-canary.yml
+COMMIT	158954e0317c41039cec4b7b4a99396da4d0754d	2026-08-14T15:56:52Z	Persist 2019 V3 clock normalization audit
+
+A	team_trb_all_players/impact_database/2019_v3_clock_normalization_canary/QA.json
+COMMIT	18588c14841115e5923e88e6602864ec7df9e608	2026-08-15T05:05:32+12:00	Add repo-wide historical direct TREB source scan
+
+A	.github/workflows/treb-repo-wide-direct-treb-source-scan.yml
+COMMIT	8a19595e1fc24b9bd58553838de767a3c66cc486	2026-08-15T05:06:03+12:00	Trigger repo-wide direct TREB source scan
+
+M	.github/workflows/treb-repo-wide-direct-treb-source-scan.yml
+COMMIT	8f198fac3620b95875874382cb8e928dbd87c353	2026-08-15T05:09:35+12:00	Fix historical TREB source scanner exception handling
+
+M	.github/workflows/treb-repo-wide-direct-treb-source-scan.yml
+COMMIT	28da5ffd1cb2bb7480db97c6072ad8601e44c52a	2026-08-15T05:10:04+12:00	Trigger fixed historical TREB source scan
+
+M	.github/workflows/treb-repo-wide-direct-treb-source-scan.yml
+COMMIT	95765366c37d74795431582ef0bd9cf4bcd0d900	2026-08-15T06:09:22+12:00	Add TotalReboundPct exact validation
+
+A	.github/workflows/treb-totalreboundpct-exact-validation.yml
+COMMIT	c7eea18643935e6e2e39c6fb38792a8c568c8fd3	2026-08-15T06:34:59+12:00	Probe opponent rebound stat name variants
+
+A	.github/workflows/treb-opponent-rebound-stat-name-probe.yml
+COMMIT	d3ab9062c85610433825726db77017be90c28699	2026-08-15T07:02:50+12:00	Launch exact TREB production assembly
+
+A	.github/workflows/treb-final-exact-production-assembly.yml
+COMMIT	e4a94c968e9871a6c75fc67ef1e337dbf355d1fa	2026-08-15T07:17:17+12:00	Diagnose exact production assembler inputs
+
+A	.github/workflows/treb-production-assembler-input-discovery.yml
+COMMIT	4fddb74b9461aaffb235f3bd4d78402d80b87f19	2026-08-14T19:32:46Z	Persist exact production assembler input discovery
+
+A	team_trb_all_players/impact_database/final_exact_production_discovery/ASSEMBLER_INPUT_DISCOVERY.json
+COMMIT	c7f4571b09539d52adcbe07bf8ac566db789ab99	2026-08-15T07:57:12+12:00	Launch targeted final release assembler repair
+
+A	.github/workflows/treb-final-release-assembler-repair.yml
+COMMIT	2c221ea3f10d2dbe556b48d6ada4870faeb04a47	2026-08-14T19:59:08Z	Persist final release assembler repair inventory
+
+A	team_trb_all_players/impact_database/final_release_repair/FINAL_RELEASE_REPAIR.json
+A	team_trb_all_players/impact_database/final_release_repair/candidate_00_help.txt
+A	team_trb_all_players/impact_database/final_release_repair/candidate_01_help.txt
+A	team_trb_all_players/impact_database/final_release_repair/candidate_02_help.txt
+A	team_trb_all_players/impact_database/final_release_repair/candidate_03_help.txt
+A	team_trb_all_players/impact_database/final_release_repair/candidate_04_help.txt
+A	team_trb_all_players/impact_database/final_release_repair/candidate_05_help.txt
+A	team_trb_all_players/impact_database/final_release_repair/candidate_07_help.txt
+A	team_trb_all_players/impact_database/final_release_repair/candidate_08_help.txt
+A	team_trb_all_players/impact_database/final_release_repair/release_attempts.json
+A	team_trb_all_players/impact_database/final_release_repair/release_candidates.json
+COMMIT	e8796b8525c776d8553312b258559ea6575f030c	2026-08-15T08:05:18+12:00	Launch materiality-aware final TREB production release
+
+A	.github/workflows/treb-final-materiality-aware-production.yml
+COMMIT	35a136ce228b6113e800aef61718b2ec01555f07	2026-08-15T08:08:37+12:00	Move Adams regression to final canonical TREB gate
+
+M	.github/workflows/treb-final-materiality-aware-production.yml
+COMMIT	22f4fca4597eeaca81a6dbf9c57bd0c84c38f89b	2026-08-15T08:35:54+12:00	Launch targeted TREB 23-key reconciliation diagnostic
+
+A	.github/workflows/treb-23-key-reconciliation.yml
+COMMIT	73d0b40df5cff66e4892023b68529b0698b99b37	2026-08-14T20:36:20Z	Persist TREB 23-key reconciliation diagnostic
+
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_reconciliation/README.md
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_reconciliation/missing_23_keys.csv
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_reconciliation/reconciliation_report.json
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_reconciliation/stage2_extra_76_keys.csv
+COMMIT	f16a1e1da32bfb07400ce562a1ae831b3a5a69c3	2026-08-15T08:40:55+12:00	Launch TREB 23-key repairability audit
+
+A	.github/workflows/treb-23-key-repairability.yml
+COMMIT	042efb4de8bafc1b77c0bd411967dbf397c44d12	2026-08-14T20:41:17Z	Persist TREB 23-key repairability audit
+
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_repairability/README.md
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_repairability/repairability_23_keys.csv
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_repairability/repairability_report.json
+COMMIT	95311ee45661b31f4bf061aee82bedaca9c818bf	2026-08-15T08:47:04+12:00	Launch targeted TREB 23-key canonical repair
+
+A	.github/workflows/treb-targeted-23-key-repair.yml
+COMMIT	e48236ae472d31c4116b29ff2ce3ae8d613a8998	2026-08-14T20:50:19Z	Persist targeted TREB 23-key canonical repair
+
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_repair/README.md
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_repair/TARGETED_23_KEY_REPAIR_REPORT.json
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_repair/targeted_23_key_diagnostics.csv
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_repair/targeted_23_key_metric_overlay.jsonl.gz
+COMMIT	183369da0902afac6158834af6af2d4cd82e0a53	2026-08-15T08:53:11+12:00	Launch targeted TREB 23-key runner repair
+
+M	.github/workflows/treb-targeted-23-key-repair.yml
+COMMIT	415693feca092bc00febd0ee87c42ee869122528	2026-08-14T20:56:05Z	Persist targeted TREB 23-key repair results
+
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_targeted_repair/repair_diagnostic.json
+COMMIT	488dbaba0883c3e55055584081954c3c23cf521e	2026-08-15T09:00:00+12:00	Launch targeted TREB 10-key runner repair
+
+A	.github/workflows/treb-targeted-10-key-repair.yml
+COMMIT	68d02157e1575a74b4390ce5402b1f5c252ec74b	2026-08-14T21:01:34Z	Persist targeted TREB 10-key repair results
+
+A	team_trb_all_players/final_integrity_rebuild/canonical_10_key_targeted_repair/TARGETED_10_REPAIR_REPORT.json
+A	team_trb_all_players/final_integrity_rebuild/canonical_10_key_targeted_repair/diagnostics.csv
+A	team_trb_all_players/final_integrity_rebuild/canonical_10_key_targeted_repair/targeted_10_metric_overlay.jsonl.gz
+COMMIT	8ab2099a755ad8a3091ae082fe3a13a0b204782e	2026-08-15T09:05:36+12:00	Launch combined TREB 23-key canonical overlay gate
+
+A	.github/workflows/treb-combined-23-key-overlay.yml
+COMMIT	40056d4b47c2b522ba63a3eaf91549ecb2f9f9dc	2026-08-14T21:07:32Z	Persist combined TREB 23-key canonical overlay gate
+
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/COMBINED_23_CANONICAL_GATE.json
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/README.md
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/solved_13_rebuild_diagnostics.json
+A	team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/targeted_23_metric_overlay.jsonl.gz
+COMMIT	3f1c9602067448d7d06d9a2b1616831ac1c4dd7f	2026-08-15T09:13:14+12:00	Wire canonical 23-key overlay into final TREB production
+
+M	.github/workflows/treb-final-materiality-aware-production.yml
+COMMIT	446631b72c65456388a8b95888ac648e863ec671	2026-08-15T09:41:33+12:00	Launch fast direct Stage2 TREB production
+
+A	.github/workflows/treb-final-fast-production.yml
+COMMIT	de6595c902101df711924d02340cc74c2852aa5e	2026-08-15T09:59:57+12:00	Add direct full-core TREB collector
+
+A	team_trb_all_players/collect_direct_fullcore_treb.py
+COMMIT	05ec6e40f5a67986b0e0721c3d1fe25fe54be17f	2026-08-15T10:01:02+12:00	Add complete 14524-key TREB release finalizer
+
+A	team_trb_all_players/finalize_complete_treb_release.py
+COMMIT	7717401496b15aa62f169dad0782ea53357ba0bc	2026-08-15T10:02:05+12:00	Launch direct full-core TREB production release
+
+A	.github/workflows/treb-final-direct-complement-production.yml
+COMMIT	02a240c3ca571c8a0fbaba25525a9cf2c6e658bb	2026-08-15T10:17:13+12:00	Diagnose Stage2 rebound metric names
+
+A	.github/workflows/treb-stage2-metric-name-diagnostic.yml
+COMMIT	5222bc03140cec119693bc7df3b7c18e20690038	2026-08-14T22:17:30Z	Persist Stage2 metric-name diagnostic [skip ci]
+
+A	team_trb_all_players/final_integrity_rebuild/stage2_metric_name_diagnostic/STAGE2_METRIC_NAMES.json
+COMMIT	6d1cbb4b2e6f582dcc1a0ab36fc388da3a4e97be	2026-08-15T10:22:55+12:00	Bound direct TREB transport and checkpoint each team
+
+M	team_trb_all_players/collect_direct_fullcore_treb.py
+COMMIT	4e6f952315b7edb6fc74d5abf30182786cd59adb	2026-08-15T10:36:11+12:00	Parallelize bounded direct TREB team collection
+
+M	team_trb_all_players/collect_direct_fullcore_treb.py
+COMMIT	9094bfe3ad198354a0ef1f40a998bef188d98eca	2026-08-15T10:57:15+12:00	Add bounded NBA Stats direct TREB transport canary
+
+A	.github/workflows/treb-direct-transport-canary.yml
+COMMIT	baba56c96533c79dc235a170be3f85ba17076f54	2026-08-14T22:58:30Z	Persist direct TREB transport canary [skip ci]
+
+A	team_trb_all_players/final_integrity_rebuild/direct_transport_canary/DIRECT_TRANSPORT_CANARY.json
+COMMIT	69b6edc992e92978235f1803cd63f555182870fa	2026-08-15T11:01:59+12:00	TREB: recover retained full-core direct REB_PCT in runner
+
+A	.github/workflows/treb-retained-fullcore-recovery.yml
+COMMIT	7da35efd9869c8ed6176c64645ed646d9f8ab794	2026-08-15T11:07:53+12:00	TREB: rerun retained full-core recovery with pandas
+
+A	.github/workflows/treb-retained-fullcore-recovery-fixed.yml
+COMMIT	3567d8ef2c163d786e6ccb0df101d416983b9f07	2026-08-15T11:58:13+12:00	TREB: focused checkpointed retained full-core recovery
+
+A	.github/workflows/treb-retained-fullcore-recovery-v2.yml
+COMMIT	a83a141319f7ba78a14bf5a22dbfdbd6088d8c4d	2026-08-14T23:58:35Z	TREB recovery v2 checkpoint: 0/7109 files
+
+A	team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery_v2/candidate_inventory.json
+A	team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery_v2/exact_candidates.json
+A	team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery_v2/progress.json
+COMMIT	c0bd5dff4160bcd5b96b3bb378d7d5122a5b59f2	2026-08-14T23:59:59Z	TREB recovery v2 checkpoint: 7109/7109 files
+
+M	team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery_v2/candidate_inventory.json
+M	team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery_v2/progress.json
+A	team_trb_all_players/final_integrity_rebuild/retained_fullcore_recovery_v2/report.md
+COMMIT	c5007fe48e7bc6865e12d1e3240bbd890b2c1f97	2026-08-15T12:10:46+12:00	TREB: launch monitored release-lineage repair inventory
+
+A	.github/workflows/treb-release-lineage-repair-inventory.yml
+COMMIT	689bcdd52a213f98b9eb53f97e6b2783ec3cfde9	2026-08-15T00:11:02Z	TREB release-lineage checkpoint: base-release-inventoried
+
+A	team_trb_all_players/final_integrity_rebuild/release_lineage_repair_inventory/base__TREB_final_database_2000-01_to_2025-26.zip.sha256
+A	team_trb_all_players/final_integrity_rebuild/release_lineage_repair_inventory/base_artifact_download.sha256
+A	team_trb_all_players/final_integrity_rebuild/release_lineage_repair_inventory/base_release_inventory.txt
+A	team_trb_all_players/final_integrity_rebuild/release_lineage_repair_inventory/progress.txt
