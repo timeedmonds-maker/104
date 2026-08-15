@@ -1,0 +1,35 @@
+name: Native 89 metric final release
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - scripts/build_native89_release.py
+      - .github/workflows/native89-release.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+      - name: Overlay release builder from production head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/scripts/build_native89_release.py?ref=agent%2Ftreb-final-exact-assembly" \
+            -o /tmp/build_native89_release.py
+      - name: Build and fail-closed QA native 89 metric release
+        run: python /tmp/build_native89_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NBA-native-89-metrics-final-${{ github.run_id }}
+          path: |
+            NBA_native_89_metrics_2000-01_to_2025-26.zip
+            NBA_native_89_metrics_2000-01_to_2025-26.zip.sha256
+          if-no-files-found: error
+          retention-days: 90
