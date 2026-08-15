@@ -13,11 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+          ref: agent/treb-final-exact-assembly
       - name: Inspect schemas and representative rows
         run: |
           python - <<'PY'
-          import gzip,json,csv,pathlib
+          import gzip,json,csv,pathlib,os
           files={
             'corrected':'team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz',
             'targets':'team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz',
@@ -25,13 +25,15 @@ jobs:
             'ledger':'team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz',
           }
           out={}
+          for k,p in files.items(): out[k+'_exists']=os.path.exists(p)
           with gzip.open(files['corrected'],'rt') as f:
-            samples=[]; fields=set(); wanted={'OReb%','Pts per 100 Possessions','Pts per 100 Possessions - Defense'}
+            samples=[]; fields=set(); wanted={'OReb%','Pts per 100 Possessions','Pts per 100 Possessions - Defense'}; seen={x:0 for x in wanted}
             for line in f:
               if not line.strip(): continue
               r=json.loads(line); fields.update(r.keys())
-              if r.get('metric') in wanted and len([x for x in samples if x.get('metric')==r.get('metric')])<2: samples.append(r)
-              if len(samples)>=6: break
+              m=r.get('metric')
+              if m in wanted and seen[m]<2: samples.append(r); seen[m]+=1
+              if all(v>=2 for v in seen.values()): break
             out['corrected_fields']=sorted(fields); out['corrected_samples']=samples
           with gzip.open(files['targets'],'rt') as f:
             rows=[]; fields=set()
