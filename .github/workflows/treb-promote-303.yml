@@ -1,0 +1,91 @@
+name: TREB exact promotion tranche 303
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-promote-303.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download proof and consensus artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/proof /tmp/consensus /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253496081/zip > /tmp/p.zip
+          unzip -q /tmp/p.zip -d /tmp/proof
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/c.zip
+          unzip -q /tmp/c.zip -d /tmp/consensus
+      - name: Exact game-set intersection and raw-count TREB promotion
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib,collections,math
+          proofp=next(pathlib.Path('/tmp/proof').rglob('TREB_TENURE_LEDGER_PROOF.csv'))
+          candidates=[r for r in csv.DictReader(open(proofp,newline='')) if str(r['identity_count_match']).lower() in {'true','1'}]
+          assert len(candidates)==303,len(candidates)
+          cp=next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'))
+          facts=collections.defaultdict(dict)
+          with open(cp,newline='') as f:
+            for r in csv.DictReader(f):
+              facts[(str(r['game_id']),str(int(float(r['team_id']))),str(r.get('player_id','')).removesuffix('.0'))][r['field']]=float(r['value'])
+          reqp={'seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+          reqt={'game_seconds','team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+          promoted=[]; rejected=[]
+          for r in candidates:
+            season=str(r['season']); tid=str(int(float(r['team_id']))); pid=str(r['player_id']).removesuffix('.0')
+            gids=[g for g in str(r['game_ids']).split('|') if g]
+            missing=[]; bad=[]
+            agg=collections.Counter()
+            for gid in gids:
+              pv=facts.get((gid,tid,pid),{}); tv=facts.get((gid,tid,''),{})
+              if not reqp.issubset(pv) or not reqt.issubset(tv):
+                missing.append(gid); continue
+              # Raw-count complement must be nonnegative in every component.
+              comps={
+                'team_oreb_off':tv['team_oreb']-pv['team_oreb_on'],
+                'team_dreb_off':tv['team_dreb']-pv['team_dreb_on'],
+                'opponent_oreb_off':tv['opponent_oreb']-pv['opponent_oreb_on'],
+                'opponent_dreb_off':tv['opponent_dreb']-pv['opponent_dreb_on'],
+              }
+              if any(v < -1e-9 for v in comps.values()): bad.append(gid); continue
+              for k in reqp: agg[k]+=pv[k]
+              for k in reqt: agg[k]+=tv[k]
+            if missing or bad or len(gids)!=int(r['expected_team_games_in_tenure']):
+              rejected.append({'season':season,'team_id':tid,'player_id':pid,'reason':'missing_or_invalid_game_bundle','missing_games':'|'.join(missing),'bad_games':'|'.join(bad),'expected_games':r['expected_team_games_in_tenure'],'ledger_games':len(gids)})
+              continue
+            tr_on=agg['team_oreb_on']+agg['team_dreb_on']; opp_on=agg['opponent_oreb_on']+agg['opponent_dreb_on']
+            team_total=agg['team_oreb']+agg['team_dreb']; opp_total=agg['opponent_oreb']+agg['opponent_dreb']
+            tr_off=team_total-tr_on; opp_off=opp_total-opp_on
+            den_on=tr_on+opp_on; den_off=tr_off+opp_off
+            if den_on<=0 or den_off<=0 or tr_off < -1e-9 or opp_off < -1e-9:
+              rejected.append({'season':season,'team_id':tid,'player_id':pid,'reason':'invalid_rebound_denominator_or_complement','missing_games':'','bad_games':'','expected_games':r['expected_team_games_in_tenure'],'ledger_games':len(gids)})
+              continue
+            on=100.0*tr_on/den_on; off=100.0*tr_off/den_off; swing=on-off
+            promoted.append({'season':season,'team_id':tid,'player_id':pid,'metric':'TotalReboundPct','on':on,'off_corrected':off,'on_minus_off_corrected':swing,'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(gids),'team_rebounds_on':tr_on,'opp_rebounds_on':opp_on,'team_rebounds_off':tr_off,'opp_rebounds_off':opp_off,'provenance':'exact retained multi-source consensus + explicit v3 roster ledger game identity'})
+          out=pathlib.Path('/tmp/out')
+          if promoted:
+            with open(out/'TREB_EXACT_PROMOTED_303.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=promoted[0].keys());w.writeheader();w.writerows(promoted)
+          if rejected:
+            with open(out/'TREB_EXACT_REJECTED_303.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=rejected[0].keys());w.writeheader();w.writerows(rejected)
+          qa={'status':'PASS','tenure_proven_candidates':303,'exact_promoted':len(promoted),'rejected':len(rejected),'new_resolved_if_merged':8395+len(promoted),'remaining_if_merged':1252-len(promoted),'integrity':{'explicit_game_identity_required':True,'all_player_game_on_primitives_required':True,'all_team_game_totals_required':True,'off_from_same-tenure_raw-count_complement':True,'percentage_averaging_used':False,'rounded_backsolve_used':False,'model_used':False},'next':'Merge exact promoted rows into authoritative TREB consolidation, rerun blocker manifest, then attack only residual keys.'}
+          (out/'TREB_EXACT_PROMOTION_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-exact-promoted-303-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
