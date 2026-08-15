@@ -24,57 +24,21 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install --disable-pip-version-check pandas requests
-
-      - name: Phase A - seed authoritative blockers
+      - name: Assemble retained evidence and link blocker keys to games
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/game_evidence/artifacts /tmp/game_evidence/out
           python - <<'PY'
-          import json, os, io, zipfile, urllib.request, urllib.error
+          import json, os, io, zipfile, urllib.request, urllib.error, re
           from pathlib import Path
+          from datetime import datetime, timezone
           import pandas as pd
           repo='timeedmonds-maker/104'; tok=os.environ['GH_TOKEN']; base=f'https://api.github.com/repos/{repo}'
           hdr={'Authorization':f'Bearer {tok}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'treb-game-evidence'}
-          aid=9249887970
-          class NoRedirect(urllib.request.HTTPRedirectHandler):
-              def redirect_request(self, req, fp, code, msg, headers, newurl): return None
-          opener=urllib.request.build_opener(NoRedirect)
-          def artifact_bytes(aid):
-              req=urllib.request.Request(base+f'/actions/artifacts/{aid}/zip',headers=hdr)
-              try:
-                  with opener.open(req,timeout=60) as r:return r.read()
-              except urllib.error.HTTPError as e:
-                  if e.code not in (301,302,303,307,308): raise
-                  signed=e.headers.get('Location')
-                  if not signed: raise RuntimeError('missing artifact redirect')
-                  with urllib.request.urlopen(urllib.request.Request(signed,headers={'User-Agent':'treb-game-evidence'}),timeout=180) as r:return r.read()
-          b=artifact_bytes(aid); z=zipfile.ZipFile(io.BytesIO(b)); d=Path('/tmp/game_evidence/artifacts')/str(aid); d.mkdir(parents=True,exist_ok=True); z.extractall(d)
-          p=d/'AUTONOMOUS_BLOCKER_MANIFEST.csv'
-          if not p.exists(): raise SystemExit('authoritative blocker manifest missing')
-          block=pd.read_csv(p,dtype=str,low_memory=False)
-          cols={str(c).strip().lower():c for c in block.columns}
-          if not {'season','team_id','player_id'}.issubset(cols): raise SystemExit(f'unexpected blocker schema {list(block.columns)}')
-          block=block[[cols['season'],cols['team_id'],cols['player_id']]].drop_duplicates(); block.columns=['season','team_id','player_id']
-          if len(block)!=1252: raise SystemExit(f'fail closed: blocker count {len(block)} != 1252')
-          block.to_csv('/tmp/game_evidence/out/BLOCKER_KEYS.csv',index=False)
-          progress={'phase':'A_SEEDED','blocker_keys':1252,'artifacts_downloaded':1,'artifacts_failed':0,'files_scanned':0,'game_fact_files':0,'distinct_game_ids':0,'blocker_keys_linked':0,'heartbeat_utc':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()}
-          Path('/tmp/game_evidence/out/GAME_ID_EVIDENCE_PROGRESS.json').write_text(json.dumps(progress,indent=2)+'\n')
-          print('PROGRESS',json.dumps(progress),flush=True)
-          PY
-
-      - name: Phase B - enumerate and download retained artifacts
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import json, os, io, zipfile, urllib.request, urllib.error
-          from pathlib import Path
-          from datetime import datetime, timezone
-          repo='timeedmonds-maker/104'; tok=os.environ['GH_TOKEN']; base=f'https://api.github.com/repos/{repo}'
-          hdr={'Authorization':f'Bearer {tok}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'treb-game-evidence'}
+          SEED=9249887970; root=Path('/tmp/game_evidence/artifacts'); out=Path('/tmp/game_evidence/out')
           class NoRedirect(urllib.request.HTTPRedirectHandler):
               def redirect_request(self, req, fp, code, msg, headers, newurl): return None
           opener=urllib.request.build_opener(NoRedirect)
@@ -86,95 +50,73 @@ jobs:
                   with opener.open(req,timeout=60) as r:return r.read()
               except urllib.error.HTTPError as e:
                   if e.code not in (301,302,303,307,308): raise
-                  signed=e.headers.get('Location')
+                  signed=e.headers.get('Location');
+                  if not signed: raise RuntimeError('missing redirect')
                   with urllib.request.urlopen(urllib.request.Request(signed,headers={'User-Agent':'treb-game-evidence'}),timeout=180) as r:return r.read()
+          def extract(aid):
+              b=artifact_bytes(aid); z=zipfile.ZipFile(io.BytesIO(b)); d=root/str(aid); d.mkdir(parents=True,exist_ok=True); z.extractall(d); return d,len(z.namelist())
+          sd,_=extract(SEED); bp=sd/'AUTONOMOUS_BLOCKER_MANIFEST.csv'; block=pd.read_csv(bp,dtype=str,low_memory=False)
+          cm={str(c).strip().lower():c for c in block.columns}; block=block[[cm['season'],cm['team_id'],cm['player_id']]].drop_duplicates(); block.columns=['season','team_id','player_id']
+          if len(block)!=1252: raise SystemExit(f'blockers {len(block)} != 1252')
+          block.to_csv(out/'BLOCKER_KEYS.csv',index=False)
           arts=[]
           for page in range(1,31):
               xs=api(f'/actions/artifacts?per_page=100&page={page}').get('artifacts',[])
               if not xs: break
-              arts.extend([a for a in xs if not a.get('expired')])
-          chosen=sorted([a for a in arts if a['id']!=9249887970 and any(k in a.get('name','').lower() for k in ['fullcore','exact','histor','materiality','pbp','nba','v3','treb','source','rebound','lineup','residual'])],key=lambda x:x.get('created_at',''),reverse=True)[:260]
-          extracted=[]; failed=[]; out=Path('/tmp/game_evidence/out')
+              arts += [a for a in xs if not a.get('expired')]
+          chosen=sorted([a for a in arts if a['id']!=SEED and any(k in a.get('name','').lower() for k in ['fullcore','exact','histor','materiality','pbp','nba','v3','treb','source','rebound','lineup','residual'])],key=lambda a:a.get('created_at',''),reverse=True)[:260]
+          dl=[]; fail=[]
           for i,a in enumerate(chosen,1):
+              try: d,n=extract(a['id']); dl.append({'id':a['id'],'name':a.get('name',''),'files':n})
+              except Exception as e: fail.append({'id':a['id'],'name':a.get('name',''),'error':repr(e)})
+              if i%10==0 or i==len(chosen): print('PROGRESS_DOWNLOAD',i,len(chosen),'ok',len(dl),'fail',len(fail),flush=True)
+          (out/'DOWNLOADED_ARTIFACTS.json').write_text(json.dumps({'downloaded':dl,'failed':fail},indent=2)+'\n')
+          blockers=list(block.itertuples(index=False,name=None)); bset=set(blockers)
+          # infer season from game_date; NBA season starts Jul-Dec and ends Jan-Jun
+          def season_from_date(v):
               try:
-                  b=artifact_bytes(a['id']); z=zipfile.ZipFile(io.BytesIO(b)); d=Path('/tmp/game_evidence/artifacts')/str(a['id']); d.mkdir(parents=True,exist_ok=True); z.extractall(d); extracted.append({'id':a['id'],'name':a.get('name',''),'files':len(z.namelist())})
-              except Exception as e: failed.append({'id':a['id'],'name':a.get('name',''),'error':repr(e)})
-              if i%10==0 or i==len(chosen):
-                  p={'phase':'B_DOWNLOADING','artifacts_total':len(chosen)+1,'artifacts_processed':i+1,'artifacts_downloaded':len(extracted)+1,'artifacts_failed':len(failed),'files_scanned':0,'game_fact_files':0,'distinct_game_ids':0,'blocker_keys_linked':0,'heartbeat_utc':datetime.now(timezone.utc).isoformat()}
-                  out.joinpath('GAME_ID_EVIDENCE_PROGRESS.json').write_text(json.dumps(p,indent=2)+'\n'); print('PROGRESS',json.dumps(p),flush=True)
-          out.joinpath('DOWNLOADED_ARTIFACTS.json').write_text(json.dumps({'downloaded':extracted,'failed':failed},indent=2)+'\n')
-          PY
-
-      - name: Phase C - scan files and link blocker keys to game IDs
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          from datetime import datetime, timezone
-          import pandas as pd
-          out=Path('/tmp/game_evidence/out'); block=pd.read_csv(out/'BLOCKER_KEYS.csv',dtype=str,low_memory=False)
-          blocker_keys=set(map(tuple,block[['season','team_id','player_id']].astype(str).itertuples(index=False,name=None)))
-          fact_files=[]; file_frames={}; game_ids=set(); key_games={}
-          files=[p for root in Path('/tmp/game_evidence/artifacts').glob('*') for p in root.rglob('*') if p.is_file()]
-          scanned=0
-          def inspect_df(fp,df):
-              cmap={str(c).strip().lower():c for c in df.columns}; gid_col=next((cmap[x] for x in ['game_id','gameid'] if x in cmap),None)
-              if gid_col is None:return
-              vals=pd.to_numeric(df[gid_col],errors='coerce').dropna().astype('int64').unique().tolist()
-              if not vals:return
-              game_ids.update(int(x) for x in vals); fact_files.append({'file':str(fp),'rows':int(len(df)),'game_id_col':gid_col,'game_count':len(vals),'columns':list(df.columns)[:120]}); file_frames[str(fp)]=(df,gid_col)
-              if {'season','team_id','player_id'}.issubset(cmap):
-                  sub=df[[cmap['season'],cmap['team_id'],cmap['player_id'],gid_col]].copy(); sub.columns=['season','team_id','player_id','game_id']; sub['game_id']=pd.to_numeric(sub['game_id'],errors='coerce'); sub=sub.dropna(subset=['game_id'])
-                  for r in sub.itertuples(index=False):
-                      k=(str(r.season),str(r.team_id),str(r.player_id))
-                      if k in blocker_keys:key_games.setdefault(k,set()).add(int(r.game_id))
+                  d=pd.to_datetime(v,errors='coerce');
+                  if pd.isna(d): return None
+                  y=int(d.year); start=y if int(d.month)>=7 else y-1
+                  return f'{start}-{str(start+1)[-2:]}'
+              except: return None
+          key_games={k:set() for k in blockers}; fact_files=[]; game_evidence={}; scanned=0
+          files=[p for d in root.glob('*') for p in d.rglob('*') if p.is_file()]
           for fp in files:
               scanned+=1
               try:
                   n=fp.name.lower()
-                  if n.endswith('.csv'): inspect_df(fp,pd.read_csv(fp,dtype=str,low_memory=False))
-                  elif n.endswith('.csv.gz'): inspect_df(fp,pd.read_csv(fp,dtype=str,low_memory=False,compression='gzip'))
+                  if n.endswith('.csv'): df=pd.read_csv(fp,dtype=str,low_memory=False)
+                  elif n.endswith('.csv.gz'): df=pd.read_csv(fp,dtype=str,low_memory=False,compression='gzip')
                   elif n.endswith('.jsonl'):
-                      rows=[json.loads(x) for x in fp.read_text(errors='ignore').splitlines() if x.strip()]
-                      if rows: inspect_df(fp,pd.DataFrame(rows))
+                      rows=[json.loads(x) for x in fp.read_text(errors='ignore').splitlines() if x.strip()]; df=pd.DataFrame(rows)
+                  else: continue
+                  cmap={str(c).strip().lower():c for c in df.columns}; gid=next((cmap[x] for x in ['game_id','gameid'] if x in cmap),None)
+                  if not gid: continue
+                  gids=pd.to_numeric(df[gid],errors='coerce'); good=gids.notna()
+                  if not good.any(): continue
+                  fact_files.append({'file':str(fp),'rows':len(df),'columns':list(df.columns)[:120]})
+                  # Build row-level season/team/player links. Season may be explicit or derived from game_date/gamedate.
+                  scol=cmap.get('season'); tcol=next((cmap[x] for x in ['team_id','teamid','player1_team_id'] if x in cmap),None); pcol=next((cmap[x] for x in ['player_id','playerid','personid','player1_id'] if x in cmap),None); dcol=next((cmap[x] for x in ['game_date','gamedate'] if x in cmap),None)
+                  if tcol and pcol:
+                      for idx in df.index[good]:
+                          s=str(df.at[idx,scol]) if scol else (season_from_date(df.at[idx,dcol]) if dcol else None)
+                          if not s: continue
+                          k=(s,str(df.at[idx,tcol]),str(df.at[idx,pcol])); g=int(gids.at[idx])
+                          if k in bset: key_games[k].add(g)
+                  # Crucial retained player_game files have player/team/date but no season; above derives it.
+                  vals=gids[good].astype('int64').value_counts()
+                  for g,c in vals.items(): game_evidence.setdefault(int(g),[]).append({'file':str(fp),'matching_rows':int(c),'columns':list(df.columns)[:120]})
               except Exception: pass
-              if scanned%100==0 or scanned==len(files):
-                  p={'phase':'C_SCANNING','files_total':len(files),'files_scanned':scanned,'game_fact_files':len(fact_files),'distinct_game_ids':len(game_ids),'blocker_keys_linked':len(key_games),'heartbeat_utc':datetime.now(timezone.utc).isoformat()}
-                  out.joinpath('GAME_ID_EVIDENCE_PROGRESS.json').write_text(json.dumps(p,indent=2)+'\n'); print('PROGRESS',json.dumps(p),flush=True)
-          key_map=[]
-          for r in block.itertuples(index=False):
-              k=(str(r.season),str(r.team_id),str(r.player_id)); gids=sorted(key_games.get(k,set())); key_map.append({'season':k[0],'team_id':k[1],'player_id':k[2],'game_ids':gids,'game_id_count':len(gids)})
-          out.joinpath('BLOCKER_KEY_GAME_MAP.json').write_text(json.dumps(key_map,indent=2)+'\n')
-          out.joinpath('FACT_FILES.json').write_text(json.dumps(fact_files,indent=2)+'\n')
+              if scanned%100==0 or scanned==len(files): print('PROGRESS_SCAN',scanned,len(files),'linked',sum(bool(v) for v in key_games.values()),flush=True)
+          key_map=[{'season':k[0],'team_id':k[1],'player_id':k[2],'game_ids':sorted(v),'game_id_count':len(v)} for k,v in key_games.items()]
+          linked_games={g for x in key_map for g in x['game_ids']}
+          bundles=[{'game_id':g,'evidence_file_count':len(game_evidence.get(g,[])),'files':game_evidence.get(g,[])} for g in sorted(linked_games)]
+          summary={'blocker_keys':1252,'blocker_keys_with_explicit_game_id_links':sum(x['game_id_count']>0 for x in key_map),'distinct_game_ids_linked_to_blocker_keys':len(linked_games),'linked_games_with_multi_file_evidence':sum(x['evidence_file_count']>=2 for x in bundles),'game_fact_files':len(fact_files),'artifacts_downloaded':len(dl)+1,'artifacts_failed':len(fail),'phase':'COMPLETE','heartbeat_utc':datetime.now(timezone.utc).isoformat()}
+          (out/'BLOCKER_KEY_GAME_MAP.json').write_text(json.dumps(key_map,indent=2)+'\n'); (out/'GAME_ID_EVIDENCE_BUNDLES.json').write_text(json.dumps(bundles,indent=2)+'\n'); (out/'GAME_ID_EVIDENCE_SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n'); (out/'GAME_ID_EVIDENCE_PROGRESS.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print('FINAL',json.dumps(summary),flush=True)
+          if summary['blocker_keys_with_explicit_game_id_links']==0: raise SystemExit('fail closed: zero blocker-game links')
           PY
-
-      - name: Phase D - build evidence bundles and summary
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          from datetime import datetime, timezone
-          import pandas as pd
-          out=Path('/tmp/game_evidence/out'); facts=json.loads((out/'FACT_FILES.json').read_text()); key_map=json.loads((out/'BLOCKER_KEY_GAME_MAP.json').read_text()); block=pd.read_csv(out/'BLOCKER_KEYS.csv',dtype=str)
-          game_to_files={}
-          for idx,f in enumerate(facts,1):
-              fp=Path(f['file']); gcol=f['game_id_col']
-              try:
-                  df=pd.read_csv(fp,dtype=str,low_memory=False,compression='gzip' if fp.name.lower().endswith('.gz') else None)
-                  vals=pd.to_numeric(df[gcol],errors='coerce').dropna().astype('int64')
-                  for gid,count in vals.value_counts().items(): game_to_files.setdefault(int(gid),[]).append({'file':str(fp),'matching_rows':int(count),'columns':f['columns']})
-              except Exception: pass
-              if idx%50==0 or idx==len(facts):
-                  p={'phase':'D_BUNDLING','fact_files_total':len(facts),'fact_files_bundled':idx,'distinct_game_ids':len(game_to_files),'games_with_multi_file_evidence':sum(len(v)>=2 for v in game_to_files.values()),'blocker_keys_linked':sum(x['game_id_count']>0 for x in key_map),'heartbeat_utc':datetime.now(timezone.utc).isoformat()}
-                  out.joinpath('GAME_ID_EVIDENCE_PROGRESS.json').write_text(json.dumps(p,indent=2)+'\n'); print('PROGRESS',json.dumps(p),flush=True)
-          bundles=[{'game_id':gid,'evidence_file_count':len(files),'files':files} for gid,files in sorted(game_to_files.items())]
-          summary={'blocker_keys':len(block),'blocker_seasons':sorted(block.season.astype(str).unique().tolist()),'game_fact_files':len(facts),'distinct_retained_game_ids':len(game_to_files),'games_with_multi_file_evidence':sum(len(v)>=2 for v in game_to_files.values()),'blocker_keys_with_explicit_game_id_links':sum(x['game_id_count']>0 for x in key_map),'distinct_game_ids_linked_to_blocker_keys':len({g for x in key_map for g in x['game_ids']})}
-          out.joinpath('GAME_ID_EVIDENCE_BUNDLES.json').write_text(json.dumps(bundles,indent=2)+'\n'); out.joinpath('GAME_ID_EVIDENCE_SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n')
-          done={'phase':'COMPLETE',**summary,'heartbeat_utc':datetime.now(timezone.utc).isoformat()}; out.joinpath('GAME_ID_EVIDENCE_PROGRESS.json').write_text(json.dumps(done,indent=2)+'\n'); print('PROGRESS',json.dumps(done),flush=True)
-          PY
-
       - uses: actions/upload-artifact@v4
         if: always()
         with:
