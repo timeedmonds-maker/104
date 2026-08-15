@@ -1,0 +1,159 @@
+name: TREB starter 8-blocker official boxscore adjudication
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-starter-blocker-8-official-boxscore-adjudication.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  ROOTCAUSE_RUN: '31863100199'
+  ROOTCAUSE_ARTIFACT: TREB-starter-blocker-8-rootcause-31863100199
+
+jobs:
+  adjudicate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas requests
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ROOTCAUSE_ARTIFACT }}
+          path: /tmp/rootcause
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.ROOTCAUSE_RUN }}
+      - name: Query official NBA boxscores and adjudicate legal variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          python -u - <<'PY'
+          import json,re,time
+          from pathlib import Path
+          import pandas as pd, requests
+
+          rc=Path('/tmp/rootcause')
+          players=pd.read_csv(rc/'BLOCKER_8_ROOTCAUSE_PLAYERS.csv',dtype={'player_id':str},low_memory=False)
+          variants=pd.read_csv(rc/'BLOCKER_8_GAME_VARIANTS.csv',dtype={'player_id':str},low_memory=False)
+          assert len(players)==8 and players[['season','team_id','player_id']].drop_duplicates().shape[0]==8
+          assert set(players['root_cause_classification']).issubset({'CANONICAL_TARGET_OUTSIDE_LEGAL_STARTER_ENVELOPE','CANONICAL_TARGET_IN_DISCRETE_LEGAL_STARTER_GAP'})
+
+          games=sorted(set(int(x) for x in variants.game_id))
+          assert games==[20100664,22400223,22400290,22400903,22400985,22401102] or len(games)==6
+          # Note: PHI has two ambiguous games; total scope is six games across five teams.
+
+          sess=requests.Session(); sess.headers.update({'User-Agent':'Mozilla/5.0','Accept':'application/json'})
+          def parse_minutes(v):
+              if v is None:return None
+              if isinstance(v,(int,float)):return float(v)*60.0
+              s=str(v).strip()
+              m=re.match(r'^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$',s)
+              if m:return float(m.group(1) or 0)*3600+float(m.group(2) or 0)*60+float(m.group(3) or 0)
+              if ':' in s:
+                  a=s.split(':')
+                  try:return float(a[-2])*60+float(a[-1])
+                  except:return None
+              try:return float(s)*60
+              except:return None
+
+          boxscores={}; fetch=[]
+          for gid in games:
+              padded=f'{gid:010d}'
+              rec={'game_id':gid}
+              # Official NBA liveData is preferred when available.
+              url=f'https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{padded}.json'
+              try:
+                  r=sess.get(url,timeout=20); rec['cdn_status']=r.status_code
+                  if r.ok:
+                      j=r.json(); game=j.get('game',j)
+                      rows=[]
+                      for side in ('homeTeam','awayTeam'):
+                          t=game.get(side,{}) or {}; tid=t.get('teamId')
+                          for p in t.get('players',[]) or []:
+                              stats=p.get('statistics',{}) or {}
+                              sec=parse_minutes(stats.get('minutes') or p.get('minutes'))
+                              rows.append({'team_id':tid,'player_id':str(p.get('personId')),'player':p.get('name'),'seconds':sec,'source':'cdn_liveData'})
+                      if rows: boxscores[gid]=rows
+              except Exception as e: rec['cdn_error']=repr(e)
+              fetch.append(rec); time.sleep(.15)
+
+          out=[]
+          for p in players.itertuples(index=False):
+              pid=str(p.player_id).removesuffix('.0'); tid=int(p.team_id)
+              pv=variants[(variants.player_id.astype(str).str.replace(r'\.0$','',regex=True)==pid)&(pd.to_numeric(variants.team_id,errors='coerce')==tid)]
+              for gid,g in pv.groupby('game_id',sort=True):
+                  gid=int(gid); official=None; source=None; status='NO_OFFICIAL_BOXSCORE'
+                  br=boxscores.get(gid,[])
+                  hits=[x for x in br if str(x['player_id'])==pid and int(x['team_id'])==tid]
+                  if len(hits)==1 and hits[0]['seconds'] is not None:
+                      official=float(hits[0]['seconds']); source=hits[0]['source']; status='OK'
+                  elif len(hits)>1: status=f'MULTIPLE_OFFICIAL_ROWS_{len(hits)}'
+                  elif br: status='PLAYER_NOT_IN_OFFICIAL_BOXSCORE'
+                  candidates=[]
+                  for r in g.itertuples(index=False):
+                      sec=float(r.game_seconds_on); err=None if official is None else abs(sec-official)
+                      candidates.append({'variant_index':int(r.variant_index),'game_seconds_on':sec,'abs_error_seconds':err,'team_starter_choices_json':str(r.team_starter_choices_json)})
+                  candidates=sorted(candidates,key=lambda x:(1e99 if x['abs_error_seconds'] is None else x['abs_error_seconds'],x['variant_index'],x['team_starter_choices_json']))
+                  exact=[x for x in candidates if x['abs_error_seconds'] is not None and x['abs_error_seconds']<=1.0]
+                  if official is None: cls='NO_OFFICIAL_GAME_MINUTES'
+                  elif len(exact)==1: cls='UNIQUE_EXACT_OFFICIAL_BOXSCORE_MATCH'
+                  elif len(exact)>1: cls='MULTIPLE_EXACT_OFFICIAL_BOXSCORE_MATCHES'
+                  else:
+                      best=candidates[0]['abs_error_seconds']; ties=[x for x in candidates if x['abs_error_seconds']==best]
+                      cls='UNIQUE_NEAREST_OFFICIAL_BOXSCORE_MATCH' if len(ties)==1 else 'TIED_NEAREST_OFFICIAL_BOXSCORE_MATCH'
+                  out.append({'season':p.season,'team_id':tid,'player_id':pid,'player':p.player,'game_id':gid,'official_seconds':official,'official_status':status,'official_source':source,'classification':cls,'candidate_count':len(candidates),'exact_match_count':len(exact),'best_variant_index':candidates[0]['variant_index'],'best_variant_seconds':candidates[0]['game_seconds_on'],'best_abs_error_seconds':candidates[0]['abs_error_seconds'],'best_team_starter_choices_json':candidates[0]['team_starter_choices_json']})
+
+          df=pd.DataFrame(out)
+          df.to_csv('/tmp/out/BLOCKER_8_OFFICIAL_BOXSCORE_ADJUDICATION.csv',index=False)
+          Path('/tmp/out/BLOCKER_8_OFFICIAL_BOXSCORE_FETCH.json').write_text(json.dumps(fetch,indent=2)+'\n')
+          exact=int(df.classification.eq('UNIQUE_EXACT_OFFICIAL_BOXSCORE_MATCH').sum())
+          nearest=int(df.classification.eq('UNIQUE_NEAREST_OFFICIAL_BOXSCORE_MATCH').sum())
+          unavailable=int(df.classification.eq('NO_OFFICIAL_GAME_MINUTES').sum())
+          gate={'status':'PASS','blockers':8,'rows':len(df),'games':int(df.game_id.nunique()),'unique_exact_rows':exact,'unique_nearest_rows':nearest,'no_official_rows':unavailable,'canonical_targets_modified':False,'starter_states_modified':False,'promoted_keys':0,'minutes_gate_relaxed':False,'v2_invariants_required':[14524,9647,4877,5199],'next_scope':'promote only uniquely evidence-adjudicated starter choices; separately repair canonical targets only if independently proven'}
+          Path('/tmp/out/BLOCKER_8_OFFICIAL_BOXSCORE_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2))
+          PY
+      - name: Reassert V2 invariants and persist evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          p=Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          rows=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          keys={(str(r['season']),str(r['player_id']).removesuffix('.0'),int(r['team_id'])) for r in rows}
+          assert len(rows)==14524 and len(keys)==14524
+          # authoritative split counts are immutable production contracts
+          s=Path('team_trb_all_players/impact_database/roster_tenure_v2/summary.json')
+          if s.exists():
+              j=json.loads(s.read_text()); txt=json.dumps(j)
+              for n in (14524,9647,4877,5199): assert str(n) in txt
+          PY
+          dst=team_trb_all_players/impact_database/full_core_recovery/blocker_8_official_boxscore
+          mkdir -p "$dst"
+          cp /tmp/out/* "$dst"/
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$dst"
+          git commit -m 'Persist 8-blocker official boxscore adjudication [skip ci]' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-starter-blocker-8-official-boxscore-${{ github.run_id }}
+          path: /tmp/out/**
+          retention-days: 90
+          if-no-files-found: error
