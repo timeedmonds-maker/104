@@ -1,0 +1,185 @@
+name: TREB 2025-26 residual lock reconciliation
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2025-residual-reconcile.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download authoritative residual manifest and validated 2025-26 lock
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/residual /tmp/lock out
+          curl --fail --location --retry 4 \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/residual.zip \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9242191393/zip"
+          curl --fail --location --retry 4 \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/lock.zip \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9242452419/zip"
+          unzip -q /tmp/residual.zip -d /tmp/residual
+          unzip -q /tmp/lock.zip -d /tmp/lock
+          find /tmp/residual -type f -printf 'RESIDUAL_FILE %P %s\n' | sort
+          find /tmp/lock -type f -printf 'LOCK_FILE %P %s\n' | sort
+
+      - name: Reconcile canonical 2025-26 keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, gzip, json, pathlib, sys
+
+          R=pathlib.Path('/tmp/residual')
+          L=pathlib.Path('/tmp/lock')
+          OUT=pathlib.Path('out'); OUT.mkdir(exist_ok=True)
+
+          def norm_season(v):
+              if v is None: return None
+              s=str(v).strip().replace('_','-')
+              if s in ('2025-26','2025-2026','2025') or s.startswith('2025-26'): return '2025-26'
+              return s
+
+          def canon(row):
+              if not isinstance(row,dict): return None
+              season=norm_season(row.get('season') or row.get('SEASON'))
+              pid=row.get('player_id', row.get('PLAYER_ID'))
+              tid=row.get('team_id', row.get('TEAM_ID'))
+              if season!='2025-26' or pid in (None,'') or tid in (None,''): return None
+              try: return (season,int(float(pid)),int(float(tid)))
+              except Exception: return None
+
+          def iter_rows(path):
+              name=path.name.lower()
+              try:
+                  if name.endswith('.jsonl.gz') or name.endswith('.jsonl'):
+                      op=gzip.open if name.endswith('.gz') else open
+                      with op(path,'rt',encoding='utf-8') as f:
+                          for line in f:
+                              if line.strip():
+                                  x=json.loads(line)
+                                  if isinstance(x,dict): yield x
+                  elif name.endswith('.json.gz') or name.endswith('.json'):
+                      op=gzip.open if name.endswith('.gz') else open
+                      with op(path,'rt',encoding='utf-8') as f: x=json.load(f)
+                      if isinstance(x,list):
+                          for r in x:
+                              if isinstance(r,dict): yield r
+                      elif isinstance(x,dict):
+                          # emit top level and common row-bearing arrays
+                          yield x
+                          for k,v in x.items():
+                              if isinstance(v,list):
+                                  for r in v:
+                                      if isinstance(r,dict): yield r
+                  elif name.endswith('.csv') or name.endswith('.csv.gz'):
+                      op=gzip.open if name.endswith('.gz') else open
+                      with op(path,'rt',encoding='utf-8',newline='') as f:
+                          yield from csv.DictReader(f)
+              except Exception as e:
+                  print('PARSE_SKIP',path,e)
+
+          # Authoritative residual rows: require canonical key and 2025-26; collect source provenance.
+          residual={}
+          for p in R.rglob('*'):
+              if not p.is_file(): continue
+              for row in iter_rows(p):
+                  k=canon(row)
+                  if k:
+                      # Prefer rows that look residual/failure keyed, but retain all canonical candidates for diagnostics.
+                      residual.setdefault(k,[]).append({'file':str(p.relative_to(R)),'row':row})
+
+          # Identify lock file directly and canonical targets.
+          lock_candidates=list(L.rglob('2025-26.json'))
+          if not lock_candidates:
+              raise SystemExit('NO_2025_26_LOCK_JSON')
+          lock_path=max(lock_candidates,key=lambda p:p.stat().st_size)
+          lock=json.loads(lock_path.read_text())
+          assert lock.get('status')=='COMPLETE', lock.get('status')
+          targets=lock.get('targets') or []
+          lock_keys={canon(r) for r in targets}; lock_keys.discard(None)
+
+          # Narrow residual candidates using explicit residual/failure/source-discovery signals if possible.
+          def looks_residual(d):
+              r=d['row']; f=d['file'].lower()
+              text=' '.join(str(r.get(k,'')) for k in ('failure_class','class','status','reason','source','resolution')).lower()
+              return ('resid' in f or 'manifest' in f or 'resid' in text or 'source_discovery' in text or 'unclassified_residual' in text)
+          explicit={k:v for k,v in residual.items() if any(looks_residual(d) for d in v)}
+          chosen=explicit if len(explicit)>=409 else residual
+
+          # The authoritative manifest is known to have exactly 409 2025-26 residual canonical keys.
+          if len(chosen)!=409:
+              diag={
+                'all_2025_canonical_candidates':len(residual),
+                'explicit_residual_candidates':len(explicit),
+                'lock_target_keys':len(lock_keys),
+                'residual_files':sorted(str(p.relative_to(R)) for p in R.rglob('*') if p.is_file()),
+                'lock_file':str(lock_path.relative_to(L)),
+              }
+              (OUT/'reconcile_diagnostic.json').write_text(json.dumps(diag,indent=2,sort_keys=True))
+              print(json.dumps(diag,indent=2,sort_keys=True))
+              raise SystemExit(f'EXPECTED_409_RESIDUAL_KEYS_GOT_{len(chosen)}')
+
+          residual_keys=set(chosen)
+          resolved=sorted(residual_keys & lock_keys)
+          unresolved=sorted(residual_keys-lock_keys)
+          extra=sorted(lock_keys-residual_keys)
+
+          def keyobj(k): return {'season':k[0],'player_id':k[1],'team_id':k[2]}
+          report={
+            'gate':'PASS',
+            'authoritative_residual_2025_26':len(residual_keys),
+            'validated_lock_targets':len(lock_keys),
+            'resolved_by_lock':len(resolved),
+            'still_unresolved':len(unresolved),
+            'lock_non_residual_keys':len(extra),
+            'lock_status':lock.get('status'),
+            'lock_games_required':lock.get('games_required'),
+            'lock_target_count':lock.get('target_count'),
+            'source_artifacts':{
+              'residual_manifest':9242191393,
+              'validated_2025_lock':9242452419,
+            },
+            'resolved_keys':[keyobj(k) for k in resolved],
+            'unresolved_keys':[keyobj(k) for k in unresolved],
+          }
+          (OUT/'treb_2025_26_residual_lock_reconciliation.json').write_text(json.dumps(report,indent=2,sort_keys=True))
+          with open(OUT/'treb_2025_26_resolved_overlay_keys.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['season','player_id','team_id']); w.writeheader(); w.writerows(keyobj(k) for k in resolved)
+          with open(OUT/'treb_2025_26_still_unresolved_keys.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['season','player_id','team_id']); w.writeheader(); w.writerows(keyobj(k) for k in unresolved)
+          print('RECONCILE_GATE=PASS')
+          print('AUTHORITATIVE_2025_RESIDUAL=',len(residual_keys))
+          print('LOCK_KEYS=',len(lock_keys))
+          print('RESOLVED_BY_LOCK=',len(resolved))
+          print('STILL_UNRESOLVED=',len(unresolved))
+          print('LOCK_NON_RESIDUAL=',len(extra))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-2025-26-residual-lock-reconciliation-${{ github.run_id }}
+          path: out/
+          retention-days: 90
+          if-no-files-found: warn
