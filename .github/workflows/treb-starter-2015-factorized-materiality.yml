@@ -1,0 +1,247 @@
+name: TREB 2015 factorized starter materiality promotion
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-2015-factorized-materiality.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-2015-factorized-materiality
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  MATERIALITY_RUN: '31861419304'
+  MATERIALITY_ARTIFACT: TREB-starter-materiality-failclosed-consolidated-31861419304
+  BASELINE_RUN: '31854913173'
+  BASELINE_ARTIFACT: TREB-fullcore-exact-2015-31854913173
+  THRESHOLD_PP: '0.01'
+
+jobs:
+  factorized:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download fail-closed starter materiality result
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.MATERIALITY_ARTIFACT }}
+          path: /tmp/materiality
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.MATERIALITY_RUN }}
+      - name: Download retained 2015 exact baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.BASELINE_ARTIFACT }}
+          path: /tmp/baseline
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.BASELINE_RUN }}
+      - name: Download retained full-season feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' > /tmp/urls.tsv
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_2015'
+              if key not in vals: raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_2015.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${prefix}_2015.csv"; done
+      - name: Factorize starter ambiguity and promote only proven immaterial keys
+        timeout-minutes: 27
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import gzip, json, math, sys
+          from itertools import combinations, product
+          from pathlib import Path
+          import pandas as pd
+
+          sys.path.insert(0,'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+          import build_exact_game_fact_layer as base
+
+          SEASON='2015-16'; TOL=60.0; TH=float('0.01')
+          out=Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+          scope=pd.read_csv('/tmp/materiality/STARTER_MATERIALITY_KEYS.csv',dtype={'player_id':str},low_memory=False)
+          scope['player_id']=scope.player_id.map(mat.sid)
+          scope['team_id']=pd.to_numeric(scope.team_id,errors='raise').astype('int64')
+          scope=scope[(scope.season.astype(str)==SEASON)&(scope.status.astype(str)=='AUDIT_UNRESOLVED')].copy()
+          if len(scope)!=54: raise RuntimeError(f'2015 fail-closed scope drift expected=54 got={len(scope)}')
+
+          targets=mat.load_targets(Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'),SEASON)
+          target_by_key={(int(r['team_id']),mat.sid(r['player_id'])):r for r in targets}
+          nba=mat.io.normalize_nba(pd.read_csv('/tmp/src/nbastats_2015.csv',low_memory=False))
+          v3=mat.lineup_engine.normalize_v3(pd.read_csv('/tmp/src/nbastatsv3_2015.csv',low_memory=False))
+          pbp=mat.io.normalize_pbp(pd.read_csv('/tmp/src/pbpstats_2015.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          baseline_team,baseline_player=mat.aggregate_baseline(
+              pd.read_csv('/tmp/baseline/team_game_treb.csv.gz',low_memory=False),
+              pd.read_csv('/tmp/baseline/player_game_treb_on.csv.gz',dtype={'player_id':str},low_memory=False))
+
+          def gids(vals):
+              z=set()
+              for v in vals:
+                  if pd.isna(v): continue
+                  for x in str(v).split('|'):
+                      if x.strip(): z.add(int(float(x)))
+              return sorted(z)
+          game_ids=gids(scope.game_ids)
+          if not game_ids: raise RuntimeError('no 2015 game ids')
+          print(json.dumps({'event':'SCOPE','keys':len(scope),'games':game_ids}),flush=True)
+
+          le=mat.lineup_engine
+          registry={}; override={}
+          old_choose=le._choose_starters
+          def choose(period,game_id,period_number,team_id,player_team,prior,evidence_repairs):
+              key=(int(game_id),int(period_number),int(team_id))
+              explicit=le.legacy.core.STARTER_REPAIRS.get(key)
+              if explicit is not None: return {int(x) for x in explicit},{'type':'locked_starter_repair','team_id':team_id,'period':period_number,'starters':sorted(int(x) for x in explicit)}
+              if key in evidence_repairs: return set(evidence_repairs[key]),{'type':'evidence_starter_repair','team_id':team_id,'period':period_number,'starters':sorted(evidence_repairs[key])}
+              cand=le._candidate_starters(period,team_id,player_team); pool=set(cand)|(set(prior) if prior else set())
+              if len(pool)<5: raise ValueError(f'unresolved starters {key}')
+              combos=[set(c) for c in combinations(sorted(pool),5) if cand.issubset(c)] if len(cand)<5 else [set(c) for c in combinations(sorted(cand),5)]
+              ev=[]
+              for c in combos:
+                  legal,viol=le._simulate_team(period,team_id,c,player_team)
+                  if legal: ev.append((len(viol),tuple(sorted(c)),viol))
+              if not ev: raise ValueError(f'no legal starter {key}')
+              ev.sort(key=lambda x:(x[0],x[1])); score=ev[0][0]; best=[x for x in ev if x[0]==score]
+              if score: raise ValueError(f'starter needs transition repair {key}')
+              sols=[x[1] for x in best]
+              if len(sols)>1: registry.setdefault(key,set()).update(sols)
+              chosen=override.get(key,sols[0])
+              if chosen not in sols: raise ValueError(f'override no longer legal {key}')
+              return set(chosen),{'type':'factorized_starter_choice','team_id':team_id,'period':period_number,'starters':list(chosen),'optimal_solution_count':len(sols)}
+          le._choose_starters=choose
+          def run_game(gid,ov=None):
+              global override
+              override.clear(); override.update(ov or {})
+              return base.build_game(gid,ng[gid],vg[gid],pg[gid])
+          try:
+              base_games={}; base_team_rows={}; base_player_rows={}
+              for gid in game_ids:
+                  registry.clear(); tr,pr,a=run_game(gid,{})
+                  base_games[gid]=(tr,pr,a); base_team_rows[gid]={int(r['team_id']):r for r in tr}; base_player_rows[gid]={(int(r['team_id']),mat.sid(r['player_id'])):r for r in pr}
+                  print(json.dumps({'event':'BASE_GAME','game_id':gid,'ambiguity_points':len(registry),'solution_counts':{'|'.join(map(str,k)):len(v) for k,v in sorted(registry.items())}}),flush=True)
+              ambiguity={}
+              for gid in game_ids:
+                  registry.clear(); run_game(gid,{})
+                  for k,v in registry.items(): ambiguity[k]=sorted(v)
+              if not ambiguity: raise RuntimeError('expected starter ambiguity points')
+              total_alts=sum(max(0,len(v)-1) for v in ambiguity.values())
+              if total_alts>1500: raise RuntimeError(f'factorized alternative cap exceeded: {total_alts}')
+
+              perturb={}
+              for key,sols in sorted(ambiguity.items()):
+                  gid=key[0]; baseline_sol=sols[0]; variants=[]
+                  for sol in sols:
+                      registry.clear(); tr,pr,a=run_game(gid,{key:sol})
+                      variants.append({(int(r['team_id']),mat.sid(r['player_id'])):r for r in pr})
+                  perturb[key]=variants
+                  print(json.dumps({'event':'FACTOR','key':key,'solutions':len(sols)}),flush=True)
+          finally:
+              le._choose_starters=old_choose
+              override.clear()
+
+          PF=mat.PLAYER_FIELDS; TF=mat.TEAM_FIELDS
+          team_totals={tid:dict(vals) for tid,vals in baseline_team.items()}
+          for gid in game_ids:
+              for tid,r in base_team_rows[gid].items():
+                  d=team_totals.setdefault(tid,{f:0 for f in TF})
+                  for f in TF: d[f]=int(d.get(f,0))+int(r[f])
+
+          def pzero(): return {f:0 for f in PF}
+          def metric(team,p):
+              return mat.metric_values(team,p)
+          def bound_metric(team,p,dl,dh):
+              ton0=float(p['team_oreb_on']+p['team_dreb_on']); oon0=float(p['opponent_oreb_on']+p['opponent_dreb_on'])
+              tlo=max(0.0,ton0+dl['team_oreb_on']+dl['team_dreb_on']); thi=min(float(team['team_oreb']+team['team_dreb']),ton0+dh['team_oreb_on']+dh['team_dreb_on'])
+              olo=max(0.0,oon0+dl['opponent_oreb_on']+dl['opponent_dreb_on']); ohi=min(float(team['opponent_oreb']+team['opponent_dreb']),oon0+dh['opponent_oreb_on']+dh['opponent_dreb_on'])
+              vals=[]
+              for tt,oo in product((tlo,thi),(olo,ohi)):
+                  pp=dict(p)
+                  # split only totals are needed; encode all team in oreb slots for ratio helper
+                  pp['team_oreb_on']=tt; pp['team_dreb_on']=0; pp['opponent_oreb_on']=oo; pp['opponent_dreb_on']=0
+                  vals.append(metric(team,pp))
+              arr=list(zip(*vals)); return [(min(x),max(x)) for x in arr],(tlo,thi,olo,ohi)
+
+          rows=[]; overlay=[]
+          for a in scope.itertuples(index=False):
+              tid=int(a.team_id); pid=mat.sid(a.player_id); key=(tid,pid)
+              target=target_by_key.get(key)
+              if target is None: raise RuntimeError(f'missing target {key}')
+              p=dict(baseline_player.get(key,pzero()))
+              for gid in game_ids:
+                  r=base_player_rows[gid].get(key)
+                  if r:
+                      for f in PF: p[f]=int(p.get(f,0))+int(r[f])
+              dlo={f:0 for f in PF}; dhi={f:0 for f in PF}; factor_count=0
+              for ak,variants in perturb.items():
+                  if ak[2]!=tid: continue
+                  gid=ak[0]; br=base_player_rows[gid].get(key,pzero())
+                  for f in PF:
+                      ds=[int(v.get(key,pzero()).get(f,0))-int(br.get(f,0)) for v in variants]
+                      dlo[f]+=min(ds); dhi[f]+=max(ds)
+                  factor_count+=1
+              bounds,raw=bound_metric(team_totals[tid],p,dlo,dhi)
+              onb,offb,swb=bounds
+              max_pp=max((hi-lo)*100.0 for lo,hi in bounds)
+              sec_err=max(abs(dlo['seconds_on']),abs(dhi['seconds_on']))
+              accepted=max_pp<=TH+1e-12
+              on,off,sw=metric(team_totals[tid],p)
+              rec={'season':SEASON,'team_id':tid,'player_id':pid,'player':getattr(a,'player',''),'status':'ACCEPT_IMMATERIAL_FACTORIZED' if accepted else 'MATERIAL_OR_UNRESOLVED','factor_count':factor_count,'max_seconds_variance_bound':sec_err,'treb_on_min':onb[0],'treb_on_max':onb[1],'treb_on_range_pp':(onb[1]-onb[0])*100.0,'treb_off_min':offb[0],'treb_off_max':offb[1],'treb_off_range_pp':(offb[1]-offb[0])*100.0,'treb_swing_min':swb[0],'treb_swing_max':swb[1],'treb_swing_range_pp':(swb[1]-swb[0])*100.0,'max_range_pp':max_pp,'threshold_pp':TH}
+              rows.append(rec)
+              if accepted:
+                  sec=int(p['seconds_on']); team=team_totals[tid]
+                  overlay.append({'season':SEASON,'team_id':tid,'player_id':pid,'player':getattr(a,'player',''),'target_minutes_on':float(target.get('seconds_on',0.0))/60.0,'direct_treb_on':on,'direct_treb_off':off,'direct_treb_swing':sw,'direct_minutes_on':sec/60.0,'direct_minutes_off':(int(team['game_seconds'])-sec)/60.0,'team_oreb_on':int(p['team_oreb_on']),'team_dreb_on':int(p['team_dreb_on']),'opponent_oreb_on':int(p['opponent_oreb_on']),'opponent_dreb_on':int(p['opponent_dreb_on']),'team_oreb_off':int(team['team_oreb'])-int(p['team_oreb_on']),'team_dreb_off':int(team['team_dreb'])-int(p['team_dreb_on']),'opponent_oreb_off':int(team['opponent_oreb'])-int(p['opponent_oreb_on']),'opponent_dreb_off':int(team['opponent_dreb'])-int(p['opponent_dreb_on']),'status':'PASS','source':'starter_2015_factorized_materiality_representative','acceptance_basis':'FACTORIZED_CONSERVATIVE_BOUND_LE_0.01PP','representative_is_uniquely_true':False,'representative_policy':'lexicographically_smallest_local_coherent_starter_choices','max_range_pp_bound':max_pp,'max_seconds_variance_bound':sec_err})
+
+          rdf=pd.DataFrame(rows); odf=pd.DataFrame(overlay)
+          rdf.to_csv(out/'STARTER_2015_FACTORIZED_MATERIALITY.csv',index=False)
+          odf.to_csv(out/'starter_2015_factorized_overlay.csv.gz',index=False,compression='gzip')
+          accepted=int(rdf.status.eq('ACCEPT_IMMATERIAL_FACTORIZED').sum()); unresolved=len(rdf)-accepted
+          gate={'status':'PASS','season':SEASON,'scope_keys':54,'accepted_immaterial_keys':accepted,'material_or_unresolved_keys':unresolved,'ambiguity_points':len(ambiguity),'factorized_alternative_evaluations':total_alts,'threshold_pp':TH,'max_observed_bound_pp':float(rdf.max_range_pp.max()),'global_minutes_gate_relaxed':False,'bruteforce_cartesian_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'promotion_rows':len(odf)}
+          (out/'gate.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2),flush=True)
+          PY
+      - name: Upload retained factorized materiality result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-2015-factorized-materiality-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
