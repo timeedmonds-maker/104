@@ -16,27 +16,42 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
-      - name: Overlay release builder from production head
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Diagnose established Stage2 key structure
         run: |
-          curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/scripts/build_native89_release.py?ref=agent%2Ftreb-final-exact-assembly" \
-            -o /tmp/build_native89_release.py
           python - <<'PY'
-          p='/tmp/build_native89_release.py'
-          s=open(p).read()
-          s=s.replace("off=pick(['off','off_value','OFF','value_off'])", "off=pick(['off_corrected','off','off_value','OFF','value_off'])")
-          s=s.replace("swing=pick(['swing','swing_value','SWING','value_swing'])", "swing=pick(['on_minus_off_corrected','swing','swing_value','SWING','value_swing'])")
-          open(p,'w').write(s)
+          import gzip,json,collections
+          p='team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          rows=[]
+          with gzip.open(p,'rt') as f:
+            for line in f:
+              if line.strip(): rows.append(json.loads(line))
+          by=collections.defaultdict(list)
+          for r in rows: by[(str(r['season']),str(r['player_id']),str(r['team_id']),str(r['metric']))].append(r)
+          keys={(k[0],k[1],k[2]) for k in by}
+          counts=collections.Counter(len(v) for v in by.values())
+          incomplete=collections.Counter()
+          confid=collections.Counter(); boundary=collections.Counter(); sources=collections.Counter()
+          for r in rows:
+            incomplete[str(r.get('complete'))]+=1; confid[str(r.get('tenure_confidence'))]+=1; boundary[str(r.get('boundary_resolution'))]+=1; sources[str(r.get('collection_source'))]+=1
+          print('ROWS',len(rows),'KEYS',len(keys),'KEY_METRICS',len(by),'MULTIPLICITY',dict(counts))
+          print('COMPLETE',dict(incomplete)); print('CONFIDENCE',dict(confid)); print('BOUNDARY',dict(boundary)); print('SOURCES',dict(sources))
+          # Show key-level metric counts and segment multiplicity distribution; enough to establish canonicalisation without guessing.
+          km=collections.Counter()
+          for s,pid,tid,m in by: km[(s,pid,tid)]+=1
+          print('METRICS_PER_KEY',dict(collections.Counter(km.values())))
+          seg=collections.Counter()
+          for k,v in by.items(): seg[(k[0],k[1],k[2])]=max(seg[(k[0],k[1],k[2])],len(v))
+          print('MAX_SEGMENTS_PER_KEY',dict(collections.Counter(seg.values())))
+          # Persist compact diagnostics.
+          import pathlib
+          pathlib.Path('native89_diag.txt').write_text('\n'.join([
+            f'rows={len(rows)}',f'keys={len(keys)}',f'key_metrics={len(by)}',f'multiplicity={dict(counts)}',
+            f'complete={dict(incomplete)}',f'confidence={dict(confid)}',f'boundary={dict(boundary)}',f'metrics_per_key={dict(collections.Counter(km.values()))}',f'max_segments_per_key={dict(collections.Counter(seg.values()))}'
+          ])+'\n')
           PY
-      - name: Build and fail-closed QA native 89 metric release
-        run: python /tmp/build_native89_release.py
       - uses: actions/upload-artifact@v4
         with:
-          name: NBA-native-89-metrics-final-${{ github.run_id }}
-          path: |
-            NBA_native_89_metrics_2000-01_to_2025-26.zip
-            NBA_native_89_metrics_2000-01_to_2025-26.zip.sha256
+          name: native89-key-diagnostic-${{ github.run_id }}
+          path: native89_diag.txt
           if-no-files-found: error
-          retention-days: 90
+          retention-days: 30
