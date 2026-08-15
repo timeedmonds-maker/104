@@ -1,0 +1,59 @@
+name: Native89 exact rebound count source path
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-exact-rebound-source-path.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  locate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Locate exact locked rebound-count files and invocation
+        run: |
+          set -euo pipefail
+          mkdir -p exact_locator
+          python - <<'PY'
+          import pathlib,json,re,gzip,csv,subprocess
+          out={'invocations':[],'parquet_candidates':[],'csv_candidates':[]}
+          for p in pathlib.Path('.').rglob('*'):
+            if not p.is_file() or p.stat().st_size>4_000_000: continue
+            if any(x in p.parts for x in ['.git','node_modules']): continue
+            if p.suffix.lower() in {'.yml','.yaml','.py','.sh','.md','.txt'}:
+              try:s=p.read_text(errors='ignore')
+              except:continue
+              if 'finalize_complete_treb_release.py' in s or 'exact_locked_integer_rebound_counts' in s:
+                out['invocations'].append({'path':str(p),'lines':[{'line':i,'text':line[:1200]} for i,line in enumerate(s.splitlines(),1) if 'finalize_complete_treb_release.py' in line or '--exact' in line or 'exact_locked_integer_rebound_counts' in line][:100]})
+          try:
+            import pandas as pd
+            for p in pathlib.Path('team_trb_all_players').rglob('*.parquet'):
+              try:
+                df=pd.read_parquet(p)
+                cols=list(map(str,df.columns)); low='|'.join(cols).lower()
+                if any(k in low for k in ['oreb_pct_on','team_oreb_on','offrebounds_on','off_rebounds_on','team_off_rebounds','opp_dreb','opponent_def']) or (('offrebound' in low or 'off_rebound' in low) and 'player_id' in low):
+                  out['parquet_candidates'].append({'path':str(p),'rows':len(df),'columns':cols,'sample':df.head(2).to_dict('records')})
+              except Exception: pass
+          except Exception as e: out['pandas_error']=repr(e)
+          for p in pathlib.Path('team_trb_all_players').rglob('*.csv.gz'):
+            try:
+              with gzip.open(p,'rt',encoding='utf-8',errors='replace',newline='') as f:
+                r=csv.DictReader(f); cols=r.fieldnames or []; low='|'.join(cols).lower()
+                if any(k in low for k in ['oreb_pct_on','team_oreb_on','offrebounds_on','off_rebounds_on','team_off_rebounds','opp_dreb','opponent_def']):
+                  sample=[]
+                  for _,row in zip(range(2),r):sample.append(row)
+                  out['csv_candidates'].append({'path':str(p),'columns':cols,'sample':sample})
+            except Exception: pass
+          pathlib.Path('exact_locator/exact_rebound_source_path.json').write_text(json.dumps(out,indent=2,default=str)+'\n')
+          print(json.dumps(out,indent=2,default=str)[:120000])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-exact-rebound-source-path-${{ github.run_id }}
+          path: exact_locator/exact_rebound_source_path.json
+          retention-days: 30
+          if-no-files-found: error
