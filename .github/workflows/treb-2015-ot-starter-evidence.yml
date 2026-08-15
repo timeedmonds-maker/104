@@ -1,0 +1,118 @@
+name: TREB 2015 OT starter evidence audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-2015-ot-starter-evidence.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Reassert authoritative V2 invariants
+        run: |
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          rows=[json.loads(x) for x in gzip.open(p,'rt') if x.strip()]
+          keys={(str(r['season']),str(r['player_id']).removesuffix('.0'),int(r['team_id'])) for r in rows}
+          assert len(rows)==14524 and len(keys)==14524
+          assert sum(bool(r.get('full_core_reuse')) for r in rows)==9647
+          assert sum(not bool(r.get('full_core_reuse')) for r in rows)==4877
+          PY
+      - name: Download retained 2015 source trio
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 3 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' >/tmp/urls.tsv
+          vals={}
+          for line in open('/tmp/list_data.txt'):
+            if '=' in line:
+              k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+            k=f'{p}_2015'; print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc=/tmp/src/${prefix}_2015.tar.xz
+            curl --fail --location --retry 4 --retry-all-errors -o "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done </tmp/urls.tsv
+      - name: Build explicit period-5 starter evidence for game 21500916
+        run: |
+          python - <<'PY'
+          import json, pandas as pd
+          from pathlib import Path
+          gid=21500916; team=1610612757; period=5
+          v=pd.read_csv('/tmp/src/nbastatsv3_2015.csv',low_memory=False)
+          n=pd.read_csv('/tmp/src/nbastats_2015.csv',low_memory=False)
+          p=pd.read_csv('/tmp/src/pbpstats_2015.csv',low_memory=False)
+          vg=v[pd.to_numeric(v.gameId,errors='coerce').eq(gid) & pd.to_numeric(v.period,errors='coerce').eq(period)].copy()
+          ng=n[pd.to_numeric(n.GAME_ID,errors='coerce').eq(gid) & pd.to_numeric(n.PERIOD,errors='coerce').eq(period)].copy()
+          pg=p[pd.to_numeric(p.GAMEID,errors='coerce').eq(gid) & pd.to_numeric(p.PERIOD,errors='coerce').eq(period)].copy()
+          assert not vg.empty and not ng.empty and not pg.empty
+          cols={c.lower():c for c in vg.columns}
+          action_col=cols.get('actionnumber') or cols.get('action_number')
+          team_col=cols.get('teamid')
+          person_col=cols.get('personid')
+          action_type=cols.get('actiontype')
+          sub_type=cols.get('subtype')
+          clock_col=cols.get('clock')
+          assert action_col and team_col and person_col and action_type
+          vg['_ord']=pd.to_numeric(vg[action_col],errors='coerce')
+          is_team=pd.to_numeric(vg[team_col],errors='coerce').eq(team)
+          is_sub=vg[action_type].astype(str).str.contains('sub',case=False,na=False)
+          first_sub=vg[is_team & is_sub].sort_values('_ord').head(1)
+          cutoff=float(first_sub['_ord'].iloc[0]) if not first_sub.empty else float('inf')
+          pre=vg[is_team & vg['_ord'].lt(cutoff)].copy()
+          ids=sorted({int(x) for x in pd.to_numeric(pre[person_col],errors='coerce').dropna() if int(x)>0})
+          first_actions=[]
+          for pid,g in pre.groupby(pd.to_numeric(pre[person_col],errors='coerce'),dropna=True):
+            if int(pid)<=0: continue
+            r=g.sort_values('_ord').iloc[0]
+            first_actions.append({'person_id':int(pid),'action_number':int(r['_ord']),'action_type':str(r[action_type]),'sub_type':None if not sub_type else str(r[sub_type]),'clock':None if not clock_col else str(r[clock_col])})
+          payload={
+            'status':'PASS', 'game_id':gid,'period':period,'team_id':team,
+            'first_team_sub_action_number':None if first_sub.empty else int(first_sub['_ord'].iloc[0]),
+            'first_team_sub_row':None if first_sub.empty else first_sub.drop(columns=['_ord']).to_dict('records')[0],
+            'team_players_with_actions_before_first_team_sub':ids,
+            'pre_sub_unique_player_count':len(ids),
+            'pre_sub_first_actions':sorted(first_actions,key=lambda x:x['action_number']),
+            'candidate_starter_sets_from_failure':[
+              [201945,202329,202334,203081,203086],[201945,202329,202334,203081,203090],[201945,202329,202334,203081,203148],[201945,202329,202334,203081,203459],[201945,202329,202334,203081,203468],[201945,202329,202334,203081,203486],[201945,202329,202334,203081,203943],[201945,202329,202334,203086,203090],[201945,202329,202334,203086,203148],[201945,202329,202334,203086,203459]
+            ],
+            'legacy_period_rows':ng.to_dict('records'),
+            'v3_period_rows':vg.drop(columns=['_ord']).to_dict('records'),
+            'pbp_period_rows':pg.to_dict('records')
+          }
+          pre_set=set(ids)
+          compatible=[s for s in payload['candidate_starter_sets_from_failure'] if pre_set.issubset(set(s))]
+          payload['candidate_sets_compatible_with_all_pre_sub_observed_players']=compatible
+          payload['compatible_candidate_count']=len(compatible)
+          Path('/tmp/out/OT_STARTER_EVIDENCE_21500916.json').write_text(json.dumps(payload,indent=2,default=str)+'\n')
+          print(json.dumps({k:payload[k] for k in ['game_id','pre_sub_unique_player_count','team_players_with_actions_before_first_team_sub','first_team_sub_action_number','compatible_candidate_count','candidate_sets_compatible_with_all_pre_sub_observed_players']},indent=2))
+          PY
+      - name: Persist evidence checkpoint
+        run: |
+          set -euo pipefail
+          mkdir -p team_trb_all_players/impact_database/ot_starter_evidence
+          cp /tmp/out/OT_STARTER_EVIDENCE_21500916.json team_trb_all_players/impact_database/ot_starter_evidence/
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/impact_database/ot_starter_evidence/OT_STARTER_EVIDENCE_21500916.json
+          git commit -m 'Persist 2015 OT starter evidence [skip ci]' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treb-2015-ot-starter-evidence-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
