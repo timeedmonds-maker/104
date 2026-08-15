@@ -59,7 +59,10 @@ jobs:
           vg=v[pd.to_numeric(v.gameId,errors='coerce').eq(gid) & pd.to_numeric(v.period,errors='coerce').eq(period)].copy()
           ng=n[pd.to_numeric(n.GAME_ID,errors='coerce').eq(gid) & pd.to_numeric(n.PERIOD,errors='coerce').eq(period)].copy()
           pg=p[pd.to_numeric(p.GAMEID,errors='coerce').eq(gid) & pd.to_numeric(p.PERIOD,errors='coerce').eq(period)].copy()
-          assert not vg.empty and not ng.empty and not pg.empty
+          # V3 is the direct chronology used for this starter-evidence test. Legacy/PBP
+          # period coverage is evidence to record, not a prerequisite: requiring all
+          # three here previously failed before revealing which source omitted P5.
+          assert not vg.empty, 'NBA-v3 has no period-5 rows for target game'
           cols={c.lower():c for c in vg.columns}
           action_col=cols.get('actionnumber') or cols.get('action_number')
           team_col=cols.get('teamid')
@@ -82,6 +85,7 @@ jobs:
             first_actions.append({'person_id':int(pid),'action_number':int(r['_ord']),'action_type':str(r[action_type]),'sub_type':None if not sub_type else str(r[sub_type]),'clock':None if not clock_col else str(r[clock_col])})
           payload={
             'status':'PASS', 'game_id':gid,'period':period,'team_id':team,
+            'source_period_row_counts':{'nbastatsv3':len(vg),'nbastats':len(ng),'pbpstats':len(pg)},
             'first_team_sub_action_number':None if first_sub.empty else int(first_sub['_ord'].iloc[0]),
             'first_team_sub_row':None if first_sub.empty else first_sub.drop(columns=['_ord']).to_dict('records')[0],
             'team_players_with_actions_before_first_team_sub':ids,
@@ -99,7 +103,7 @@ jobs:
           payload['candidate_sets_compatible_with_all_pre_sub_observed_players']=compatible
           payload['compatible_candidate_count']=len(compatible)
           Path('/tmp/out/OT_STARTER_EVIDENCE_21500916.json').write_text(json.dumps(payload,indent=2,default=str)+'\n')
-          print(json.dumps({k:payload[k] for k in ['game_id','pre_sub_unique_player_count','team_players_with_actions_before_first_team_sub','first_team_sub_action_number','compatible_candidate_count','candidate_sets_compatible_with_all_pre_sub_observed_players']},indent=2))
+          print(json.dumps({k:payload[k] for k in ['game_id','source_period_row_counts','pre_sub_unique_player_count','team_players_with_actions_before_first_team_sub','first_team_sub_action_number','compatible_candidate_count','candidate_sets_compatible_with_all_pre_sub_observed_players']},indent=2))
           PY
       - name: Persist evidence checkpoint
         run: |
