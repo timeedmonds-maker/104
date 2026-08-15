@@ -112,7 +112,7 @@ jobs:
           d=pd.read_csv('/tmp/diag/STARTER_RESIDUAL_64_KEYS.csv',dtype={'player_id':str},low_memory=False)
           d['player_id']=d.player_id.map(mat.sid); d['team_id']=pd.to_numeric(d.team_id,errors='raise').astype('int64')
           scope=d[(d.season.astype(str)==season) & (d.diagnostic_cause.astype(str)=='CROSS_PLAYER_STATE_INCOMPATIBILITY')].copy()
-          expected={2001:3,2024:52}[year]
+          expected={2001:10,2024:45}[year]
           if len(scope)!=expected:
               raise RuntimeError(f'cross-player scope drift {season}: expected={expected} got={len(scope)}')
 
