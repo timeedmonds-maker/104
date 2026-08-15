@@ -1,0 +1,247 @@
+name: TREB 2025-26 residual modern409 team fanout
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2025-residual-modern409-team-fanout.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-2025-residual-modern409-team-fanout
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  recover:
+    name: modern409 teams batch ${{ matrix.batch }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        batch: [0,1,2,3,4,5]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: team_trb_all_players/requirements.txt
+
+      - name: Install project dependencies
+        run: python -m pip install -r team_trb_all_players/requirements.txt
+
+      - name: Stage 1 - build authoritative team-batch targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/work/residual /tmp/out /tmp/modern_raw /tmp/modern_out
+          curl --fail --location --retry 4 \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/work/residual.zip \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9242191393/zip"
+          unzip -q /tmp/work/residual.zip -d /tmp/work/residual
+          BATCH='${{ matrix.batch }}' python - <<'PY'
+          import csv,gzip,json,pathlib,collections,os
+          batch=int(os.environ['BATCH'])
+          manifest=next(pathlib.Path('/tmp/work/residual').rglob('TREB_RESIDUAL_1751_MANIFEST.csv.gz'))
+          with gzip.open(manifest,'rt',encoding='utf-8',newline='') as f: rows=list(csv.DictReader(f))
+          keys={(int(float(r['player_id'])),int(float(r['team_id']))) for r in rows if str(r.get('season','')).replace('_','-')=='2025-26'}
+          assert len(keys)==409,len(keys)
+          teams=sorted({t for _,t in keys})
+          assert len(teams)==30,len(teams)
+          batch_teams=teams[batch*5:(batch+1)*5]
+          batch_keys={k for k in keys if k[1] in batch_teams}
+          full=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          schedule=pathlib.Path('team_trb_all_players/impact_database/roster_tenure/regular_season_games.jsonl.gz')
+          team_dates=collections.defaultdict(list)
+          with gzip.open(schedule,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  g=json.loads(line)
+                  if g.get('season')!='2025-26': continue
+                  d=str(g['game_date'])[:10]
+                  team_dates[int(g['home_team_id'])].append(d); team_dates[int(g['away_team_id'])].append(d)
+          selected=[]
+          with gzip.open(full,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  if r.get('season')!='2025-26' or not bool(r.get('full_core_reuse')): continue
+                  k=(int(r['player_id']),int(r['team_id']))
+                  if k not in batch_keys: continue
+                  dates=team_dates[int(r['team_id'])]
+                  r['query_start_date']=min(dates); r['query_end_date']=max(dates)
+                  r['canonical_seconds_on']=float(r.get('seconds_on',0.0))
+                  selected.append(r)
+          got={(int(r['player_id']),int(r['team_id'])) for r in selected}
+          assert got==batch_keys,(len(selected),len(batch_keys),len(batch_keys-got))
+          out=pathlib.Path('/tmp/work/targets_batch.jsonl.gz')
+          with gzip.open(out,'wt',encoding='utf-8') as f:
+              for r in selected: f.write(json.dumps(r,separators=(',',':'))+'\n')
+          pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz').write_bytes(out.read_bytes())
+          s={'stage':1,'status':'PASS','batch':batch,'teams':batch_teams,'target_count':len(selected),'all_409_keys':409}
+          pathlib.Path('/tmp/out/stage_1.json').write_text(json.dumps(s,indent=2))
+          print('STAGE1_GATE=PASS',json.dumps(s,sort_keys=True))
+          PY
+
+      - name: Upload Stage 1 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-modern409-team-${{ matrix.batch }}-stage-1-${{ github.run_id }}
+          path: /tmp/out/stage_1.json
+          retention-days: 90
+
+      - name: Stage 2 - acquire proven static CDN source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib,subprocess,tarfile,urllib.request,json
+          raw=Path('/tmp/modern_raw'); raw.mkdir(parents=True,exist_ok=True)
+          text=urllib.request.urlopen('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt').read().decode()
+          urls={line.split('=',1)[0].strip():line.split('=',1)[1].strip() for line in text.splitlines() if '=' in line}
+          arc=raw/'cdnnba_2025.tar.xz'
+          subprocess.run(['curl','--fail','--location','--retry','5','--retry-all-errors','--retry-delay','2','--output',str(arc),urls['cdnnba_2025']],check=True)
+          sha=hashlib.sha256(arc.read_bytes()).hexdigest()
+          expected='a5d1bed30778430816b755676649cb2e3690ea62df5d96f4d9d6e9a8b8839339'
+          assert sha==expected,(sha,expected)
+          with tarfile.open(arc,'r:xz') as tf: tf.extractall(raw)
+          csv=raw/'cdnnba_2025.csv'; assert csv.exists() and csv.stat().st_size==208091508
+          Path('/tmp/out/stage_2.json').write_text(json.dumps({'stage':2,'status':'PASS','archive_sha256':sha,'csv_bytes':csv.stat().st_size},indent=2))
+          print('STAGE2_GATE=PASS')
+          PY
+
+      - name: Upload Stage 2 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-modern409-team-${{ matrix.batch }}-stage-2-${{ github.run_id }}
+          path: /tmp/out/stage_2.json
+          retention-days: 90
+
+      - name: Stage 3 - reconstruct only this five-team batch
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/run_modern_treb_production_2025.py \
+            --raw /tmp/modern_raw --output /tmp/modern_out --batch-size 25 --force \
+            2>&1 | tee /tmp/out/production.log
+          test -f /tmp/modern_out/locked_seasons/2025-26.json
+          BATCH='${{ matrix.batch }}' python - <<'PY'
+          import json,pathlib,os
+          d=json.loads(pathlib.Path('/tmp/modern_out/locked_seasons/2025-26.json').read_text())
+          s={'stage':3,'status':d.get('status'),'batch':int(os.environ['BATCH']),'target_count':int(d.get('target_count',0)),'games_required':int(d.get('games_required',0)),'exceptions':len(d.get('exceptions') or []),'unmatched_rebound_rows':len(d.get('unmatched_rebound_rows') or []),'accepted_excluded_games':len(d.get('accepted_excluded_games') or [])}
+          pathlib.Path('/tmp/out/stage_3.json').write_text(json.dumps(s,indent=2))
+          print('STAGE3_GATE',json.dumps(s,sort_keys=True))
+          PY
+
+      - name: Upload Stage 3 checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-modern409-team-${{ matrix.batch }}-stage-3-${{ github.run_id }}
+          path: |
+            /tmp/out
+            /tmp/modern_out/checkpoints/2025-26
+            /tmp/modern_out/locked_seasons/2025-26.json
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+      - name: Stage 4 - enforce minutes gate and emit batch overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          BATCH='${{ matrix.batch }}' python - <<'PY'
+          import json,pathlib,csv,os
+          d=json.loads(pathlib.Path('/tmp/modern_out/locked_seasons/2025-26.json').read_text())
+          assert d.get('status')=='COMPLETE'
+          assert not d.get('exceptions') and not d.get('unmatched_rebound_rows') and not d.get('accepted_excluded_games')
+          rows=[]; bad=[]
+          for r in d.get('targets') or []:
+              target=float(r.get('canonical_seconds_on',0.0)); actual=float(r.get('seconds_on',0.0)); diff=actual-target
+              ton=int(r['team_oreb_on'])+int(r['team_dreb_on']); oon=int(r['opponent_oreb_on'])+int(r['opponent_dreb_on'])
+              toff=int(r['team_oreb_off'])+int(r['team_dreb_off']); ooff=int(r['opponent_oreb_off'])+int(r['opponent_dreb_off'])
+              on=ton/(ton+oon); off=toff/(toff+ooff)
+              status='PASS' if abs(diff)<=60 else 'MINUTES_MISMATCH'
+              if status!='PASS': bad.append((int(r['team_id']),str(r['player_id']),diff))
+              rows.append({'season':'2025-26','team_id':int(r['team_id']),'player_id':str(r['player_id']).removesuffix('.0'),'status':status,'target_seconds_on':target,'direct_seconds_on':actual,'minutes_diff_seconds':diff,'team_oreb_on':int(r['team_oreb_on']),'team_dreb_on':int(r['team_dreb_on']),'opponent_oreb_on':int(r['opponent_oreb_on']),'opponent_dreb_on':int(r['opponent_dreb_on']),'team_oreb_off':int(r['team_oreb_off']),'team_dreb_off':int(r['team_dreb_off']),'opponent_oreb_off':int(r['opponent_oreb_off']),'opponent_dreb_off':int(r['opponent_dreb_off']),'direct_treb_on':on,'direct_treb_off':off,'direct_treb_swing':on-off,'source':'static_cdnnba_2025_modern_exact_reconstruction'})
+          p=pathlib.Path('/tmp/out/batch_overlay.csv')
+          with p.open('w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+          s={'stage':4,'status':'PASS' if not bad else 'INCOMPLETE','batch':int(os.environ['BATCH']),'rows':len(rows),'minutes_gate_pass':len(rows)-len(bad),'minutes_gate_fail':len(bad),'max_abs_minutes_diff_seconds':max(abs(float(x['minutes_diff_seconds'])) for x in rows)}
+          pathlib.Path('/tmp/out/stage_4.json').write_text(json.dumps(s,indent=2))
+          print('STAGE4_GATE',json.dumps(s,sort_keys=True))
+          PY
+
+      - name: Upload batch recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-modern409-team-${{ matrix.batch }}-result-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: consolidate modern409 team fanout
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-modern409-team-*-result-${{ github.run_id }}
+          path: /tmp/batches
+          merge-multiple: false
+
+      - name: Consolidate exact 409 recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import csv,json,pathlib,collections,hashlib
+          files=sorted(pathlib.Path('/tmp/batches').rglob('batch_overlay.csv'))
+          rows=[]
+          for p in files:
+              with p.open(newline='',encoding='utf-8') as f: rows.extend(csv.DictReader(f))
+          keys=[(r['season'],int(r['team_id']),str(r['player_id'])) for r in rows]
+          dup=len(keys)-len(set(keys))
+          status=collections.Counter(r['status'] for r in rows)
+          out=pathlib.Path('/tmp/final/TREB_2025_26_RESIDUAL_409_TEAM_FANOUT.csv')
+          if rows:
+              with out.open('w',newline='',encoding='utf-8') as f:
+                  w=csv.DictWriter(f,fieldnames=list(rows[0])); w.writeheader(); w.writerows(sorted(rows,key=lambda r:(int(r['team_id']),int(float(r['player_id'])))))
+          summary={'status':'PASS' if len(rows)==409 and len(set(keys))==409 and status.get('PASS',0)==409 else 'INCOMPLETE','batch_files':len(files),'rows':len(rows),'unique_keys':len(set(keys)),'duplicates':dup,'status_counts':dict(status),'minutes_gate_pass':status.get('PASS',0),'minutes_gate_fail':len(rows)-status.get('PASS',0)}
+          if out.exists(): summary['overlay_sha256']=hashlib.sha256(out.read_bytes()).hexdigest()
+          pathlib.Path('/tmp/final/FANOUT_GATE.json').write_text(json.dumps(summary,indent=2,sort_keys=True))
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+
+      - name: Upload consolidated recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-modern409-team-fanout-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
