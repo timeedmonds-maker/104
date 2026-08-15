@@ -1,0 +1,64 @@
+name: Native89 large retained source inventory
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-large-source-inventory.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Inventory structured retained sources
+        run: |
+          python - <<'PY'
+          import pathlib,gzip,csv,json,itertools,os,re
+          root=pathlib.Path('team_trb_all_players')
+          toks=('poss','lineup','stat','raw','source','game','pbp','wowy','team','box','event')
+          out=[]
+          for p in root.rglob('*'):
+            if not p.is_file(): continue
+            s=str(p).lower()
+            if not any(t in s for t in toks): continue
+            if not any(s.endswith(x) for x in ('.csv','.csv.gz','.jsonl','.jsonl.gz','.json')): continue
+            size=p.stat().st_size
+            info={'path':str(p),'size':size}
+            try:
+              if s.endswith('.csv.gz'):
+                with gzip.open(p,'rt',newline='',encoding='utf-8',errors='replace') as f:
+                  rd=csv.DictReader(f); info['fields']=rd.fieldnames or []; info['sample']=next(rd,None)
+              elif s.endswith('.csv'):
+                with open(p,'rt',newline='',encoding='utf-8',errors='replace') as f:
+                  rd=csv.DictReader(f); info['fields']=rd.fieldnames or []; info['sample']=next(rd,None)
+              elif s.endswith('.jsonl.gz'):
+                with gzip.open(p,'rt',encoding='utf-8',errors='replace') as f:
+                  line=next((x for x in f if x.strip()),None)
+                if line:
+                  obj=json.loads(line); info['fields']=sorted(obj) if isinstance(obj,dict) else []; info['sample']=obj
+              elif s.endswith('.jsonl'):
+                with open(p,'rt',encoding='utf-8',errors='replace') as f:
+                  line=next((x for x in f if x.strip()),None)
+                if line:
+                  obj=json.loads(line); info['fields']=sorted(obj) if isinstance(obj,dict) else []; info['sample']=obj
+              elif s.endswith('.json') and size < 50_000_000:
+                obj=json.load(open(p,encoding='utf-8',errors='replace')); info['fields']=sorted(obj) if isinstance(obj,dict) else []
+            except Exception as e: info['error']=repr(e)
+            fs=' '.join(info.get('fields',[])).lower()
+            score=sum(int(t in fs) for t in ['oreb','dreb','poss','pts','points','fga','fgm','fta','turnover','seconds','rebound'])
+            info['raw_score']=score
+            if score>=2 or size>=10_000_000: out.append(info)
+          out.sort(key=lambda x:(-x.get('raw_score',0),-x['size'],x['path']))
+          pathlib.Path('native89_large_source_inventory.json').write_text(json.dumps(out[:1000],indent=2,default=str)+'\n')
+          for x in out[:120]: print(json.dumps({k:v for k,v in x.items() if k!='sample'},default=str))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-large-source-inventory-${{ github.run_id }}
+          path: native89_large_source_inventory.json
+          retention-days: 30
+          if-no-files-found: error
