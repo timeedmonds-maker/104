@@ -1,0 +1,123 @@
+name: TREB residual 1253 blocker classification
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-residual-1253-classify.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-residual-1253-classify
+  cancel-in-progress: false
+
+jobs:
+  classify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-residual-supervisor-v5-consolidated-31889002225
+          path: /tmp/current
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31889002225'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-materiality-autopilot-*-31875740731
+          path: /tmp/evidence/stageb
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31875740731'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-residual-supervisor-v2-*-31878574484
+          path: /tmp/evidence/v2
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31878574484'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-residual-supervisor-v5-2015-31889002225
+          path: /tmp/evidence/v5
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31889002225'
+      - name: Classify exact retained blocker causes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          python - <<'PY'
+          import json, pathlib, pandas as pd
+          K=['season','team_id','player_id']
+          cur=pd.read_csv('/tmp/current/AUTONOMOUS_BLOCKER_MANIFEST.csv',dtype={'player_id':str})
+          cur['player_id']=cur.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+          cur['team_id']=pd.to_numeric(cur.team_id,errors='raise').astype('int64')
+          assert len(cur)==1253 and not cur.duplicated(K).any(), (len(cur),cur.duplicated(K).sum())
+          rows=[]
+          for p in pathlib.Path('/tmp/evidence').rglob('blockers_*.csv'):
+              if p.stat().st_size==0: continue
+              try: d=pd.read_csv(p,dtype={'player_id':str})
+              except pd.errors.EmptyDataError: continue
+              if not len(d) or not set(K).issubset(d.columns): continue
+              d['player_id']=d.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+              d['team_id']=pd.to_numeric(d.team_id,errors='coerce').astype('Int64')
+              d=d.dropna(subset=['team_id']).copy(); d['team_id']=d.team_id.astype('int64')
+              d['evidence_file']=str(p)
+              rows.append(d)
+          det=pd.concat(rows,ignore_index=True,sort=False) if rows else pd.DataFrame(columns=K)
+          if len(det):
+              det=det.merge(cur[K],on=K,how='inner')
+          # Prefer the latest / most explicit status available per key, while retaining all observed statuses.
+          status_col='status' if 'status' in det.columns else None
+          if status_col:
+              g=(det.assign(status=det.status.fillna('UNKNOWN').astype(str))
+                   .groupby(K,dropna=False)['status']
+                   .agg(lambda s:'|'.join(sorted(set(s))))
+                   .reset_index(name='observed_statuses'))
+              out=cur.merge(g,on=K,how='left')
+          else:
+              out=cur.copy(); out['observed_statuses']='UNKNOWN'
+          out['observed_statuses']=out.observed_statuses.fillna('NO_DETAIL')
+          out.to_csv('/tmp/out/BLOCKER_1253_CLASSIFIED.csv',index=False)
+          by_status=out.observed_statuses.value_counts().rename_axis('observed_statuses').reset_index(name='keys')
+          by_status.to_csv('/tmp/out/BLOCKER_STATUS_COUNTS.csv',index=False)
+          by_season=out.groupby('season').size().rename('keys').reset_index().sort_values('season')
+          by_season.to_csv('/tmp/out/BLOCKER_SEASON_COUNTS.csv',index=False)
+          qa={
+            'status':'PASS','target_blockers':1253,'classified_keys':int((out.observed_statuses!='NO_DETAIL').sum()),
+            'no_detail_keys':int((out.observed_statuses=='NO_DETAIL').sum()),
+            'seasons':int(out.season.nunique()),
+            'status_counts':{str(k):int(v) for k,v in out.observed_statuses.value_counts().to_dict().items()},
+            'season_counts':{str(k):int(v) for k,v in out.season.value_counts().sort_index().to_dict().items()},
+            'materiality_threshold_pp':0.01,'materiality_dimensions':['ON','OFF','SWING'],'minutes_gate_seconds':60,
+            'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,
+            'partial_tenure_whole_team_subtraction_used':False
+          }
+          pathlib.Path('/tmp/out/BLOCKER_CLASSIFICATION_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(qa,indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-residual-1253-classification-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
