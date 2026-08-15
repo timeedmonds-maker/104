@@ -1,0 +1,441 @@
+name: TREB assemble known-good release with solved overlays
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-assemble-known-good-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-known-good-release-assembly
+  cancel-in-progress: false
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BASE_ARTIFACT_ID: '9211673158'
+      METRIC90_ARTIFACT_ID: '9229738413'
+      OVERLAY23_ARTIFACT_ID: '9234231192'
+      BASE_HEAD: '9d6e963412d88e78e4a25c874af95fe010930df8'
+      CORRECTED_OVERLAY_COMMIT: '42d00d75d80251d35d147c2e3dd3d13857519ce2'
+      OUTDIR: 'team_trb_all_players/final_integrity_rebuild/known_good_release_assembly'
+    steps:
+      - name: Checkout production branch with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/treb-final-exact-assembly
+
+      - name: Install assembly dependencies
+        run: |
+          python -m pip install --quiet pandas pyarrow
+
+      - name: Configure monitoring and checkpoints
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p "$OUTDIR" /tmp/treb_assembly/{base_artifact,metric90,overlay23,corrected_commit,release,output}
+          cat > /tmp/treb_checkpoint.sh <<'SH'
+          checkpoint() {
+            phase="$1"
+            printf '%s\n' "$(date -u +%FT%TZ) phase=$phase" | tee "$OUTDIR/CURRENT_PHASE.txt"
+            git add "$OUTDIR" || true
+            if ! git diff --cached --quiet; then
+              git commit -m "TREB assembly checkpoint: $phase" || true
+              git push origin HEAD:agent/treb-final-exact-assembly || true
+            fi
+          }
+          SH
+          chmod +x /tmp/treb_checkpoint.sh
+          (
+            while true; do
+              echo "[HEARTBEAT] $(date -u +%FT%TZ) known-good release assembly alive"
+              if [ -f "$OUTDIR/CURRENT_PHASE.txt" ]; then cat "$OUTDIR/CURRENT_PHASE.txt"; fi
+              if [ -f "$OUTDIR/PROGRESS.json" ]; then cat "$OUTDIR/PROGRESS.json"; fi
+              sleep 120
+            done
+          ) &
+          echo $! > /tmp/heartbeat.pid
+          source /tmp/treb_checkpoint.sh
+          checkpoint setup_complete
+
+      - name: Download pinned base and solved overlay artifacts
+        run: |
+          set -euo pipefail
+          echo '[PHASE] downloading exact pinned artifacts'
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BASE_ARTIFACT_ID}/zip" > /tmp/treb_assembly/base_outer.zip
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${METRIC90_ARTIFACT_ID}/zip" > /tmp/treb_assembly/metric90_outer.zip
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${OVERLAY23_ARTIFACT_ID}/zip" > /tmp/treb_assembly/overlay23_outer.zip
+          unzip -q /tmp/treb_assembly/base_outer.zip -d /tmp/treb_assembly/base_artifact
+          unzip -q /tmp/treb_assembly/metric90_outer.zip -d /tmp/treb_assembly/metric90
+          unzip -q /tmp/treb_assembly/overlay23_outer.zip -d /tmp/treb_assembly/overlay23
+          {
+            echo '# Pinned source inventory'
+            echo
+            echo "- base artifact: ${BASE_ARTIFACT_ID}"
+            echo "- metric90 artifact: ${METRIC90_ARTIFACT_ID}"
+            echo "- 23-key overlay artifact: ${OVERLAY23_ARTIFACT_ID}"
+            echo "- corrected overlay commit: ${CORRECTED_OVERLAY_COMMIT}"
+            echo
+            echo '## Base artifact files'
+            find /tmp/treb_assembly/base_artifact -type f -printf '%s %p\n' | sort -nr | head -80
+            echo
+            echo '## Metric90 files'
+            find /tmp/treb_assembly/metric90 -type f -printf '%s %p\n' | sort -nr | head -80
+            echo
+            echo '## Overlay23 files'
+            find /tmp/treb_assembly/overlay23 -type f -printf '%s %p\n' | sort -nr | head -80
+          } > "$OUTDIR/SOURCE_INVENTORY.md"
+          python - <<'PY'
+          import json, os
+          out=os.environ['OUTDIR']
+          json.dump({'phase':'artifacts_downloaded','base_artifact':9211673158,'metric90_artifact':9229738413,'overlay23_artifact':9234231192},open(f'{out}/PROGRESS.json','w'),indent=2)
+          PY
+          source /tmp/treb_checkpoint.sh
+          checkpoint artifacts_downloaded
+
+      - name: Materialize corrected post-release overlay commit
+        run: |
+          set -euo pipefail
+          git cat-file -e "${CORRECTED_OVERLAY_COMMIT}^{commit}"
+          git worktree add --detach /tmp/treb_assembly/corrected_commit "$CORRECTED_OVERLAY_COMMIT"
+          git diff --name-only "$BASE_HEAD" "$CORRECTED_OVERLAY_COMMIT" -- team_trb_all_players > "$OUTDIR/POST_RELEASE_CHANGED_FILES.txt" || true
+          python - <<'PY'
+          import json, os
+          out=os.environ['OUTDIR']
+          changed=[x.strip() for x in open(f'{out}/POST_RELEASE_CHANGED_FILES.txt') if x.strip()]
+          p=json.load(open(f'{out}/PROGRESS.json')); p.update({'phase':'corrected_commit_materialized','changed_files':len(changed)}); json.dump(p,open(f'{out}/PROGRESS.json','w'),indent=2)
+          PY
+          source /tmp/treb_checkpoint.sh
+          checkpoint corrected_commit_materialized
+
+      - name: Assemble exact repaired database candidate
+        run: |
+          set -euo pipefail
+          cat > /tmp/treb_assemble.py <<'PY'
+          import csv, gzip, io, json, os, re, shutil, sys, zipfile
+          from pathlib import Path
+          import pandas as pd
+
+          ROOT=Path('/tmp/treb_assembly')
+          OUT=Path(os.environ['OUTDIR'])
+          FINAL=ROOT/'output'
+          FINAL.mkdir(parents=True,exist_ok=True)
+          progress_path=OUT/'PROGRESS.json'
+          def progress(**kw):
+              d={}
+              if progress_path.exists():
+                  try:d=json.loads(progress_path.read_text())
+                  except:pass
+              d.update(kw); progress_path.write_text(json.dumps(d,indent=2,sort_keys=True))
+              print('[PROGRESS]',json.dumps(d,sort_keys=True),flush=True)
+
+          def unpack_base():
+              base=ROOT/'base_artifact'
+              nested=sorted([p for p in base.rglob('*.zip') if p.is_file()], key=lambda p:p.stat().st_size, reverse=True)
+              release=ROOT/'release'
+              if release.exists(): shutil.rmtree(release)
+              release.mkdir()
+              if nested and nested[0].stat().st_size>50_000_000:
+                  print('Using nested base release zip',nested[0],nested[0].stat().st_size,flush=True)
+                  with zipfile.ZipFile(nested[0]) as z:z.extractall(release)
+                  return nested[0]
+              print('Base artifact is unpacked package; copying tree',flush=True)
+              for p in base.iterdir():
+                  dst=release/p.name
+                  if p.is_dir(): shutil.copytree(p,dst)
+                  else: shutil.copy2(p,dst)
+              return None
+
+          def header(path):
+              try:
+                  if path.suffix=='.gz':
+                      with gzip.open(path,'rt',errors='replace') as f:return next(csv.reader(f))
+                  with open(path,'r',errors='replace',newline='') as f:return next(csv.reader(f))
+              except:return []
+
+          def count_lines(path,cap=None):
+              n=0
+              op=gzip.open if path.suffix=='.gz' else open
+              mode='rt'
+              try:
+                  with op(path,mode,errors='replace') as f:
+                      for _ in f:
+                          n+=1
+                          if cap and n>=cap:return n
+                  return n
+              except:return -1
+
+          def normcols(cols): return {re.sub(r'[^a-z0-9]','',str(c).lower()):c for c in cols}
+          def findcol(cols,*names):
+              n=normcols(cols)
+              for x in names:
+                  k=re.sub(r'[^a-z0-9]','',x.lower())
+                  if k in n:return n[k]
+              return None
+
+          def scan_base_detail():
+              cands=[]
+              for p in (ROOT/'release').rglob('*'):
+                  if not p.is_file() or not (p.name.lower().endswith('.csv') or p.name.lower().endswith('.csv.gz')):continue
+                  h=header(p); low={str(x).lower() for x in h}
+                  pid=findcol(h,'player_id','playerid'); season=findcol(h,'season','season_id'); metric=findcol(h,'metric','metric_name','stat')
+                  on=findcol(h,'on_value','on','onvalue','on_court_value'); off=findcol(h,'off_value','off','offvalue','off_court_value')
+                  if pid and season and metric and on and off:
+                      score=p.stat().st_size
+                      if 'detail' in p.name.lower():score+=2_000_000_000
+                      if 'database' in str(p).lower():score+=1_000_000_000
+                      cands.append((score,p,h))
+              if not cands: raise RuntimeError('No long-form base detail CSV with player/season/metric/on/off columns found')
+              cands.sort(reverse=True,key=lambda x:x[0])
+              return cands[0][1],cands[0][2],[(str(p.relative_to(ROOT/'release')),s,h) for s,p,h in cands[:10]]
+
+          def read_any(path):
+              name=path.name.lower()
+              try:
+                  if name.endswith('.csv') or name.endswith('.csv.gz'): return pd.read_csv(path,low_memory=False)
+                  if name.endswith('.jsonl') or name.endswith('.jsonl.gz'): return pd.read_json(path,lines=True,compression='infer')
+                  if name.endswith('.json') or name.endswith('.json.gz'):
+                      obj=json.load(gzip.open(path,'rt') if name.endswith('.gz') else open(path))
+                      if isinstance(obj,list): return pd.DataFrame(obj)
+                      if isinstance(obj,dict):
+                          for v in obj.values():
+                              if isinstance(v,list) and v and isinstance(v[0],dict):return pd.DataFrame(v)
+                  if name.endswith('.parquet'):return pd.read_parquet(path)
+              except Exception as e:
+                  print('READ_SKIP',path,repr(e),flush=True)
+              return None
+
+          def keycols(df):
+              c=list(df.columns)
+              return (findcol(c,'season','season_id'),findcol(c,'player_id','playerid'),findcol(c,'team_id','teamid'))
+
+          def metric90_candidate(roots):
+              best=None
+              inspected=[]
+              for root in roots:
+                  for p in root.rglob('*'):
+                      if not p.is_file() or not any(p.name.lower().endswith(x) for x in ('.csv','.csv.gz','.jsonl','.jsonl.gz','.json','.json.gz','.parquet')):continue
+                      if p.stat().st_size>500_000_000:continue
+                      df=read_any(p)
+                      if df is None or df.empty:continue
+                      s,pl,t=keycols(df)
+                      if not (s and pl and t):continue
+                      cols=list(df.columns)
+                      metric=findcol(cols,'metric','metric_name','stat')
+                      on=findcol(cols,'on_value','on','onvalue','treb_on','totalreboundpct_on','reb_pct_on','on_pct')
+                      off=findcol(cols,'off_value','off','offvalue','treb_off','totalreboundpct_off','reb_pct_off','off_pct')
+                      sub=df
+                      if metric:
+                          m=df[metric].astype(str).str.lower().str.replace(r'[^a-z0-9]','',regex=True)
+                          q=m.isin(['totalreboundpct','totalreboundpercentage','trebpct','rebpct','teamreboundpct'])
+                          if q.any(): sub=df[q].copy()
+                          elif not (on and off): continue
+                      if not (on and off):
+                          on=findcol(list(sub.columns),'on_value','on','onvalue','treb_on','totalreboundpct_on','reb_pct_on','on_pct')
+                          off=findcol(list(sub.columns),'off_value','off','offvalue','treb_off','totalreboundpct_off','reb_pct_off','off_pct')
+                      if not (on and off):continue
+                      keys=sub[[s,pl,t]].dropna().astype(str).drop_duplicates().shape[0]
+                      inspected.append({'path':str(p),'rows':len(sub),'keys':keys,'on':on,'off':off,'metric':metric})
+                      score=(keys==14524)*10_000_000 + keys
+                      if best is None or score>best[0]:best=(score,p,sub.copy(),(s,pl,t,on,off,metric),keys)
+              (OUT/'METRIC90_CANDIDATES.json').write_text(json.dumps(sorted(inspected,key=lambda x:x['keys'],reverse=True)[:100],indent=2))
+              if best is None:raise RuntimeError('No metric90 candidate found')
+              return best
+
+          def overlay23_candidate(root):
+              best=None; info=[]
+              for p in root.rglob('*'):
+                  if not p.is_file() or not any(p.name.lower().endswith(x) for x in ('.csv','.csv.gz','.jsonl','.jsonl.gz','.json','.json.gz','.parquet')):continue
+                  df=read_any(p)
+                  if df is None or df.empty:continue
+                  s,pl,t=keycols(df); metric=findcol(list(df.columns),'metric','metric_name','stat')
+                  on=findcol(list(df.columns),'on_value','on','onvalue'); off=findcol(list(df.columns),'off_value','off','offvalue')
+                  if not (s and pl and t and metric and on and off):continue
+                  keys=df[[s,pl,t]].dropna().astype(str).drop_duplicates().shape[0]
+                  rows=len(df)
+                  info.append({'path':str(p),'rows':rows,'keys':keys})
+                  score=(keys==23)*1_000_000+(rows==2047)*1_000_000+rows
+                  if best is None or score>best[0]:best=(score,p,df.copy(),(s,pl,t,metric,on,off),keys,rows)
+              (OUT/'OVERLAY23_CANDIDATES.json').write_text(json.dumps(sorted(info,key=lambda x:(x['keys']==23,x['rows']==2047,x['rows']),reverse=True)[:100],indent=2))
+              if best is None:raise RuntimeError('No 23-key overlay candidate found')
+              return best
+
+          def corrected_overlay_candidates(root):
+              info=[]
+              for p in root.rglob('*'):
+                  if not p.is_file() or not any(p.name.lower().endswith(x) for x in ('.csv','.csv.gz','.jsonl','.jsonl.gz','.parquet')):continue
+                  if not re.search(r'(treb|rebound|overlay|final|career)',str(p),re.I):continue
+                  df=read_any(p)
+                  if df is None or df.empty:continue
+                  s,pl,t=keycols(df)
+                  if not (s and pl and t):continue
+                  keys=df[[s,pl,t]].dropna().astype(str).drop_duplicates().shape[0]
+                  info.append({'path':str(p),'rows':len(df),'keys':keys,'columns':list(map(str,df.columns))[:80]})
+              info.sort(key=lambda x:(x['keys'] in (4877,4864,14524),x['keys'],x['rows']),reverse=True)
+              (OUT/'CORRECTED_OVERLAY_CANDIDATES.json').write_text(json.dumps(info[:200],indent=2))
+              return info
+
+          nested=unpack_base()
+          base_path,base_header,base_cands=scan_base_detail()
+          progress(phase='base_identified',base_detail=str(base_path),base_size=base_path.stat().st_size)
+          (OUT/'BASE_DETAIL_CANDIDATES.json').write_text(json.dumps(base_cands,indent=2))
+          print('BASE_DETAIL',base_path,base_header,flush=True)
+
+          m90=metric90_candidate([ROOT/'metric90',ROOT/'corrected_commit'])
+          _,m90path,m90df,mcols,mkeys=m90
+          ms,mp,mt,mon,moff,mmetric=mcols
+          progress(phase='metric90_identified',metric90_path=str(m90path),metric90_keys=mkeys,metric90_rows=len(m90df))
+          if mkeys!=14524: raise RuntimeError(f'Metric90 canonical key gate failed: {mkeys} != 14524')
+
+          ov=overlay23_candidate(ROOT/'overlay23')
+          _,ovpath,ovdf,ovcols,ovkeys,ovrows=ov
+          osn,opl,ot,ometric,oon,ooff=ovcols
+          progress(phase='overlay23_identified',overlay23_path=str(ovpath),overlay23_keys=ovkeys,overlay23_rows=ovrows)
+          if ovkeys!=23 or ovrows!=2047: raise RuntimeError(f'23-key overlay gate failed keys={ovkeys} rows={ovrows}')
+
+          corrected=corrected_overlay_candidates(ROOT/'corrected_commit')
+          progress(phase='post_release_overlay_inventory_complete',corrected_candidates=len(corrected))
+
+          base=pd.read_csv(base_path,low_memory=False)
+          bh=list(base.columns)
+          bs=findcol(bh,'season','season_id'); bp=findcol(bh,'player_id','playerid'); bt=findcol(bh,'team_id','teamid')
+          bm=findcol(bh,'metric','metric_name','stat'); bon=findcol(bh,'on_value','on','onvalue','on_court_value'); boff=findcol(bh,'off_value','off','offvalue','off_court_value'); bsw=findcol(bh,'swing','swing_value','diff','difference')
+          if not all([bs,bp,bt,bm,bon,boff]):raise RuntimeError('Base detail schema lost required columns')
+          base['_K']=base[bs].astype(str)+'|'+base[bp].astype(str)+'|'+base[bt].astype(str)+'|'+base[bm].astype(str)
+
+          # Apply the exact 23x89 native Stage2 repair first.
+          replaced23=0
+          for _,r in ovdf.iterrows():
+              key=f"{r[osn]}|{r[opl]}|{r[ot]}|{r[ometric]}"
+              idx=base.index[base['_K']==key]
+              if len(idx)==1:
+                  i=idx[0]; base.at[i,bon]=r[oon]; base.at[i,boff]=r[ooff]
+                  if bsw: base.at[i,bsw]=float(r[oon])-float(r[ooff])
+                  replaced23+=1
+              elif len(idx)==0:
+                  # Missing canonical row: clone any same-key template and replace metric/value fields.
+                  same=base.index[(base[bs].astype(str)==str(r[osn])) & (base[bp].astype(str)==str(r[opl])) & (base[bt].astype(str)==str(r[ot]))]
+                  if len(same)==0: raise RuntimeError(f'No template row for 23-key overlay {key}')
+                  new=base.loc[same[0]].copy(); new[bm]=r[ometric]; new[bon]=r[oon]; new[boff]=r[ooff]
+                  if bsw:new[bsw]=float(r[oon])-float(r[ooff])
+                  new['_K']=key; base=pd.concat([base,pd.DataFrame([new])],ignore_index=True); replaced23+=1
+              else: raise RuntimeError(f'Duplicate base row for overlay key {key}: {len(idx)}')
+          if replaced23!=2047:raise RuntimeError(f'23-key overlay applied rows {replaced23} != 2047')
+          progress(phase='overlay23_applied',overlay23_applied=replaced23)
+
+          # Remove any pre-existing TotalReboundPct rows so the exact validated layer has sole precedence.
+          metric_norm=base[bm].astype(str).str.lower().str.replace(r'[^a-z0-9]','',regex=True)
+          existing_m90=metric_norm.eq('totalreboundpct')
+          removed=int(existing_m90.sum())
+          base=base.loc[~existing_m90].copy()
+
+          # Build 14,524 metric90 rows from a same-key template, preserving IDs/names/minutes/season metadata.
+          rows=[]; missing_templates=[]
+          base_key_no_metric=base[bs].astype(str)+'|'+base[bp].astype(str)+'|'+base[bt].astype(str)
+          first_idx={k:i for i,k in zip(base.index,base_key_no_metric)}
+          for _,r in m90df.iterrows():
+              k=f"{r[ms]}|{r[mp]}|{r[mt]}"
+              i=first_idx.get(k)
+              if i is None:
+                  missing_templates.append(k); continue
+              new=base.loc[i].copy(); new[bm]='TotalReboundPct'; new[bon]=r[mon]; new[boff]=r[moff]
+              if bsw:new[bsw]=float(r[mon])-float(r[moff])
+              new['_K']=k+'|TotalReboundPct'; rows.append(new)
+          if missing_templates:raise RuntimeError(f'Metric90 missing base templates {len(missing_templates)} sample={missing_templates[:10]}')
+          if len(rows)!=14524:raise RuntimeError(f'Metric90 rows built {len(rows)} != 14524')
+          base=pd.concat([base,pd.DataFrame(rows)],ignore_index=True)
+          progress(phase='metric90_applied',metric90_rows=14524,preexisting_metric90_removed=removed,total_detail_rows=len(base))
+
+          # Final strict canonical gates.
+          mn=base[bm].astype(str).str.lower().str.replace(r'[^a-z0-9]','',regex=True)
+          m90final=base[mn.eq('totalreboundpct')]
+          canon=m90final[[bs,bp,bt]].astype(str).drop_duplicates()
+          dup=len(m90final)-len(canon)
+          metrics=base[bm].astype(str).drop_duplicates().tolist()
+          metric_count=len(metrics)
+          seasons=sorted(base[bs].astype(str).drop_duplicates().tolist())
+          if len(canon)!=14524 or dup!=0:raise RuntimeError(f'Final metric90 canonical gate keys={len(canon)} dup={dup}')
+          if metric_count!=90:raise RuntimeError(f'Final usable metric count gate {metric_count} != 90')
+          if len(seasons)!=26:raise RuntimeError(f'Season coverage gate {len(seasons)} != 26')
+
+          # Adams regression if minutes field exists.
+          mincol=findcol(bh,'on_minutes','minutes','onminutes','minutes_on')
+          adams={}
+          if mincol and mincol in base.columns:
+              ad=m90final[m90final[bp].astype(str).eq('203500')]
+              career=float(pd.to_numeric(ad[mincol],errors='coerce').fillna(0).sum())
+              adams={'career_on_minutes':career,'metric90_rows':len(ad)}
+              if not (20460<=career<=20485):raise RuntimeError(f'Adams minutes gate failed {career}')
+
+          base=base.drop(columns=['_K'],errors='ignore')
+          tmp=base_path.with_suffix(base_path.suffix+'.new')
+          base.to_csv(tmp,index=False)
+          tmp.replace(base_path)
+
+          # Package exact repaired release directory.
+          finalzip=FINAL/'TREB_final_database_2000-01_to_2025-26.zip'
+          if finalzip.exists():finalzip.unlink()
+          with zipfile.ZipFile(finalzip,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
+              for p in sorted((ROOT/'release').rglob('*')):
+                  if p.is_file():z.write(p,p.relative_to(ROOT/'release'))
+          import hashlib
+          h=hashlib.sha256()
+          with open(finalzip,'rb') as f:
+              for b in iter(lambda:f.read(1024*1024),b''):h.update(b)
+          digest=h.hexdigest()
+          (FINAL/(finalzip.name+'.sha256')).write_text(digest+'  '+finalzip.name+'\n')
+          validation={'status':'PASS','base_artifact_id':9211673158,'base_head':os.environ['BASE_HEAD'],'corrected_overlay_commit':os.environ['CORRECTED_OVERLAY_COMMIT'],'metric90_artifact_id':9229738413,'overlay23_artifact_id':9234231192,'detail_file':str(base_path.relative_to(ROOT/'release')),'detail_rows':len(base),'metric_count':metric_count,'metric90_rows':len(m90final),'canonical_keys':len(canon),'duplicates':dup,'season_count':len(seasons),'adams':adams,'sha256':digest,'zip_bytes':finalzip.stat().st_size}
+          (FINAL/'VALIDATION.json').write_text(json.dumps(validation,indent=2,sort_keys=True))
+          (OUT/'FINAL_VALIDATION.json').write_text(json.dumps(validation,indent=2,sort_keys=True))
+          progress(phase='ASSEMBLY_PASS',**validation)
+          print(json.dumps(validation,indent=2),flush=True)
+          PY
+          python /tmp/treb_assemble.py
+          source /tmp/treb_checkpoint.sh
+          checkpoint assembly_pass
+
+      - name: Verify ZIP integrity and SHA256
+        run: |
+          set -euo pipefail
+          ZIP=/tmp/treb_assembly/output/TREB_final_database_2000-01_to_2025-26.zip
+          test -s "$ZIP"
+          unzip -t "$ZIP" >/tmp/unzip_test.txt
+          cd /tmp/treb_assembly/output
+          sha256sum -c TREB_final_database_2000-01_to_2025-26.zip.sha256
+          cp /tmp/unzip_test.txt "$GITHUB_WORKSPACE/$OUTDIR/ZIP_TEST.txt"
+          python - <<'PY'
+          import json,os
+          p=f"{os.environ['OUTDIR']}/PROGRESS.json"; d=json.load(open(p)); d['phase']='zip_verified'; json.dump(d,open(p,'w'),indent=2,sort_keys=True)
+          PY
+          source /tmp/treb_checkpoint.sh
+          checkpoint zip_verified
+
+      - name: Upload corrected database release
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-corrected-${{ github.run_id }}
+          path: |
+            /tmp/treb_assembly/output/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/treb_assembly/output/TREB_final_database_2000-01_to_2025-26.zip.sha256
+            /tmp/treb_assembly/output/VALIDATION.json
+            team_trb_all_players/final_integrity_rebuild/known_good_release_assembly/**
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Stop heartbeat
+        if: always()
+        run: |
+          if [ -f /tmp/heartbeat.pid ]; then kill "$(cat /tmp/heartbeat.pid)" 2>/dev/null || true; fi
