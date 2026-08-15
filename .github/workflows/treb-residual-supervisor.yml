@@ -1,0 +1,392 @@
+name: TREB residual supervisor to completion
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-residual-supervisor.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-residual-supervisor
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONPATH: /home/runner/work/104/104/team_trb_all_players
+  BLOCKER_RUN: "31877755142"
+  STAGEB_RUN: "31875740731"
+  HIST_SOURCE_RUN: "31871719056"
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+
+jobs:
+  classify:
+    name: A - classify current 1253 blockers and build retry matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      blocker_count: ${{ steps.plan.outputs.blocker_count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-materiality-consolidated-31877755142
+          path: /tmp/current
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31877755142'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-materiality-autopilot-*-${{ env.STAGEB_RUN }}
+          path: /tmp/stageb
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.STAGEB_RUN }}
+      - name: A1 - exact blocker classification
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/plan
+          python - <<'PY'
+          import json, pathlib, pandas as pd
+          current=pd.read_csv('/tmp/current/AUTONOMOUS_BLOCKER_MANIFEST.csv',dtype={'player_id':str})
+          assert len(current)==1253, len(current)
+          details=[]
+          for p in pathlib.Path('/tmp/stageb').rglob('blockers_*.csv'):
+              if p.stat().st_size==0: continue
+              try: d=pd.read_csv(p,dtype={'player_id':str})
+              except pd.errors.EmptyDataError: continue
+              if len(d): details.append(d)
+          det=pd.concat(details,ignore_index=True,sort=False) if details else pd.DataFrame()
+          if len(det):
+              det['player_id']=det.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+              det['team_id']=pd.to_numeric(det.team_id,errors='coerce').astype('Int64')
+              merged=current.merge(det,on=['season','team_id','player_id'],how='left',suffixes=('','_detail'))
+          else: merged=current.copy(); merged['status']='UNKNOWN'
+          merged.to_csv('/tmp/plan/BLOCKER_DETAIL_1253.csv',index=False)
+          counts=merged.get('status',pd.Series(['UNKNOWN']*len(merged))).fillna('UNKNOWN').value_counts().to_dict()
+          years=sorted({int(str(s)[:4]) for s in current.season})
+          matrix={'include':[{'year':y,'season':f'{y}-{(y+1)%100:02d}','target_keys':int((current.season==f"{y}-{(y+1)%100:02d}").sum())} for y in years]}
+          qa={'status':'PASS','blockers':len(current),'seasons':len(years),'status_counts':{str(k):int(v) for k,v in counts.items()},'retry_strategy':'expanded bounded exact/legal scenarios','state_cap':2000000,'scenario_cap_per_game':4096,'materiality_threshold_pp':0.01,'materiality_dimensions':['ON','OFF','SWING'],'minutes_gate_seconds':60,'empirical_model_used':False}
+          pathlib.Path('/tmp/plan/SUPERVISOR_PLAN.json').write_text(json.dumps(qa,indent=2)+'\n')
+          pathlib.Path('/tmp/matrix.json').write_text(json.dumps(matrix,separators=(',',':')))
+          print(json.dumps(qa,indent=2))
+          PY
+          echo "matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+          echo "blocker_count=1253" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-residual-supervisor-plan-${{ github.run_id }}
+          path: /tmp/plan
+          retention-days: 90
+          compression-level: 1
+
+  recover:
+    name: B - ${{ matrix.season }} expanded bounded retry (${{ matrix.target_keys }} keys)
+    needs: classify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 24
+      matrix: ${{ fromJSON(needs.classify.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-residual-supervisor-plan-${{ github.run_id }}
+          path: /tmp/plan
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-materiality-autopilot-plan-${{ env.STAGEB_RUN }}
+          path: /tmp/original_plan
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.STAGEB_RUN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-auto-v3-historical-${{ matrix.year }}-*-${{ env.HIST_SOURCE_RUN }}
+          path: /tmp/historical
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.HIST_SOURCE_RUN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-materiality-consolidated-31877755142
+          path: /tmp/current
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31877755142'
+      - name: B1 - materialize only current unresolved season keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out /tmp/src
+          YEAR='${{ matrix.year }}' python - <<'PY'
+          import gzip,json,os,pandas as pd
+          y=int(os.environ['YEAR']); season=f'{y}-{(y+1)%100:02d}'
+          b=pd.read_csv('/tmp/current/AUTONOMOUS_BLOCKER_MANIFEST.csv',dtype={'player_id':str})
+          b=b[b.season.eq(season)]
+          ks={(r.season,int(r.team_id),str(r.player_id).removesuffix('.0')) for r in b.itertuples()}
+          selected=[]
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line); k=(str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0'))
+                  if k in ks:
+                      assert bool(r.get('full_core_reuse')); selected.append(r)
+          got={(str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0')) for r in selected}
+          assert got==ks and len(selected)==len(ks)>0,(season,len(got),len(ks))
+          with gzip.open('/tmp/targets.jsonl.gz','wt',encoding='utf-8') as f:
+              for r in selected: f.write(json.dumps(r,separators=(',',':'))+'\n')
+          print('TARGET_GATE=PASS',season,len(selected))
+          PY
+      - name: B2 - download retained static source feeds
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --connect-timeout 15 --max-time 60 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - '${{ matrix.year }}' <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_{y}'; assert k in vals,k; print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${{ matrix.year }}.tar.xz"
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 300 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+      - name: B3 - expanded exact replay and legal-scenario materiality
+        timeout-minutes: 24
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}' python -u - <<'PY' | tee /tmp/out/SUPERVISOR_RETRY.log
+          import os,sys
+          import residual_materiality_autopilot as m
+          m.STATE_CAP=2000000
+          m.SCENARIO_CAP=4096
+          y=os.environ['YEAR']
+          sys.argv=['residual_materiality_autopilot.py','--year',y,'--targets','/tmp/targets.jsonl.gz','--historical-dir','/tmp/historical','--report','/tmp/original_plan/GAME_GAP_FORENSIC_REPORT.json','--candidates','/tmp/original_plan/GAME_GAP_CANDIDATE_REPAIRS.json','--nba',f'/tmp/src/nbastats_{y}.csv','--v3',f'/tmp/src/nbastatsv3_{y}.csv','--pbp',f'/tmp/src/pbpstats_{y}.csv','--out','/tmp/out']
+          m.main()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-residual-supervisor-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: C - consolidate expanded recovery and gate 9647
+    needs: [classify, recover]
+    if: always() && needs.classify.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    outputs:
+      ready: ${{ steps.gate.outputs.ready }}
+      unresolved: ${{ steps.gate.outputs.unresolved }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-materiality-autopilot-*-${{ env.STAGEB_RUN }}
+          path: /tmp/allhist/stageb
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.STAGEB_RUN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-residual-supervisor-*-${{ github.run_id }}
+          path: /tmp/allhist/expanded
+          merge-multiple: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-resume-consolidated-31858884423
+          path: /tmp/baseexact
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31858884423'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-accept-immaterial-overlay-31861830762
+          path: /tmp/starter1367
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31861830762'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-captains-call-63-consolidated-31864265375
+          path: /tmp/starter63
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31864265375'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-modern409-team-fanout-consolidated-31869325468
+          path: /tmp/modern409
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31869325468'
+      - name: C1 - fail-closed union
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODERN=$(find /tmp/modern409 -name 'TREB_2025_26_RESIDUAL_409_TEAM_FANOUT.csv' -print -quit)
+          python team_trb_all_players/autonomous_consolidate_fullcore.py --targets "$TARGETS" --baseexact /tmp/baseexact/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz --starter1367 /tmp/starter1367/STARTER_ACCEPT_IMMATERIAL_OVERLAY_1367.csv.gz --starter63 /tmp/starter63/STARTER_CAPTAINS_CALL_63_OVERLAY.csv.gz --modern409 "$MODERN" --historical-dir /tmp/allhist --out /tmp/consolidated
+      - name: C2 - safety/readiness gate
+        id: gate
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,pathlib
+          q=json.load(open('/tmp/consolidated/AUTONOMOUS_CONSOLIDATION_QA.json'))
+          for p in pathlib.Path('/tmp/allhist').rglob('AUTOPILOT_QA.json'):
+              x=json.load(open(p)); assert x['materiality_threshold_pp']==0.01; assert not x['rounded_percentage_backsolve_used']; assert not x['opponent_rebound_inference_used']; assert not x['whole_team_subtraction_across_partial_tenure_used']
+          print('ready=' + ('true' if q['status']=='PASS' else 'false'))
+          print('unresolved=' + str(q['unresolved']))
+          print(json.dumps(q,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-residual-supervisor-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+          retention-days: 90
+          compression-level: 1
+
+  final_release:
+    name: D - final 90-metric database ZIP
+    needs: consolidate
+    if: needs.consolidate.outputs.ready == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-prepared-canonical-layers-31844978593
+          path: /tmp/prep
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31844978593'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-residual-supervisor-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+      - name: D1 - assemble canonical release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python team_trb_all_players/autonomous_finalize_exact_release.py --targets "$TARGETS" --native /tmp/prep/native_89_canonical.parquet --partial /tmp/prep/exact_partial_4877.parquet --fullcore /tmp/consolidated/FULLCORE_TOTALREBOUNDPCT_AUTONOMOUS.csv.gz --out /tmp/final
+      - name: D2 - hard QA and ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          q=json.load(open('/tmp/final/FINAL_QA.json'))
+          assert q['status']=='PASS' and q['canonical_keys']==14524 and q['seasons']==26 and q['native_metrics']==89 and q['total_metrics']==90
+          assert q['native_canonical_rows']==1292636 and q['partial_treb']==4877 and q['full_core_treb']==9647 and q['total_rebound_pct_rows']==14524
+          assert q['duplicate_total_rebound_pct']==0 and q['missing_total_rebound_pct']==0 and q['steven_adams_career_total_rebound_pct_rows']==1
+          assert 20460 <= q['steven_adams_career_minutes'] <= 20485 and 540 <= q['career_10000_min_total_rebound_pct_population'] <= 565
+          assert not q['rounded_percentage_backsolve'] and not q['opponent_rebound_inference'] and not q['partial_tenure_whole_team_subtraction'] and not q['empirical_model_used']
+          print(json.dumps(q,indent=2,sort_keys=True))
+          PY
+          cd /tmp/final
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt ! -name TREB_final_database_2000-01_to_2025-26.zip -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+          zip -q -9 TREB_final_database_2000-01_to_2025-26.zip $(find . -maxdepth 1 -type f ! -name TREB_final_database_2000-01_to_2025-26.zip -printf '%P\n' | sort)
+          unzip -t TREB_final_database_2000-01_to_2025-26.zip > FINAL_ZIP_INTEGRITY.txt
+          sha256sum TREB_final_database_2000-01_to_2025-26.zip | tee FINAL_ZIP_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-residual-supervisor-${{ github.run_id }}
+          path: |
+            /tmp/final/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/final/FINAL_QA.json
+            /tmp/final/FINAL_ZIP_SHA256.txt
+            /tmp/final/FINAL_ZIP_INTEGRITY.txt
+            /tmp/final/SHA256SUMS.txt
+            /tmp/final/PROVENANCE.json
+          retention-days: 90
+          compression-level: 0
+          if-no-files-found: error
+
+  blocked:
+    name: E - automatically classify irreducible residuals
+    needs: consolidate
+    if: always() && needs.consolidate.outputs.ready != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-residual-supervisor-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-residual-supervisor-plan-${{ github.run_id }}
+          path: /tmp/plan
+      - name: E1 - exact blocker report, fail closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/blocker
+          cp /tmp/consolidated/AUTONOMOUS_BLOCKER_MANIFEST.csv /tmp/blocker/
+          cp /tmp/consolidated/AUTONOMOUS_CONSOLIDATION_QA.json /tmp/blocker/
+          python - <<'PY'
+          import json,pandas as pd,pathlib
+          b=pd.read_csv('/tmp/consolidated/AUTONOMOUS_BLOCKER_MANIFEST.csv',dtype={'player_id':str})
+          d=pd.read_csv('/tmp/plan/BLOCKER_DETAIL_1253.csv',dtype={'player_id':str})
+          d['player_id']=d.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+          x=b.merge(d,on=['season','team_id','player_id'],how='left',suffixes=('','_prior'))
+          x.to_csv('/tmp/blocker/IRREDUCIBLE_BLOCKER_DETAIL.csv',index=False)
+          c=x.get('status',pd.Series(['UNKNOWN']*len(x))).fillna('UNKNOWN').value_counts().to_dict()
+          q={'status':'BLOCKED_FAIL_CLOSED','unresolved':len(b),'status_counts':{str(k):int(v) for k,v in c.items()},'expanded_state_cap':2000000,'expanded_scenario_cap':4096,'materiality_threshold_pp':0.01,'materiality_dimensions':['ON','OFF','SWING'],'minutes_gate_seconds':60,'empirical_model_used':False,'next_action':'Only genuinely unresolved structural/source/material cases remain after automated bounded retries; no unsafe promotion performed.'}
+          pathlib.Path('/tmp/blocker/IRREDUCIBLE_QA.json').write_text(json.dumps(q,indent=2)+'\n')
+          print(json.dumps(q,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-residual-supervisor-blockers-${{ github.run_id }}
+          path: /tmp/blocker
+          retention-days: 90
+          compression-level: 1
