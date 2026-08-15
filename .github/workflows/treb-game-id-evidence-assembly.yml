@@ -52,7 +52,7 @@ jobs:
           blocker=sorted(blocker,key=lambda a:a.get('created_at',''),reverse=True)
           candidate=[a for a in arts if any(k in a.get('name','').lower() for k in ['fullcore','exact','histor','materiality','pbp','nba','v3','treb','source'])]
           chosen=[]; seen=set()
-          for a in blocker[:12]+sorted(candidate,key=lambda x:x.get('created_at',''),reverse=True)[:180]:
+          for a in blocker[:20]+sorted(candidate,key=lambda x:x.get('created_at',''),reverse=True)[:220]:
               if a['id'] not in seen:
                   chosen.append(a); seen.add(a['id'])
           extracted=[]
@@ -68,15 +68,27 @@ jobs:
           manifests=[]
           for root in Path('/tmp/game_evidence/artifacts').glob('*'):
               for p in list(root.rglob('*.csv'))+list(root.rglob('*.csv.gz')):
-                  q=p.name.lower()
-                  if 'blocker' in q or 'unresolved' in q:
-                      try:
-                          df=pd.read_csv(p,dtype=str,low_memory=False)
-                          if {'season','team_id','player_id'}.issubset(df.columns): manifests.append((p,df))
-                      except Exception: pass
-          if not manifests: raise SystemExit('No retained blocker/unresolved manifest found')
-          p,block=min(manifests,key=lambda x:abs(len(x[1])-1252))
-          block=block[['season','team_id','player_id']].drop_duplicates()
+                  try:
+                      df=pd.read_csv(p,dtype=str,low_memory=False)
+                      cols={str(c).strip().lower():c for c in df.columns}
+                      needed={'season','team_id','player_id'}
+                      if needed.issubset(cols):
+                          score=abs(len(df)-1252)
+                          name_bonus=0 if any(k in p.name.lower() for k in ['blocker','unresolved','residual']) else 250
+                          manifests.append((score+name_bonus,p,df,cols))
+                  except Exception:
+                      pass
+          if not manifests:
+              inventory=[]
+              for root in Path('/tmp/game_evidence/artifacts').glob('*'):
+                  for p in root.rglob('*'):
+                      if p.is_file(): inventory.append(str(p))
+              Path('/tmp/game_evidence/out/DISCOVERY_FAILURE_FILES.json').write_text(json.dumps(inventory[:20000],indent=2)+'\n')
+              raise SystemExit('No retained schema-compatible season/team_id/player_id manifest found')
+          _,p,block,cols=min(manifests,key=lambda x:x[0])
+          block=block[[cols['season'],cols['team_id'],cols['player_id']]].copy()
+          block.columns=['season','team_id','player_id']
+          block=block.drop_duplicates()
           fact_files=[]; game_ids=set(); file_games={}
           patterns=['game_id','GAME_ID','gameId']
           def inspect_df(fp,df):
@@ -110,7 +122,7 @@ jobs:
           for gid in sorted(game_ids):
               files=[f for f in fact_files if gid in file_games.get(f['file'],[])]
               bundle.append({'game_id':gid,'evidence_file_count':len(files),'files':[{'file':x['file'],'rows':x['rows'],'columns':x['columns']} for x in files]})
-          summary={'blocker_manifest':str(p),'blocker_keys':len(block),'blocker_seasons':seasons,'downloaded_artifacts':len(chosen),'extracted_artifacts':sum('dir' in x for x in extracted),'game_fact_files':len(fact_files),'distinct_game_ids':len(game_ids),'games_with_multi_file_evidence':sum(x['evidence_file_count']>=2 for x in bundle),'by_season_candidate_file_counts':{s:len(v) for s,v in by_season.items()}}
+          summary={'blocker_manifest':str(p),'blocker_keys':len(block),'blocker_seasons':seasons,'downloaded_artifacts':len(chosen),'extracted_artifacts':sum('dir' in x for x in extracted),'schema_compatible_manifests':len(manifests),'game_fact_files':len(fact_files),'distinct_game_ids':len(game_ids),'games_with_multi_file_evidence':sum(x['evidence_file_count']>=2 for x in bundle),'by_season_candidate_file_counts':{s:len(v) for s,v in by_season.items()}}
           out=Path('/tmp/game_evidence/out')
           (out/'GAME_ID_EVIDENCE_SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
           (out/'GAME_ID_EVIDENCE_BUNDLES.json').write_text(json.dumps(bundle,indent=2,sort_keys=True)+'\n')
