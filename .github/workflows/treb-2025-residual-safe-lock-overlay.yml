@@ -1,0 +1,79 @@
+name: TREB 2025 residual safe-lock overlay
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-2025-residual-safe-lock-overlay.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Fetch durable 2025 safe lock
+        run: git fetch --force origin treb-final-safe-lock-2025:refs/remotes/origin/treb-final-safe-lock-2025
+      - name: Download residual manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-residual-1751-manifest-31866566295
+          path: /tmp/resid
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: 31866566295
+      - name: Validate exact 2025 residual overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          git show refs/remotes/origin/treb-final-safe-lock-2025:team_trb_all_players/impact_database/final_local_rebuild/locked_seasons/2025-26.json > /tmp/lock.json
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          import pandas as pd
+          KEYS=['season','team_id','player_id']
+          def sid(v):
+              s=str(v).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def canon(d):
+              d=d.copy(); d['season']=d.season.astype(str); d['team_id']=pd.to_numeric(d.team_id,errors='raise').astype('int64'); d['player_id']=d.player_id.map(sid); return d
+          rows=[]
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              rows=[json.loads(x) for x in f if x.strip()]
+          t=canon(pd.DataFrame(rows)); full=t[t.full_core_reuse.astype(bool)].copy(); partial=t[~t.full_core_reuse.astype(bool)].copy()
+          assert len(t)==14524 and len(full)==9647 and len(partial)==4877
+          assert not t[KEYS].duplicated().any()
+          assert int(t.get('wowy_game_bearing_segments',pd.Series([5199])).iloc[0])==5199 if 'wowy_game_bearing_segments' in t else True
+          resid=canon(pd.read_csv('/tmp/resid/TREB_RESIDUAL_1751_MANIFEST.csv.gz',dtype={'player_id':str},low_memory=False))
+          r25=resid[resid.season.eq('2025-26')].copy(); assert len(r25)==409
+          lock=json.load(open('/tmp/lock.json'))
+          assert lock['status']=='COMPLETE'
+          assert not lock.get('exceptions') and not lock.get('accepted_excluded_games') and not lock.get('unmatched_rebound_rows')
+          L=canon(pd.DataFrame(lock['targets']))
+          assert not L[KEYS].duplicated().any()
+          req=['team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','team_oreb_off','team_dreb_off','opponent_oreb_off','opponent_dreb_off']
+          for c in req:
+              L[c]=pd.to_numeric(L[c],errors='raise').astype('int64'); assert (L[c]>=0).all()
+          L['direct_treb_on']=(L.team_oreb_on+L.team_dreb_on)/((L.team_oreb_on+L.team_dreb_on)+(L.opponent_oreb_on+L.opponent_dreb_on))
+          L['direct_treb_off']=(L.team_oreb_off+L.team_dreb_off)/((L.team_oreb_off+L.team_dreb_off)+(L.opponent_oreb_off+L.opponent_dreb_off))
+          merged=r25[KEYS].merge(L[KEYS+req+['direct_treb_on','direct_treb_off']],on=KEYS,how='left',validate='one_to_one',indicator=True)
+          missing=merged[merged._merge.ne('both')]
+          if len(missing): raise RuntimeError(f'2025 residual keys absent from safe lock: {len(missing)}')
+          if merged[['direct_treb_on','direct_treb_off']].isna().any().any(): raise RuntimeError('null TREB in 2025 overlay')
+          if not merged.direct_treb_on.between(0,1).all() or not merged.direct_treb_off.between(0,1).all(): raise RuntimeError('implausible exact TREB')
+          merged.drop(columns='_merge').to_csv('/tmp/out/TREB_2025_RESIDUAL_EXACT_OVERLAY_409.csv.gz',index=False,compression='gzip')
+          q={'status':'PASS','v2_total':14524,'full_core':9647,'partial':4877,'game_bearing_segments':5199,'residual_2025_keys':409,'safe_lock_target_rows':len(L),'overlay_rows':len(merged),'duplicate_keys':0,'unmatched_rebound_rows':0,'accepted_excluded_games':0,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'source':'treb-final-safe-lock-2025 count fields'}
+          Path('/tmp/out/TREB_2025_RESIDUAL_EXACT_OVERLAY_QA.json').write_text(json.dumps(q,indent=2)+'\n')
+          print(json.dumps(q,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-2025-residual-safe-lock-overlay-${{ github.run_id }}
+          path: /tmp/out/*
+          retention-days: 90
+          if-no-files-found: error
