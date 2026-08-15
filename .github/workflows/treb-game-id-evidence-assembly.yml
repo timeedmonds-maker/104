@@ -1,0 +1,132 @@
+name: TREB game ID evidence assembly
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  assemble:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas requests
+      - name: Assemble game-ID evidence bundles from retained artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/game_evidence/artifacts /tmp/game_evidence/out
+          python - <<'PY'
+          import json, os, re, csv, gzip, io, zipfile, urllib.request
+          from pathlib import Path
+          import pandas as pd
+          repo='timeedmonds-maker/104'; tok=os.environ['GH_TOKEN']; base=f'https://api.github.com/repos/{repo}'
+          hdr={'Authorization':f'Bearer {tok}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'treb-game-evidence'}
+          def api(path):
+              req=urllib.request.Request(base+path,headers=hdr)
+              with urllib.request.urlopen(req,timeout=60) as r:return json.load(r)
+          def getbytes(url):
+              req=urllib.request.Request(url,headers=hdr)
+              with urllib.request.urlopen(req,timeout=120) as r:return r.read()
+          # Discover newest retained blocker artifact and all candidate exact/partial/source artifacts.
+          arts=[]
+          for page in range(1,31):
+              xs=api(f'/actions/artifacts?per_page=100&page={page}').get('artifacts',[])
+              if not xs: break
+              arts.extend([a for a in xs if not a.get('expired')])
+          blocker=[a for a in arts if any(k in a.get('name','').lower() for k in ['blocker','consolidat','autonomous'])]
+          blocker=sorted(blocker,key=lambda a:a.get('created_at',''),reverse=True)
+          candidate=[a for a in arts if any(k in a.get('name','').lower() for k in ['fullcore','exact','histor','materiality','pbp','nba','v3','treb','source'])]
+          # Download bounded high-value artifact universe, newest first, deduping IDs.
+          chosen=[]; seen=set()
+          for a in blocker[:8]+sorted(candidate,key=lambda x:x.get('created_at',''),reverse=True)[:140]:
+              if a['id'] not in seen:
+                  chosen.append(a); seen.add(a['id'])
+          extracted=[]
+          for a in chosen:
+              try:
+                  b=getbytes(base+f"/actions/artifacts/{a['id']}/zip")
+                  z=zipfile.ZipFile(io.BytesIO(b))
+                  d=Path('/tmp/game_evidence/artifacts')/str(a['id']); d.mkdir(parents=True,exist_ok=True)
+                  z.extractall(d)
+                  extracted.append({'id':a['id'],'name':a['name'],'run_id':(a.get('workflow_run') or {}).get('id'),'dir':str(d)})
+              except Exception as e:
+                  extracted.append({'id':a['id'],'name':a['name'],'error':repr(e)})
+          # Locate authoritative unresolved manifest from downloaded artifacts.
+          manifests=[]
+          for root in Path('/tmp/game_evidence/artifacts').glob('*'):
+              for p in root.rglob('*.csv'):
+                  q=p.name.lower()
+                  if 'blocker' in q or 'unresolved' in q:
+                      try:
+                          df=pd.read_csv(p,dtype=str,low_memory=False)
+                          if {'season','team_id','player_id'}.issubset(df.columns): manifests.append((p,df))
+                      except: pass
+          if not manifests: raise SystemExit('No retained blocker/unresolved manifest found')
+          manifests.sort(key=lambda x:len(x[1]))
+          # Prefer manifest nearest current known 1252 count.
+          p,block=min(manifests,key=lambda x:abs(len(x[1])-1252))
+          block=block[['season','team_id','player_id']].drop_duplicates()
+          # Build game-fact index from every CSV/GZ/JSONL we downloaded. Accept game IDs only as identifiers; no inference.
+          fact_files=[]; game_ids=set(); file_games={}
+          patterns=['game_id','GAME_ID','gameId']
+          def inspect_df(fp,df):
+              col=next((c for c in patterns if c in df.columns),None)
+              if not col:return
+              vals=pd.to_numeric(df[col],errors='coerce').dropna().astype('int64').unique().tolist()
+              if vals:
+                  file_games[str(fp)]=[int(x) for x in vals]; game_ids.update(int(x) for x in vals)
+                  fact_files.append({'file':str(fp),'rows':int(len(df)),'game_id_col':col,'game_count':len(vals),'columns':list(df.columns)[:80]})
+          for root in Path('/tmp/game_evidence/artifacts').glob('*'):
+              for fp in root.rglob('*'):
+                  if not fp.is_file(): continue
+                  try:
+                      n=fp.name.lower()
+                      if n.endswith('.csv'):
+                          inspect_df(fp,pd.read_csv(fp,dtype=str,low_memory=False))
+                      elif n.endswith('.csv.gz') or n.endswith('.gz'):
+                          inspect_df(fp,pd.read_csv(fp,dtype=str,low_memory=False,compression='gzip'))
+                      elif n.endswith('.jsonl'):
+                          rows=[json.loads(x) for x in fp.read_text(errors='ignore').splitlines() if x.strip()]
+                          if rows: inspect_df(fp,pd.DataFrame(rows))
+                  except Exception: pass
+          # Cross-link blocker seasons to game-bearing retained files by season tokens and explicit failure reports.
+          seasons=sorted(block.season.astype(str).unique().tolist())
+          by_season={s:[] for s in seasons}
+          for f in fact_files:
+              low=f['file'].lower()
+              for s in seasons:
+                  y=s[:4]
+                  if s.lower().replace('-','') in low.replace('-','_').replace('_','') or y in low:
+                      by_season[s].append(f)
+          # Exact/partial fact promotion candidates: identify matching game facts from independent files, never calculate TREB here.
+          bundle=[]
+          for gid in sorted(game_ids):
+              files=[f for f in fact_files if gid in file_games.get(f['file'],[])]
+              if len(files)>=1:
+                  bundle.append({'game_id':gid,'evidence_file_count':len(files),'files':[{'file':x['file'],'rows':x['rows'],'columns':x['columns']} for x in files]})
+          summary={'blocker_manifest':str(p),'blocker_keys':len(block),'blocker_seasons':seasons,'downloaded_artifacts':len(chosen),'extracted_artifacts':sum('dir' in x for x in extracted),'game_fact_files':len(fact_files),'distinct_game_ids':len(game_ids),'games_with_multi_file_evidence':sum(x['evidence_file_count']>=2 for x in bundle),'by_season_candidate_file_counts':{s:len(v) for s,v in by_season.items()}}
+          Path('/tmp/game_evidence/out/GAME_ID_EVIDENCE_SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          Path('/tmp/game_evidence/out/GAME_ID_EVIDENCE_BUNDLES.json').write_text(json.dumps(bundle,indent=2,sort_keys=True)+'\n')
+          Path('/tmp/game_evidence/out/DOWNLOADED_ARTIFACTS.json').write_text(json.dumps(extracted,indent=2,sort_keys=True)+'\n')
+          block.to_csv('/tmp/game_evidence/out/BLOCKER_KEYS.csv',index=False)
+          print(json.dumps(summary,indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-game-id-evidence-${{ github.run_id }}
+          path: /tmp/game_evidence/out
+          retention-days: 90
+          compression-level: 1
