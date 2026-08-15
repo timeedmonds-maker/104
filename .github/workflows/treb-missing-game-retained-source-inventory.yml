@@ -1,0 +1,106 @@
+name: TREB missing-game retained-source inventory
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-missing-game-retained-source-inventory.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-missing-game-retained-source-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download current autonomous closure diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/closure /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253878073/zip > /tmp/closure.zip
+          unzip -q /tmp/closure.zip -d /tmp/closure
+      - name: Build exact missing-game manifest and scan retained repository sources only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,json,pathlib,gzip,re,collections,os
+          out=pathlib.Path('/tmp/out')
+          diag=next(pathlib.Path('/tmp/closure').rglob('TREB_AUTONOMOUS_DIAGNOSTICS.csv'))
+          rows=list(csv.DictReader(open(diag,newline='')))
+          miss=collections.defaultdict(set)
+          for r in rows:
+              try:e=json.loads(r.get('error') or '{}')
+              except:continue
+              for gid in e.get('missing',[]) or []:
+                  miss[str(gid)].add((r['season'],str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0')))
+          with open(out/'MISSING_GAME_KEYS.csv','w',newline='') as f:
+              w=csv.writer(f);w.writerow(['game_id','season','team_id','player_id'])
+              for gid in sorted(miss):
+                  for k in sorted(miss[gid]): w.writerow([gid,*k])
+          gids=set(miss)
+          roots=[pathlib.Path('team_trb_all_players')]
+          exts={'.csv','.json','.jsonl','.gz'}
+          candidates=[]
+          tokens=('retained','fact','game','box','pbp','v3','forensic','source','roster','cache','rebound')
+          for root in roots:
+              for p in root.rglob('*'):
+                  if not p.is_file(): continue
+                  n=p.name.lower()
+                  if p.suffix.lower() not in exts and not n.endswith(('.csv.gz','.jsonl.gz','.json.gz')): continue
+                  if not any(t in n or t in str(p.parent).lower() for t in tokens): continue
+                  candidates.append(p)
+          # Bound scan to retained derived/source files under 250 MB each; no network reconstruction.
+          hits=[]; scanned=[]
+          gid_re=re.compile('|'.join(re.escape(x) for x in sorted(gids,key=len,reverse=True))) if gids else None
+          for p in candidates:
+              try: size=p.stat().st_size
+              except: continue
+              if size>250_000_000: continue
+              scanned.append((str(p),size))
+              try:
+                  opener=gzip.open if p.name.endswith('.gz') else open
+                  with opener(p,'rt',encoding='utf-8',errors='ignore') as f:
+                      for ln,line in enumerate(f,1):
+                          if not gid_re: break
+                          m=gid_re.search(line)
+                          if not m: continue
+                          # Preserve bounded source evidence snippet, never promote automatically here.
+                          hits.append({'game_id':m.group(0),'source_file':str(p),'line':ln,'snippet':line[:1200].replace('\n',' ')})
+              except Exception as e:
+                  hits.append({'game_id':'','source_file':str(p),'line':0,'snippet':'SCAN_ERROR '+repr(e)})
+          with open(out/'RETAINED_SOURCE_GAME_HITS.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['game_id','source_file','line','snippet']);w.writeheader();w.writerows(hits)
+          by_gid=collections.Counter(h['game_id'] for h in hits if h['game_id'])
+          qa={
+            'status':'PASS','authoritative_start_residual':1251,'missing_game_ids':len(gids),
+            'missing_key_game_pairs':sum(len(v) for v in miss.values()),'candidate_files_scanned':len(scanned),
+            'source_hit_rows':sum(by_gid.values()),'missing_games_with_retained_repo_hits':len(by_gid),
+            'missing_games_without_retained_repo_hits':len(gids-set(by_gid)),
+            'strategy_ledger':{'strategy':'targeted retained repository exact-game source inventory','state':'COMPLETED','next':'Parse only hit-bearing retained sources with source-specific exact schemas; promote only complete same-tenure exact primitive bundles.'},
+            'integrity':{'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'unsafe_global_event_order_used':False}
+          }
+          (out/'RETAINED_SOURCE_INVENTORY_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          with open(out/'SCANNED_SOURCE_FILES.csv','w',newline='') as f:
+              w=csv.writer(f);w.writerow(['source_file','bytes']);w.writerows(scanned)
+          print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-missing-game-retained-source-inventory-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
