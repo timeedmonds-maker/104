@@ -1,0 +1,276 @@
+name: TREB metric90 payload recovery
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-metric90-payload-recovery.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: treb-metric90-payload-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      OUTDIR: team_trb_all_players/final_integrity_rebuild/metric90_payload_recovery
+      WINDOW_START: '2026-08-14T07:42:00Z'
+      WINDOW_END: '2026-08-15T00:40:00Z'
+      TARGET_KEYS: '14524'
+    steps:
+      - name: Checkout production branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/treb-final-exact-assembly
+
+      - name: Install dependencies
+        run: python -m pip install --quiet pandas pyarrow
+
+      - name: Configure heartbeat and durable checkpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p "$OUTDIR" /tmp/metric90_scan
+          cat > /tmp/checkpoint.sh <<'SH'
+          checkpoint() {
+            phase="$1"
+            printf '%s\n' "$(date -u +%FT%TZ) phase=$phase" | tee "$OUTDIR/CURRENT_PHASE.txt"
+            git add "$OUTDIR" || true
+            if ! git diff --cached --quiet; then
+              git commit -m "TREB metric90 recovery checkpoint: $phase" || true
+              git push origin HEAD:agent/treb-final-exact-assembly || true
+            fi
+          }
+          SH
+          chmod +x /tmp/checkpoint.sh
+          (
+            while true; do
+              echo "[HEARTBEAT] $(date -u +%FT%TZ) metric90 recovery alive"
+              test -f "$OUTDIR/CURRENT_PHASE.txt" && cat "$OUTDIR/CURRENT_PHASE.txt" || true
+              test -f "$OUTDIR/PROGRESS.json" && cat "$OUTDIR/PROGRESS.json" || true
+              sleep 120
+            done
+          ) &
+          echo $! > /tmp/heartbeat.pid
+          source /tmp/checkpoint.sh
+          checkpoint setup_complete
+
+      - name: Recover exact 14524-key TotalReboundPct payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/recover_metric90.py <<'PY'
+          import csv, gzip, io, json, os, re, shutil, subprocess, sys, time, zipfile
+          from pathlib import Path
+          import pandas as pd
+
+          OUT=Path(os.environ['OUTDIR'])
+          TMP=Path('/tmp/metric90_scan')
+          START=os.environ['WINDOW_START']; END=os.environ['WINDOW_END']; TARGET=int(os.environ['TARGET_KEYS'])
+          OUT.mkdir(parents=True,exist_ok=True); TMP.mkdir(parents=True,exist_ok=True)
+          prog_path=OUT/'PROGRESS.json'
+          last_checkpoint=time.time()
+
+          def run(cmd, timeout=60, check=True):
+              return subprocess.run(cmd, text=True, capture_output=True, timeout=timeout, check=check)
+
+          def checkpoint(phase, **kw):
+              global last_checkpoint
+              d={}
+              if prog_path.exists():
+                  try:d=json.loads(prog_path.read_text())
+                  except:pass
+              d.update({'phase':phase, **kw, 'updated_at':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())})
+              prog_path.write_text(json.dumps(d,indent=2,sort_keys=True))
+              print('[PROGRESS]',json.dumps(d,sort_keys=True),flush=True)
+              if time.time()-last_checkpoint>=110 or phase in ('artifact_inventory_complete','EXACT_FOUND','scan_complete_no_exact'):
+                  subprocess.run(['bash','-lc',f'source /tmp/checkpoint.sh; checkpoint {phase}'],check=False)
+                  last_checkpoint=time.time()
+
+          def norm(s): return re.sub(r'[^a-z0-9]','',str(s).lower())
+          def findcol(cols,*names):
+              m={norm(c):c for c in cols}
+              for n in names:
+                  if norm(n) in m:return m[norm(n)]
+              return None
+
+          def read_table(p):
+              n=p.name.lower()
+              try:
+                  if n.endswith('.csv') or n.endswith('.csv.gz'): return pd.read_csv(p,low_memory=False)
+                  if n.endswith('.jsonl') or n.endswith('.jsonl.gz'): return pd.read_json(p,lines=True,compression='infer')
+                  if n.endswith('.parquet'): return pd.read_parquet(p)
+                  if n.endswith('.json') or n.endswith('.json.gz'):
+                      fh=gzip.open(p,'rt') if n.endswith('.gz') else open(p)
+                      with fh as f: obj=json.load(f)
+                      if isinstance(obj,list): return pd.DataFrame(obj)
+                      if isinstance(obj,dict):
+                          for k in ('rows','data','records','results','items'):
+                              v=obj.get(k)
+                              if isinstance(v,list) and (not v or isinstance(v[0],dict)): return pd.DataFrame(v)
+                          for v in obj.values():
+                              if isinstance(v,list) and v and isinstance(v[0],dict): return pd.DataFrame(v)
+              except Exception as e:
+                  print('READ_SKIP',str(p),repr(e),flush=True)
+              return None
+
+          def normalize_candidate(df, source):
+              if df is None or df.empty:return None
+              cols=list(df.columns)
+              s=findcol(cols,'season','season_id','seasonid')
+              p=findcol(cols,'player_id','playerid','person_id')
+              t=findcol(cols,'team_id','teamid')
+              if not (s and p and t): return None
+              metric=findcol(cols,'metric','metric_name','stat','measure')
+              sub=df
+              if metric:
+                  mn=df[metric].astype(str).map(norm)
+                  mask=mn.isin({'totalreboundpct','totalreboundpercentage','trebpct','rebpct','teamreboundpct'})
+                  if mask.any(): sub=df.loc[mask].copy()
+                  else: return None
+              cols2=list(sub.columns)
+              on=findcol(cols2,'on','on_value','onvalue','on_court_value','on_pct','treb_on','totalreboundpct_on','reb_pct_on','reb_pct')
+              off=findcol(cols2,'off','off_value','offvalue','off_court_value','off_pct','treb_off','totalreboundpct_off','reb_pct_off')
+              if not (on and off):
+                  # Some retained payloads use explicit team rebound percentage names.
+                  on=findcol(cols2,'team_reb_pct_on','team_rebound_pct_on','team_total_rebound_pct_on')
+                  off=findcol(cols2,'team_reb_pct_off','team_rebound_pct_off','team_total_rebound_pct_off')
+              if not (on and off): return None
+              x=sub[[s,p,t,on,off]].copy()
+              x.columns=['season','player_id','team_id','on','off']
+              x=x.dropna(subset=['season','player_id','team_id'])
+              x['season']=x['season'].astype(str)
+              x['player_id']=x['player_id'].astype(str).str.replace(r'\.0$','',regex=True)
+              x['team_id']=x['team_id'].astype(str).str.replace(r'\.0$','',regex=True)
+              x['on']=pd.to_numeric(x['on'],errors='coerce'); x['off']=pd.to_numeric(x['off'],errors='coerce')
+              x=x.dropna(subset=['on','off'])
+              # Normalize percentage scale only if clearly 0-100.
+              med=pd.concat([x['on'],x['off']]).abs().median()
+              if pd.notna(med) and med>1.5: x[['on','off']]=x[['on','off']]/100.0
+              keys=x[['season','player_id','team_id']].drop_duplicates()
+              dup=len(x)-len(keys)
+              plausible=bool(((x['on'].between(0.20,0.80)) & (x['off'].between(0.20,0.80))).all()) if len(x) else False
+              return {'df':x,'keys':len(keys),'rows':len(x),'dup':dup,'plausible':plausible,'source':source}
+
+          # Inventory relevant post-release artifacts only.
+          artifacts=[]
+          for page in range(1,7):
+              r=run(['gh','api',f'/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/artifacts?per_page=100&page={page}'],timeout=30)
+              obj=json.loads(r.stdout)
+              batch=obj.get('artifacts',[])
+              if not batch:break
+              artifacts.extend(batch)
+          pat=re.compile(r'(treb|total.?rebound|rebound|canonical|exact|overlay|final|production)',re.I)
+          rel=[]
+          for a in artifacts:
+              created=a.get('created_at','')
+              if START<=created<=END and not a.get('expired') and pat.search(a.get('name','')):
+                  rel.append(a)
+          def pri(a):
+              n=a.get('name','').lower()
+              score=0
+              for term,val in [('totalrebound',100),('metric90',95),('exact',70),('canonical',65),('overlay',50),('final',30),('production',20)]:
+                  if term in n:score+=val
+              return (-score,a.get('created_at',''))
+          rel.sort(key=pri)
+          (OUT/'ARTIFACT_INVENTORY.json').write_text(json.dumps([{k:a.get(k) for k in ('id','name','size_in_bytes','created_at','workflow_run')} for a in rel],indent=2))
+          checkpoint('artifact_inventory_complete',artifacts_total=len(artifacts),relevant_artifacts=len(rel),artifacts_scanned=0,files_inspected=0,best_keys=0)
+
+          best=None; findings=[]; files_inspected=0
+          max_artifacts=min(len(rel),80)
+          for ai,a in enumerate(rel[:max_artifacts],1):
+              aid=int(a['id']); aname=a['name']
+              adir=TMP/f'a{aid}'
+              shutil.rmtree(adir,ignore_errors=True); adir.mkdir(parents=True)
+              zpath=TMP/f'a{aid}.zip'
+              print(f'[ARTIFACT] {ai}/{max_artifacts} id={aid} name={aname} size={a.get("size_in_bytes")}',flush=True)
+              try:
+                  with open(zpath,'wb') as f:
+                      cp=subprocess.run(['timeout','45s','gh','api','-H','Accept: application/vnd.github+json',f'/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/artifacts/{aid}/zip'],stdout=f,stderr=subprocess.PIPE,timeout=50)
+                  if cp.returncode!=0: raise RuntimeError(cp.stderr.decode(errors='replace') if isinstance(cp.stderr,bytes) else cp.stderr)
+                  with zipfile.ZipFile(zpath) as z:z.extractall(adir)
+              except Exception as e:
+                  findings.append({'artifact_id':aid,'artifact_name':aname,'error':repr(e)})
+                  checkpoint('scanning_artifacts',artifacts_scanned=ai,files_inspected=files_inspected,current_artifact=aname,best_keys=best['keys'] if best else 0)
+                  continue
+
+              # Expand nested zips up to one level where reasonably sized.
+              for nz in list(adir.rglob('*.zip'))[:20]:
+                  try:
+                      if nz.stat().st_size<=400_000_000:
+                          nd=nz.with_suffix(nz.suffix+'.unpacked'); nd.mkdir(exist_ok=True)
+                          with zipfile.ZipFile(nz) as z:z.extractall(nd)
+                  except Exception as e: print('NESTED_ZIP_SKIP',nz,repr(e),flush=True)
+
+              datafiles=[]
+              for pth in adir.rglob('*'):
+                  if not pth.is_file():continue
+                  n=pth.name.lower()
+                  if any(n.endswith(x) for x in ('.csv','.csv.gz','.jsonl','.jsonl.gz','.json','.json.gz','.parquet')) and pth.stat().st_size<=500_000_000:
+                      if pat.search(str(pth)) or 'total' in n or 'reb' in n:
+                          datafiles.append(pth)
+              datafiles.sort(key=lambda p:(0 if re.search(r'(total.?rebound|metric90|treb)',str(p),re.I) else 1,-p.stat().st_size))
+              for pth in datafiles[:120]:
+                  files_inspected+=1
+                  cand=normalize_candidate(read_table(pth),{'artifact_id':aid,'artifact_name':aname,'path':str(pth.relative_to(adir)),'created_at':a.get('created_at')})
+                  if not cand:continue
+                  rec={**cand['source'],'rows':cand['rows'],'keys':cand['keys'],'dup':cand['dup'],'plausible':cand['plausible']}
+                  findings.append(rec)
+                  print('[CANDIDATE]',json.dumps(rec,sort_keys=True),flush=True)
+                  if best is None or (cand['keys'],cand['plausible'],-cand['dup'])>(best['keys'],best['plausible'],-best['dup']): best=cand
+                  if cand['keys']==TARGET and cand['dup']==0 and cand['plausible']:
+                      outdf=cand['df'].sort_values(['season','player_id','team_id']).reset_index(drop=True)
+                      outdf.to_csv(OUT/'TOTALREBOUNDPCT_EXACT_14524.csv.gz',index=False,compression='gzip')
+                      meta={**rec,'status':'EXACT_FOUND','target_keys':TARGET}
+                      (OUT/'EXACT_SOURCE.json').write_text(json.dumps(meta,indent=2,sort_keys=True))
+                      (OUT/'CANDIDATES.json').write_text(json.dumps(findings,indent=2))
+                      checkpoint('EXACT_FOUND',artifacts_scanned=ai,files_inspected=files_inspected,best_keys=TARGET,exact_artifact_id=aid,exact_artifact_name=aname,exact_path=rec['path'])
+                      print('EXACT_FOUND',json.dumps(meta,sort_keys=True),flush=True)
+                      sys.exit(0)
+              checkpoint('scanning_artifacts',artifacts_scanned=ai,files_inspected=files_inspected,current_artifact=aname,best_keys=best['keys'] if best else 0)
+              shutil.rmtree(adir,ignore_errors=True)
+              try:zpath.unlink()
+              except:pass
+
+          (OUT/'CANDIDATES.json').write_text(json.dumps(findings,indent=2))
+          summary={'status':'NO_EXACT','relevant_artifacts':len(rel),'artifacts_scanned':max_artifacts,'files_inspected':files_inspected,'best_keys':best['keys'] if best else 0,'best_source':best['source'] if best else None}
+          (OUT/'SUMMARY.json').write_text(json.dumps(summary,indent=2,sort_keys=True))
+          checkpoint('scan_complete_no_exact',**summary)
+          raise SystemExit('No exact 14524-key TotalReboundPct payload found in targeted post-release artifacts')
+          PY
+          python /tmp/recover_metric90.py
+
+      - name: Persist final recovery checkpoint
+        if: always()
+        shell: bash
+        run: |
+          source /tmp/checkpoint.sh || true
+          checkpoint final_persist || true
+
+      - name: Upload metric90 recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-metric90-payload-recovery-${{ github.run_id }}
+          path: team_trb_all_players/final_integrity_rebuild/metric90_payload_recovery/**
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Stop heartbeat
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/heartbeat.pid ]; then kill "$(cat /tmp/heartbeat.pid)" 2>/dev/null || true; fi
