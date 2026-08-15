@@ -1,0 +1,201 @@
+name: TREB 2025-26 residual reconstruction path staged diagnostic
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2025-residual-reconstruction-path.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-2025-residual-reconstruction-path
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact reconstruction dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Stage 1 - acquire authoritative 409 residual keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/work/residual /tmp/out /tmp/src
+          curl --fail --location --retry 4 \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            -o /tmp/work/residual.zip \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9242191393/zip"
+          unzip -q /tmp/work/residual.zip -d /tmp/work/residual
+          python - <<'PY'
+          import csv,gzip,json,pathlib
+          m=next(pathlib.Path('/tmp/work/residual').rglob('TREB_RESIDUAL_1751_MANIFEST.csv.gz'))
+          with gzip.open(m,'rt',encoding='utf-8',newline='') as f: rows=list(csv.DictReader(f))
+          modern=[r for r in rows if str(r.get('season','')).replace('_','-')=='2025-26']
+          keys={(int(float(r['player_id'])),int(float(r['team_id']))) for r in modern}
+          assert len(keys)==409,len(keys)
+          pathlib.Path('/tmp/out/keys_409.json').write_text(json.dumps(sorted([{'player_id':p,'team_id':t} for p,t in keys],key=lambda x:(x['team_id'],x['player_id'])),indent=2))
+          pathlib.Path('/tmp/out/stage_1.json').write_text(json.dumps({'stage':1,'status':'PASS','keys':409},indent=2))
+          print('STAGE1_GATE=PASS keys=409')
+          PY
+
+      - name: Upload Stage 1 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-409-path-stage-1-${{ github.run_id }}
+          path: /tmp/out/stage_1.json
+          retention-days: 90
+
+      - name: Stage 2 - build exact 409-key target file
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json,pathlib
+          keys={(int(r['player_id']),int(r['team_id'])) for r in json.loads(pathlib.Path('/tmp/out/keys_409.json').read_text())}
+          src=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          selected=[]
+          with gzip.open(src,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  if r.get('season')=='2025-26' and bool(r.get('full_core_reuse')) and (int(r['player_id']),int(r['team_id'])) in keys:
+                      selected.append(r)
+          got={(int(r['player_id']),int(r['team_id'])) for r in selected}
+          assert len(selected)==409 and got==keys,(len(selected),len(got),len(keys-got))
+          with gzip.open('/tmp/work/targets_409.jsonl.gz','wt',encoding='utf-8') as f:
+              for r in selected: f.write(json.dumps(r,separators=(',',':'))+'\n')
+          pathlib.Path('/tmp/out/stage_2.json').write_text(json.dumps({'stage':2,'status':'PASS','full_core_targets':len(selected),'missing':0},indent=2))
+          print('STAGE2_GATE=PASS full_core_targets=409')
+          PY
+
+      - name: Upload Stage 2 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-409-path-stage-2-${{ github.run_id }}
+          path: /tmp/out/stage_2.json
+          retention-days: 90
+
+      - name: Stage 3 - download retained 2025 full-season feeds and preflight game sets
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' > /tmp/urls.tsv
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              print(prefix,vals[f'{prefix}_2025'],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_2025.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          python - <<'PY'
+          import json,pathlib,pandas as pd
+          from team_trb_all_players import run_local_treb_production as io
+          from team_trb_all_players import production_treb_engine_v3 as lineup_engine
+          nba=io.normalize_nba(pd.read_csv('/tmp/src/nbastats_2025.csv',low_memory=False))
+          v3=lineup_engine.normalize_v3(pd.read_csv('/tmp/src/nbastatsv3_2025.csv',low_memory=False))
+          pbp=io.normalize_pbp(pd.read_csv('/tmp/src/pbpstats_2025.csv',low_memory=False))
+          n=set(map(int,nba.GAME_ID.unique())); v=set(map(int,v3.gameId.unique())); p=set(map(int,pbp.GAMEID.unique()))
+          common=n&v&p; gaps=(n|v|p)-common
+          out={'stage':3,'status':'PASS','nba_games':len(n),'v3_games':len(v),'pbp_games':len(p),'common_games':len(common),'source_gap_games':len(gaps)}
+          pathlib.Path('/tmp/out/stage_3.json').write_text(json.dumps(out,indent=2))
+          print('STAGE3_GATE=PASS',out)
+          PY
+
+      - name: Upload Stage 3 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-409-path-stage-3-${{ github.run_id }}
+          path: /tmp/out/stage_3.json
+          retention-days: 90
+
+      - name: Stage 4 - run exact full-core engine on only the 409 targets
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/rebuild
+          (
+            while sleep 120; do
+              echo "HEARTBEAT utc=$(date -u +%FT%TZ)"
+              test -f /tmp/rebuild/progress.json && cat /tmp/rebuild/progress.json || true
+            done
+          ) &
+          hb=$!
+          trap 'kill "$hb" 2>/dev/null || true' EXIT
+          python -u team_trb_all_players/rebuild_fullcore_treb_fanout.py \
+            --year 2025 \
+            --targets /tmp/work/targets_409.jsonl.gz \
+            --nba /tmp/src/nbastats_2025.csv \
+            --v3 /tmp/src/nbastatsv3_2025.csv \
+            --pbp /tmp/src/pbpstats_2025.csv \
+            --output-dir /tmp/rebuild
+          kill "$hb" 2>/dev/null || true
+          trap - EXIT
+          cp /tmp/rebuild/season_gate.json /tmp/out/stage_4.json
+
+      - name: Upload Stage 4 checkpoint and engine outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-409-path-stage-4-${{ github.run_id }}
+          path: /tmp/rebuild
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+      - name: Stage 5 - classify exact first exclusion point for every 409 key
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,pathlib,collections,pandas as pd
+          p=pathlib.Path('/tmp/rebuild/fresh_fullcore_2025.csv')
+          if not p.exists():
+              pathlib.Path('/tmp/out/stage_5.json').write_text(json.dumps({'stage':5,'status':'NO_ENGINE_OUTPUT'},indent=2))
+              raise SystemExit(0)
+          d=pd.read_csv(p,low_memory=False)
+          assert len(d)==409,len(d)
+          counts=collections.Counter(d['status'].astype(str))
+          d.to_csv('/tmp/out/409_reconstruction_classification.csv.gz',index=False,compression='gzip')
+          out={'stage':5,'status':'PASS','rows':int(len(d)),'status_counts':dict(counts),'pass_rows':int((d.status.astype(str)=='PASS').sum()),'unresolved_rows':int((d.status.astype(str)!='PASS').sum())}
+          pathlib.Path('/tmp/out/stage_5.json').write_text(json.dumps(out,indent=2,sort_keys=True))
+          print('STAGE5_GATE=PASS',out)
+          PY
+
+      - name: Upload final staged 409-path diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-409-reconstruction-path-final-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
