@@ -1,0 +1,200 @@
+name: TREB materiality consolidation only
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-materiality-consolidation-only.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONPATH: /home/runner/work/104/104/team_trb_all_players
+  SOURCE_RUN: "31875740731"
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+
+jobs:
+  consolidate:
+    name: C - reuse Stage-B artifacts and gate 9647
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      ready: ${{ steps.readiness.outputs.ready }}
+      unresolved: ${{ steps.readiness.outputs.unresolved }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-materiality-autopilot-*-${{ env.SOURCE_RUN }}
+          path: /tmp/recovered
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.SOURCE_RUN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-resume-consolidated-31858884423
+          path: /tmp/baseexact
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31858884423'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-accept-immaterial-overlay-31861830762
+          path: /tmp/starter1367
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31861830762'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-captains-call-63-consolidated-31864265375
+          path: /tmp/starter63
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31864265375'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-modern409-team-fanout-consolidated-31869325468
+          path: /tmp/modern409
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31869325468'
+      - name: C1 - fail-closed full-core union
+        run: |
+          set -euo pipefail
+          MODERN=$(find /tmp/modern409 -name 'TREB_2025_26_RESIDUAL_409_TEAM_FANOUT.csv' -print -quit)
+          test -s "$MODERN"
+          python team_trb_all_players/autonomous_consolidate_fullcore.py \
+            --targets "$TARGETS" \
+            --baseexact /tmp/baseexact/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz \
+            --starter1367 /tmp/starter1367/STARTER_ACCEPT_IMMATERIAL_OVERLAY_1367.csv.gz \
+            --starter63 /tmp/starter63/STARTER_CAPTAINS_CALL_63_OVERLAY.csv.gz \
+            --modern409 "$MODERN" \
+            --historical-dir /tmp/recovered \
+            --out /tmp/consolidated
+      - name: C2 - readiness and safety gate
+        id: readiness
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json,pathlib
+          q=json.load(open('/tmp/consolidated/AUTONOMOUS_CONSOLIDATION_QA.json'))
+          for p in pathlib.Path('/tmp/recovered').rglob('AUTOPILOT_QA.json'):
+              x=json.load(open(p))
+              assert x['materiality_threshold_pp']==0.01
+              assert not x['rounded_percentage_backsolve_used']
+              assert not x['opponent_rebound_inference_used']
+              assert not x['whole_team_subtraction_across_partial_tenure_used']
+          print('ready=' + ('true' if q['status']=='PASS' else 'false'))
+          print('unresolved=' + str(q['unresolved']))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-materiality-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+          retention-days: 90
+          compression-level: 1
+
+  final_release:
+    name: D - final 90-metric release
+    needs: consolidate
+    if: needs.consolidate.outputs.ready == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-prepared-canonical-layers-31844978593
+          path: /tmp/prep
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31844978593'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-final-database-2000-01-to-2025-26
+          path: /tmp/immutable_base
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31780434242'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-materiality-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+      - name: D1 - immutable base integrity
+        run: |
+          test -s /tmp/immutable_base/TREB_final_database_2000-01_to_2025-26.zip
+          unzip -t /tmp/immutable_base/TREB_final_database_2000-01_to_2025-26.zip >/tmp/base_unzip_test.txt
+      - name: D2 - canonical final assembly
+        run: |
+          mkdir -p /tmp/final
+          python team_trb_all_players/autonomous_finalize_exact_release.py \
+            --targets "$TARGETS" \
+            --native /tmp/prep/native_89_canonical.parquet \
+            --partial /tmp/prep/exact_partial_4877.parquet \
+            --fullcore /tmp/consolidated/FULLCORE_TOTALREBOUNDPCT_AUTONOMOUS.csv.gz \
+            --out /tmp/final
+      - name: D3 - hard QA, hashes and ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          q=json.load(open('/tmp/final/FINAL_QA.json'))
+          assert q['status']=='PASS' and q['canonical_keys']==14524 and q['seasons']==26 and q['native_metrics']==89 and q['total_metrics']==90
+          assert q['native_canonical_rows']==1292636 and q['partial_treb']==4877 and q['full_core_treb']==9647 and q['total_rebound_pct_rows']==14524
+          assert q['duplicate_total_rebound_pct']==0 and q['missing_total_rebound_pct']==0 and q['steven_adams_career_total_rebound_pct_rows']==1
+          assert 20460 <= q['steven_adams_career_minutes'] <= 20485 and 540 <= q['career_10000_min_total_rebound_pct_population'] <= 565
+          assert not q['rounded_percentage_backsolve'] and not q['opponent_rebound_inference'] and not q['partial_tenure_whole_team_subtraction'] and not q['empirical_model_used']
+          print(json.dumps(q,indent=2,sort_keys=True))
+          PY
+          cd /tmp/final
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt ! -name TREB_final_database_2000-01_to_2025-26.zip -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+          zip -q -9 TREB_final_database_2000-01_to_2025-26.zip $(find . -maxdepth 1 -type f ! -name TREB_final_database_2000-01_to_2025-26.zip -printf '%P\n' | sort)
+          test -s TREB_final_database_2000-01_to_2025-26.zip
+          unzip -t TREB_final_database_2000-01_to_2025-26.zip > FINAL_ZIP_INTEGRITY.txt
+          sha256sum TREB_final_database_2000-01_to_2025-26.zip | tee FINAL_ZIP_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-materiality-${{ github.run_id }}
+          path: |
+            /tmp/final/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/final/FINAL_QA.json
+            /tmp/final/FINAL_ZIP_SHA256.txt
+            /tmp/final/FINAL_ZIP_INTEGRITY.txt
+            /tmp/final/SHA256SUMS.txt
+            /tmp/final/PROVENANCE.json
+          retention-days: 90
+          compression-level: 0
+          if-no-files-found: error
+
+  blocked:
+    name: E - retained blocker map
+    needs: consolidate
+    if: always() && needs.consolidate.outputs.ready != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-materiality-consolidated-${{ github.run_id }}
+          path: /tmp/blocker
+      - run: |
+          cat /tmp/blocker/AUTONOMOUS_CONSOLIDATION_QA.json
+          test -s /tmp/blocker/AUTONOMOUS_BLOCKER_MANIFEST.csv
