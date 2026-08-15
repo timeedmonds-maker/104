@@ -1,0 +1,53 @@
+name: TREB merge exact promoted recovery
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-merge-promoted-one.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Download authoritative blockers and exact promotion
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/blocker /tmp/promoted /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9250180970/zip > /tmp/b.zip
+          unzip -q /tmp/b.zip -d /tmp/blocker
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253713792/zip > /tmp/p.zip
+          unzip -q /tmp/p.zip -d /tmp/promoted
+      - name: Merge exact promoted key and rebuild blocker manifest
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib
+          bp=next(pathlib.Path('/tmp/blocker').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          pp=next(pathlib.Path('/tmp/promoted').rglob('TREB_EXACT_PROMOTED_303.csv'))
+          blockers=list(csv.DictReader(open(bp,newline=''))); promoted=list(csv.DictReader(open(pp,newline='')))
+          assert len(blockers)==1252,len(blockers); assert len(promoted)==1,len(promoted)
+          def k(r): return (str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0'))
+          pk={k(r) for r in promoted}; assert len(pk)==1
+          remain=[r for r in blockers if k(r) not in pk]
+          assert len(remain)==1251
+          out=pathlib.Path('/tmp/out')
+          with open(out/'TREB_EXACT_PROMOTED_RECOVERIES.csv','w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=promoted[0].keys()); w.writeheader(); w.writerows(promoted)
+          with open(out/'AUTONOMOUS_BLOCKER_MANIFEST.csv','w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=blockers[0].keys()); w.writeheader(); w.writerows(remain)
+          qa={'status':'PASS','prior_resolved':8395,'new_exact_promotions':1,'resolved':8396,'universe':9647,'remaining':1251,'promoted_key':list(pk)[0],'integrity':'exact retained consensus + explicit roster-ledger tenure identity; no inference'}
+          (out/'TREB_MERGE_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-authoritative-state-8396-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          if-no-files-found: error
