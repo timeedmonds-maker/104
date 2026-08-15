@@ -1,0 +1,96 @@
+name: TREB tenure coverage proof discovery
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-tenure-proof-discovery.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download authoritative blockers and exact consensus
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/blocker /tmp/consensus /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9250180970/zip > /tmp/blocker.zip
+          unzip -q /tmp/blocker.zip -d /tmp/blocker
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/consensus.zip
+          unzip -q /tmp/consensus.zip -d /tmp/consensus
+      - name: Discover exact tenure-game identity sources
+        run: |
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections,glob,os,re
+          out=pathlib.Path('/tmp/out')
+          bp=next(pathlib.Path('/tmp/blocker').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          blockers=list(csv.DictReader(open(bp,newline='')))
+          assert len(blockers)==1252
+          bkeys={(str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0')) for r in blockers}
+          target=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          target_rows=[]
+          with gzip.open(target,'rt',encoding='utf-8') as f:
+            for line in f:
+              if not line.strip(): continue
+              r=json.loads(line)
+              k=(str(r.get('season')),str(int(float(r.get('team_id')))),str(r.get('player_id')).removesuffix('.0'))
+              if k in bkeys: target_rows.append(r)
+          assert len(target_rows)>=1252, len(target_rows)
+          target_fields=sorted(set().union(*(r.keys() for r in target_rows)))
+          # Find repository files likely to encode transaction boundaries or explicit game membership.
+          candidates=[]
+          for p in pathlib.Path('team_trb_all_players').rglob('*'):
+            if not p.is_file(): continue
+            s=str(p).lower()
+            if any(x in s for x in ['tenure','transaction','roster','game_map','game_list','membership','boundary']):
+              if p.stat().st_size < 80_000_000: candidates.append(str(p))
+          # Inspect structured candidate schemas cheaply.
+          schemas=[]
+          for p in candidates[:400]:
+            try:
+              pp=pathlib.Path(p)
+              if p.endswith('.jsonl.gz'):
+                with gzip.open(pp,'rt',encoding='utf-8') as f:
+                  line=next((x for x in f if x.strip()),None)
+                if line:
+                  obj=json.loads(line); schemas.append({'path':p,'type':'jsonl.gz','fields':sorted(obj.keys())})
+              elif p.endswith('.jsonl'):
+                with open(pp,encoding='utf-8') as f: line=next((x for x in f if x.strip()),None)
+                if line:
+                  obj=json.loads(line); schemas.append({'path':p,'type':'jsonl','fields':sorted(obj.keys())})
+              elif p.endswith('.csv'):
+                with open(pp,newline='',encoding='utf-8') as f: fields=csv.DictReader(f).fieldnames
+                schemas.append({'path':p,'type':'csv','fields':fields or []})
+              elif p.endswith('.csv.gz'):
+                with gzip.open(pp,'rt',newline='',encoding='utf-8') as f: fields=csv.DictReader(f).fieldnames
+                schemas.append({'path':p,'type':'csv.gz','fields':fields or []})
+            except Exception:
+              pass
+          gameish=[]
+          for s in schemas:
+            fs=[str(x).lower() for x in s['fields']]
+            if any(any(tok in f for tok in ['game_id','gameid','game_ids','games','start_date','end_date','transaction_date','effective_date','segment_start','segment_end']) for f in fs):
+              gameish.append(s)
+          # Emit target rows and schemas for deterministic next-step selection.
+          with open(out/'BLOCKER_TARGET_ROWS.jsonl','w') as f:
+            for r in target_rows: f.write(json.dumps(r,sort_keys=True)+'\n')
+          (out/'TENURE_IDENTITY_CANDIDATE_SCHEMAS.json').write_text(json.dumps(gameish,indent=2)+'\n')
+          qa={'status':'PASS','authoritative_blockers':len(blockers),'matched_target_rows':len(target_rows),'target_fields':target_fields,'candidate_files_scanned':len(candidates),'structured_schemas_read':len(schemas),'game_or_boundary_candidate_schemas':len(gameish),'candidate_schema_paths':[x['path'] for x in gameish[:100]],'next':'Use explicit game membership or deterministic start/end boundary source to prove exact tenure games; do not infer from counts alone.'}
+          (out/'TREB_TENURE_PROOF_DISCOVERY_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-tenure-proof-discovery-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
