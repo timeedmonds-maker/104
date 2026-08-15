@@ -1,0 +1,268 @@
+name: TREB starter residual 64-key targeted diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-residual-64-diagnostic.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-residual-64-diagnostic
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  MATERIALITY_RUN: '31861419304'
+  MATERIALITY_ARTIFACT: TREB-starter-materiality-failclosed-consolidated-31861419304
+  THRESHOLD_PP: '0.01'
+
+jobs:
+  diagnose:
+    name: starter residual diagnostic ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - {year: 2001, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2001-31854913173'}
+          - {year: 2005, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2005-31858884423'}
+          - {year: 2024, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2024-31858884423'}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact diagnostic dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Download authoritative fail-closed materiality gate
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.MATERIALITY_ARTIFACT }}
+          path: /tmp/materiality
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.MATERIALITY_RUN }}
+
+      - name: Download retained exact season baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.baseline_artifact }}
+          path: /tmp/baseline
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ matrix.baseline_run }}
+
+      - name: Download retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'; mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals: raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${prefix}_${y}.csv"; done
+
+      - name: Diagnose coherent-state minute residuals without promotion
+        timeout-minutes: 22
+        env:
+          YEAR: ${{ matrix.year }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          import pandas as pd
+
+          sys.path.insert(0,'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+
+          year=int(os.environ['YEAR']); season=f'{year}-{(year+1)%100:02d}'
+          out=Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+          keys=pd.read_csv('/tmp/materiality/STARTER_MATERIALITY_KEYS.csv',dtype={'player_id':str},low_memory=False)
+          keys['player_id']=keys.player_id.map(mat.sid)
+          keys['team_id']=pd.to_numeric(keys.team_id,errors='raise').astype('int64')
+          scope=keys[(keys.season.astype(str)==season) & (~keys.status.astype(str).eq('ACCEPT_IMMATERIAL'))].copy()
+          expected={2001:11,2005:1,2024:52}[year]
+          if len(scope)!=expected: raise RuntimeError(f'scope drift {season}: expected {expected}, got {len(scope)}')
+
+          targets=mat.load_targets(Path(os.environ['TARGETS']),season)
+          target_by_team={}
+          for r in targets: target_by_team.setdefault(int(r['team_id']),[]).append(r)
+
+          nba=mat.io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{year}.csv',low_memory=False))
+          v3=mat.lineup_engine.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{year}.csv',low_memory=False))
+          pbp=mat.io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{year}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+
+          baseline_team,baseline_player=mat.aggregate_baseline(
+              pd.read_csv('/tmp/baseline/team_game_treb.csv.gz',low_memory=False),
+              pd.read_csv('/tmp/baseline/player_game_treb_on.csv.gz',dtype={'player_id':str},low_memory=False))
+
+          def gids_from(series):
+              ans=set()
+              for v in series:
+                  if pd.isna(v): continue
+                  for x in str(v).split('|'):
+                      if x.strip(): ans.add(int(float(x)))
+              return sorted(ans)
+          def state_sig(st): return tuple(sorted((str(pid),)+tuple(int(v) for v in vals) for pid,vals in st.items()))
+
+          game_cache={}; key_rows=[]; team_rows=[]; state_rows=[]
+          for tid,tscope in scope.groupby('team_id',sort=True):
+              tid=int(tid); team_targets=target_by_team.get(tid,[])
+              if not team_targets: raise RuntimeError(f'no full-core targets {season} team={tid}')
+              gids=gids_from(tscope.game_ids)
+              option_sigs=[]; added_team_rows=[]; game_meta=[]
+              for gid in gids:
+                  if gid not in game_cache:
+                      variants,meta=mat.enumerate_game_variants(gid,ng[gid],vg[gid],pg[gid],20000,5000)
+                      game_cache[gid]=(variants,meta)
+                  variants,meta=game_cache[gid]
+                  if meta['capped'] or not meta['team_totals_invariant'] or not variants:
+                      raise RuntimeError(f'enumeration unsafe {season} game={gid}: {meta}')
+                  game_meta.append(meta)
+                  tc=[r for r in variants[0]['team_rows'] if int(r['team_id'])==tid]
+                  if len(tc)!=1: raise RuntimeError(f'missing team row {season} {tid} {gid}')
+                  added_team_rows.append(tc[0])
+                  opts=sorted(set(mat.contribution_signature(v['player_rows'],tid) for v in variants))
+                  option_sigs.append(opts or [tuple()])
+
+              team_total=dict(baseline_team.get(tid,{f:0 for f in mat.TEAM_FIELDS}))
+              for r in added_team_rows:
+                  for f in mat.TEAM_FIELDS: team_total[f]=int(team_total.get(f,0))+int(r[f])
+              states,capped=mat.combine_team_states(option_sigs,200000)
+              if capped or not states: raise RuntimeError(f'team-state enumeration unsafe {season} {tid}')
+
+              evaluated=[]
+              for st in states:
+                  diffs={}
+                  for t in team_targets:
+                      pid=mat.sid(t['player_id']); base=baseline_player.get((tid,pid),{f:0 for f in mat.PLAYER_FIELDS}); add=st.get(pid,(0,0,0,0,0))
+                      actual=int(base['seconds_on'])+int(add[0]); target=float(t.get('seconds_on',0.0)); diffs[pid]=float(actual-target)
+                  outside=sum(abs(v)>60.0 for v in diffs.values()); max_abs=max(abs(v) for v in diffs.values()) if diffs else 0.0; sum_abs=sum(abs(v) for v in diffs.values())
+                  evaluated.append((outside,max_abs,sum_abs,state_sig(st),st,diffs))
+              evaluated.sort(key=lambda x:(x[0],x[1],x[2],x[3]))
+              best=evaluated[0]; compatible=[x for x in evaluated if x[0]==0]
+              best_hash=hashlib.sha256(json.dumps(best[3],separators=(',',':')).encode()).hexdigest()
+
+              classification='TEAM_COMPATIBLE_MULTIPLE_STATES' if compatible else 'NO_TEAM_STATE_WITHIN_60S'
+              if compatible and any(str(x).eq if False else False for x in []): pass
+              team_rows.append({'season':season,'team_id':tid,'scoped_keys':len(tscope),'ambiguous_games':len(gids),'game_ids':'|'.join(map(str,gids)),'coherent_states':len(states),'team_compatible_states':len(compatible),'best_outside_60s_players':best[0],'best_max_abs_seconds_error':best[1],'best_sum_abs_seconds_error':best[2],'best_state_sha256':best_hash,'classification':classification})
+
+              for rank,x in enumerate(evaluated[:50],1):
+                  state_rows.append({'season':season,'team_id':tid,'rank':rank,'outside_60s_players':x[0],'max_abs_seconds_error':x[1],'sum_abs_seconds_error':x[2],'state_sha256':hashlib.sha256(json.dumps(x[3],separators=(',',':')).encode()).hexdigest()})
+
+              for a in tscope.itertuples(index=False):
+                  pid=mat.sid(a.player_id); vals=[]; second_diffs=[]; individually_compatible=0
+                  for x in evaluated:
+                      st=x[4]; base=baseline_player.get((tid,pid),{f:0 for f in mat.PLAYER_FIELDS}); add=st.get(pid,(0,0,0,0,0))
+                      ptotal={f:int(base.get(f,0))+int(add[i]) for i,f in enumerate(mat.PLAYER_FIELDS)}
+                      diff=x[5].get(pid,float('nan')); second_diffs.append(diff)
+                      if abs(diff)<=60.0: individually_compatible+=1
+                      on,off,swing=mat.metric_values(team_total,ptotal); vals.append((on,off,swing))
+                  onv=[v[0] for v in vals]; offv=[v[1] for v in vals]; swv=[v[2] for v in vals]
+                  ranges=[(max(onv)-min(onv))*100,(max(offv)-min(offv))*100,(max(swv)-min(swv))*100]
+                  if individually_compatible==0: cause='PLAYER_MINUTES_UNREACHABLE_WITHIN_60S'
+                  elif not compatible: cause='CROSS_PLAYER_STATE_INCOMPATIBILITY'
+                  elif str(a.status)=='MATERIAL_REPAIR_REQUIRED': cause='MATERIAL_MULTIPLE_TEAM_COMPATIBLE_STATES'
+                  else: cause='OTHER'
+                  key_rows.append({'season':season,'team_id':tid,'player_id':pid,'player':getattr(a,'player',''),'prior_status':str(a.status),'game_ids':str(a.game_ids),'coherent_states':len(states),'team_compatible_states':len(compatible),'individually_compatible_states':individually_compatible,'min_abs_seconds_error':min(abs(v) for v in second_diffs),'best_state_seconds_error':best[5].get(pid,float('nan')),'treb_on_all_states_min':min(onv),'treb_on_all_states_max':max(onv),'treb_off_all_states_min':min(offv),'treb_off_all_states_max':max(offv),'treb_swing_all_states_min':min(swv),'treb_swing_all_states_max':max(swv),'max_all_state_range_pp':max(ranges),'diagnostic_cause':cause,'promoted':False})
+
+          kd=pd.DataFrame(key_rows); td=pd.DataFrame(team_rows); sd=pd.DataFrame(state_rows)
+          kd.to_csv(out/f'STARTER_RESIDUAL_KEYS_{year}.csv',index=False); td.to_csv(out/f'STARTER_RESIDUAL_TEAMS_{year}.csv',index=False); sd.to_csv(out/f'STARTER_RESIDUAL_STATE_RANKS_{year}.csv',index=False)
+          summary={'status':'PASS','season':season,'expected_scoped_keys':expected,'scoped_keys':len(kd),'teams':len(td),'prior_material_keys':int(kd.prior_status.eq('MATERIAL_REPAIR_REQUIRED').sum()),'prior_unresolved_keys':int(kd.prior_status.eq('AUDIT_UNRESOLVED').sum()),'player_minutes_unreachable_keys':int(kd.diagnostic_cause.eq('PLAYER_MINUTES_UNREACHABLE_WITHIN_60S').sum()),'cross_player_incompatibility_keys':int(kd.diagnostic_cause.eq('CROSS_PLAYER_STATE_INCOMPATIBILITY').sum()),'material_multiple_compatible_keys':int(kd.diagnostic_cause.eq('MATERIAL_MULTIPLE_TEAM_COMPATIBLE_STATES').sum()),'promoted_keys':0,'minutes_gate_tolerance_seconds':60.0,'threshold_pp':0.01,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False}
+          (out/'season_gate.json').write_text(json.dumps(summary,indent=2)+'\n'); print(json.dumps(summary,indent=2),flush=True)
+          PY
+
+      - name: Upload retained season diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-residual-diagnostic-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: consolidate 64-key starter residual diagnostic
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download all three retained diagnostics
+        uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-starter-residual-diagnostic-*-${{ github.run_id }}
+          path: /tmp/parts
+          merge-multiple: false
+      - name: Build 64-key diagnostic gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path('/tmp/parts'); kp=[];tp=[];sp=[];gates=[]
+          for p in root.rglob('STARTER_RESIDUAL_KEYS_*.csv'): kp.append(pd.read_csv(p,dtype={'player_id':str},low_memory=False))
+          for p in root.rglob('STARTER_RESIDUAL_TEAMS_*.csv'): tp.append(pd.read_csv(p,low_memory=False))
+          for p in root.rglob('STARTER_RESIDUAL_STATE_RANKS_*.csv'): sp.append(pd.read_csv(p,low_memory=False))
+          for p in root.rglob('season_gate.json'): gates.append(json.loads(p.read_text()))
+          keys=pd.concat(kp,ignore_index=True,sort=False); teams=pd.concat(tp,ignore_index=True,sort=False); states=pd.concat(sp,ignore_index=True,sort=False)
+          keys['player_id']=keys.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+          unique=int(keys.drop_duplicates(['season','team_id','player_id']).shape[0]); promoted=int(keys.promoted.astype(str).str.lower().isin(['true','1']).sum())
+          complete=(len(keys)==unique==64 and len(gates)==3 and all(str(g.get('status'))=='PASS' for g in gates) and promoted==0 and int(keys.prior_status.eq('MATERIAL_REPAIR_REQUIRED').sum())==1 and int(keys.prior_status.eq('AUDIT_UNRESOLVED').sum())==63)
+          keys.to_csv('/tmp/final/STARTER_RESIDUAL_64_KEYS.csv',index=False); teams.to_csv('/tmp/final/STARTER_RESIDUAL_TEAMS.csv',index=False); states.to_csv('/tmp/final/STARTER_RESIDUAL_TOP_STATES.csv',index=False)
+          summary={'status':'PASS' if complete else 'INCOMPLETE','scoped_keys':int(len(keys)),'unique_keys':unique,'material_keys':int(keys.prior_status.eq('MATERIAL_REPAIR_REQUIRED').sum()),'unresolved_keys':int(keys.prior_status.eq('AUDIT_UNRESOLVED').sum()),'player_minutes_unreachable_keys':int(keys.diagnostic_cause.eq('PLAYER_MINUTES_UNREACHABLE_WITHIN_60S').sum()),'cross_player_incompatibility_keys':int(keys.diagnostic_cause.eq('CROSS_PLAYER_STATE_INCOMPATIBILITY').sum()),'material_multiple_compatible_keys':int(keys.diagnostic_cause.eq('MATERIAL_MULTIPLE_TEAM_COMPATIBLE_STATES').sum()),'other_keys':int(keys.diagnostic_cause.eq('OTHER').sum()),'season_gates':len(gates),'promoted_keys':promoted,'2015_16_keys_touched':0,'minutes_gate_tolerance_seconds':60.0,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'next_scope':'repair_by_diagnostic_cause_only'}
+          Path('/tmp/final/STARTER_RESIDUAL_64_GATE.json').write_text(json.dumps(summary,indent=2)+'\n'); print(json.dumps(summary,indent=2))
+          if not complete: raise SystemExit('64-key diagnostic gate incomplete')
+          PY
+      - name: Upload consolidated 64-key diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-residual-64-diagnostic-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
