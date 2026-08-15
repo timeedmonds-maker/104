@@ -1,0 +1,146 @@
+name: Native89 sufficient-stat formula validation
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-formula-validation.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Validate algebraic and integer-recovery formulas on retained raw pilot
+        run: |
+          python - <<'PY'
+          import gzip,json,pathlib,math,itertools
+          from fractions import Fraction
+          C=pathlib.Path('team_trb_all_players/impact_database/corrected_off_wowy/cache')
+          payloads=[]
+          for p in sorted(C.glob('*.json.gz')):
+            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+            if o.get('complete'): payloads.append((p.name,o))
+          assert len(payloads)==25,len(payloads)
+          pairs=[]
+          for fn,o in payloads:
+            rows=o.get('rows') or {}
+            for state in ('on','off'):
+              t=rows.get('team_'+state); opp=rows.get('opponent_'+state)
+              if isinstance(t,dict) and isinstance(opp,dict): pairs.append((fn,state,t,opp))
+          def n(r,k,default=None):
+            try:
+              x=float(r.get(k)); return x if math.isfinite(x) else default
+            except:return default
+          def close(a,b,tol=1e-10): return a is not None and b is not None and abs(a-b)<=tol*max(1,abs(a),abs(b))
+          checks={'assisted2':0,'nonputback2':0,'assisted3':0,'fg3':0,'nonheave3':0,'fg2':0,'efg':0,'threepar':0,'blocked3':0,'blocked2':0,'liveball':0,'blocks_recovered':0,'shot_freq':0,'shot_acc':0,'shot_ast':0,'shooting_foul':0,'two_foul':0,'three_foul':0,'pace':0}
+          fails=[]
+          for fn,state,t,o in pairs:
+            fg2a=n(t,'FG2A',0); fg2m=n(t,'FG2M',0); fg3a=n(t,'FG3A',0); fg3m=n(t,'FG3M',0); fga=fg2a+fg3a
+            formulas={
+             'assisted2': (n(t,'Assisted2sPct'), None if not fg2m else n(t,'TwoPtAssists',0)/fg2m),
+             'nonputback2': (n(t,'NonPutbacksAssisted2sPct'), None if not (fg2m-n(t,'PtsPutbacks',0)/2) else n(t,'TwoPtAssists',0)/(fg2m-n(t,'PtsPutbacks',0)/2)),
+             'assisted3': (n(t,'Assisted3sPct'), None if not fg3m else n(t,'ThreePtAssists',0)/fg3m),
+             'fg3': (n(t,'Fg3Pct'), None if not fg3a else fg3m/fg3a),
+             'nonheave3': (n(t,'NonHeaveFg3Pct'), None if not (fg3a-n(t,'HeaveAttempts',0)) else (fg3m-n(t,'HeaveMakes',0))/(fg3a-n(t,'HeaveAttempts',0))),
+             'fg2': (n(t,'Fg2Pct'), None if not fg2a else fg2m/fg2a),
+             'efg': (n(t,'EfgPct'), None if not fga else (fg2m+1.5*fg3m)/fga),
+             'threepar': (n(t,'FG3APct'), None if not fga else fg3a/fga),
+             'blocked3': (n(t,'FG3APctBlocked'), None if not fg3a else n(t,'Fg3aBlocked',0)/fg3a),
+             'blocked2': (n(t,'FG2APctBlocked'), None if not fg2a else n(t,'Fg2aBlocked',0)/fg2a),
+             'liveball': (n(t,'LiveBallTurnoverPct'), None if not n(t,'Turnovers',0) else n(t,'LiveBallTurnovers',0)/n(t,'Turnovers',0)),
+             'blocks_recovered': (n(t,'BlocksRecoveredPct'), None if not n(t,'Blocks',0) else n(t,'RecoveredBlocks',0)/n(t,'Blocks',0)),
+            }
+            for loc in ('AtRim','ShortMidRange','LongMidRange','Corner3','Arc3'):
+              a=n(t,loc+'FGA',0); m=n(t,loc+'FGM',0)
+              formulas['shot_acc']=(n(t,loc+'Accuracy'),None if not a else m/a)
+              formulas['shot_ast']=(n(t,loc+'PctAssisted'),None if not m else n(t,loc+'Assists',0)/m)
+              formulas['shot_freq']=(n(t,loc+'Frequency'),None if not fga else a/fga)
+              for ck,(actual,calc) in list(formulas.items())[-3:]:
+                if actual is not None and calc is not None:
+                  if close(actual,calc): checks[ck]+=1
+                  else:fails.append((fn,state,ck,loc,actual,calc))
+              for x in ['shot_acc','shot_ast','shot_freq']: formulas.pop(x,None)
+            total_sf=n(t,'TwoPtShootingFoulsDrawn',0)+n(t,'ThreePtShootingFoulsDrawn',0)
+            and1=n(t,'2pt And 1 Free Throw Trips',0)+n(t,'3pt And 1 Free Throw Trips',0)
+            den=fga+total_sf-and1
+            x=(n(t,'ShootingFoulsDrawnPct'),None if not den else total_sf/den)
+            if x[0] is not None and x[1] is not None:
+              if close(*x):checks['shooting_foul']+=1
+              else:fails.append((fn,state,'shooting_foul',x))
+            for pref,attkey,andkey,ratekey,countkey,ck in [
+              ('2', 'FG2A','2pt And 1 Free Throw Trips','TwoPtShootingFoulsDrawnPct','TwoPtShootingFoulsDrawn','two_foul'),
+              ('3', 'FG3A','3pt And 1 Free Throw Trips','ThreePtShootingFoulsDrawnPct','ThreePtShootingFoulsDrawn','three_foul')]:
+              cnt=n(t,countkey,0); den=n(t,attkey,0)+cnt-n(t,andkey,0); actual=n(t,ratekey)
+              if actual is not None and den:
+                calc=cnt/den
+                if close(actual,calc):checks[ck]+=1
+                else:fails.append((fn,state,ck,actual,calc))
+            # pace formula
+            sec=n(t,'SecondsPlayed'); poss=n(t,'TotalPoss'); actual=n(t,'Pace')
+            if sec and poss and actual is not None:
+              calc=poss/sec*1440
+              if close(actual,calc):checks['pace']+=1
+              else:fails.append((fn,state,'pace',actual,calc,poss,sec))
+          # Location rebound exact integer recovery. Reduced rate p/q => counts are p*k and (q-p)*k.
+          def solve_group(t,o,state,side,group,locs):
+            if side=='off':
+              total_a=int(round(n(t,'Off'+group+'Rebounds',0))); total_b=int(round(n(o,'Def'+group+'Rebounds',0))); ratepref='Off'
+              misssrc=t
+            else:
+              total_a=int(round(n(t,'Def'+group+'Rebounds',0))); total_b=int(round(n(o,'Off'+group+'Rebounds',0))); ratepref='Def'
+              misssrc=o # defense opportunities arise from opponent misses
+            specs=[]
+            for loc in locs:
+              rv=n(t,ratepref+loc+'ReboundPct')
+              if rv is None:return None
+              fr=Fraction(rv).limit_denominator(10000)
+              # rate values are exact rational count shares; bound by misses in the relevant shooting row
+              miss=max(0,int(round(n(misssrc,loc+'FGA',0)-n(misssrc,loc+'FGM',0))))
+              q=fr.denominator; maxk=max(1,miss//q+2)
+              specs.append((fr.numerator,q,range(0,maxk+1),loc,miss))
+            sols=[]
+            def rec(i,ka,kb,cur):
+              if i==len(specs):
+                if ka==total_a and kb==total_b:sols.append(tuple(cur))
+                return
+              p,q,ks,loc,miss=specs[i]
+              for k in ks:
+                aa=p*k; bb=(q-p)*k
+                if aa+bb>miss+2:continue
+                if ka+aa>total_a or kb+bb>total_b:continue
+                rec(i+1,ka+aa,kb+bb,cur+[k])
+            rec(0,0,0,[])
+            return {'solutions':sols,'specs':[(p,q,loc,miss) for p,q,_,loc,miss in specs],'totals':[total_a,total_b]}
+          loc_tests=[]; ambiguous=[]; impossible=[]
+          for fn,state,t,o in pairs:
+            for side in ('off','def'):
+              for group,locs in [('TwoPt',['AtRim','ShortMidRange','LongMidRange']),('ThreePt',['Arc3','Corner3'])]:
+                z=solve_group(t,o,state,side,group,locs)
+                if z is None:continue
+                rec={'file':fn,'state':state,'side':side,'group':group,'solution_count':len(z['solutions']),'specs':z['specs'],'totals':z['totals'],'solutions':z['solutions'][:3]}
+                loc_tests.append(rec)
+                if len(z['solutions'])==0:impossible.append(rec)
+                elif len(z['solutions'])>1:ambiguous.append(rec)
+          # TS implied denominator diagnostics: derive exact equivalent denominator for positive points; report relation candidates.
+          ts=[]
+          for fn,state,t,o in pairs:
+            pts=n(t,'Points'); rate=n(t,'TsPct');
+            if pts is None or rate is None or rate<=0:continue
+            fga=n(t,'FG2A',0)+n(t,'FG3A',0); fta=n(t,'FTA',0)
+            implied=pts/rate # published rate = points / implied denominator
+            ts.append({'file':fn,'state':state,'points':pts,'rate':rate,'implied_denominator':implied,'fga':fga,'fta':fta,'two_sf':n(t,'TwoPtShootingFoulsDrawn',0),'three_sf':n(t,'ThreePtShootingFoulsDrawn',0),'and1_2':n(t,'2pt And 1 Free Throw Trips',0),'and1_3':n(t,'3pt And 1 Free Throw Trips',0),'tech_ft_trips':n(t,'Technical Free Throw Trips',0)})
+          report={'pilot_payloads':len(payloads),'paired_raw_states':len(pairs),'formula_checks':checks,'formula_failures':fails[:200],'location_rebound_tests':len(loc_tests),'location_rebound_unique':sum(x['solution_count']==1 for x in loc_tests),'location_rebound_ambiguous_count':len(ambiguous),'location_rebound_impossible_count':len(impossible),'location_rebound_ambiguous':ambiguous[:50],'location_rebound_impossible':impossible[:50],'ts_implied_denominator_rows':ts}
+          pathlib.Path('native89_formula_validation.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in report.items() if k not in ['ts_implied_denominator_rows','location_rebound_ambiguous','location_rebound_impossible','formula_failures']},indent=2))
+          print('FAIL_SAMPLE',json.dumps(fails[:20],indent=2)); print('LOC_AMBIG_SAMPLE',json.dumps(ambiguous[:10],indent=2)); print('LOC_IMP_SAMPLE',json.dumps(impossible[:10],indent=2)); print('TS_SAMPLE',json.dumps(ts[:10],indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-formula-validation-${{ github.run_id }}
+          path: native89_formula_validation.json
+          retention-days: 30
+          if-no-files-found: error
