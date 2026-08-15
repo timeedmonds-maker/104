@@ -1,0 +1,152 @@
+name: TREB starter 8-blocker target provenance audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-blocker-8-target-provenance.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-blocker-8-target-provenance
+  cancel-in-progress: false
+
+env:
+  ROOTCAUSE_RUN: '31863100199'
+  ROOTCAUSE_ARTIFACT: TREB-starter-blocker-8-rootcause-31863100199
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Download authoritative 8-blocker root-cause artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ROOTCAUSE_ARTIFACT }}
+          path: /tmp/rootcause
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.ROOTCAUSE_RUN }}
+
+      - name: Extract canonical target provenance and exchange structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root=Path('/tmp/rootcause'); out=Path('/tmp/out')
+          p=pd.read_csv(root/'BLOCKER_8_ROOTCAUSE_PLAYERS.csv',dtype={'player_id':str},low_memory=False)
+          t=pd.read_csv(root/'BLOCKER_8_ROOTCAUSE_TEAMS.csv',low_memory=False)
+          if len(p)!=8 or p.drop_duplicates(['season','team_id','player_id']).shape[0]!=8:
+              raise RuntimeError(f'8-blocker scope drift rows={len(p)} unique={p.drop_duplicates(["season","team_id","player_id"]).shape[0]}')
+
+          def flatten(obj,prefix=''):
+              z={}
+              if isinstance(obj,dict):
+                  for k,v in obj.items():
+                      key=f'{prefix}.{k}' if prefix else str(k)
+                      if isinstance(v,(dict,list)): z.update(flatten(v,key))
+                      else: z[key]=v
+              elif isinstance(obj,list):
+                  for i,v in enumerate(obj): z.update(flatten(v,f'{prefix}[{i}]'))
+              else: z[prefix]=obj
+              return z
+
+          flat=[]; parse_fail=0
+          for r in p.itertuples(index=False):
+              try: rec=json.loads(str(r.canonical_target_record_json))
+              except Exception:
+                  parse_fail+=1; rec={}
+              f=flatten(rec)
+              row={'season':r.season,'team_id':int(r.team_id),'player_id':str(r.player_id),'player':getattr(r,'player',''),
+                   'canonical_target_seconds':float(r.canonical_target_seconds),
+                   'nearest_achievable_seconds':float(r.nearest_achievable_seconds),
+                   'nearest_signed_error_seconds':float(r.nearest_signed_error_seconds),
+                   'min_abs_seconds_error':float(r.min_abs_seconds_error),
+                   'root_cause_classification':str(r.root_cause_classification)}
+              for k,v in f.items(): row[f'target.{k}']=v
+              flat.append(row)
+          df=pd.DataFrame(flat)
+          df.to_csv(out/'BLOCKER_8_CANONICAL_TARGET_RECORDS.csv',index=False)
+
+          all_target_cols=[c for c in df.columns if c.startswith('target.')]
+          interesting_tokens=('source','proven','minute','second','window','tenure','core','start','end','date','game','team','player','season','trade','roster')
+          interesting=[c for c in all_target_cols if any(tok in c.lower() for tok in interesting_tokens)]
+          compact=df[['season','team_id','player_id','player','canonical_target_seconds','nearest_achievable_seconds','nearest_signed_error_seconds','root_cause_classification']+interesting].copy()
+          compact.to_csv(out/'BLOCKER_8_TARGET_PROVENANCE_FIELDS.csv',index=False)
+
+          schema={c:{'non_null':int(df[c].notna().sum()),'values':[str(x) for x in df[c].dropna().astype(str).unique()[:30]]} for c in all_target_cols}
+          (out/'BLOCKER_8_TARGET_RECORD_SCHEMA.json').write_text(json.dumps(schema,indent=2,sort_keys=True)+'\n')
+
+          exchange_cols=[c for c in t.columns if 'exchange' in c.lower() or 'block' in c.lower() or 'nearest' in c.lower() or 'error' in c.lower()]
+          team_view=t[[c for c in ['season','team_id'] if c in t.columns]+exchange_cols].copy()
+          team_view.to_csv(out/'BLOCKER_8_TEAM_EXCHANGE_STRUCTURE.csv',index=False)
+
+          # Equal-and-opposite nearest residuals within a team are evidence for a starter-minute exchange, not a target rewrite.
+          pair_rows=[]
+          for (season,tid),g in df.groupby(['season','team_id'],sort=True):
+              vals=list(g[['player_id','player','nearest_signed_error_seconds']].itertuples(index=False,name=None))
+              for i in range(len(vals)):
+                  for j in range(i+1,len(vals)):
+                      a,b=vals[i],vals[j]
+                      s=float(a[2])+float(b[2])
+                      if abs(s)<=1e-9:
+                          pair_rows.append({'season':season,'team_id':int(tid),'player_id_a':a[0],'player_a':a[1],
+                                            'error_a_seconds':float(a[2]),'player_id_b':b[0],'player_b':b[1],
+                                            'error_b_seconds':float(b[2]),'sum_error_seconds':s})
+          pairs=pd.DataFrame(pair_rows)
+          pairs.to_csv(out/'BLOCKER_8_EQUAL_OPPOSITE_RESIDUAL_PAIRS.csv',index=False)
+
+          source_like=[c for c in all_target_cols if 'source' in c.lower() or 'proven' in c.lower()]
+          summary={
+            'status':'PASS' if parse_fail==0 and len(df)==8 else 'FAIL',
+            'blockers':int(len(df)),
+            'unique_blockers':int(df.drop_duplicates(['season','team_id','player_id']).shape[0]),
+            'target_record_parse_failures':int(parse_fail),
+            'target_record_fields':len(all_target_cols),
+            'source_or_provenance_fields':source_like,
+            'source_or_provenance_field_count':len(source_like),
+            'equal_opposite_nearest_residual_pairs':int(len(pairs)),
+            'outside_legal_envelope':int(df.root_cause_classification.eq('CANONICAL_TARGET_OUTSIDE_LEGAL_STARTER_ENVELOPE').sum()),
+            'inside_discrete_gap':int(df.root_cause_classification.eq('CANONICAL_TARGET_IN_DISCRETE_LEGAL_STARTER_GAP').sum()),
+            'max_min_abs_seconds_error':float(df.min_abs_seconds_error.max()),
+            'canonical_targets_modified':False,
+            'starter_states_modified':False,
+            'minutes_gate_relaxed':False,
+            'promoted_keys':0,
+            'next_scope':'choose target-side vs starter-side repair from retained target provenance and symmetric exchange evidence'
+          }
+          (out/'BLOCKER_8_TARGET_PROVENANCE_GATE.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          if summary['status']!='PASS': raise SystemExit('target provenance gate failed')
+          PY
+
+      - name: Upload retained target provenance audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-blocker-8-target-provenance-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
