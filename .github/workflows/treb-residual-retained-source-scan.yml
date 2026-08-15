@@ -1,0 +1,60 @@
+name: TREB residual retained-source scan
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build retained source inventory
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/scan
+          python - <<'PY'
+          import json, os, urllib.request
+          repo='timeedmonds-maker/104'; tok=os.environ['GH_TOKEN']; base=f'https://api.github.com/repos/{repo}'
+          def api(path):
+            req=urllib.request.Request(base+path,headers={'Authorization':f'Bearer {tok}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'treb-retained-scan'})
+            with urllib.request.urlopen(req,timeout=30) as r:return json.load(r)
+          seasons=['2000','2001','2003','2004','2005','2009','2010','2012','2015','2017','2018','2019','2020','2021','2022','2023','2024']
+          arts=[]; page=1
+          while page<=20:
+            x=api(f'/actions/artifacts?per_page=100&page={page}').get('artifacts',[])
+            if not x:break
+            for a in x:
+              n=a.get('name','').lower()
+              if any(s in n for s in seasons) or any(k in n for k in ['treb','fullcore','materiality','exact','pbp','nba','v3']):
+                arts.append({'id':a['id'],'name':a['name'],'size':a.get('size_in_bytes'),'expired':a.get('expired'),'run_id':(a.get('workflow_run') or {}).get('id'),'digest':a.get('digest')})
+            page+=1
+          tree=api('/git/trees/agent/treb-final-exact-assembly?recursive=1').get('tree',[])
+          files=[]
+          for x in tree:
+            p=x.get('path',''); q=p.lower()
+            if x.get('type')=='blob' and (any(s in q for s in seasons) or any(k in q for k in ['nbastats','pbpstats','fullcore','treb','v3','rebound'])):
+              files.append({'path':p,'size':x.get('size'),'sha':x.get('sha')})
+          out={'artifact_candidates':arts,'artifact_count':len(arts),'repo_file_candidates':files,'repo_file_count':len(files),'seasons':seasons}
+          open('/tmp/scan/RETAINED_SOURCE_INVENTORY.json','w').write(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps({'artifact_count':len(arts),'repo_file_count':len(files)},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-retained-source-inventory-${{ github.run_id }}
+          path: /tmp/scan
+          retention-days: 90
+          compression-level: 1
