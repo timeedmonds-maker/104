@@ -14,33 +14,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Inspect exact native schemas and metric universe
+      - name: Inspect Stage2 source_extra payloads
         run: |
           python - <<'PY'
-          import gzip,json,csv,pathlib
-          root=pathlib.Path('team_trb_all_players/impact_database')
-          src=root/'corrected_off/tenure_segment_on_off.jsonl.gz'
-          rows=[]
-          with gzip.open(src,'rt') as f:
+          import gzip,json,pathlib
+          p=pathlib.Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
+          wanted={'OReb%','Pts per 100 Possessions','Pts per 100 Possessions - Defense','Seconds Per Possession - Offense','Seconds Per Possession - Defense'}
+          seen=set()
+          with gzip.open(p,'rt') as f:
             for line in f:
-              if line.strip(): rows.append(json.loads(line))
-          metrics=sorted({str(r['metric']) for r in rows})
-          seasons=sorted({str(r['season']) for r in rows})
-          print('METRIC_COUNT',len(metrics))
-          print('METRICS_BEGIN')
-          for m in metrics: print(m)
-          print('METRICS_END')
-          print('TENURE_KEYS',sorted(rows[0].keys()))
-          for season in ['2021-22','2025-26']:
-            sdir=root/'outputs'/season
-            for fn in ['player_team_totals.csv.gz','team_on_off_metrics.csv.gz','team_rebound_derived.csv.gz']:
-              p=sdir/fn
-              print('FILE',season,fn,'EXISTS',p.exists())
-              if p.exists():
-                with gzip.open(p,'rt',newline='') as f:
-                  rd=csv.DictReader(f)
-                  print('COLUMNS',season,fn,rd.fieldnames)
-                  sample=next(rd,None)
-                  if sample: print('SAMPLE_KEYS_NONEMPTY',[(k,v) for k,v in sample.items() if v not in (None,'')][:25])
-          assert len(metrics)==89 and len(seasons)==26
+              r=json.loads(line)
+              m=str(r.get('metric'))
+              if r.get('season')=='2021-22' and m in wanted and m not in seen:
+                print('METRIC',m)
+                print('ROW',json.dumps({k:r.get(k) for k in ['season','player_id','player','team_id','query_start_date','query_end_date','minutes_on','minutes_off','on','off_corrected','source_extra','collection_source']},sort_keys=True))
+                seen.add(m)
+                if seen==wanted: break
+          assert seen==wanted,(seen,wanted)
           PY
