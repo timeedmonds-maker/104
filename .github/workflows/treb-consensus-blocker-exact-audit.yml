@@ -1,0 +1,98 @@
+name: TREB consensus blocker exact audit
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-consensus-blocker-exact-audit.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-consensus-blocker-exact-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Download current blocker and retained consensus artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/blocker /tmp/consensus /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9250180970/zip > /tmp/blocker.zip
+          unzip -q /tmp/blocker.zip -d /tmp/blocker
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/consensus.zip
+          unzip -q /tmp/consensus.zip -d /tmp/consensus
+      - name: Exact retained-fact coverage audit against unresolved keys
+        run: |
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections,re
+          out=pathlib.Path('/tmp/out')
+          # Current authoritative blocker manifest from 8,395/9,647 consolidation.
+          bp=next(pathlib.Path('/tmp/blocker').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          blockers=list(csv.DictReader(open(bp,newline='')))
+          assert len(blockers)==1252, len(blockers)
+          # Exact retained consensus primitives.
+          cp=next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'))
+          facts=collections.defaultdict(dict)
+          with open(cp,newline='') as f:
+            for r in csv.DictReader(f):
+              facts[(str(r['game_id']),str(r['team_id']),str(r.get('player_id','')))][r['field']]=float(r['value'])
+          def season_from_gid(g):
+            s=str(g).zfill(10)
+            # NBA regular season IDs: 002YYxxxxx -> season start year 20YY for this project.
+            if len(s)>=5 and s[:3]=='002' and s[3:5].isdigit():
+              y=2000+int(s[3:5]); return f'{y}-{(y+1)%100:02d}'
+            return None
+          # Inventory exact player-game ON bundles and exact team-game totals by key/season.
+          req_on={'seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+          req_team={'game_seconds','team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+          player_games=collections.defaultdict(list)
+          team_games=collections.defaultdict(list)
+          for (gid,tid,pid),v in facts.items():
+            season=season_from_gid(gid)
+            if not season: continue
+            if pid and req_on.issubset(v): player_games[(season,tid,pid)].append((gid,v))
+            if not pid and req_team.issubset(v): team_games[(season,tid)].append((gid,v))
+          rows=[]; exact_on_candidates=0; exact_team_season_candidates=0
+          for b in blockers:
+            season=str(b['season']); tid=str(int(float(b['team_id']))); pid=str(b['player_id']).removesuffix('.0')
+            pgs=player_games.get((season,tid,pid),[]); tgs=team_games.get((season,tid),[])
+            on_secs=sum(v['seconds_on'] for _,v in pgs)
+            exact_on=bool(pgs)
+            # Conservative full-team-season completeness test: expected NBA team game count inferred from exact totals only;
+            # this is inventory, not promotion. No key is accepted here without a tenure coverage proof.
+            exact_team=bool(tgs)
+            if exact_on: exact_on_candidates+=1
+            if exact_team: exact_team_season_candidates+=1
+            rows.append({'season':season,'team_id':tid,'player_id':pid,'exact_player_games':len(pgs),'exact_on_seconds':on_secs,'exact_team_games':len(tgs),'exact_on_bundle_available':int(exact_on),'exact_team_totals_available':int(exact_team),'promotion_status':'NEEDS_TENURE_COVERAGE_PROOF'})
+          with open(out/'CONSENSUS_BLOCKER_COVERAGE.csv','w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=rows[0].keys()); w.writeheader(); w.writerows(rows)
+          # Inspect canonical target schema to determine whether a deterministic tenure-game coverage proof can be made next.
+          target=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          sample=[]; keys=set()
+          with gzip.open(target,'rt',encoding='utf-8') as f:
+            for i,line in enumerate(f):
+              if line.strip():
+                r=json.loads(line); keys.update(r.keys())
+                if i<3: sample.append(r)
+          gameish=sorted(k for k in keys if any(x in k.lower() for x in ['game','date','start','end','minute','second','tenure']))
+          qa={'status':'PASS','authoritative_unresolved':len(blockers),'consensus_fact_entities':len(facts),'blockers_with_exact_player_game_on_bundle':exact_on_candidates,'blockers_with_exact_team_total_bundle':exact_team_season_candidates,'target_schema_game_or_tenure_fields':gameish,'promotion_rows':0,'reason_no_promotion':'Fail-closed: exact consensus primitives are inventoried, but full tenure-game coverage must be proven before constructing OFF/complement aggregates.','integrity':{'materiality_threshold_pp':0.01,'minutes_spread_seconds':60,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False},'strategy_ledger':{'strategy':'retained consensus exact primitive promotion','state':'AUDITED_NOT_EXHAUSTED','next':'Use canonical target tenure/game fields, if present, to prove exact game coverage and aggregate only fully covered keys.'}}
+          (out/'CONSENSUS_BLOCKER_AUDIT_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(qa,indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-consensus-blocker-exact-audit-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
