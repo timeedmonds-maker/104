@@ -1,0 +1,140 @@
+name: Native89 corrected analysis-ready v3
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-analysis-ready-v3.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Build corrected self-contained release v3
+        run: |
+          python - <<'PY'
+          import gzip,json,csv,pathlib,collections,zipfile,hashlib,re
+          root=pathlib.Path('team_trb_all_players/impact_database')
+          src=root/'corrected_off/tenure_segment_on_off.jsonl.gz'
+          out=pathlib.Path('native89_v3'); out.mkdir(parents=True,exist_ok=True)
+          rows=[]
+          with gzip.open(src,'rt') as f:
+            for line in f:
+              if line.strip(): rows.append(json.loads(line))
+          metrics=sorted({str(r['metric']) for r in rows})
+          seasons=sorted({str(r['season']) for r in rows})
+          assert len(metrics)==89, len(metrics)
+          assert len(seasons)==26 and seasons[0]=='2000-01' and seasons[-1]=='2025-26', seasons
+          fields=['season','player_id','player_name','team_id','team_abbr','tenure_start','tenure_end','query_start_date','query_end_date','metric','on_court_minutes','off_court_minutes','on','corrected_off','swing','complete','tenure_confidence','boundary_resolution','collection_source']
+          with gzip.open(out/'native_89_metrics_LONG_WITH_EXPOSURES.csv.gz','wt',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=fields); w.writeheader()
+            for r in rows:
+              w.writerow({'season':r.get('season'),'player_id':r.get('player_id'),'player_name':r.get('player'),'team_id':r.get('team_id'),'team_abbr':r.get('team_abbr'),'tenure_start':r.get('tenure_start'),'tenure_end':r.get('tenure_end'),'query_start_date':r.get('query_start_date'),'query_end_date':r.get('query_end_date'),'metric':r.get('metric'),'on_court_minutes':r.get('minutes_on'),'off_court_minutes':r.get('minutes_off'),'on':r.get('on'),'corrected_off':r.get('off_corrected'),'swing':r.get('on_minus_off_corrected'),'complete':r.get('complete'),'tenure_confidence':r.get('tenure_confidence'),'boundary_resolution':r.get('boundary_resolution'),'collection_source':r.get('collection_source')})
+          exp={}
+          sm=collections.defaultdict(dict)
+          for r in rows:
+            k=(str(r['season']),str(r['player_id']),str(r['team_id']),str(r.get('query_start_date')),str(r.get('query_end_date')))
+            exp.setdefault(k,{'season':r['season'],'player_id':r['player_id'],'player_name':r.get('player'),'team_id':r['team_id'],'team_abbr':r.get('team_abbr'),'tenure_start':r.get('tenure_start'),'tenure_end':r.get('tenure_end'),'query_start_date':r.get('query_start_date'),'query_end_date':r.get('query_end_date'),'on_court_minutes':r.get('minutes_on'),'off_court_minutes':r.get('minutes_off'),'tenure_confidence':r.get('tenure_confidence'),'boundary_resolution':r.get('boundary_resolution')})
+            sm[k][str(r['metric'])]=r
+          ef=list(exp.values())
+          assert ef
+          with gzip.open(out/'TENURE_EXPOSURES.csv.gz','wt',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=list(ef[0])); w.writeheader(); w.writerows(ef)
+          def norm(s): return re.sub(r'[^a-z0-9]+',' ',s.lower()).strip()
+          # Print the complete metric universe into the retained QA path for deterministic diagnosis.
+          (out/'METRIC_UNIVERSE.txt').write_text('\n'.join(metrics)+'\n')
+          # Ratings: reconstruct possession-weighted sufficient statistics from native rates + seconds/poss.
+          needed=['Pts per 100 Possessions','Pts per 100 Possessions - Defense','Seconds Per Possession - Offense','Seconds Per Possession - Defense']
+          assert all(x in metrics for x in needed), {'missing_rating_metrics':[x for x in needed if x not in metrics]}
+          netseg=[]
+          for k,d in sm.items():
+            if not all(x in d for x in needed): continue
+            o,dv,spo,spd=[d[x] for x in needed]
+            vals=[o.get('on'),o.get('off_corrected'),dv.get('on'),dv.get('off_corrected'),spo.get('on'),spo.get('off_corrected'),spd.get('on'),spd.get('off_corrected'),o.get('minutes_on'),o.get('minutes_off')]
+            if any(v is None for v in vals): continue
+            ort_on,ort_off,drt_on,drt_off,spo_on,spo_off,spd_on,spd_off,mon,mof=map(float,vals)
+            if min(spo_on,spo_off,spd_on,spd_off,mon,mof)<=0: continue
+            op_on=mon*60/spo_on; op_off=mof*60/spo_off; dp_on=mon*60/spd_on; dp_off=mof*60/spd_off
+            netseg.append({'season':k[0],'player_id':k[1],'player_name':o.get('player'),'team_id':k[2],'query_start_date':k[3],'query_end_date':k[4],'on_court_minutes':mon,'off_court_minutes':mof,'on_offensive_possessions':op_on,'off_offensive_possessions':op_off,'on_defensive_possessions':dp_on,'off_defensive_possessions':dp_off,'on_team_points':ort_on*op_on/100,'off_team_points':ort_off*op_off/100,'on_opponent_points':drt_on*dp_on/100,'off_opponent_points':drt_off*dp_off/100})
+          assert netseg
+          with gzip.open(out/'NET_RATING_SUFFICIENT_STATS_BY_TENURE.csv.gz','wt',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=list(netseg[0])); w.writeheader(); w.writerows(netseg)
+          # OREB: identify the native overall OREB% metric and its native OREB count companion at the SAME corrected tenure grain.
+          rate_candidates=[]; count_candidates=[]
+          for m in metrics:
+            n=norm(m)
+            overall=('offensive rebound' in n or 'oreb' in n)
+            excluded=any(x in n for x in ['3pt','3 point','three point','missed 3','missed three','opponent'])
+            if not overall or excluded: continue
+            if any(x in n for x in ['pct','percent','percentage','rate']) or '%' in m:
+              rate_candidates.append(m)
+            else:
+              count_candidates.append(m)
+          print('OREB_RATE_CANDIDATES',rate_candidates)
+          print('OREB_COUNT_CANDIDATES',count_candidates)
+          preferred_rates=[m for m in rate_candidates if norm(m) in ['offensive rebounding','offensive rebound pct','offensive rebound percentage','oreb pct','oreb percentage']]
+          oreb_rate_metric=(preferred_rates[0] if len(preferred_rates)==1 else (rate_candidates[0] if len(rate_candidates)==1 else None))
+          preferred_counts=[m for m in count_candidates if norm(m) in ['offensive rebounds','offensive rebound','oreb','orebs']]
+          oreb_count_metric=(preferred_counts[0] if len(preferred_counts)==1 else (count_candidates[0] if len(count_candidates)==1 else None))
+          assert oreb_rate_metric, {'oreb_rate_candidates':rate_candidates}
+          assert oreb_count_metric, {'oreb_count_candidates':count_candidates}
+          orebseg=[]
+          for k,d in sm.items():
+            if oreb_rate_metric not in d or oreb_count_metric not in d: continue
+            rr=d[oreb_rate_metric]; cr=d[oreb_count_metric]
+            if rr.get('on') is None or cr.get('on') is None or rr.get('minutes_on') is None: continue
+            rate=float(rr['on']); cnt=float(cr['on']); mon=float(rr['minutes_on'])
+            if rate>1.5: rate/=100.0
+            if rate<=0 or cnt<0 or mon<=0: continue
+            opp=cnt/rate
+            if opp<=0: continue
+            orebseg.append({'season':k[0],'player_id':k[1],'player_name':rr.get('player'),'team_id':k[2],'query_start_date':k[3],'query_end_date':k[4],'on_court_minutes':mon,'team_orebounds_on':cnt,'oreb_opportunities_on':opp,'oreb_pct_on':100*cnt/opp})
+          assert orebseg, {'oreb_rate_metric':oreb_rate_metric,'oreb_count_metric':oreb_count_metric}
+          with gzip.open(out/'OREB_ON_SUFFICIENT_STATS_BY_TENURE.csv.gz','wt',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=list(orebseg[0])); w.writeheader(); w.writerows(orebseg)
+          sel={'2021-22','2022-23','2023-24','2024-25','2025-26'}
+          oa=collections.defaultdict(lambda:collections.Counter()); na=collections.defaultdict(lambda:collections.Counter()); names={}
+          for r in orebseg:
+            if r['season'] not in sel: continue
+            p=r['player_id']; names[p]=r['player_name']; a=oa[p]; a['minutes']+=r['on_court_minutes']; a['oreb']+=r['team_orebounds_on']; a['opp']+=r['oreb_opportunities_on']
+          for r in netseg:
+            if r['season'] not in sel: continue
+            p=r['player_id']; names[p]=r['player_name']; a=na[p]
+            for x in ['on_court_minutes','on_offensive_possessions','off_offensive_possessions','on_defensive_possessions','off_defensive_possessions','on_team_points','off_team_points','on_opponent_points','off_opponent_points']: a[x]+=float(r[x])
+          acc=[]
+          for p in sorted(set(oa)&set(na)):
+            o=oa[p]; n=na[p]
+            if o['minutes']<2000: continue
+            if min(o['opp'],n['on_offensive_possessions'],n['off_offensive_possessions'],n['on_defensive_possessions'],n['off_defensive_possessions'])<=0: continue
+            orebr=100*o['oreb']/o['opp']
+            ort_on=100*n['on_team_points']/n['on_offensive_possessions']; drt_on=100*n['on_opponent_points']/n['on_defensive_possessions']; nr_on=ort_on-drt_on
+            ort_off=100*n['off_team_points']/n['off_offensive_possessions']; drt_off=100*n['off_opponent_points']/n['off_defensive_possessions']; nr_off=ort_off-drt_off
+            acc.append({'player_id':p,'player_name':names[p],'on_court_minutes':o['minutes'],'oreb_pct_on':orebr,'net_rating_on':nr_on,'net_rating_corrected_off':nr_off,'net_rating_swing':nr_on-nr_off})
+          assert acc, 'acceptance table empty'
+          assert all(r['player_name'] and r['on_court_minutes']>=2000 for r in acc)
+          with open(out/'ACCEPTANCE_2021-22_to_2025-26_MIN2000.csv','w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=list(acc[0])); w.writeheader(); w.writerows(acc)
+          missing_names=sum(not r.get('player') for r in rows); missing_minutes=sum(r.get('minutes_on') is None or r.get('minutes_off') is None for r in rows)
+          assert missing_names==0 and missing_minutes==0
+          qa={'status':'PASS','native_metric_rows':len(rows),'native_metrics':len(metrics),'seasons':len(seasons),'missing_player_names':missing_names,'missing_on_or_off_minutes':missing_minutes,'tenure_exposure_rows':len(ef),'net_rating_sufficient_stat_rows':len(netseg),'oreb_on_sufficient_stat_rows':len(orebseg),'oreb_rate_metric':oreb_rate_metric,'oreb_count_metric':oreb_count_metric,'acceptance_players':len(acc),'acceptance_period':'2021-22 through 2025-26','acceptance_min_on_minutes':2000,'aggregation':'sum sufficient statistics first, calculate rates second, swing last','rate_averaging_used':False,'treb_included':False,'native_values_modified':False}
+          (out/'FINAL_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          (out/'README_FIRST.txt').write_text('Native 89 corrected analysis-ready v3. Player names and ON/OFF minutes are embedded. OREB% ON and Net Rating ON/corrected-OFF are reconstructed from sufficient statistics at corrected tenure grain; components are summed before rates and swing are calculated. Acceptance file covers 2021-22 through 2025-26 with 2000+ ON minutes. TotalReboundPct is intentionally excluded.\n')
+          z=pathlib.Path('NBA_native_89_metrics_ANALYSIS_READY_V3_2000-01_to_2025-26.zip')
+          with zipfile.ZipFile(z,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as q:
+            for p in out.rglob('*'):
+              if p.is_file(): q.write(p,p.relative_to(out))
+          h=hashlib.sha256(z.read_bytes()).hexdigest(); pathlib.Path(str(z)+'.sha256').write_text(h+'  '+z.name+'\n')
+          print(json.dumps({**qa,'zip':z.name,'sha256':h,'zip_bytes':z.stat().st_size},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NBA-native-89-analysis-ready-v3-${{ github.run_id }}
+          path: |
+            NBA_native_89_metrics_ANALYSIS_READY_V3_2000-01_to_2025-26.zip
+            NBA_native_89_metrics_ANALYSIS_READY_V3_2000-01_to_2025-26.zip.sha256
+          retention-days: 90
+          if-no-files-found: error
