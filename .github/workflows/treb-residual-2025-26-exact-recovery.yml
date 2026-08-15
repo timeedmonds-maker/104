@@ -1,0 +1,148 @@
+name: TREB residual 2025-26 exact recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-residual-2025-26-exact-recovery.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-residual-2025-26-exact-recovery
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+
+jobs:
+  recover:
+    name: exact 2025-26 residual 409
+    runs-on: ubuntu-24.04
+    timeout-minutes: 58
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact reconstruction dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Assert authoritative target scope is exactly 409 full-core keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json
+          p='team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          keys=[]
+          with gzip.open(p,'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  if str(r.get('season'))=='2025-26' and bool(r.get('full_core_reuse')):
+                      keys.append((str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0')))
+          assert len(keys)==409, len(keys)
+          assert len(set(keys))==409, len(set(keys))
+          print('TARGET_SCOPE_PASS 2025-26 full_core=409')
+          PY
+
+      - name: Download retained full-season source feeds for 2025-26
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y=2025
+          mkdir -p /tmp/src /tmp/out
+          printf '{"phase":"SOURCE_DOWNLOAD","year":2025}\n' > /tmp/out/progress.json
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 \
+            --output /tmp/list_data.txt \
+            https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' > /tmp/urls.tsv
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_2025'
+              if key not in vals:
+                  raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            echo "SOURCE_FETCH year=$y prefix=$prefix url=$url"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
+              --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do
+            test -s "/tmp/src/${prefix}_${y}.csv"
+          done
+          printf '{"phase":"SOURCE_READY","year":2025}\n' > /tmp/out/progress.json
+
+      - name: Reconstruct exact 2025-26 season facts and full-core TREB
+        timeout-minutes: 40
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            while sleep 120; do
+              echo "HEARTBEAT year=2025 utc=$(date -u +%FT%TZ)"
+              if [ -f /tmp/out/progress.json ]; then cat /tmp/out/progress.json; fi
+            done
+          ) &
+          hb=$!
+          trap 'kill "$hb" 2>/dev/null || true' EXIT
+          python -u team_trb_all_players/rebuild_fullcore_treb_fanout.py \
+            --year 2025 \
+            --targets "$TARGETS" \
+            --nba /tmp/src/nbastats_2025.csv \
+            --v3 /tmp/src/nbastatsv3_2025.csv \
+            --pbp /tmp/src/pbpstats_2025.csv \
+            --output-dir /tmp/out
+          kill "$hb" 2>/dev/null || true
+          trap - EXIT
+
+      - name: Persist exact recovery gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('/tmp/out/season_gate.json')
+          status='NO_GATE'
+          if p.exists():
+              g=json.loads(p.read_text())
+              status=g.get('status','UNKNOWN')
+              print(json.dumps(g,indent=2))
+          Path('/tmp/out/RESIDUAL_2025_26_RECOVERY_METADATA.json').write_text(json.dumps({
+              'authoritative_residual_scope':409,
+              'season':'2025-26',
+              'recovery_method':'fresh exact game facts from retained nbastats+nbastatsv3+pbpstats feeds',
+              'rounded_percentage_backsolve_used':False,
+              'opponent_rebound_inference_used':False,
+              'partial_tenure_whole_team_subtraction_used':False,
+              'season_gate_status':status
+          },indent=2)+'\n')
+          PY
+
+      - name: Upload 2025-26 targeted recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-residual-2025-26-exact-recovery-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
