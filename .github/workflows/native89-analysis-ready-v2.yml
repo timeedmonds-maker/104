@@ -14,21 +14,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Inspect Stage2 source_extra payloads
+      - name: Probe exact PBP Stats WOWY raw team payload
         run: |
           python - <<'PY'
-          import gzip,json,pathlib
-          p=pathlib.Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
-          wanted={'OReb%','Pts per 100 Possessions','Pts per 100 Possessions - Defense','Seconds Per Possession - Offense','Seconds Per Possession - Defense'}
-          seen=set()
-          with gzip.open(p,'rt') as f:
-            for line in f:
-              r=json.loads(line)
-              m=str(r.get('metric'))
-              if r.get('season')=='2021-22' and m in wanted and m not in seen:
-                print('METRIC',m)
-                print('ROW',json.dumps({k:r.get(k) for k in ['season','player_id','player','team_id','query_start_date','query_end_date','minutes_on','minutes_off','on','off_corrected','source_extra','collection_source']},sort_keys=True))
-                seen.add(m)
-                if seen==wanted: break
-          assert seen==wanted,(seen,wanted)
+          import requests,json
+          url='https://api.pbpstats.com/get-wowy-stats/nba'
+          params={'Season':'2021-22','SeasonType':'Regular Season','TeamId':'1610612737','0Exactly1OnFloor':'1629027'}
+          r=requests.get(url,params=params,timeout=60,headers={'User-Agent':'Mozilla/5.0'})
+          print('STATUS',r.status_code,'URL',r.url)
+          r.raise_for_status(); d=r.json()
+          print('TOP_KEYS',list(d)[:20])
+          print('JSON_PREFIX',json.dumps(d)[:12000])
           PY
