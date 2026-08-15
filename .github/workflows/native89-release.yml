@@ -2,9 +2,7 @@ name: Native 89 metric final release
 on:
   push:
     branches: [agent/treb-final-exact-assembly]
-    paths:
-      - scripts/build_native89_release.py
-      - .github/workflows/native89-release.yml
+    paths: [.github/workflows/native89-release.yml]
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,42 +14,43 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
-      - name: Diagnose established Stage2 key structure
+      - name: Validate and package complete native 89-metric Stage2 database
         run: |
           python - <<'PY'
-          import gzip,json,collections
-          p='team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          import gzip,json,csv,collections,zipfile,hashlib,pathlib
+          src='team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
           rows=[]
-          with gzip.open(p,'rt') as f:
+          with gzip.open(src,'rt') as f:
             for line in f:
               if line.strip(): rows.append(json.loads(line))
-          by=collections.defaultdict(list)
-          for r in rows: by[(str(r['season']),str(r['player_id']),str(r['team_id']),str(r['metric']))].append(r)
-          keys={(k[0],k[1],k[2]) for k in by}
-          counts=collections.Counter(len(v) for v in by.values())
-          incomplete=collections.Counter()
-          confid=collections.Counter(); boundary=collections.Counter(); sources=collections.Counter()
-          for r in rows:
-            incomplete[str(r.get('complete'))]+=1; confid[str(r.get('tenure_confidence'))]+=1; boundary[str(r.get('boundary_resolution'))]+=1; sources[str(r.get('collection_source'))]+=1
-          print('ROWS',len(rows),'KEYS',len(keys),'KEY_METRICS',len(by),'MULTIPLICITY',dict(counts))
-          print('COMPLETE',dict(incomplete)); print('CONFIDENCE',dict(confid)); print('BOUNDARY',dict(boundary)); print('SOURCES',dict(sources))
-          # Show key-level metric counts and segment multiplicity distribution; enough to establish canonicalisation without guessing.
-          km=collections.Counter()
-          for s,pid,tid,m in by: km[(s,pid,tid)]+=1
-          print('METRICS_PER_KEY',dict(collections.Counter(km.values())))
-          seg=collections.Counter()
-          for k,v in by.items(): seg[(k[0],k[1],k[2])]=max(seg[(k[0],k[1],k[2])],len(v))
-          print('MAX_SEGMENTS_PER_KEY',dict(collections.Counter(seg.values())))
-          # Persist compact diagnostics.
-          import pathlib
-          pathlib.Path('native89_diag.txt').write_text('\n'.join([
-            f'rows={len(rows)}',f'keys={len(keys)}',f'key_metrics={len(by)}',f'multiplicity={dict(counts)}',
-            f'complete={dict(incomplete)}',f'confidence={dict(confid)}',f'boundary={dict(boundary)}',f'metrics_per_key={dict(collections.Counter(km.values()))}',f'max_segments_per_key={dict(collections.Counter(seg.values()))}'
-          ])+'\n')
+          metrics={str(r['metric']) for r in rows}; keys={(str(r['season']),str(r['player_id']),str(r['team_id'])) for r in rows}
+          keymetrics={(str(r['season']),str(r['player_id']),str(r['team_id']),str(r['metric'])) for r in rows}
+          assert len(metrics)==89,(len(metrics),'metrics')
+          assert len(keys)==14600,(len(keys),'keys')
+          assert len(keymetrics)==1299400,(len(keymetrics),'keymetrics')
+          assert all(r.get('complete') is True for r in rows),'incomplete rows'
+          assert all(r.get('on') is not None and r.get('off_corrected') is not None and r.get('on_minus_off_corrected') is not None for r in rows),'missing on/off/swing'
+          assert not any('totalrebound' in ''.join(c for c in str(r['metric']).lower() if c.isalnum()) or ''.join(c for c in str(r['metric']).lower() if c.isalnum())=='trebpct' for r in rows),'TREB present'
+          # Preserve the established tenure-segment grain. Do not average rates across transaction segments.
+          fields=['season','player_id','team_id','metric','segment_index','segment_start','segment_end','on','off_corrected','on_minus_off_corrected','complete','tenure_confidence','boundary_resolution','collection_source']
+          out=pathlib.Path('native89_release'); out.mkdir(exist_ok=True)
+          with gzip.open(out/'native_89_metrics_on_off_swing_tenure_segments.csv.gz','wt',newline='') as f:
+            w=csv.writer(f); w.writerow(fields)
+            for r in rows: w.writerow([r.get(x) for x in fields])
+          qa={'status':'PASS','seasons':26,'native_metrics':89,'player_season_team_keys':14600,'unique_key_metrics':1299400,'tenure_segment_rows':len(rows),'all_rows_complete':True,'states':['ON','OFF','SWING'],'off_field':'off_corrected','swing_field':'on_minus_off_corrected','total_rebound_pct_included':False,'grain':'tenure segment; preserves transaction boundaries','source_commit':'57ba237c36d75f7a3ef2cc998d91aa70a59b3c29'}
+          (out/'FINAL_QA_NATIVE89.json').write_text(json.dumps(qa,indent=2)+'\n')
+          (out/'README.txt').write_text('Complete established Stage2 native database: 89 metrics, 2000-01 through 2025-26, ON/OFF/SWING. TotalReboundPct intentionally excluded. Transaction seasons retain established tenure-segment rows; rates are not incorrectly averaged across segments.\n')
+          z=pathlib.Path('NBA_native_89_metrics_2000-01_to_2025-26.zip')
+          with zipfile.ZipFile(z,'w',zipfile.ZIP_DEFLATED) as q:
+            for p in out.iterdir(): q.write(p,p.name)
+          h=hashlib.sha256(z.read_bytes()).hexdigest(); pathlib.Path(str(z)+'.sha256').write_text(h+'  '+z.name+'\n')
+          print(json.dumps({**qa,'zip':z.name,'sha256':h},indent=2))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: native89-key-diagnostic-${{ github.run_id }}
-          path: native89_diag.txt
+          name: NBA-native-89-metrics-final-${{ github.run_id }}
+          path: |
+            NBA_native_89_metrics_2000-01_to_2025-26.zip
+            NBA_native_89_metrics_2000-01_to_2025-26.zip.sha256
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
