@@ -1,0 +1,79 @@
+name: Export Net Rating exposure layer
+
+on:
+  push:
+    branches:
+      - agent/oreb-career-scatter
+    paths:
+      - '.github/workflows/export-net-rating-exposure-layer.yml'
+      - 'net_rating_export_trigger.txt'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Export retained identity and exposure layer
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv, gzip, json, pathlib, hashlib
+          src = pathlib.Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
+          out = pathlib.Path('net_rating_export')
+          out.mkdir(exist_ok=True)
+          if not src.exists():
+              raise SystemExit(f'missing source: {src}')
+
+          exposure_fields = ['season','player_id','player','team_id','team_abbr','segment_index','segment_start','segment_end','minutes_on','minutes_off','complete','tenure_confidence','boundary_resolution','collection_source']
+          nr_fields = exposure_fields + ['metric','on','off_corrected','on_minus_off_corrected']
+          seen = set()
+          exposure_rows = 0
+          net_rating_rows = 0
+          sample_keys = None
+          with gzip.open(src,'rt',encoding='utf-8') as f, \
+               gzip.open(out/'tenure_segment_exposures.csv.gz','wt',encoding='utf-8',newline='') as ef, \
+               gzip.open(out/'net_rating_native_rows.csv.gz','wt',encoding='utf-8',newline='') as nf:
+              ew = csv.DictWriter(ef, fieldnames=exposure_fields); ew.writeheader()
+              nw = csv.DictWriter(nf, fieldnames=nr_fields); nw.writeheader()
+              for line in f:
+                  if not line.strip(): continue
+                  r = json.loads(line)
+                  if sample_keys is None: sample_keys = sorted(r.keys())
+                  key = tuple(r.get(k) for k in ['season','player_id','team_id','segment_index','segment_start','segment_end'])
+                  if key not in seen:
+                      seen.add(key)
+                      ew.writerow({k:r.get(k) for k in exposure_fields})
+                      exposure_rows += 1
+                  if r.get('metric') == 'Net Rating':
+                      nw.writerow({k:r.get(k) for k in nr_fields})
+                      net_rating_rows += 1
+
+          sha = hashlib.sha256(src.read_bytes()).hexdigest()
+          qa = {
+              'status':'PASS',
+              'source':str(src),
+              'source_sha256':sha,
+              'source_size_bytes':src.stat().st_size,
+              'source_row_keys':sample_keys,
+              'exposure_segment_rows':exposure_rows,
+              'net_rating_rows':net_rating_rows,
+              'exposure_fields':exposure_fields,
+              'net_rating_fields':nr_fields,
+          }
+          (out/'EXPORT_QA.json').write_text(json.dumps(qa,indent=2),encoding='utf-8')
+          print(json.dumps(qa,indent=2))
+          PY
+      - name: Upload Net Rating exposure layer
+        uses: actions/upload-artifact@v4
+        with:
+          name: net-rating-exposure-layer
+          path: net_rating_export/
+          if-no-files-found: error
+          retention-days: 30
