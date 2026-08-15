@@ -1,0 +1,286 @@
+name: TREB promote 63-key captain-call starter overlay
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-captains-call-63-promote.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-captains-call-63-promote
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  DIAG_RUN: '31862335344'
+  DIAG_ARTIFACT: TREB-starter-residual-64-diagnostic-31862335344
+  NORMAL_TOLERANCE_SECONDS: '60.0'
+  CAPTAINS_CALL_TOLERANCE_SECONDS: '131.0'
+
+jobs:
+  materialize:
+    name: captain-call representative overlay ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - {year: 2001, expected_keys: 11, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2001-31854913173'}
+          - {year: 2024, expected_keys: 52, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2024-31858884423'}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deterministic materializer dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Download authoritative 64-key diagnostic
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.DIAG_ARTIFACT }}
+          path: /tmp/diag
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.DIAG_RUN }}
+
+      - name: Download retained exact season baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.baseline_artifact }}
+          path: /tmp/baseline
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ matrix.baseline_run }}
+
+      - name: Download retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'; mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals: raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${prefix}_${y}.csv"; done
+
+      - name: Materialize deterministic 63-key captain-call representatives
+        timeout-minutes: 22
+        env:
+          YEAR: ${{ matrix.year }}
+          EXPECTED_KEYS: ${{ matrix.expected_keys }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import hashlib,json,os,sys
+          from pathlib import Path
+          import pandas as pd
+
+          sys.path.insert(0,'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+
+          year=int(os.environ['YEAR']); season=f'{year}-{(year+1)%100:02d}'
+          expected=int(os.environ['EXPECTED_KEYS']); normal=float(os.environ['NORMAL_TOLERANCE_SECONDS']); cap=float(os.environ['CAPTAINS_CALL_TOLERANCE_SECONDS'])
+          out=Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+
+          d=pd.read_csv('/tmp/diag/STARTER_RESIDUAL_64_KEYS.csv',dtype={'player_id':str},low_memory=False)
+          d['player_id']=d.player_id.map(mat.sid); d['team_id']=pd.to_numeric(d.team_id,errors='raise').astype('int64')
+          scope=d[(d.season.astype(str)==season) & d.diagnostic_cause.astype(str).isin(['CROSS_PLAYER_STATE_INCOMPATIBILITY','PLAYER_MINUTES_UNREACHABLE_WITHIN_60S'])].copy()
+          if len(scope)!=expected: raise RuntimeError(f'captain-call scope drift {season}: expected={expected} got={len(scope)}')
+          if (scope.diagnostic_cause.astype(str)=='MATERIAL_MULTIPLE_TEAM_COMPATIBLE_STATES').any(): raise RuntimeError('material key leaked into captain-call scope')
+
+          targets=mat.load_targets(Path(os.environ['TARGETS']),season)
+          target_by_team={}; target_by_key={}
+          for r in targets:
+              target_by_team.setdefault(int(r['team_id']),[]).append(r)
+              target_by_key[(int(r['team_id']),mat.sid(r['player_id']))]=r
+
+          nba=mat.io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{year}.csv',low_memory=False))
+          v3=mat.lineup_engine.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{year}.csv',low_memory=False))
+          pbp=mat.io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{year}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+
+          team_df=pd.read_csv('/tmp/baseline/team_game_treb.csv.gz',low_memory=False)
+          player_df=pd.read_csv('/tmp/baseline/player_game_treb_on.csv.gz',dtype={'player_id':str},low_memory=False)
+          baseline_team,baseline_player=mat.aggregate_baseline(team_df,player_df)
+
+          def gids_from(series):
+              ans=set()
+              for v in series:
+                  if pd.isna(v): continue
+                  for x in str(v).split('|'):
+                      if x.strip(): ans.add(int(float(x)))
+              return sorted(ans)
+          def state_sig(st): return tuple(sorted((str(pid),)+tuple(int(v) for v in vals) for pid,vals in st.items()))
+
+          game_cache={}; overlay=[]; team_prov=[]
+          for tid,tscope in scope.groupby('team_id',sort=True):
+              tid=int(tid); ttargets=target_by_team.get(tid,[])
+              if not ttargets: raise RuntimeError(f'no targets {season} team={tid}')
+              scoped_pids=sorted(set(tscope.player_id.map(mat.sid)))
+              gids=gids_from(tscope.game_ids); option_sigs=[]; added_team_rows=[]
+              for gid in gids:
+                  if gid not in ng or gid not in vg or gid not in pg: raise RuntimeError(f'missing retained feed {season} game={gid}')
+                  if gid not in game_cache:
+                      variants,meta=mat.enumerate_game_variants(gid,ng[gid],vg[gid],pg[gid],20000,5000)
+                      if meta['capped'] or not meta['team_totals_invariant'] or not variants: raise RuntimeError(f'unsafe enumeration {season} game={gid}: {meta}')
+                      game_cache[gid]=(variants,meta)
+                  variants,_=game_cache[gid]
+                  tc=[r for r in variants[0]['team_rows'] if int(r['team_id'])==tid]
+                  if len(tc)!=1: raise RuntimeError(f'missing invariant team row {season} {tid} {gid}')
+                  added_team_rows.append(tc[0])
+                  opts=sorted(set(mat.contribution_signature(v['player_rows'],tid) for v in variants))
+                  option_sigs.append(opts or [tuple()])
+
+              team_total=dict(baseline_team.get(tid,{f:0 for f in mat.TEAM_FIELDS}))
+              for r in added_team_rows:
+                  for f in mat.TEAM_FIELDS: team_total[f]=int(team_total.get(f,0))+int(r[f])
+              states,capped=mat.combine_team_states(option_sigs,200000)
+              if capped or not states: raise RuntimeError(f'team state enumeration unsafe {season} {tid}')
+
+              evals=[]
+              for st in states:
+                  diffs={}
+                  for t in ttargets:
+                      pid=mat.sid(t['player_id']); base=baseline_player.get((tid,pid),{f:0 for f in mat.PLAYER_FIELDS}); add=st.get(pid,(0,0,0,0,0))
+                      actual=int(base['seconds_on'])+int(add[0]); target=float(t.get('seconds_on',0.0)); diffs[pid]=float(actual-target)
+                  outside={pid for pid,v in diffs.items() if abs(v)>normal}
+                  obj=(len(outside),max([abs(v) for v in diffs.values()] or [0.0]),sum(abs(v) for v in diffs.values()),state_sig(st))
+                  evals.append((obj,st,diffs,outside))
+              evals.sort(key=lambda x:x[0]); obj,rep,diffs,outside=evals[0]
+              rep_sha=hashlib.sha256(json.dumps(state_sig(rep),separators=(',',':')).encode()).hexdigest()
+
+              scoped_exception_count=0; scoped_max_error=0.0
+              for a in tscope.itertuples(index=False):
+                  pid=mat.sid(a.player_id); cause=str(a.diagnostic_cause); err=abs(float(diffs[pid])); scoped_max_error=max(scoped_max_error,err)
+                  if cause=='CROSS_PLAYER_STATE_INCOMPATIBILITY':
+                      if err>normal+1e-9: raise RuntimeError(f'55-key normal tolerance violated {season} {tid} {pid}: {err}')
+                      basis='CAPTAINS_CALL_CROSSPLAYER_CLEARED_NORMAL_60S'
+                  elif cause=='PLAYER_MINUTES_UNREACHABLE_WITHIN_60S':
+                      scoped_exception_count+=1
+                      if err<=normal or err>cap+1e-9: raise RuntimeError(f'8-key exception tolerance violated {season} {tid} {pid}: {err}')
+                      basis='CAPTAINS_CALL_8_BLOCKER_ACCEPTED_LE_131S'
+                  else: raise RuntimeError(f'unexpected cause {cause}')
+
+                  target=target_by_key[(tid,pid)]; base=baseline_player.get((tid,pid),{f:0 for f in mat.PLAYER_FIELDS}); add=rep.get(pid,(0,0,0,0,0))
+                  ptotal={f:int(base.get(f,0))+int(add[i]) for i,f in enumerate(mat.PLAYER_FIELDS)}
+                  on,off,swing=mat.metric_values(team_total,ptotal)
+                  seconds_on=int(ptotal['seconds_on']); seconds_off=int(team_total['game_seconds'])-seconds_on
+                  if seconds_off<0: raise RuntimeError(f'negative off seconds {season} {tid} {pid}')
+                  overlay.append({
+                      'season':season,'team_id':tid,'player_id':pid,'player':getattr(a,'player',''),
+                      'target_minutes_on':float(target.get('seconds_on',0.0))/60.0,'direct_minutes_on':seconds_on/60.0,'direct_minutes_off':seconds_off/60.0,
+                      'minutes_error_seconds':float(diffs[pid]),'abs_minutes_error_seconds':err,
+                      'direct_treb_on':on,'direct_treb_off':off,'direct_treb_swing':swing,
+                      'team_oreb_on':int(ptotal['team_oreb_on']),'team_dreb_on':int(ptotal['team_dreb_on']),
+                      'opponent_oreb_on':int(ptotal['opponent_oreb_on']),'opponent_dreb_on':int(ptotal['opponent_dreb_on']),
+                      'team_oreb_off':int(team_total['team_oreb'])-int(ptotal['team_oreb_on']),'team_dreb_off':int(team_total['team_dreb'])-int(ptotal['team_dreb_on']),
+                      'opponent_oreb_off':int(team_total['opponent_oreb'])-int(ptotal['opponent_oreb_on']),'opponent_dreb_off':int(team_total['opponent_dreb'])-int(ptotal['opponent_dreb_on']),
+                      'status':'PASS','source':'starter_captains_call_63_representative_coherent_state','acceptance_basis':basis,
+                      'representative_is_uniquely_true':False,'representative_policy':'minimum_team_outside_count_then_minimax_seconds_then_total_seconds_then_lexicographic_state',
+                      'representative_state_sha256':rep_sha,'diagnostic_cause':cause,'game_ids':str(a.game_ids)
+                  })
+              team_prov.append({'season':season,'team_id':tid,'scoped_keys':len(tscope),'coherent_states':len(states),'best_outside_player_count':len(outside),'best_max_abs_seconds_error':obj[1],'best_sum_abs_seconds_error':obj[2],'scoped_exception_keys':scoped_exception_count,'scoped_max_abs_seconds_error':scoped_max_error,'representative_state_sha256':rep_sha})
+
+          odf=pd.DataFrame(overlay); tdf=pd.DataFrame(team_prov)
+          if len(odf)!=expected or odf[['season','team_id','player_id']].drop_duplicates().shape[0]!=expected: raise RuntimeError(f'overlay key count failure {season}: {len(odf)}')
+          odf.to_csv(out/f'captains_call_63_overlay_{year}.csv.gz',index=False,compression='gzip')
+          tdf.to_csv(out/f'captains_call_63_teams_{year}.csv',index=False)
+          gate={'status':'PASS','season':season,'overlay_keys':len(odf),'unique_keys':odf[['season','team_id','player_id']].drop_duplicates().shape[0],'normal_60s_keys':int((odf.diagnostic_cause=='CROSS_PLAYER_STATE_INCOMPATIBILITY').sum()),'captains_call_exception_keys':int((odf.diagnostic_cause=='PLAYER_MINUTES_UNREACHABLE_WITHIN_60S').sum()),'max_abs_minutes_error_seconds':float(odf.abs_minutes_error_seconds.max()),'captains_call_limit_seconds':cap,'material_key_included':False,'2015_16_touched':False,'global_minutes_gate_relaxed':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False}
+          (out/'season_gate.json').write_text(json.dumps(gate,indent=2)+'\n'); print(json.dumps(gate,indent=2),flush=True)
+          PY
+
+      - name: Upload retained season overlay
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-captains-call-63-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: consolidate 63-key captain-call overlay
+    needs: materialize
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download retained season overlays
+        uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-starter-captains-call-63-*-${{ github.run_id }}
+          path: /tmp/parts
+          merge-multiple: false
+      - name: Build fail-closed 63-key production gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path('/tmp/parts'); dfs=[]; gates=[]; teams=[]
+          for p in root.rglob('captains_call_63_overlay_*.csv.gz'): dfs.append(pd.read_csv(p,dtype={'player_id':str},low_memory=False))
+          for p in root.rglob('captains_call_63_teams_*.csv'): teams.append(pd.read_csv(p,low_memory=False))
+          for p in root.rglob('season_gate.json'): gates.append(json.loads(p.read_text()))
+          if len(gates)!=2 or any(g.get('status')!='PASS' for g in gates): raise RuntimeError(f'season gates failed/missing: {gates}')
+          df=pd.concat(dfs,ignore_index=True); td=pd.concat(teams,ignore_index=True)
+          keys=df[['season','team_id','player_id']].drop_duplicates()
+          if len(df)!=63 or len(keys)!=63: raise RuntimeError(f'expected 63 unique overlay rows, got rows={len(df)} keys={len(keys)}')
+          if int((df.diagnostic_cause=='CROSS_PLAYER_STATE_INCOMPATIBILITY').sum())!=55: raise RuntimeError('expected exactly 55 cross-player rows')
+          if int((df.diagnostic_cause=='PLAYER_MINUTES_UNREACHABLE_WITHIN_60S').sum())!=8: raise RuntimeError('expected exactly 8 captain-call exception rows')
+          if float(df.abs_minutes_error_seconds.max())>131.0+1e-9: raise RuntimeError('captain-call 131-second ceiling exceeded')
+          if ((df.diagnostic_cause=='CROSS_PLAYER_STATE_INCOMPATIBILITY') & (df.abs_minutes_error_seconds>60.0+1e-9)).any(): raise RuntimeError('normal 60-second gate violated outside 8 exceptions')
+          if (df.season.astype(str)=='2015-16').any(): raise RuntimeError('2015-16 leaked into overlay')
+          df.to_csv('/tmp/final/STARTER_CAPTAINS_CALL_63_OVERLAY.csv.gz',index=False,compression='gzip')
+          td.to_csv('/tmp/final/STARTER_CAPTAINS_CALL_63_TEAMS.csv',index=False)
+          gate={'status':'PASS','overlay_keys':63,'unique_keys':63,'normal_60s_keys':55,'captains_call_exception_keys':8,'max_abs_minutes_error_seconds':float(df.abs_minutes_error_seconds.max()),'captains_call_limit_seconds':131.0,'global_minutes_gate_relaxed':False,'material_key_included':False,'2015_16_touched':False,'representative_is_uniquely_true':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'next_scope':'remaining starter material/unresolved keys only'}
+          Path('/tmp/final/STARTER_CAPTAINS_CALL_63_GATE.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2))
+          PY
+      - name: Upload consolidated production overlay
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-captains-call-63-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
