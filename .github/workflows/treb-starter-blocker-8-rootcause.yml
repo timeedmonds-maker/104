@@ -1,0 +1,358 @@
+name: TREB starter 8-blocker root-cause diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-blocker-8-rootcause.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-blocker-8-rootcause
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  BLOCKER_RUN: '31862896337'
+  BLOCKER_ARTIFACT: TREB-starter-blocker-8-overlap-31862896337
+  RESIDUAL_RUN: '31862335344'
+  RESIDUAL_ARTIFACT: TREB-starter-residual-64-diagnostic-31862335344
+  MINUTES_TOLERANCE_SECONDS: '60.0'
+  THRESHOLD_PP: '0.01'
+
+jobs:
+  diagnose:
+    name: blocker root cause ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - {year: 2001, expected: 1, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2001-31854913173'}
+          - {year: 2024, expected: 7, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2024-31858884423'}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deterministic diagnostic dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Download authoritative 8-blocker overlap audit
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.BLOCKER_ARTIFACT }}
+          path: /tmp/blockers
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.BLOCKER_RUN }}
+
+      - name: Download authoritative 64-key residual diagnostic
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RESIDUAL_ARTIFACT }}
+          path: /tmp/residual
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.RESIDUAL_RUN }}
+
+      - name: Download retained exact season baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.baseline_artifact }}
+          path: /tmp/baseline
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ matrix.baseline_run }}
+
+      - name: Download retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'; mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals: raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${prefix}_${y}.csv"; done
+
+      - name: Trace canonical seconds against every legal starter state
+        timeout-minutes: 22
+        env:
+          YEAR: ${{ matrix.year }}
+          EXPECTED: ${{ matrix.expected }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import gzip,hashlib,json,os,sys
+          from itertools import combinations
+          from pathlib import Path
+          import pandas as pd
+
+          sys.path.insert(0,'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+
+          year=int(os.environ['YEAR']); expected=int(os.environ['EXPECTED'])
+          season=f'{year}-{(year+1)%100:02d}'; tol=float(os.environ['MINUTES_TOLERANCE_SECONDS'])
+          out=Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+
+          blockers=pd.read_csv('/tmp/blockers/STARTER_BLOCKER_8_PLAYERS.csv',dtype={'player_id':str},low_memory=False)
+          blockers['player_id']=blockers.player_id.map(mat.sid); blockers['team_id']=pd.to_numeric(blockers.team_id,errors='raise').astype('int64')
+          scope=blockers[blockers.season.astype(str).eq(season)].copy()
+          if len(scope)!=expected or scope.drop_duplicates(['season','team_id','player_id']).shape[0]!=expected:
+              raise RuntimeError(f'blocker scope drift {season}: expected={expected} got={len(scope)}')
+
+          residual=pd.read_csv('/tmp/residual/STARTER_RESIDUAL_64_KEYS.csv',dtype={'player_id':str},low_memory=False)
+          residual['player_id']=residual.player_id.map(mat.sid); residual['team_id']=pd.to_numeric(residual.team_id,errors='raise').astype('int64')
+          residual=residual[residual.season.astype(str).eq(season)].copy()
+
+          raw_targets={}; targets=[]
+          with gzip.open(Path(os.environ['TARGETS']),'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  if str(r.get('season'))!=season or not bool(r.get('full_core_reuse')): continue
+                  r['team_id']=int(r['team_id']); r['player_id']=mat.sid(r['player_id'])
+                  k=(r['team_id'],r['player_id']); raw_targets[k]=dict(r); targets.append(dict(r))
+          target_by_team={}
+          for r in targets: target_by_team.setdefault(int(r['team_id']),[]).append(r)
+
+          nba=mat.io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{year}.csv',low_memory=False))
+          v3=mat.lineup_engine.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{year}.csv',low_memory=False))
+          pbp=mat.io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{year}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          baseline_team,baseline_player=mat.aggregate_baseline(
+              pd.read_csv('/tmp/baseline/team_game_treb.csv.gz',low_memory=False),
+              pd.read_csv('/tmp/baseline/player_game_treb_on.csv.gz',dtype={'player_id':str},low_memory=False))
+
+          def gids_from(vals):
+              ans=set()
+              for v in vals:
+                  if pd.isna(v): continue
+                  for x in str(v).split('|'):
+                      if x.strip(): ans.add(int(float(x)))
+              return sorted(ans)
+          def state_sig(st): return tuple(sorted((str(pid),)+tuple(int(v) for v in vals) for pid,vals in st.items()))
+          def state_sha(st): return hashlib.sha256(json.dumps(state_sig(st),separators=(',',':')).encode()).hexdigest()
+          def team_choices(v,tid):
+              out={}
+              for k,val in (v.get('choices') or {}).items():
+                  try: ktid=int(str(k).split('|')[-1])
+                  except Exception: continue
+                  if ktid==int(tid): out[str(k)]=val
+              return out
+
+          game_cache={}; player_rows=[]; variant_rows=[]; nearest_path_rows=[]; team_rows=[]; state_rows=[]
+          for tid,bscope in scope.groupby('team_id',sort=True):
+              tid=int(tid); blocker_pids=sorted(set(bscope.player_id.map(mat.sid)))
+              rr=residual[(residual.team_id==tid) & residual.player_id.isin(blocker_pids)]
+              if len(rr)!=len(blocker_pids):
+                  raise RuntimeError(f'missing blocker residual rows {season} team={tid}: blockers={len(blocker_pids)} residual={len(rr)}')
+              gids=gids_from(rr.game_ids)
+              if not gids: raise RuntimeError(f'no ambiguous games for blocker team {season} {tid}')
+              option_sigs=[]; added_team_rows=[]; variants_by_game={}
+              for gid in gids:
+                  if gid not in ng or gid not in vg or gid not in pg: raise RuntimeError(f'missing source game {season} {gid}')
+                  if gid not in game_cache:
+                      game_cache[gid]=mat.enumerate_game_variants(gid,ng[gid],vg[gid],pg[gid],20000,5000)
+                  variants,meta=game_cache[gid]
+                  if meta['capped'] or not meta['team_totals_invariant'] or not variants:
+                      raise RuntimeError(f'unsafe enumeration {season} game={gid}: {meta}')
+                  variants_by_game[gid]=variants
+                  tc=[r for r in variants[0]['team_rows'] if int(r['team_id'])==tid]
+                  if len(tc)!=1: raise RuntimeError(f'missing team row {season} {tid} {gid}')
+                  added_team_rows.append(tc[0])
+                  opts=sorted(set(mat.contribution_signature(vv['player_rows'],tid) for vv in variants))
+                  option_sigs.append(opts or [tuple()])
+                  for vi,vv in enumerate(variants):
+                      pmap=mat.signature_to_map(mat.contribution_signature(vv['player_rows'],tid))
+                      choices=team_choices(vv,tid); choice_json=json.dumps(choices,sort_keys=True,separators=(',',':'))
+                      for pid in blocker_pids:
+                          vals=pmap.get(pid,(0,0,0,0,0))
+                          variant_rows.append({'season':season,'team_id':tid,'game_id':gid,'variant_index':vi,'player_id':pid,
+                              'game_seconds_on':int(vals[0]),'team_oreb_on':int(vals[1]),'team_dreb_on':int(vals[2]),
+                              'opponent_oreb_on':int(vals[3]),'opponent_dreb_on':int(vals[4]),
+                              'team_starter_choices_json':choice_json})
+
+              states,capped=mat.combine_team_states(option_sigs,200000)
+              if capped or not states: raise RuntimeError(f'team-state enumeration unsafe {season} {tid}')
+              team_total=dict(baseline_team.get(tid,{f:0 for f in mat.TEAM_FIELDS}))
+              for tr in added_team_rows:
+                  for f in mat.TEAM_FIELDS: team_total[f]=int(team_total.get(f,0))+int(tr[f])
+
+              team_nearest=[]
+              for x in bscope.itertuples(index=False):
+                  pid=mat.sid(x.player_id); target_rec=raw_targets.get((tid,pid))
+                  if target_rec is None: raise RuntimeError(f'missing canonical target {season} {tid} {pid}')
+                  target=float(target_rec.get('seconds_on',0.0)); base=baseline_player.get((tid,pid),{f:0 for f in mat.PLAYER_FIELDS}); base_sec=int(base['seconds_on'])
+                  actuals=[]; metrics=[]
+                  by_actual={}
+                  for st in states:
+                      add=st.get(pid,(0,0,0,0,0)); actual=float(base_sec+int(add[0])); actuals.append(actual)
+                      ptotal={f:int(base.get(f,0))+int(add[i]) for i,f in enumerate(mat.PLAYER_FIELDS)}
+                      on,off,swing=mat.metric_values(team_total,ptotal); metrics.append((on,off,swing))
+                      by_actual.setdefault(actual,{'count':0,'sha':state_sha(st)}); by_actual[actual]['count']+=1
+                  uniq=sorted(by_actual); nearest=min(uniq,key=lambda a:(abs(a-target),a)); delta=float(nearest-target)
+                  lo=float(min(uniq)); hi=float(max(uniq)); outside=max(0.0,lo-target,target-hi)
+                  if outside>0: cls='CANONICAL_TARGET_OUTSIDE_LEGAL_STARTER_ENVELOPE'
+                  else: cls='CANONICAL_TARGET_IN_DISCRETE_LEGAL_STARTER_GAP'
+                  onr=(max(v[0] for v in metrics)-min(v[0] for v in metrics))*100
+                  offr=(max(v[1] for v in metrics)-min(v[1] for v in metrics))*100
+                  swr=(max(v[2] for v in metrics)-min(v[2] for v in metrics))*100
+
+                  # Player-only DP retains one deterministic legal game-variant path for each achievable seconds total.
+                  dp={0:tuple()}
+                  for gid in gids:
+                      opts={}
+                      for vi,vv in enumerate(variants_by_game[gid]):
+                          pmap=mat.signature_to_map(mat.contribution_signature(vv['player_rows'],tid)); sec=int(pmap.get(pid,(0,0,0,0,0))[0])
+                          cj=json.dumps(team_choices(vv,tid),sort_keys=True,separators=(',',':'))
+                          token=json.dumps({'game_id':gid,'variant_index':vi,'game_seconds_on':sec,'team_starter_choices':json.loads(cj)},sort_keys=True,separators=(',',':'))
+                          if sec not in opts or token<opts[sec]: opts[sec]=token
+                      nd={}
+                      for cur,path in dp.items():
+                          for sec,token in opts.items():
+                              nv=cur+sec; np=path+(token,)
+                              if nv not in nd or np<nd[nv]: nd[nv]=np
+                      dp=nd
+                  nearest_add=int(round(nearest-base_sec)); nearest_path=dp.get(nearest_add)
+                  if nearest_path is None: raise RuntimeError(f'nearest path not found {season} {tid} {pid} add={nearest_add}')
+                  for rank,token in enumerate(nearest_path,1):
+                      z=json.loads(token); nearest_path_rows.append({'season':season,'team_id':tid,'player_id':pid,'rank':rank,
+                          'game_id':z['game_id'],'variant_index':z['variant_index'],'game_seconds_on':z['game_seconds_on'],
+                          'team_starter_choices_json':json.dumps(z['team_starter_choices'],sort_keys=True,separators=(',',':'))})
+                  for actual in uniq:
+                      state_rows.append({'season':season,'team_id':tid,'player_id':pid,'achievable_seconds':actual,
+                          'seconds_error_vs_target':float(actual-target),'coherent_state_count':int(by_actual[actual]['count']),
+                          'representative_state_sha256':by_actual[actual]['sha']})
+                  player_rows.append({'season':season,'team_id':tid,'player_id':pid,'player':getattr(x,'player',''),
+                      'canonical_target_seconds':target,'baseline_exact_seconds':base_sec,'ambiguous_games':len(gids),'game_ids':'|'.join(map(str,gids)),
+                      'legal_team_states':len(states),'min_achievable_seconds':lo,'max_achievable_seconds':hi,'nearest_achievable_seconds':nearest,
+                      'nearest_signed_error_seconds':delta,'min_abs_seconds_error':abs(delta),'outside_achievable_envelope_seconds':outside,
+                      'root_cause_classification':cls,'treb_on_range_pp':onr,'treb_off_range_pp':offr,'treb_swing_range_pp':swr,
+                      'max_treb_range_pp':max(onr,offr,swr),'canonical_target_record_json':json.dumps(target_rec,sort_keys=True,separators=(',',':')),
+                      'promoted':False})
+                  team_nearest.append((pid,delta))
+
+              sym=[]
+              for (p1,d1),(p2,d2) in combinations(team_nearest,2):
+                  if abs(d1)>tol and abs(d2)>tol and abs(d1+d2)<=1.0:
+                      sym.append((p1,p2,d1,d2))
+              team_rows.append({'season':season,'team_id':tid,'blocker_players':len(blocker_pids),'ambiguous_games':len(gids),
+                  'legal_team_states':len(states),'symmetric_exchange_candidate_pairs':len(sym),
+                  'symmetric_exchange_pairs':'|'.join(f'{a}:{b}:{da:+.1f}:{db:+.1f}' for a,b,da,db in sym)})
+
+          pr=pd.DataFrame(player_rows); vr=pd.DataFrame(variant_rows); nr=pd.DataFrame(nearest_path_rows); tr=pd.DataFrame(team_rows); sr=pd.DataFrame(state_rows)
+          pr.to_csv(out/f'BLOCKER_ROOTCAUSE_PLAYERS_{year}.csv',index=False)
+          vr.to_csv(out/f'BLOCKER_GAME_VARIANTS_{year}.csv',index=False)
+          nr.to_csv(out/f'BLOCKER_NEAREST_PATHS_{year}.csv',index=False)
+          tr.to_csv(out/f'BLOCKER_ROOTCAUSE_TEAMS_{year}.csv',index=False)
+          sr.to_csv(out/f'BLOCKER_ACHIEVABLE_SECONDS_{year}.csv',index=False)
+          summary={'status':'PASS','season':season,'expected_blockers':expected,'blockers':len(pr),'teams':len(tr),
+              'outside_legal_envelope':int(pr.root_cause_classification.eq('CANONICAL_TARGET_OUTSIDE_LEGAL_STARTER_ENVELOPE').sum()),
+              'inside_discrete_gap':int(pr.root_cause_classification.eq('CANONICAL_TARGET_IN_DISCRETE_LEGAL_STARTER_GAP').sum()),
+              'symmetric_exchange_candidate_pairs':int(pd.to_numeric(tr.symmetric_exchange_candidate_pairs,errors='coerce').fillna(0).sum()),
+              'max_min_abs_seconds_error':float(pr.min_abs_seconds_error.max()),'max_treb_range_pp':float(pr.max_treb_range_pp.max()),
+              'minutes_tolerance_seconds':tol,'threshold_pp':float(os.environ['THRESHOLD_PP']),'promoted_keys':0,
+              'canonical_targets_modified':False,'starter_repairs_modified':False,'rounded_percentage_backsolve_used':False,
+              'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False}
+          (out/'season_gate.json').write_text(json.dumps(summary,indent=2)+'\n'); print(json.dumps(summary,indent=2),flush=True)
+          PY
+
+      - name: Upload retained season root-cause diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-blocker-rootcause-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: consolidate 8-blocker root-cause diagnostic
+    needs: diagnose
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download both retained season diagnostics
+        uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-starter-blocker-rootcause-*-${{ github.run_id }}
+          path: /tmp/parts
+          merge-multiple: false
+      - name: Build fail-closed 8-blocker root-cause gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path('/tmp/parts'); players=[];variants=[];paths=[];teams=[];states=[];gates=[]
+          for p in root.rglob('BLOCKER_ROOTCAUSE_PLAYERS_*.csv'): players.append(pd.read_csv(p,dtype={'player_id':str},low_memory=False))
+          for p in root.rglob('BLOCKER_GAME_VARIANTS_*.csv'): variants.append(pd.read_csv(p,dtype={'player_id':str},low_memory=False))
+          for p in root.rglob('BLOCKER_NEAREST_PATHS_*.csv'): paths.append(pd.read_csv(p,dtype={'player_id':str},low_memory=False))
+          for p in root.rglob('BLOCKER_ROOTCAUSE_TEAMS_*.csv'): teams.append(pd.read_csv(p,low_memory=False))
+          for p in root.rglob('BLOCKER_ACHIEVABLE_SECONDS_*.csv'): states.append(pd.read_csv(p,dtype={'player_id':str},low_memory=False))
+          for p in root.rglob('season_gate.json'): gates.append(json.loads(p.read_text()))
+          pr=pd.concat(players,ignore_index=True,sort=False); vr=pd.concat(variants,ignore_index=True,sort=False); nr=pd.concat(paths,ignore_index=True,sort=False); tr=pd.concat(teams,ignore_index=True,sort=False); sr=pd.concat(states,ignore_index=True,sort=False)
+          unique=int(pr.drop_duplicates(['season','team_id','player_id']).shape[0]); complete=(len(gates)==2 and all(str(g.get('status'))=='PASS' for g in gates) and len(pr)==unique==8)
+          pr.to_csv('/tmp/final/BLOCKER_8_ROOTCAUSE_PLAYERS.csv',index=False); vr.to_csv('/tmp/final/BLOCKER_8_GAME_VARIANTS.csv',index=False)
+          nr.to_csv('/tmp/final/BLOCKER_8_NEAREST_PATHS.csv',index=False); tr.to_csv('/tmp/final/BLOCKER_8_ROOTCAUSE_TEAMS.csv',index=False); sr.to_csv('/tmp/final/BLOCKER_8_ACHIEVABLE_SECONDS.csv',index=False)
+          summary={'status':'PASS' if complete else 'INCOMPLETE','blockers':len(pr),'unique_blockers':unique,'teams':len(tr),
+              'outside_legal_envelope':int(pr.root_cause_classification.eq('CANONICAL_TARGET_OUTSIDE_LEGAL_STARTER_ENVELOPE').sum()),
+              'inside_discrete_gap':int(pr.root_cause_classification.eq('CANONICAL_TARGET_IN_DISCRETE_LEGAL_STARTER_GAP').sum()),
+              'symmetric_exchange_candidate_pairs':int(pd.to_numeric(tr.symmetric_exchange_candidate_pairs,errors='coerce').fillna(0).sum()),
+              'max_min_abs_seconds_error':float(pd.to_numeric(pr.min_abs_seconds_error,errors='coerce').max()),
+              'max_treb_range_pp':float(pd.to_numeric(pr.max_treb_range_pp,errors='coerce').max()),'season_gates':len(gates),
+              'promoted_keys':0,'canonical_targets_modified':False,'starter_repairs_modified':False,'2015_16_keys_touched':0,
+              'material_greg_buckner_touched':0,'next_scope':'exact_game_period_starter_choices_for_8_blockers_only'}
+          Path('/tmp/final/BLOCKER_8_ROOTCAUSE_GATE.json').write_text(json.dumps(summary,indent=2)+'\n'); print(json.dumps(summary,indent=2))
+          if not complete: raise SystemExit('8-blocker root-cause gate incomplete')
+          PY
+      - name: Upload consolidated 8-blocker root-cause diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-blocker-8-rootcause-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
