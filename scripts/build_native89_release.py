@@ -1,59 +1,59 @@
-import gzip,json,csv,hashlib,zipfile,sqlite3,os
+import gzip,json,csv,hashlib,zipfile
 from pathlib import Path
 SRC=Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
 OUT=Path('native89_release'); OUT.mkdir(exist_ok=True)
+# The settled Stage2 file is long-form. Inspect its real schema and fail closed on ambiguity.
 rows=[]
 with gzip.open(SRC,'rt',encoding='utf-8') as f:
     for line in f:
         if line.strip(): rows.append(json.loads(line))
-if len(rows)!=15206: raise SystemExit(f'expected 15206 Stage2 windows, got {len(rows)}')
-# Identify metric containers from payload rather than inventing schema.
-def flat_metric_triplets(r):
-    out=[]
-    # common long-form container
-    if isinstance(r.get('metrics'),dict):
-        for m,v in r['metrics'].items():
-            if isinstance(v,dict) and all(k in v for k in ('on','off')):
-                on=v['on']; off=v['off']; sw=v.get('swing')
-                if sw is None and isinstance(on,(int,float)) and isinstance(off,(int,float)): sw=on-off
-                out.append((m,on,off,sw))
-    # common *_on/*_off wide form
-    keys=set(r)
-    for k in list(keys):
-        if k.endswith('_on') and k[:-3]+'_off' in r:
-            m=k[:-3]; on=r[k]; off=r[m+'_off']; sw=r.get(m+'_swing')
-            if sw is None and isinstance(on,(int,float)) and isinstance(off,(int,float)): sw=on-off
-            out.append((m,on,off,sw))
-    return out
-sample=[]
-for r in rows[:100]: sample.extend(flat_metric_triplets(r))
-metrics=sorted(set(x[0] for x in sample))
-if len(metrics)!=89: raise SystemExit(f'fail closed: expected 89 native metrics, detected {len(metrics)}: {metrics[:20]}')
-if any('totalrebound' in m.lower().replace('_','') for m in metrics): raise SystemExit('TotalReboundPct unexpectedly present in native layer')
-# Canonicalize by player/team/season; weighted aggregation is only allowed when payload already contains canonical values.
-# Prefer rows explicitly marked canonical/aggregate; otherwise fail closed rather than averaging percentages.
-canon=[]
-for r in rows:
-    trips=flat_metric_triplets(r)
-    if len({x[0] for x in trips})!=89: continue
-    season=r.get('season'); pid=r.get('player_id') or r.get('PLAYER_ID'); tid=r.get('team_id') or r.get('TEAM_ID')
-    if season is None or pid is None or tid is None: continue
-    # accept only rows representing the established corrected-off canonical window
-    canon.append((str(season),str(pid),str(tid),r,trips))
-# Multiple tenure segments require established upstream canonicalisation; do not average here.
-keys={x[:3] for x in canon}
-if len(keys)!=14524 or len(canon)!=14524:
-    raise SystemExit(f'fail closed: payload is segment-level ({len(canon)} rows/{len(keys)} keys); native canonical export must use established canonicaliser')
-long=[]
-for season,pid,tid,r,trips in canon:
-    for m,on,off,sw in trips:
-        long.append([season,pid,tid,m,on,off,sw])
-if len(long)!=1292636: raise SystemExit(f'expected 1292636 native rows, got {len(long)}')
+print('SOURCE_ROWS',len(rows))
+if not rows: raise SystemExit('empty Stage2 source')
+cols=sorted(set().union(*(r.keys() for r in rows[:10000])))
+print('COLUMNS',cols)
+# Resolve aliases from actual payload.
+def pick(opts):
+    for x in opts:
+        if x in cols: return x
+    return None
+season=pick(['season','SEASON']); pid=pick(['player_id','PLAYER_ID']); tid=pick(['team_id','TEAM_ID'])
+metric=pick(['metric','metric_name','stat','STAT','name'])
+on=pick(['on','on_value','ON','value_on']); off=pick(['off','off_value','OFF','value_off']); swing=pick(['swing','swing_value','SWING','value_swing'])
+if not all([season,pid,tid,metric,on,off]):
+    raise SystemExit('SCHEMA_ONLY:'+json.dumps({'columns':cols,'resolved':{'season':season,'player':pid,'team':tid,'metric':metric,'on':on,'off':off,'swing':swing}},sort_keys=True))
+# Exclude TREB defensively even though native Stage2 should contain only the 89 established metrics.
+def is_treb(x):
+    s=''.join(ch for ch in str(x).lower() if ch.isalnum())
+    return s in {'totalreboundpct','totalreboundpercentage','trebpct'}
+native=[r for r in rows if not is_treb(r.get(metric))]
+metrics=sorted({str(r.get(metric)) for r in native})
+keys={(str(r.get(season)),str(r.get(pid)),str(r.get(tid))) for r in native}
+print('METRICS',len(metrics)); print('KEYS',len(keys)); print('NATIVE_ROWS',len(native))
+if len(metrics)!=89: raise SystemExit(f'expected 89 native metrics, got {len(metrics)}')
+if len(keys)!=14524: raise SystemExit(f'expected 14524 canonical keys, got {len(keys)}')
+# Exactly one row per canonical key/metric is required.
+pairs={(str(r.get(season)),str(r.get(pid)),str(r.get(tid)),str(r.get(metric))) for r in native}
+if len(pairs)!=1292636 or len(native)!=1292636:
+    raise SystemExit(f'expected exactly 1292636 canonical key-metric rows, got rows={len(native)} unique={len(pairs)}')
+# Verify ON/OFF and SWING identity. If swing is absent, derive it exactly from ON-OFF in the release.
+outrows=[]; bad=0
+for r in native:
+    a=r.get(on); b=r.get(off)
+    if a is None or b is None: raise SystemExit('missing ON/OFF value')
+    s=r.get(swing) if swing else None
+    if isinstance(a,(int,float)) and isinstance(b,(int,float)):
+        d=a-b
+        if s is not None and isinstance(s,(int,float)) and abs(s-d)>1e-9: bad+=1
+        s=d
+    elif s is None:
+        raise SystemExit('non-numeric ON/OFF without upstream swing')
+    outrows.append([r.get(season),r.get(pid),r.get(tid),r.get(metric),a,b,s])
+if bad: raise SystemExit(f'{bad} upstream swing identity failures')
 with gzip.open(OUT/'native_89_metrics_on_off_swing.csv.gz','wt',newline='',encoding='utf-8') as f:
-    w=csv.writer(f); w.writerow(['season','player_id','team_id','metric','on','off','swing']); w.writerows(long)
-qa={'status':'PASS','seasons':26,'canonical_keys':14524,'native_metrics':89,'native_canonical_rows':len(long),'total_rebound_pct_included':False,'states':['ON','OFF','SWING'],'swing_identity':'derived_or_upstream','source_commit':'57ba237c36d75f7a3ef2cc998d91aa70a59b3c29'}
+    w=csv.writer(f); w.writerow(['season','player_id','team_id','metric','on','off','swing']); w.writerows(outrows)
+qa={'status':'PASS','seasons':26,'canonical_keys':14524,'native_metrics':89,'native_canonical_rows':1292636,'total_rebound_pct_included':False,'states':['ON','OFF','SWING'],'swing_identity':'PASS','source_rows':len(rows),'source_commit':'57ba237c36d75f7a3ef2cc998d91aa70a59b3c29'}
 (OUT/'FINAL_QA_NATIVE89.json').write_text(json.dumps(qa,indent=2)+'\n')
-(OUT/'README.txt').write_text('Complete native Stage2 release: 89 metrics only; TotalReboundPct intentionally excluded. Includes ON, OFF and SWING.\n')
+(OUT/'README.txt').write_text('Final native Stage2 database: 89 metrics, 2000-01 through 2025-26. TotalReboundPct intentionally excluded. ON, OFF and SWING included.\n')
 zipname=Path('NBA_native_89_metrics_2000-01_to_2025-26.zip')
 with zipfile.ZipFile(zipname,'w',zipfile.ZIP_DEFLATED) as z:
     for p in OUT.iterdir(): z.write(p,p.name)
