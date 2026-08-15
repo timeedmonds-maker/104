@@ -1,0 +1,215 @@
+name: TREB final 90-metric captain-call complete release v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-final-captains-call-complete-release-v2.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-final-captains-call-complete-release-v2
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  STAGE2_SHA: 57ba237c36d75f7a3ef2cc998d91aa70a59b3c29
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Install release dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb scikit-learn
+
+      - name: Download prepared canonical native89 + exact partial4877
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-prepared-canonical-layers-31844978593
+          path: /tmp/prep
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31844978593'
+
+      - name: Download exact full-core resume
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-resume-consolidated-31858884423
+          path: /tmp/fullcore
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31858884423'
+
+      - name: Download 1367 proven-immaterial starter overlay
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-accept-immaterial-overlay-31861830762
+          path: /tmp/starter1367
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31861830762'
+
+      - name: Download 63-key captain-call starter overlay
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-captains-call-63-consolidated-31864265375
+          path: /tmp/starter63
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31864265375'
+
+      - name: Build complete 9647-key full-core TotalReboundPct source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/direct /tmp/final
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          import numpy as np
+          import pandas as pd
+          from sklearn.linear_model import Ridge
+          from sklearn.model_selection import GroupKFold, cross_val_predict
+          from sklearn.pipeline import make_pipeline
+          from sklearn.preprocessing import PolynomialFeatures, StandardScaler
+
+          KEYS=['season','team_id','player_id']
+          def sid(v):
+              s=str(v).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def canon(d):
+              d=d.copy(); d['season']=d.season.astype(str); d['team_id']=pd.to_numeric(d.team_id,errors='raise').astype('int64'); d['player_id']=d.player_id.map(sid); return d
+          def norm(s):
+              x=pd.to_numeric(s,errors='coerce'); return x.where(x<=1.5,x/100.0)
+
+          rows=[]
+          with gzip.open(Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz'),'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if line.strip(): rows.append(json.loads(line))
+          targets=canon(pd.DataFrame(rows)); full=targets[targets.full_core_reuse.astype(bool)].copy()
+          if len(targets)!=14524 or len(full)!=9647 or full[KEYS].duplicated().any(): raise RuntimeError((len(targets),len(full)))
+
+          native=canon(pd.read_parquet('/tmp/prep/native_89_canonical.parquet'))
+          if 'off' not in native: native['off']=pd.to_numeric(native['off_corrected'],errors='coerce')
+          keymeta=native.groupby(KEYS,as_index=False).agg(player=('player','first'),minutes_on=('minutes_on','first'),minutes_off=('minutes_off','first'))
+          od=native[native.metric.astype(str).isin(['OReb%','DReb%'])][KEYS+['metric','on','off']].copy(); od['on']=norm(od['on']); od['off']=norm(od['off'])
+          o=od[od.metric.astype(str).eq('OReb%')][KEYS+['on','off']].rename(columns={'on':'OReb%_on','off':'OReb%_off'})
+          d=od[od.metric.astype(str).eq('DReb%')][KEYS+['on','off']].rename(columns={'on':'DReb%_on','off':'DReb%_off'})
+          feat=keymeta.merge(o,on=KEYS,how='left',validate='one_to_one').merge(d,on=KEYS,how='left',validate='one_to_one')
+          feat['season_year']=pd.to_numeric(feat.season.str[:4],errors='raise')
+          for c in ['OReb%_on','DReb%_on','OReb%_off','DReb%_off']:
+              if c not in feat or feat[c].isna().any(): raise RuntimeError(f'native rebound feature missing {c}')
+
+          exact=canon(pd.read_csv('/tmp/fullcore/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz',dtype={'player_id':str},low_memory=False))
+          a1367=canon(pd.read_csv('/tmp/starter1367/STARTER_ACCEPT_IMMATERIAL_OVERLAY_1367.csv.gz',dtype={'player_id':str},low_memory=False))
+          a63=canon(pd.read_csv('/tmp/starter63/STARTER_CAPTAINS_CALL_63_OVERLAY.csv.gz',dtype={'player_id':str},low_memory=False))
+          if len(exact)!=6466 or len(a1367)!=1367 or len(a63)!=63: raise RuntimeError((len(exact),len(a1367),len(a63)))
+
+          resolved=[]
+          for src,label,rank in [(exact,'EXACT_FULLCORE_INTEGER_COUNTS',1),(a1367,'PROVEN_IMMATERIAL_STARTER_REPRESENTATIVE',2),(a63,'CAPTAINS_CALL_STARTER_REPRESENTATIVE',3)]:
+              q=src[KEYS+['direct_treb_on','direct_treb_off']].copy(); q['direct_treb_on']=norm(q.direct_treb_on); q['direct_treb_off']=norm(q.direct_treb_off); q['source']=label; q['source_rank']=rank; resolved.append(q)
+          res=pd.concat(resolved,ignore_index=True).sort_values('source_rank').drop_duplicates(KEYS,keep='first')
+          missing=full[KEYS].merge(res[KEYS],on=KEYS,how='left',indicator=True); missing=missing[missing._merge.eq('left_only')][KEYS]
+          if len(res)!=7896 or len(missing)!=1751: raise RuntimeError({'resolved':len(res),'missing':len(missing)})
+
+          train=exact[KEYS+['direct_treb_on','direct_treb_off']].merge(feat,on=KEYS,how='inner',validate='one_to_one'); train['direct_treb_on']=norm(train.direct_treb_on); train['direct_treb_off']=norm(train.direct_treb_off)
+          features=['OReb%_on','DReb%_on','OReb%_off','DReb%_off','season_year','minutes_on','minutes_off']
+          X=train[features].astype(float).copy(); X['minutes_on']=np.log1p(X.minutes_on.clip(lower=0)); X['minutes_off']=np.log1p(X.minutes_off.clip(lower=0)); X['season_year']=(X.season_year-2000.0)/25.0
+          groups=train.season.astype(str); cv=GroupKFold(n_splits=5)
+          model_on=make_pipeline(PolynomialFeatures(2,include_bias=False),StandardScaler(),Ridge(alpha=0.5)); model_off=make_pipeline(PolynomialFeatures(2,include_bias=False),StandardScaler(),Ridge(alpha=0.5))
+          pon=cross_val_predict(model_on,X,train.direct_treb_on.astype(float),cv=cv,groups=groups); poff=cross_val_predict(model_off,X,train.direct_treb_off.astype(float),cv=cv,groups=groups)
+          err_on=np.abs(pon-train.direct_treb_on.to_numpy(float))*100; err_off=np.abs(poff-train.direct_treb_off.to_numpy(float))*100
+          model_on.fit(X,train.direct_treb_on.astype(float)); model_off.fit(X,train.direct_treb_off.astype(float))
+
+          miss=missing.merge(feat,on=KEYS,how='left',validate='one_to_one'); Xm=miss[features].astype(float).copy(); Xm['minutes_on']=np.log1p(Xm.minutes_on.clip(lower=0)); Xm['minutes_off']=np.log1p(Xm.minutes_off.clip(lower=0)); Xm['season_year']=(Xm.season_year-2000.0)/25.0
+          miss['direct_treb_on']=np.clip(model_on.predict(Xm),0.25,0.75); miss['direct_treb_off']=np.clip(model_off.predict(Xm),0.25,0.75); miss['source']='CAPTAINS_CALL_EMPIRICAL_OREB_DREB_CALIBRATION'; miss=miss[KEYS+['direct_treb_on','direct_treb_off','source']]
+          allv=pd.concat([res[KEYS+['direct_treb_on','direct_treb_off','source']],miss],ignore_index=True)
+          allv=full[KEYS+['player']].merge(allv,on=KEYS,how='left',validate='one_to_one').merge(keymeta[KEYS+['minutes_on','minutes_off']],on=KEYS,how='left',validate='one_to_one')
+          if len(allv)!=9647 or allv[KEYS].duplicated().any() or allv[['direct_treb_on','direct_treb_off','minutes_on','minutes_off']].isna().any().any(): raise RuntimeError('complete fullcore gate failed')
+          allv['direct_minutes_on']=allv.minutes_on; allv['direct_minutes_off']=allv.minutes_off; allv['status']='PASS'; allv['error']=''
+          allv.drop(columns=['minutes_on','minutes_off']).to_csv('/tmp/direct/direct_treb_final.csv',index=False)
+          allv[KEYS+['source','direct_treb_on','direct_treb_off']].to_csv('/tmp/final/TOTALREBOUNDPCT_FULLCORE_PROVENANCE.csv',index=False)
+          report={'status':'PASS','full_core_keys':9647,'exact_fullcore':6466,'proven_immaterial':1367,'starter_captains_call':63,'empirical_captains_call':1751,'training_exact_rows':len(train),'model':'degree2_ridge on retained unrounded native OReb%/DReb% plus season/minutes','cv_on_mae_pp':float(err_on.mean()),'cv_on_p95_abs_error_pp':float(np.quantile(err_on,.95)),'cv_on_max_abs_error_pp':float(err_on.max()),'cv_off_mae_pp':float(err_off.mean()),'cv_off_p95_abs_error_pp':float(np.quantile(err_off,.95)),'cv_off_max_abs_error_pp':float(err_off.max()),'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'note':'1751 residual full-core keys are explicitly captain-call empirical estimates, not exact rows.'}
+          Path('/tmp/final/CAPTAINS_CALL_EMPIRICAL_FALLBACK_QA.json').write_text(json.dumps(report,indent=2)+'\n'); print(json.dumps(report,indent=2))
+          PY
+
+      - name: Assemble canonical release contract
+        run: |
+          set -euo pipefail
+          cp -a /tmp/prep/exact_support/. /tmp/final/
+          python -u team_trb_all_players/finalize_complete_treb_release.py --targets "$TARGETS" --native /tmp/prep/native_89_canonical.parquet --exact /tmp/prep/exact_partial_4877.parquet --direct-dir /tmp/direct --out /tmp/final --stage2-sha "$STAGE2_SHA"
+
+      - name: Normalize final analysis universe to exactly 90 metrics and build databases
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,sqlite3
+          from pathlib import Path
+          import duckdb
+          import pandas as pd
+          out=Path('/tmp/final'); KEYS=['season','team_id','player_id']
+          native=pd.read_parquet(out/'all_metrics_player_team_season.parquet'); treb=pd.read_parquet(out/'treb_overlay_player_team_season_long.parquet'); t=treb[treb.metric.astype(str).eq('TotalReboundPct')].copy()
+          allcols=sorted(set(native.columns)|set(t.columns))
+          for frame in (native,t):
+              for c in allcols:
+                  if c not in frame: frame[c]=pd.NA
+          all90=pd.concat([native[allcols],t[allcols]],ignore_index=True,sort=False)
+          if len(all90)!=14524*90 or all90.metric.nunique()!=90 or all90.duplicated(KEYS+['metric']).any() or not all90.groupby(KEYS).metric.nunique().eq(90).all(): raise RuntimeError('90-metric PTS gate')
+          all90.to_parquet(out/'all_metrics_player_team_season.parquet',index=False,compression='zstd'); all90.to_csv(out/'all_metrics_player_team_season.csv.gz',index=False,compression='gzip')
+          nc=pd.read_parquet(out/'all_metrics_career.parquet'); tc=pd.read_parquet(out/'treb_overlay_career_long.parquet'); tc=tc[tc.metric.astype(str).eq('TotalReboundPct')].copy(); ccols=sorted(set(nc.columns)|set(tc.columns))
+          for frame in (nc,tc):
+              for c in ccols:
+                  if c not in frame: frame[c]=pd.NA
+          c90=pd.concat([nc[ccols],tc[ccols]],ignore_index=True,sort=False)
+          if c90.metric.nunique()!=90 or c90.duplicated(['player_id','metric']).any() or not c90.groupby('player_id').metric.nunique().eq(90).all(): raise RuntimeError('90-metric career gate')
+          c90.to_parquet(out/'all_metrics_career.parquet',index=False,compression='zstd'); c90.to_csv(out/'all_metrics_career.csv.gz',index=False,compression='gzip')
+          def wide(frame,keys,meta):
+              p=frame.pivot(index=keys,columns='metric',values=['on','off','swing']); p.columns=[f'{m}__{f}' for f,m in p.columns]; p=p.reset_index(); present=[c for c in meta if c in frame and c not in keys]
+              if present: p=frame.groupby(keys,as_index=False)[present].first().merge(p,on=keys,how='left',validate='one_to_one')
+              return p
+          w=wide(all90,KEYS,['player','team_abbr','minutes_on','minutes_off']); cw=wide(c90,['player_id'],['player','minutes_on','minutes_off'])
+          w.to_parquet(out/'final_combined_player_team_season_wide.parquet',index=False,compression='zstd'); w.to_csv(out/'final_combined_player_team_season_wide.csv.gz',index=False,compression='gzip'); cw.to_parquet(out/'final_combined_career_wide.parquet',index=False,compression='zstd'); cw.to_csv(out/'final_combined_career_wide.csv.gz',index=False,compression='gzip')
+          md=pd.DataFrame({'metric':sorted(all90.metric.astype(str).unique())}); md['family']=md.metric.map(lambda x:'canonical_total_rebound_pct' if x=='TotalReboundPct' else 'native_stage2_89'); md.to_parquet(out/'metric_dictionary.parquet',index=False); md.to_csv(out/'metric_dictionary.csv',index=False)
+          dbp=out/'TREB_all_metrics.duckdb'; dbp.unlink(missing_ok=True); db=duckdb.connect(str(dbp))
+          for n,p in {'all_metrics_player_team_season':'all_metrics_player_team_season.parquet','all_metrics_career':'all_metrics_career.parquet','treb_overlay_player_team_season':'treb_overlay_player_team_season_long.parquet','treb_overlay_career':'treb_overlay_career_long.parquet','final_combined_player_team_season_wide':'final_combined_player_team_season_wide.parquet','final_combined_career_wide':'final_combined_career_wide.parquet','metric_dictionary':'metric_dictionary.parquet','treb_overlay_dictionary':'treb_overlay_dictionary.parquet'}.items(): db.execute(f"CREATE TABLE {n} AS SELECT * FROM read_parquet('{(out/p).as_posix()}')")
+          db.close(); sp=out/'TREB_all_metrics.sqlite'; sp.unlink(missing_ok=True); con=sqlite3.connect(sp); all90.to_sql('all_metrics_player_team_season',con,index=False,if_exists='replace',chunksize=20000); c90.to_sql('all_metrics_career',con,index=False,if_exists='replace',chunksize=10000); t.to_sql('total_rebound_pct_player_team_season',con,index=False,if_exists='replace',chunksize=10000); md.to_sql('metric_dictionary',con,index=False,if_exists='replace'); con.execute('CREATE INDEX idx_pts ON all_metrics_player_team_season(player_id,season,team_id,metric)'); con.execute('CREATE INDEX idx_career ON all_metrics_career(player_id,metric)'); con.commit(); con.close()
+          prov=pd.read_csv(out/'TOTALREBOUNDPCT_FULLCORE_PROVENANCE.csv',dtype={'player_id':str},low_memory=False); total_t=all90[all90.metric.astype(str).eq('TotalReboundPct')]; ad=c90[(c90.player_id.astype(str)=='203500') & c90.metric.astype(str).eq('TotalReboundPct')]; q10=c90[(c90.metric.astype(str)=='TotalReboundPct') & (pd.to_numeric(c90.minutes_on,errors='coerce')>=10000)]
+          qa={'status':'PASS','canonical_keys':14524,'seasons':int(all90.season.nunique()),'native_metrics':89,'total_metrics':90,'canonical_metric_rows':len(all90),'total_rebound_pct_rows':len(total_t),'duplicate_total_rebound_pct':int(total_t.duplicated(KEYS).sum()),'partial_treb':4877,'full_core_treb':9647,'missing_total_rebound_pct':int(total_t[['on','off']].isna().any(axis=1).sum()),'fullcore_source_counts':prov.source.value_counts().to_dict(),'rounded_percentage_backsolve':False,'opponent_rebound_inference':False,'partial_tenure_whole_team_subtraction':False,'steven_adams_player_id':'203500','steven_adams_career_rows':len(ad),'steven_adams_minutes':float(ad.minutes_on.iloc[0]),'qualifying_10000_treb_players':int(q10.player_id.astype(str).nunique()),'duckdb_exists':dbp.exists(),'sqlite_exists':sp.exists()}
+          assert qa['canonical_metric_rows']==14524*90 and qa['total_rebound_pct_rows']==14524 and qa['duplicate_total_rebound_pct']==0 and qa['missing_total_rebound_pct']==0; assert qa['steven_adams_career_rows']==1 and 20460<=qa['steven_adams_minutes']<=20485 and 540<=qa['qualifying_10000_treb_players']<=565
+          (out/'FINAL_90_METRIC_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); (out/'README_FINAL_DATABASE.txt').write_text('TREB FINAL DATABASE 2000-01 TO 2025-26\n\nCanonical analysis universe: exactly 90 metrics = 89 native Stage2 metrics + separate TotalReboundPct.\nCanonical keys: 14,524. Source provenance for TotalReboundPct is retained explicitly.\n'); print(json.dumps(qa,indent=2))
+          PY
+
+      - name: Package and verify final ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/final
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          zip -9 -q -r /tmp/TREB_final_database_2000-01_to_2025-26.zip .
+          unzip -t /tmp/TREB_final_database_2000-01_to_2025-26.zip >/tmp/zip_test.txt
+          test -s /tmp/TREB_final_database_2000-01_to_2025-26.zip
+          sha256sum /tmp/TREB_final_database_2000-01_to_2025-26.zip | tee /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+          grep -q 'No errors detected' /tmp/zip_test.txt
+
+      - name: Upload final complete database
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-complete-90-metric-database-${{ github.run_id }}
+          path: |
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/TREB_final_database_2000-01_to_2025-26.zip.sha256
+            /tmp/final/FINAL_90_METRIC_QA.json
+            /tmp/final/CAPTAINS_CALL_EMPIRICAL_FALLBACK_QA.json
+          retention-days: 90
+          compression-level: 0
+          if-no-files-found: error
