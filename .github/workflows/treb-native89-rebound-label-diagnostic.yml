@@ -1,0 +1,47 @@
+name: TREB native89 rebound metric label diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-native89-rebound-label-diagnostic.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas pyarrow
+      - name: Download prepared canonical layers
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-prepared-canonical-layers-31844978593
+          path: /tmp/prep
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31844978593'
+      - name: Print native metric labels
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          p='/tmp/prep/native_89_canonical.parquet'
+          d=pd.read_parquet(p,columns=['metric'])
+          vals=sorted(d.metric.astype(str).unique())
+          print('metric_count',len(vals))
+          print('ALL_METRICS')
+          for v in vals: print(repr(v))
+          print('REBOUND_CANDIDATES')
+          for v in vals:
+              s=v.lower()
+              if 'reb' in s or 'oreb' in s or 'dreb' in s or 'offensive rebound' in s or 'defensive rebound' in s:
+                  print(repr(v))
+          PY
