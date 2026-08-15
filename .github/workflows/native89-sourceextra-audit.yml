@@ -1,0 +1,38 @@
+name: Native89 Stage2 source-extra audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-sourceextra-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Audit source_extra payloads
+        run: |
+          python - <<'PY'
+          import gzip,json,collections,pathlib
+          p='team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          n=nonnull=0; types=collections.Counter(); keys=collections.Counter(); samples=[]; bysource=collections.Counter()
+          with gzip.open(p,'rt') as f:
+            for line in f:
+              if not line.strip():continue
+              r=json.loads(line); n+=1; x=r.get('source_extra')
+              if x not in (None,'',{},[]):
+                nonnull+=1; types[type(x).__name__]+=1; bysource[str(r.get('collection_source'))]+=1
+                if isinstance(x,dict): keys.update(x.keys())
+                if len(samples)<20:samples.append({'season':r.get('season'),'player':r.get('player'),'metric':r.get('metric'),'segment':r.get('segment_index'),'source':r.get('collection_source'),'source_extra':x})
+          out={'rows':n,'nonnull_source_extra':nonnull,'types':dict(types),'keys':dict(keys),'by_source':dict(bysource),'samples':samples}
+          pathlib.Path('sourceextra_audit.json').write_text(json.dumps(out,indent=2,default=str)+'\n');print(json.dumps(out,indent=2,default=str))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-sourceextra-audit-${{ github.run_id }}
+          path: sourceextra_audit.json
+          retention-days: 30
