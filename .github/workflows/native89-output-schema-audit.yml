@@ -1,0 +1,52 @@
+name: Native89 per-season output schema audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-output-schema-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Inspect season output schemas and raw fields
+        run: |
+          python - <<'PY'
+          import gzip,csv,json,pathlib,itertools,re
+          seasons=['2000-01','2021-22','2025-26']
+          out={}
+          for season in seasons:
+            out[season]={}
+            for fn in ['player_team_totals.csv.gz','team_on_off_metrics.csv.gz']:
+              p=f'team_trb_all_players/impact_database/outputs/{season}/{fn}'
+              with gzip.open(p,'rt',newline='',encoding='utf-8') as f:
+                rd=csv.DictReader(f); fields=rd.fieldnames or []; rows=list(itertools.islice(rd,8))
+              rawish=[x for x in fields if re.search(r'(oreb|dreb|rebound|poss|point|pts|minute|second|sec|fgm|fga|fta|ftm|turnover|assist)',x,re.I)]
+              out[season][fn]={'fields':fields,'rawish_fields':rawish,'samples':rows}
+          # Also inspect one Stage2 OReb/ratings row for same key as a 2021 sample if possible.
+          stage=[]
+          import json as js
+          p='team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
+          with gzip.open(p,'rt',encoding='utf-8') as f:
+            wanted={'OReb%','Pts per 100 Possessions','Pts per 100 Possessions - Defense'}
+            for line in f:
+              if not line.strip():continue
+              r=js.loads(line)
+              if r.get('season')=='2021-22' and r.get('metric') in wanted:
+                stage.append(r)
+                if len(stage)>=9:break
+          out['stage2_2021_samples']=stage
+          pathlib.Path('native89_output_schema_audit.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-output-schema-audit-${{ github.run_id }}
+          path: native89_output_schema_audit.json
+          retention-days: 30
+          if-no-files-found: error
