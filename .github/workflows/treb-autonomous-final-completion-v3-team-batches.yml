@@ -1,0 +1,378 @@
+name: TREB autonomous final completion v3 team batches
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-autonomous-final-completion-v3-team-batches.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-autonomous-final-completion
+  cancel-in-progress: true
+
+env:
+  PYTHONUNBUFFERED: "1"
+  RESIDUAL_RUN: "31866566295"
+  MODERN409_RUN: "31869325468"
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+
+jobs:
+  prepare:
+    name: A - derive exact season-team batches
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      matrix: ${{ steps.scope.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-modern409-team-fanout-consolidated-31869325468
+          path: /tmp/modern409
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31869325468'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-residual-1751-manifest-31866566295
+          path: /tmp/residual
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31866566295'
+      - name: A1 - gate 409 and build two-team historical batches
+        id: scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/inputs
+          cp /tmp/modern409/TREB_2025_26_RESIDUAL_409_TEAM_FANOUT.csv /tmp/inputs/modern409.csv
+          python - <<'PY'
+          import csv,gzip,json,pathlib
+          gate=json.loads(pathlib.Path('/tmp/modern409/FANOUT_GATE.json').read_text())
+          assert gate['status']=='PASS' and int(gate['rows'])==409 and int(gate['unique_keys'])==409 and int(gate['minutes_gate_pass'])==409 and int(gate['minutes_gate_fail'])==0,gate
+          m=next(pathlib.Path('/tmp/residual').rglob('TREB_RESIDUAL_1751_MANIFEST.csv.gz'))
+          with gzip.open(m,'rt',encoding='utf-8',newline='') as f: rows=list(csv.DictReader(f))
+          hist=[r for r in rows if str(r.get('season','')).replace('_','-')!='2025-26']
+          keys=sorted({(str(r['season']).replace('_','-'),int(float(r['team_id'])),str(r['player_id']).removesuffix('.0')) for r in hist})
+          assert len(rows)==1751 and len(keys)==1342,(len(rows),len(keys))
+          with open('/tmp/inputs/historical_residual_keys.csv','w',newline='',encoding='utf-8') as f:
+              w=csv.writer(f); w.writerow(['season','team_id','player_id']); w.writerows(keys)
+          by={}
+          for s,t,p in keys: by.setdefault(s,set()).add(t)
+          inc=[]
+          for s in sorted(by):
+              teams=sorted(by[s]); y=int(s[:4])
+              for i in range(0,len(teams),2):
+                  grp=teams[i:i+2]
+                  inc.append({'year':y,'batch':i//2,'team_ids':','.join(map(str,grp))})
+          assert len(inc)<=256,len(inc)
+          q={'status':'PASS','historical_keys':len(keys),'season_count':len(by),'team_batches':len(inc),'max_teams_per_batch':2}
+          pathlib.Path('/tmp/inputs/A_GATE.json').write_text(json.dumps(q,indent=2)+'\n')
+          pathlib.Path('/tmp/matrix.json').write_text(json.dumps({'include':inc},separators=(',',':')))
+          print(json.dumps(q,indent=2))
+          PY
+          echo "matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-auto-v3-inputs-${{ github.run_id }}
+          path: /tmp/inputs
+          retention-days: 90
+          compression-level: 1
+
+  historical:
+    name: B - ${{ matrix.year }} batch ${{ matrix.batch }} teams ${{ matrix.team_ids }}
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    strategy:
+      fail-fast: false
+      max-parallel: 24
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact-engine dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-auto-v3-inputs-${{ github.run_id }}
+          path: /tmp/inputs
+      - name: B1 - materialize only this team batch targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out /tmp/src
+          YEAR='${{ matrix.year }}' TEAM_IDS='${{ matrix.team_ids }}' python - <<'PY'
+          import csv,gzip,json,os,pathlib
+          y=int(os.environ['YEAR']); season=f'{y}-{(y+1)%100:02d}'; teams={int(x) for x in os.environ['TEAM_IDS'].split(',')}
+          with open('/tmp/inputs/historical_residual_keys.csv',newline='',encoding='utf-8') as f:
+              ks={(r['season'],int(r['team_id']),str(r['player_id'])) for r in csv.DictReader(f) if r['season']==season and int(r['team_id']) in teams}
+          selected=[]
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line); k=(str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0'))
+                  if k in ks:
+                      assert bool(r.get('full_core_reuse')),k; selected.append(r)
+          got={(str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0')) for r in selected}
+          assert got==ks and len(selected)==len(ks)>0,(season,teams,len(selected),len(ks),len(ks-got))
+          with gzip.open('/tmp/targets.jsonl.gz','wt',encoding='utf-8') as f:
+              for r in selected: f.write(json.dumps(r,separators=(',',':'))+'\n')
+          pathlib.Path('/tmp/out/B1_TARGET_GATE.json').write_text(json.dumps({'status':'PASS','season':season,'team_ids':sorted(teams),'target_keys':len(selected)},indent=2)+'\n')
+          print('B1_GATE=PASS',season,sorted(teams),len(selected))
+          PY
+      - name: B2 - resolve retained source URLs
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          curl --fail --location --retry 3 --connect-timeout 15 --max-time 60 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import pathlib,sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          out=[]; miss=[]
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_{y}'
+              if k in vals: out.append((p,vals[k]))
+              else: miss.append(k)
+          if miss: raise SystemExit('MISSING_SOURCE_KEYS '+','.join(miss))
+          for x in out: print(*x,sep='\t')
+          PY
+      - name: B3 - download and extract retained feeds
+        timeout-minutes: 7
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${{ matrix.year }}.tar.xz"
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 300 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for p in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${p}_${{ matrix.year }}.csv"; done
+      - name: B4 - exact target-team-pruned reconstruction
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/run_target_team_fullcore_recovery.py \
+            --year '${{ matrix.year }}' --targets /tmp/targets.jsonl.gz \
+            --nba '/tmp/src/nbastats_${{ matrix.year }}.csv' \
+            --v3 '/tmp/src/nbastatsv3_${{ matrix.year }}.csv' \
+            --pbp '/tmp/src/pbpstats_${{ matrix.year }}.csv' \
+            --output-dir /tmp/out 2>&1 | tee /tmp/out/B4_ENGINE.log
+      - name: B5 - force durable batch result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          if [ ! -s "/tmp/out/fresh_fullcore_${y}.csv" ]; then
+            YEAR="$y" python - <<'PY'
+          import gzip,json,os,pandas as pd
+          y=int(os.environ['YEAR']); season=f'{y}-{(y+1)%100:02d}'; rows=[]
+          with gzip.open('/tmp/targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if line.strip():
+                      r=json.loads(line); rows.append({'season':season,'team_id':int(r['team_id']),'player_id':str(r['player_id']).removesuffix('.0'),'player':r.get('player',''),'status':'BOUNDED_TEAM_BATCH_NO_RESULT','error':'No exact result after bounded target-team runner'})
+          pd.DataFrame(rows).to_csv(f'/tmp/out/fresh_fullcore_{y}.csv',index=False)
+          PY
+          fi
+          python - <<'PY'
+          import json,pathlib,pandas as pd
+          p=next(pathlib.Path('/tmp/out').glob('fresh_fullcore_*.csv')); d=pd.read_csv(p,low_memory=False); c=d.status.astype(str).value_counts().to_dict()
+          q={'status':'PASS' if c.get('PASS',0)==len(d) else 'INCOMPLETE','rows':len(d),'status_counts':{str(k):int(v) for k,v in c.items()}}
+          pathlib.Path('/tmp/out/B5_BATCH_GATE.json').write_text(json.dumps(q,indent=2)+'\n'); print(json.dumps(q,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-auto-v3-historical-${{ matrix.year }}-${{ matrix.batch }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: C - consolidate exact 9647 and gate release
+    needs: [prepare, historical]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      ready: ${{ steps.readiness.outputs.ready }}
+      unresolved: ${{ steps.readiness.outputs.unresolved }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-auto-v3-historical-*-${{ github.run_id }}
+          path: /tmp/historical
+          merge-multiple: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-auto-v3-inputs-${{ github.run_id }}
+          path: /tmp/inputs
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-resume-consolidated-31858884423
+          path: /tmp/baseexact
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31858884423'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-accept-immaterial-overlay-31861830762
+          path: /tmp/starter1367
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31861830762'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-captains-call-63-consolidated-31864265375
+          path: /tmp/starter63
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31864265375'
+      - name: C1 - fail-closed union
+        run: |
+          python team_trb_all_players/autonomous_consolidate_fullcore.py \
+            --targets "$TARGETS" \
+            --baseexact /tmp/baseexact/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz \
+            --starter1367 /tmp/starter1367/STARTER_ACCEPT_IMMATERIAL_OVERLAY_1367.csv.gz \
+            --starter63 /tmp/starter63/STARTER_CAPTAINS_CALL_63_OVERLAY.csv.gz \
+            --modern409 /tmp/inputs/modern409.csv \
+            --historical-dir /tmp/historical \
+            --out /tmp/consolidated
+      - name: C2 - readiness
+        id: readiness
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          q=json.load(open('/tmp/consolidated/AUTONOMOUS_CONSOLIDATION_QA.json'))
+          print('ready=' + ('true' if q['status']=='PASS' else 'false'))
+          print('unresolved=' + str(q['unresolved']))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-auto-v3-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+          retention-days: 90
+          compression-level: 1
+
+  final_release:
+    name: D - final exact 90-metric release
+    needs: consolidate
+    if: needs.consolidate.outputs.ready == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-prepared-canonical-layers-31844978593
+          path: /tmp/prep
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31844978593'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-final-database-2000-01-to-2025-26
+          path: /tmp/immutable_base
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31780434242'
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-auto-v3-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+      - name: D1 - verify immutable base
+        run: |
+          test -s /tmp/immutable_base/TREB_final_database_2000-01_to_2025-26.zip
+          unzip -t /tmp/immutable_base/TREB_final_database_2000-01_to_2025-26.zip >/tmp/base_unzip_test.txt
+      - name: D2 - build canonical release
+        run: |
+          mkdir -p /tmp/final
+          python team_trb_all_players/autonomous_finalize_exact_release.py \
+            --targets "$TARGETS" \
+            --native /tmp/prep/native_89_canonical.parquet \
+            --partial /tmp/prep/exact_partial_4877.parquet \
+            --fullcore /tmp/consolidated/FULLCORE_TOTALREBOUNDPCT_AUTONOMOUS.csv.gz \
+            --out /tmp/final
+      - name: D3 - hard QA and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          q=json.load(open('/tmp/final/FINAL_QA.json'))
+          assert q['status']=='PASS' and q['canonical_keys']==14524 and q['seasons']==26 and q['native_metrics']==89 and q['total_metrics']==90
+          assert q['native_canonical_rows']==1292636 and q['partial_treb']==4877 and q['full_core_treb']==9647 and q['total_rebound_pct_rows']==14524
+          assert q['duplicate_total_rebound_pct']==0 and q['missing_total_rebound_pct']==0 and q['steven_adams_career_total_rebound_pct_rows']==1
+          assert 20460 <= q['steven_adams_career_minutes'] <= 20485 and 540 <= q['career_10000_min_total_rebound_pct_population'] <= 565
+          assert not q['rounded_percentage_backsolve'] and not q['opponent_rebound_inference'] and not q['partial_tenure_whole_team_subtraction'] and not q['empirical_model_used']
+          print(json.dumps(q,indent=2,sort_keys=True))
+          PY
+          cd /tmp/final
+          find . -maxdepth 1 -type f ! -name SHA256SUMS.txt ! -name TREB_final_database_2000-01_to_2025-26.zip -printf '%P\0' | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+          zip -q -9 TREB_final_database_2000-01_to_2025-26.zip $(find . -maxdepth 1 -type f ! -name TREB_final_database_2000-01_to_2025-26.zip -printf '%P\n' | sort)
+          test -s TREB_final_database_2000-01_to_2025-26.zip
+          unzip -t TREB_final_database_2000-01_to_2025-26.zip > FINAL_ZIP_INTEGRITY.txt
+          sha256sum TREB_final_database_2000-01_to_2025-26.zip | tee FINAL_ZIP_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-exact-90metric-${{ github.run_id }}
+          path: |
+            /tmp/final/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/final/FINAL_QA.json
+            /tmp/final/FINAL_ZIP_SHA256.txt
+            /tmp/final/FINAL_ZIP_INTEGRITY.txt
+            /tmp/final/SHA256SUMS.txt
+            /tmp/final/PROVENANCE.json
+          retention-days: 90
+          compression-level: 0
+          if-no-files-found: error
+
+  blocked:
+    name: E - exact blocker summary
+    needs: consolidate
+    if: always() && needs.consolidate.outputs.ready != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-auto-v3-consolidated-${{ github.run_id }}
+          path: /tmp/blocker
+      - run: |
+          cat /tmp/blocker/AUTONOMOUS_CONSOLIDATION_QA.json
+          test -s /tmp/blocker/AUTONOMOUS_BLOCKER_MANIFEST.csv
