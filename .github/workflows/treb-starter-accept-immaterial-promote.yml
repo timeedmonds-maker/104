@@ -1,0 +1,368 @@
+name: TREB promote accepted starter materiality overlay
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-accept-immaterial-promote.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-accept-immaterial-promote
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  MATERIALITY_RUN: '31861419304'
+  MATERIALITY_ARTIFACT: TREB-starter-materiality-failclosed-consolidated-31861419304
+  THRESHOLD_PP: '0.01'
+
+jobs:
+  materialize:
+    name: representative overlay ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        include:
+          - {year: 2000, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2000-31858884423'}
+          - {year: 2001, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2001-31854913173'}
+          - {year: 2002, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2002-31854913173'}
+          - {year: 2003, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2003-31854913173'}
+          - {year: 2004, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2004-31858884423'}
+          - {year: 2005, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2005-31858884423'}
+          - {year: 2009, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2009-31854913173'}
+          - {year: 2010, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2010-31854913173'}
+          - {year: 2013, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2013-31854913173'}
+          - {year: 2016, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2016-31854913173'}
+          - {year: 2018, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2018-31858884423'}
+          - {year: 2019, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2019-31854913173'}
+          - {year: 2020, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2020-31858884423'}
+          - {year: 2022, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2022-31858884423'}
+          - {year: 2023, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2023-31854913173'}
+          - {year: 2024, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2024-31858884423'}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deterministic materializer dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Download authoritative fail-closed materiality gate
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.MATERIALITY_ARTIFACT }}
+          path: /tmp/materiality
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.MATERIALITY_RUN }}
+
+      - name: Download retained exact season baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.baseline_artifact }}
+          path: /tmp/baseline
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ matrix.baseline_run }}
+
+      - name: Download retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'; mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 \
+            --output /tmp/list_data.txt \
+            https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals: raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
+              --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${prefix}_${y}.csv"; done
+
+      - name: Materialize one deterministic coherent representative for accepted keys
+        timeout-minutes: 22
+        env:
+          YEAR: ${{ matrix.year }}
+          BASELINE_RUN: ${{ matrix.baseline_run }}
+          BASELINE_ARTIFACT: ${{ matrix.baseline_artifact }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import hashlib, json, math, os, sys
+          from pathlib import Path
+          import pandas as pd
+
+          sys.path.insert(0, 'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+
+          year=int(os.environ['YEAR']); season=f'{year}-{(year+1)%100:02d}'
+          out=Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+          acc=pd.read_csv('/tmp/materiality/STARTER_MATERIALITY_KEYS.csv',dtype={'player_id':str},low_memory=False)
+          acc['player_id']=acc.player_id.map(mat.sid)
+          acc['team_id']=pd.to_numeric(acc.team_id,errors='raise').astype('int64')
+          acc=acc[(acc.season.astype(str)==season) & (acc.status.astype(str)=='ACCEPT_IMMATERIAL')].copy()
+          if acc.empty:
+              pd.DataFrame().to_csv(out/f'accepted_representative_{year}.csv.gz',index=False,compression='gzip')
+              (out/'season_gate.json').write_text(json.dumps({'status':'PASS','season':season,'accepted_keys':0,'overlay_rows':0},indent=2)+'\n')
+              raise SystemExit(0)
+
+          targets=mat.load_targets(Path(os.environ['TARGETS']),season)
+          target_by_team={}
+          target_by_key={}
+          for r in targets:
+              target_by_team.setdefault(int(r['team_id']),[]).append(r)
+              target_by_key[(int(r['team_id']),mat.sid(r['player_id']))]=r
+
+          nba=mat.io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{year}.csv',low_memory=False))
+          v3=mat.lineup_engine.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{year}.csv',low_memory=False))
+          pbp=mat.io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{year}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+
+          team_path=Path('/tmp/baseline/team_game_treb.csv.gz'); player_path=Path('/tmp/baseline/player_game_treb_on.csv.gz')
+          if not team_path.is_file() or not player_path.is_file():
+              raise RuntimeError('retained baseline missing exact fact files')
+          base_team_df=pd.read_csv(team_path,low_memory=False)
+          base_player_df=pd.read_csv(player_path,low_memory=False,dtype={'player_id':str})
+          baseline_team,baseline_player=mat.aggregate_baseline(base_team_df,base_player_df)
+
+          def parse_gids(series):
+              out=set()
+              for value in series:
+                  if pd.isna(value): continue
+                  for x in str(value).split('|'):
+                      x=x.strip()
+                      if x: out.add(int(float(x)))
+              return sorted(out)
+
+          all_gids=parse_gids(acc.game_ids)
+          game_variants={}; game_meta={}
+          for gid in all_gids:
+              if gid not in ng or gid not in vg or gid not in pg:
+                  raise RuntimeError(f'accepted ambiguous game missing retained feed {season} {gid}')
+              variants,meta=mat.enumerate_game_variants(gid,ng[gid],vg[gid],pg[gid],20000,5000)
+              if meta['capped'] or not meta['team_totals_invariant'] or not variants:
+                  raise RuntimeError(f'accepted game no longer safely enumerable {season} {gid}: {meta}')
+              game_variants[gid]=variants; game_meta[gid]=meta
+              print(json.dumps({'event':'REP_GAME_READY','season':season,'game_id':gid,'variants':len(variants)}),flush=True)
+
+          overlay=[]; team_prov=[]
+          for tid,tacc in acc.groupby('team_id',sort=True):
+              tid=int(tid); ttargets=target_by_team.get(tid,[])
+              if not ttargets: raise RuntimeError(f'no targets for accepted team {season} {tid}')
+              gids=parse_gids(tacc.game_ids)
+              option_sigs=[]; added_team_rows=[]
+              for gid in gids:
+                  variants=game_variants[gid]
+                  tc=[r for r in variants[0]['team_rows'] if int(r['team_id'])==tid]
+                  if len(tc)!=1: raise RuntimeError(f'missing invariant team row {season} {tid} {gid}')
+                  added_team_rows.append(tc[0])
+                  opts=sorted(set(mat.contribution_signature(v['player_rows'],tid) for v in variants))
+                  option_sigs.append(opts or [tuple()])
+
+              team_total=dict(baseline_team.get(tid,{f:0 for f in mat.TEAM_FIELDS}))
+              for r in added_team_rows:
+                  for f in mat.TEAM_FIELDS: team_total[f]=int(team_total.get(f,0))+int(r[f])
+
+              states,capped=mat.combine_team_states(option_sigs,200000)
+              if capped or not states: raise RuntimeError(f'accepted team state enumeration failed {season} {tid}')
+              compatible=[]
+              for st in states:
+                  ok=True
+                  for t in ttargets:
+                      pid=mat.sid(t['player_id']); base=baseline_player.get((tid,pid),{f:0 for f in mat.PLAYER_FIELDS}); add=st.get(pid,(0,0,0,0,0))
+                      actual=int(base['seconds_on'])+int(add[0]); target=float(t.get('seconds_on',0.0))
+                      if abs(actual-target)>60.0: ok=False; break
+                  if ok: compatible.append(st)
+              if not compatible: raise RuntimeError(f'accepted team has no target-minute-compatible state {season} {tid}')
+
+              expected_states=sorted(set(int(float(x)) for x in pd.to_numeric(tacc.target_minute_compatible_states,errors='coerce').dropna()))
+              if expected_states and expected_states != [len(compatible)]:
+                  raise RuntimeError(f'compatible-state count drift {season} {tid}: expected={expected_states} got={len(compatible)}')
+
+              def state_sig(st): return tuple(sorted((str(pid),)+tuple(int(v) for v in vals) for pid,vals in st.items()))
+              rep=min(compatible,key=state_sig)
+              rep_json=json.dumps(state_sig(rep),separators=(',',':'))
+              rep_sha=hashlib.sha256(rep_json.encode()).hexdigest()
+
+              for a in tacc.itertuples(index=False):
+                  pid=mat.sid(a.player_id); target=target_by_key[(tid,pid)]
+                  base=baseline_player.get((tid,pid),{f:0 for f in mat.PLAYER_FIELDS}); add=rep.get(pid,(0,0,0,0,0))
+                  ptotal={f:int(base.get(f,0))+int(add[i]) for i,f in enumerate(mat.PLAYER_FIELDS)}
+                  on,off,swing=mat.metric_values(team_total,ptotal)
+                  eps=1e-12
+                  checks=[('treb_on',on),('treb_off',off),('treb_swing',swing)]
+                  for prefix,val in checks:
+                      lo=float(getattr(a,prefix+'_min')); hi=float(getattr(a,prefix+'_max'))
+                      if not (lo-eps <= val <= hi+eps):
+                          raise RuntimeError(f'representative outside proven range {season} {tid} {pid} {prefix}: {val} not [{lo},{hi}]')
+                  if float(a.max_range_pp) > float(os.environ['THRESHOLD_PP']) + 1e-12:
+                      raise RuntimeError(f'non-immaterial key entered promotion {season} {tid} {pid}')
+
+                  team_on_oreb=int(ptotal['team_oreb_on']); team_on_dreb=int(ptotal['team_dreb_on'])
+                  opp_on_oreb=int(ptotal['opponent_oreb_on']); opp_on_dreb=int(ptotal['opponent_dreb_on'])
+                  seconds_on=int(ptotal['seconds_on']); seconds_off=int(team_total['game_seconds'])-seconds_on
+                  if seconds_off < 0: raise RuntimeError(f'negative off seconds {season} {tid} {pid}')
+                  row={
+                      'season':season,'team_id':tid,'player_id':pid,'player':getattr(a,'player',''),
+                      'target_minutes_on':float(target.get('seconds_on',0.0))/60.0,
+                      'direct_treb_on':on,'direct_treb_off':off,'direct_treb_swing':swing,
+                      'direct_minutes_on':seconds_on/60.0,'direct_minutes_off':seconds_off/60.0,
+                      'team_oreb_on':team_on_oreb,'team_dreb_on':team_on_dreb,
+                      'opponent_oreb_on':opp_on_oreb,'opponent_dreb_on':opp_on_dreb,
+                      'team_oreb_off':int(team_total['team_oreb'])-team_on_oreb,
+                      'team_dreb_off':int(team_total['team_dreb'])-team_on_dreb,
+                      'opponent_oreb_off':int(team_total['opponent_oreb'])-opp_on_oreb,
+                      'opponent_dreb_off':int(team_total['opponent_dreb'])-opp_on_dreb,
+                      'status':'PASS','error':'','source':'starter_materiality_accepted_representative_coherent_state',
+                      'acceptance_basis':'ACCEPT_IMMATERIAL_0.01PP','representative_is_uniquely_true':False,
+                      'representative_policy':'lexicographically_smallest_target_minute_compatible_coherent_state',
+                      'representative_state_sha256':rep_sha,'coherent_states':int(a.coherent_states),
+                      'target_minute_compatible_states':len(compatible),'ambiguous_games':int(a.ambiguous_games),
+                      'game_ids':str(a.game_ids),'treb_on_min':float(a.treb_on_min),'treb_on_max':float(a.treb_on_max),
+                      'treb_on_range_pp':float(a.treb_on_range_pp),'treb_off_min':float(a.treb_off_min),'treb_off_max':float(a.treb_off_max),
+                      'treb_off_range_pp':float(a.treb_off_range_pp),'treb_swing_min':float(a.treb_swing_min),'treb_swing_max':float(a.treb_swing_max),
+                      'treb_swing_range_pp':float(a.treb_swing_range_pp),'max_range_pp':float(a.max_range_pp),'threshold_pp':float(a.threshold_pp),
+                      'source_materiality_run_id':int(os.environ['MATERIALITY_RUN']),'source_audit_run_id':31860354899,
+                      'source_baseline_run_id':int(os.environ['BASELINE_RUN']),'source_baseline_artifact':os.environ['BASELINE_ARTIFACT'],
+                      'minutes_gate_tolerance_seconds':60.0,'rounded_percentage_backsolve_used':False,
+                      'opponent_rebound_inference_used':False,'whole_team_subtraction_across_partial_tenure_used':False,
+                  }
+                  overlay.append(row)
+              team_prov.append({'season':season,'team_id':tid,'accepted_keys':len(tacc),'coherent_states':len(states),'target_minute_compatible_states':len(compatible),'representative_state_sha256':rep_sha,'game_ids':'|'.join(map(str,gids))})
+
+          ov=pd.DataFrame(overlay)
+          expected=len(acc)
+          if len(ov)!=expected: raise RuntimeError(f'overlay row mismatch {season}: expected {expected} got {len(ov)}')
+          if ov.duplicated(['season','team_id','player_id']).any(): raise RuntimeError(f'duplicate overlay keys {season}')
+          ov.to_csv(out/f'accepted_representative_{year}.csv.gz',index=False,compression='gzip')
+          pd.DataFrame(team_prov).to_csv(out/f'team_representative_provenance_{year}.csv',index=False)
+          gate={'status':'PASS','season':season,'accepted_keys':expected,'overlay_rows':len(ov),'teams':int(ov.team_id.nunique()),'ambiguous_games':len(all_gids),'threshold_pp':0.01,'minutes_gate_tolerance_seconds':60.0,'representatives_uniquely_true':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False}
+          (out/'season_gate.json').write_text(json.dumps(gate,indent=2)+'\n')
+          print(json.dumps(gate,indent=2),flush=True)
+          PY
+
+      - name: Upload season representative overlay
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-accepted-representative-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+  consolidate:
+    name: consolidate 1,367 accepted representative rows
+    needs: materialize
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download authoritative fail-closed materiality gate
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.MATERIALITY_ARTIFACT }}
+          path: /tmp/materiality
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.MATERIALITY_RUN }}
+      - name: Download every produced representative overlay
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: TREB-starter-accepted-representative-*-${{ github.run_id }}
+          path: /tmp/parts
+          merge-multiple: false
+      - name: Build fail-closed production overlay gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          def norm(df):
+              d=df.copy(); d['season']=d.season.astype(str); d['team_id']=pd.to_numeric(d.team_id,errors='raise').astype('int64'); d['player_id']=d.player_id.astype(str).str.replace(r'\.0$','',regex=True); return d
+          all_keys=norm(pd.read_csv('/tmp/materiality/STARTER_MATERIALITY_KEYS.csv',dtype={'player_id':str},low_memory=False))
+          accepted=all_keys[all_keys.status.astype(str).eq('ACCEPT_IMMATERIAL')].copy()
+          rejected=all_keys[~all_keys.status.astype(str).eq('ACCEPT_IMMATERIAL')].copy()
+          parts=[]; gates=[]
+          for p in sorted(Path('/tmp/parts').rglob('accepted_representative_*.csv.gz')):
+              try:
+                  d=pd.read_csv(p,dtype={'player_id':str},low_memory=False)
+                  if len(d): parts.append(d)
+              except pd.errors.EmptyDataError: pass
+          for p in sorted(Path('/tmp/parts').rglob('season_gate.json')):
+              try: gates.append(json.loads(p.read_text()))
+              except Exception as exc: gates.append({'status':'READ_ERROR','file':str(p),'error':repr(exc)})
+          overlay=norm(pd.concat(parts,ignore_index=True,sort=False)) if parts else pd.DataFrame(columns=['season','team_id','player_id'])
+          ak=set(zip(accepted.season,accepted.team_id,accepted.player_id)); rk=set(zip(rejected.season,rejected.team_id,rejected.player_id)); ok=set(zip(overlay.season,overlay.team_id,overlay.player_id)) if len(overlay) else set()
+          missing=sorted(ak-ok); unexpected=sorted(ok-ak); forbidden=sorted(ok & rk)
+          duplicate_rows=int(overlay.duplicated(['season','team_id','player_id']).sum()) if len(overlay) else 0
+          bad_status=int((~overlay.status.astype(str).eq('PASS')).sum()) if len(overlay) and 'status' in overlay else len(overlay)
+          range_bad=int((pd.to_numeric(overlay.max_range_pp,errors='coerce')>0.01+1e-12).sum()) if len(overlay) and 'max_range_pp' in overlay else len(overlay)
+          unique_claim_bad=int(overlay.representative_is_uniquely_true.astype(str).str.lower().isin(['true','1']).sum()) if len(overlay) and 'representative_is_uniquely_true' in overlay else len(overlay)
+          forbidden_method_bad=0
+          for c in ['rounded_percentage_backsolve_used','opponent_rebound_inference_used','whole_team_subtraction_across_partial_tenure_used']:
+              if c not in overlay: forbidden_method_bad += len(overlay)
+              else: forbidden_method_bad += int(overlay[c].astype(str).str.lower().isin(['true','1']).sum())
+          complete=(len(accepted)==1367 and len(ak)==1367 and len(overlay)==1367 and len(ok)==1367 and not missing and not unexpected and not forbidden and duplicate_rows==0 and bad_status==0 and range_bad==0 and unique_claim_bad==0 and forbidden_method_bad==0 and len(gates)==16 and all(str(g.get('status'))=='PASS' for g in gates))
+          if len(overlay):
+              overlay=overlay.sort_values(['season','team_id','player_id'],kind='stable')
+              overlay.to_csv('/tmp/final/STARTER_ACCEPT_IMMATERIAL_OVERLAY_1367.csv.gz',index=False,compression='gzip')
+              overlay.to_json('/tmp/final/STARTER_ACCEPT_IMMATERIAL_OVERLAY_1367.jsonl.gz',orient='records',lines=True,compression='gzip')
+          if missing: pd.DataFrame(missing,columns=['season','team_id','player_id']).to_csv('/tmp/final/MISSING_ACCEPTED_KEYS.csv',index=False)
+          if unexpected: pd.DataFrame(unexpected,columns=['season','team_id','player_id']).to_csv('/tmp/final/UNEXPECTED_OVERLAY_KEYS.csv',index=False)
+          summary={'status':'PASS' if complete else 'INCOMPLETE','materiality_run_id':31861419304,'threshold_pp':0.01,'accepted_materiality_keys':int(len(accepted)),'required_overlay_keys':1367,'overlay_rows':int(len(overlay)),'unique_overlay_keys':int(len(ok)),'missing_accepted_keys':len(missing),'unexpected_keys':len(unexpected),'forbidden_nonaccepted_keys':len(forbidden),'duplicate_rows':duplicate_rows,'bad_status_rows':bad_status,'over_threshold_rows':range_bad,'unique_truth_claim_rows':unique_claim_bad,'forbidden_method_rows':forbidden_method_bad,'season_artifacts':len(gates),'season_pass_gates':sum(str(g.get('status'))=='PASS' for g in gates),'representative_policy':'lexicographically smallest target-minute-compatible coherent state','representatives_uniquely_true':False,'minutes_gate_tolerance_seconds':60.0,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'remaining_starter_scope':118}
+          Path('/tmp/final/STARTER_ACCEPT_IMMATERIAL_OVERLAY_GATE.json').write_text(json.dumps(summary,indent=2)+'\n')
+          Path('/tmp/final/README.txt').write_text('Production overlay for the 1,367 keys already proven immaterial at <=0.01 percentage points across TREB ON, OFF, and SWING. Each row uses one deterministic coherent target-minute-compatible state. Representatives are explicitly not asserted to be uniquely true. The 118 material/unresolved starter keys are excluded.\n')
+          print(json.dumps(summary,indent=2))
+          if not complete: raise SystemExit('accepted representative overlay gate incomplete')
+          PY
+      - name: Upload production accepted-materiality overlay
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-accept-immaterial-overlay-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
