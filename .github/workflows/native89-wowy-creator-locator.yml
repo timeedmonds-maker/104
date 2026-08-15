@@ -1,0 +1,42 @@
+name: Native89 raw WoWY creator locator
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-wowy-creator-locator.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  locate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Locate collector and workflow references
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import pathlib,re,json
+          pats=[r'corrected_off_wowy',r'wowy_collection_summary',r'wowy_metric_translator',r'rebound_keys',r'pbpstats.*wowy',r'get-wowy',r'wowy']
+          rx=re.compile('|'.join(pats),re.I)
+          hits=[]
+          for p in pathlib.Path('.').rglob('*'):
+            if not p.is_file() or '.git' in p.parts or p.stat().st_size>5_000_000: continue
+            if p.suffix.lower() not in {'.py','.yml','.yaml','.sh','.md','.txt','.json'}: continue
+            try:s=p.read_text(errors='ignore')
+            except: continue
+            ll=[{'line':i,'text':line[:1600]} for i,line in enumerate(s.splitlines(),1) if rx.search(line)]
+            if ll: hits.append({'path':str(p),'hits':ll[:250]})
+          pathlib.Path('native89_wowy_creator_locator.json').write_text(json.dumps({'hits':hits},indent=2)+'\n')
+          for h in hits:
+            print('\n###',h['path'])
+            for x in h['hits']: print(x['line'],x['text'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-wowy-creator-locator-${{ github.run_id }}
+          path: native89_wowy_creator_locator.json
+          retention-days: 30
+          if-no-files-found: error
