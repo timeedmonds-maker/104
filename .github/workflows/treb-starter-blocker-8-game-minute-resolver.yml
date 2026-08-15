@@ -1,0 +1,226 @@
+name: TREB starter 8-blocker game-minute resolver
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-blocker-8-game-minute-resolver.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-blocker-8-game-minute-resolver
+  cancel-in-progress: false
+
+env:
+  ROOTCAUSE_RUN: '31863100199'
+  ROOTCAUSE_ARTIFACT: TREB-starter-blocker-8-rootcause-31863100199
+
+jobs:
+  resolve:
+    name: resolve blocker game minutes ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - {year: 2001, expected_blockers: 1}
+          - {year: 2024, expected_blockers: 7}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download authoritative 8-blocker root-cause artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.ROOTCAUSE_ARTIFACT }}
+          path: /tmp/rootcause
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.ROOTCAUSE_RUN }}
+      - name: Download retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'; mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals: raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${prefix}_${y}.csv"; done
+      - name: Match retained starter variants to official game minutes
+        env:
+          YEAR: ${{ matrix.year }}
+          EXPECTED_BLOCKERS: ${{ matrix.expected_blockers }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import json, os, re, sys
+          from pathlib import Path
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+
+          year=int(os.environ['YEAR']); season=f'{year}-{(year+1)%100:02d}'; expected=int(os.environ['EXPECTED_BLOCKERS'])
+          out=Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+          players=pd.read_csv('/tmp/rootcause/BLOCKER_8_ROOTCAUSE_PLAYERS.csv',dtype={'player_id':str},low_memory=False)
+          players['player_id']=players.player_id.map(mat.sid)
+          scope=players[players.season.astype(str).eq(season)].copy()
+          if len(scope)!=expected: raise RuntimeError(f'blocker scope drift {season}: expected={expected} got={len(scope)}')
+          variants=pd.read_csv('/tmp/rootcause/BLOCKER_8_GAME_VARIANTS.csv',dtype={'player_id':str},low_memory=False)
+          variants['player_id']=variants.player_id.map(mat.sid)
+          variants=variants[variants.season.astype(str).eq(season)].copy()
+          raw=pd.read_csv(f'/tmp/src/nbastats_{year}.csv',low_memory=False)
+
+          def pick(cols, names):
+              lut={str(c).lower():c for c in cols}
+              for n in names:
+                  if n.lower() in lut:return lut[n.lower()]
+              return None
+          gidc=pick(raw.columns,['GAME_ID','gameId','GAMEID','game_id'])
+          pidc=pick(raw.columns,['PLAYER_ID','personId','PLAYERID','player_id'])
+          tidc=pick(raw.columns,['TEAM_ID','teamId','TEAMID','team_id'])
+          minc=pick(raw.columns,['MIN','minutes','MINUTES','minutesCalculated','minutes_calculated'])
+          secc=pick(raw.columns,['SECONDS','seconds','seconds_on','secondsPlayed','seconds_played'])
+          if not gidc or not pidc: raise RuntimeError(f'cannot identify game/player columns: {list(raw.columns)}')
+          if not minc and not secc: raise RuntimeError(f'cannot identify official minutes/seconds column: {list(raw.columns)}')
+
+          def to_seconds(v):
+              if pd.isna(v): return None
+              if secc: return float(v)
+              s=str(v).strip()
+              if not s:return None
+              if ':' in s:
+                  a=s.split(':')
+                  try:return float(a[0])*60+float(a[1])
+                  except:return None
+              try:return float(s)*60
+              except:return None
+
+          rows=[]
+          for x in scope.itertuples(index=False):
+              pid=mat.sid(x.player_id); tid=int(x.team_id)
+              vv=variants[(variants.player_id==pid)&(pd.to_numeric(variants.team_id,errors='coerce')==tid)]
+              for gid,g in vv.groupby('game_id',sort=True):
+                  rg=raw[pd.to_numeric(raw[gidc],errors='coerce').eq(float(gid)) & raw[pidc].map(mat.sid).eq(pid)]
+                  if tidc is not None:
+                      rgt=rg[pd.to_numeric(rg[tidc],errors='coerce').eq(tid)]
+                      if len(rgt): rg=rgt
+                  if len(rg)!=1:
+                      official=None; official_status=f'RAW_ROWS_{len(rg)}'
+                  else:
+                      val=rg.iloc[0][secc] if secc else rg.iloc[0][minc]
+                      official=to_seconds(val); official_status='OK' if official is not None else 'UNPARSEABLE'
+                  candidates=[]
+                  for r in g.itertuples(index=False):
+                      sec=float(r.game_seconds_on); err=None if official is None else abs(sec-official)
+                      candidates.append((err if err is not None else 1e99,int(r.variant_index),sec,str(r.team_starter_choices_json)))
+                  candidates=sorted(candidates,key=lambda z:(z[0],z[1],z[3]))
+                  best=candidates[0]
+                  ties=sum(1 for z in candidates if z[0]==best[0]) if official is not None else len(candidates)
+                  exact=sum(1 for z in candidates if official is not None and z[0] <= 1.0)
+                  cls='NO_OFFICIAL_GAME_MINUTES'
+                  if official is not None:
+                      if exact==1: cls='UNIQUE_EXACT_OFFICIAL_MINUTE_MATCH'
+                      elif exact>1: cls='MULTIPLE_EXACT_OFFICIAL_MINUTE_MATCHES'
+                      elif ties==1: cls='UNIQUE_NEAREST_OFFICIAL_MINUTE_MATCH'
+                      else: cls='TIED_NEAREST_OFFICIAL_MINUTE_MATCH'
+                  rows.append({'season':season,'team_id':tid,'player_id':pid,'player':getattr(x,'player',''),'game_id':int(float(gid)),
+                      'official_game_seconds':official,'official_status':official_status,'variant_count':len(candidates),
+                      'best_variant_index':best[1],'best_variant_game_seconds':best[2],
+                      'best_abs_error_seconds':None if official is None else best[0],
+                      'exact_match_variants':exact,'nearest_tie_count':ties,'classification':cls,
+                      'best_team_starter_choices_json':best[3]})
+          df=pd.DataFrame(rows)
+          if df.empty: raise RuntimeError('no blocker game rows produced')
+          df.to_csv(out/f'BLOCKER_GAME_MINUTE_RESOLUTION_{year}.csv',index=False)
+          summary={'status':'PASS','season':season,'blockers':len(scope),'games':int(df.game_id.nunique()),'rows':len(df),
+                   'unique_exact':int(df.classification.eq('UNIQUE_EXACT_OFFICIAL_MINUTE_MATCH').sum()),
+                   'multiple_exact':int(df.classification.eq('MULTIPLE_EXACT_OFFICIAL_MINUTE_MATCHES').sum()),
+                   'unique_nearest':int(df.classification.eq('UNIQUE_NEAREST_OFFICIAL_MINUTE_MATCH').sum()),
+                   'tied_nearest':int(df.classification.eq('TIED_NEAREST_OFFICIAL_MINUTE_MATCH').sum()),
+                   'no_official':int(df.classification.eq('NO_OFFICIAL_GAME_MINUTES').sum()),
+                   'promoted_keys':0,'minutes_gate_relaxed':False,'canonical_targets_modified':False}
+          (out/'season_gate.json').write_text(json.dumps(summary,indent=2)+'\n'); print(json.dumps(summary,indent=2))
+          PY
+      - name: Upload retained game-minute resolution
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-blocker-game-minute-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: consolidate 8-blocker game-minute resolver
+    needs: resolve
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-starter-blocker-game-minute-*-${{ github.run_id }}
+          path: /tmp/parts
+          merge-multiple: false
+      - name: Consolidate fail-closed result
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path('/tmp/parts'); dfs=[]; gates=[]
+          for p in root.rglob('BLOCKER_GAME_MINUTE_RESOLUTION_*.csv'): dfs.append(pd.read_csv(p,dtype={'player_id':str},low_memory=False))
+          for p in root.rglob('season_gate.json'): gates.append(json.loads(p.read_text()))
+          if len(dfs)!=2 or len(gates)!=2 or not all(g.get('status')=='PASS' for g in gates):
+              raise SystemExit(f'incomplete resolver artifacts dfs={len(dfs)} gates={len(gates)}')
+          df=pd.concat(dfs,ignore_index=True,sort=False); df.to_csv('/tmp/final/BLOCKER_8_GAME_MINUTE_RESOLUTION.csv',index=False)
+          s={'status':'PASS','blockers':int(df[['season','team_id','player_id']].drop_duplicates().shape[0]),'games':int(df[['season','team_id','game_id']].drop_duplicates().shape[0]),'rows':len(df),
+             'unique_exact':int(df.classification.eq('UNIQUE_EXACT_OFFICIAL_MINUTE_MATCH').sum()),
+             'multiple_exact':int(df.classification.eq('MULTIPLE_EXACT_OFFICIAL_MINUTE_MATCHES').sum()),
+             'unique_nearest':int(df.classification.eq('UNIQUE_NEAREST_OFFICIAL_MINUTE_MATCH').sum()),
+             'tied_nearest':int(df.classification.eq('TIED_NEAREST_OFFICIAL_MINUTE_MATCH').sum()),
+             'no_official':int(df.classification.eq('NO_OFFICIAL_GAME_MINUTES').sum()),
+             'promoted_keys':0,'minutes_gate_relaxed':False,'canonical_targets_modified':False,
+             'next_scope':'only games not uniquely resolved by official game minutes'}
+          Path('/tmp/final/BLOCKER_8_GAME_MINUTE_GATE.json').write_text(json.dumps(s,indent=2)+'\n'); print(json.dumps(s,indent=2))
+          if s['blockers']!=8: raise SystemExit(f'expected 8 blockers got {s["blockers"]}')
+          PY
+      - name: Upload consolidated resolver
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-blocker-8-game-minute-resolver-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
