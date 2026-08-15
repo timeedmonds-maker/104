@@ -1,4 +1,4 @@
-import os, io, json, zipfile, urllib.request, urllib.error, math
+import os, io, json, zipfile, urllib.request, urllib.error, math, re
 from pathlib import Path
 from collections import defaultdict, Counter
 from datetime import datetime, timezone
@@ -29,6 +29,15 @@ def extract(aid,dest):
 def prog(**kw):
     d={'heartbeat_utc':datetime.now(timezone.utc).isoformat(),**kw}; (OUT/'GAME_CLOSURE_PROGRESS.json').write_text(json.dumps(d,indent=2)+'\n'); print('PROGRESS',json.dumps(d),flush=True)
 
+def norm(c):
+    return re.sub(r'[^a-z0-9]+','_',str(c).strip().lower()).strip('_')
+
+def candidate_fact_col(c):
+    n=norm(c)
+    if n in {'game_id','gameid','team_id','teamid','player_id','playerid','person_id','personid','season','game_date','date'}: return False
+    if any(x in n for x in ['rebound','reb','second','minute','poss','treb']): return True
+    return False
+
 extract(EVID,EDIR)
 km=json.loads((EDIR/'BLOCKER_KEY_GAME_MAP.json').read_text())
 dl=json.loads((EDIR/'DOWNLOADED_ARTIFACTS.json').read_text())
@@ -51,8 +60,9 @@ for i,aid in enumerate(ids,1):
     except Exception as e: failures.append({'id':aid,'error':repr(e)})
     if i%20==0 or i==len(ids): prog(phase='DOWNLOAD',artifact_total=len(ids),artifact_processed=i,artifact_extracted=ok,artifact_failed=len(failures),target_games=len(target))
 
-rows=[]; scanned=hits=0
-for fp in [p for root in ARTS.glob('*') for p in root.rglob('*') if p.is_file()]:
+rows=[]; scanned=hits=0; schema_counts=Counter(); candidate_counts=Counter(); examples={}
+allfiles=[p for root in ARTS.glob('*') for p in root.rglob('*') if p.is_file()]
+for fp in allfiles:
     scanned+=1
     try:
         n=fp.name.lower()
@@ -63,31 +73,43 @@ for fp in [p for root in ARTS.glob('*') for p in root.rglob('*') if p.is_file()]
             if not rr: continue
             df=pd.DataFrame(rr)
         else: continue
-        cm={str(c).strip().lower():c for c in df.columns}; gc=cm.get('game_id') or cm.get('gameid')
+        cm={norm(c):c for c in df.columns}; gc=cm.get('game_id') or cm.get('gameid')
         if not gc: continue
         gids=pd.to_numeric(df[gc],errors='coerce'); mask=gids.isin(target)
         if not mask.any(): continue
-        hits+=1; sub=df.loc[mask].copy(); sub['_gid']=gids.loc[mask].astype('int64')
-        wanted={'team_id','player_id','person_id','seconds','minutes','player_seconds','team_reb','opp_reb','team_rebounds','opponent_rebounds','player_reb_on','player_rebounds_on','on_reb','off_reb','treb_on_num','treb_on_den','treb_off_num','treb_off_den'}
-        keep=[c for c in sub.columns if str(c).strip().lower() in wanted]
+        hits+=1
+        cols=tuple(sorted(norm(c) for c in df.columns)); schema_counts[cols]+=1
+        for c in df.columns:
+            if candidate_fact_col(c): candidate_counts[norm(c)]+=1
+        if len(examples)<25: examples[str(fp)]={'columns':[str(c) for c in df.columns],'rows':int(mask.sum())}
+        sub=df.loc[mask].copy(); sub['_gid']=gids.loc[mask].astype('int64')
+        idcols=[c for c in sub.columns if norm(c) in {'team_id','teamid','player_id','playerid','person_id','personid'}]
+        factcols=[c for c in sub.columns if candidate_fact_col(c)]
+        keep=idcols+factcols
         for _,r in sub.iterrows():
             rec={'game_id':int(r['_gid']),'source_file':str(fp)}
             for c in keep:
-                if pd.notna(r[c]): rec[str(c).strip().lower()]=str(r[c])
+                if pd.notna(r[c]): rec[norm(c)]=str(r[c])
             rows.append(rec)
     except Exception: pass
-    if scanned%250==0: prog(phase='SCAN',files_scanned=scanned,files_hit=hits,retained_rows=len(rows),target_games=len(target))
+    if scanned%250==0: prog(phase='SCAN',files_scanned=scanned,files_total=len(allfiles),files_hit=hits,retained_rows=len(rows),candidate_fact_columns=len(candidate_counts),target_games=len(target))
 
-num={'seconds','minutes','player_seconds','team_reb','opp_reb','team_rebounds','opponent_rebounds','player_reb_on','player_rebounds_on','on_reb','off_reb','treb_on_num','treb_on_den','treb_off_num','treb_off_den'}
+schema_report=[{'file_count':n,'columns':list(cols)} for cols,n in schema_counts.most_common()]
+(OUT/'TARGET_GAME_SCHEMA_INVENTORY.json').write_text(json.dumps({'schemas':schema_report,'candidate_fact_column_file_counts':candidate_counts.most_common(),'examples':examples},indent=2)+'\n')
+
 facts=defaultdict(lambda:defaultdict(list))
 for rec in rows:
-    ident=(rec['game_id'],rec.get('team_id',''),rec.get('player_id',rec.get('person_id','')))
-    for f in num:
-        if f in rec:
-            try:
-                x=float(rec[f]);
-                if math.isfinite(x): facts[ident][f].append((round(x,9),rec['source_file']))
-            except: pass
+    tid=rec.get('team_id',rec.get('teamid',''))
+    pid=rec.get('player_id',rec.get('playerid',rec.get('person_id',rec.get('personid',''))))
+    ident=(rec['game_id'],tid,pid)
+    for f,val in rec.items():
+        if f in {'game_id','source_file','team_id','teamid','player_id','playerid','person_id','personid'}: continue
+        if not candidate_fact_col(f): continue
+        try:
+            x=float(str(val).replace('%',''))
+            if math.isfinite(x): facts[ident][f].append((round(x,9),rec['source_file']))
+        except: pass
+
 cons=[]; conf=[]
 for (gid,tid,pid),fd in facts.items():
     for field,vals in fd.items():
@@ -95,7 +117,9 @@ for (gid,tid,pid),fd in facts.items():
         for v,s in vals: by[v].add(s)
         if len(by)==1 and len(next(iter(by.values())))>=2:
             v=next(iter(by)); cons.append({'game_id':gid,'team_id':tid,'player_id':pid,'field':field,'value':v,'independent_files':len(by[v])})
-        elif len(by)>1: conf.append({'game_id':gid,'team_id':tid,'player_id':pid,'field':field,'values':sorted(by),'source_counts':{str(k):len(v) for k,v in by.items()}})
+        elif len(by)>1:
+            conf.append({'game_id':gid,'team_id':tid,'player_id':pid,'field':field,'values':sorted(by),'source_counts':{str(k):len(v) for k,v in by.items()}})
+
 cb=Counter(x['game_id'] for x in cons); xb=Counter(x['game_id'] for x in conf)
 report=[{'game_id':g,'blocker_keys_affected':len(g2b[g]),'consensus_facts':cb[g],'conflict_facts':xb[g],'blocker_keys':[{'season':a,'team_id':b,'player_id':c} for a,b,c in g2b[g]]} for g in ranked[:300]]
 report.sort(key=lambda x:(-x['blocker_keys_affected'],-x['consensus_facts'],x['conflict_facts'],x['game_id']))
@@ -103,5 +127,5 @@ pd.DataFrame(cons).to_csv(OUT/'PROMOTABLE_RETAINED_FACT_CONSENSUS.csv',index=Fal
 (OUT/'RETAINED_FACT_CONFLICTS.json').write_text(json.dumps(conf,indent=2)+'\n')
 (OUT/'HIGH_YIELD_GAME_CLOSURE_MAP.json').write_text(json.dumps(report,indent=2)+'\n')
 (OUT/'DOWNLOAD_FAILURES.json').write_text(json.dumps(failures,indent=2)+'\n')
-summary={'status':'PASS','linked_blockers':linked,'unlinked_blockers':1252-linked,'total_implicated_games':len(g2b),'target_games':len(target),'artifacts_attempted':len(ids),'artifacts_extracted':ok,'artifact_failures':len(failures),'files_scanned':scanned,'files_with_target_games':hits,'retained_rows_for_target_games':len(rows),'multi_source_consensus_facts':len(cons),'conflicting_facts':len(conf),'top_game_blocker_yield':max(map(len,g2b.values()))}
+summary={'status':'PASS','linked_blockers':linked,'unlinked_blockers':1252-linked,'total_implicated_games':len(g2b),'target_games':len(target),'artifacts_attempted':len(ids),'artifacts_extracted':ok,'artifact_failures':len(failures),'files_scanned':scanned,'files_with_target_games':hits,'retained_rows_for_target_games':len(rows),'distinct_candidate_fact_columns':len(candidate_counts),'multi_source_consensus_facts':len(cons),'conflicting_facts':len(conf),'games_with_consensus_facts':len(cb),'games_with_conflicts':len(xb),'top_game_blocker_yield':max(map(len,g2b.values()))}
 (OUT/'GAME_CLOSURE_SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n'); prog(phase='COMPLETE',**summary)
