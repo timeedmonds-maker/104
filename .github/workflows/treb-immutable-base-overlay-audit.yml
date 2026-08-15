@@ -1,0 +1,131 @@
+name: TREB immutable base overlay audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-immutable-base-overlay-audit.yml]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      BASE_ARTIFACT_ID: '9211673158'
+      OUT: team_trb_all_players/final_integrity_rebuild/immutable_base_overlay_audit
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - run: python -m pip install --disable-pip-version-check pandas pyarrow
+      - name: Download immutable base release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/base_outer /tmp/base_inner "$OUT"
+          mkdir -p /tmp/base_outer /tmp/base_inner "$OUT"
+          gh api -H 'Accept: application/vnd.github+json' \
+            repos/${{ github.repository }}/actions/artifacts/${BASE_ARTIFACT_ID}/zip > /tmp/base_outer.zip
+          unzip -q /tmp/base_outer.zip -d /tmp/base_outer
+          sha256sum /tmp/base_outer/TREB_final_database_2000-01_to_2025-26.zip > "$OUT/base_inner_zip.sha256"
+          unzip -q /tmp/base_outer/TREB_final_database_2000-01_to_2025-26.zip -d /tmp/base_inner
+      - name: Compare immutable base to authoritative V2 and validated overlay
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import gzip,json,math,os
+          from pathlib import Path
+          import pandas as pd
+          out=Path(os.environ['OUT']); base=Path('/tmp/base_inner')
+          keys=['season','team_id','player_id']
+          def norm(df):
+              d=df.copy()
+              d['season']=d.season.astype(str)
+              d['team_id']=pd.to_numeric(d.team_id,errors='raise').astype('int64')
+              d['player_id']=d.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+              return d
+          # Authoritative V2 universe.
+          vp=Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          vr=[json.loads(x) for x in gzip.open(vp,'rt') if x.strip()]
+          v2=pd.DataFrame(vr); v2=norm(v2)
+          v2keys=v2[keys].drop_duplicates()
+          assert len(v2)==14524 and len(v2keys)==14524
+          # Validated 23-key repair overlay.
+          op=Path('team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/targeted_23_metric_overlay.jsonl.gz')
+          ov=pd.read_json(op,lines=True,compression='gzip'); ov=norm(ov)
+          assert ov[keys].drop_duplicates().shape[0]==23
+          assert len(ov)==2047
+          assert ov.groupby(keys).size().eq(89).all()
+          gate=json.loads(Path('team_trb_all_players/final_integrity_rebuild/canonical_23_key_combined_overlay/COMBINED_23_CANONICAL_GATE.json').read_text())
+          assert gate['status']=='PASS_COMBINED_23_CANONICAL_GATE' and gate['canonical_union_after_repair']==14524
+          # Base release canonical long + TREB overlay.
+          allm=norm(pd.read_parquet(base/'all_metrics_player_team_season.parquet'))
+          trebp=base/'exact_rebound_overlay_player_team_season.parquet'
+          treb=norm(pd.read_parquet(trebp))
+          basekeys=allm[keys].drop_duplicates(); trebkeys=treb[keys].drop_duplicates()
+          v2set=set(map(tuple,v2keys.to_records(index=False)))
+          baseset=set(map(tuple,basekeys.to_records(index=False)))
+          trebset=set(map(tuple,trebkeys.to_records(index=False)))
+          ovset=set(map(tuple,ov[keys].drop_duplicates().to_records(index=False)))
+          missing_base=sorted(v2set-baseset); extra_base=sorted(baseset-v2set)
+          missing_treb=sorted(v2set-trebset); extra_treb=sorted(trebset-v2set)
+          overlay_missing_in_base=sorted(ovset-baseset)
+          overlay_present_in_base=sorted(ovset & baseset)
+          # Base release gates/QA are evidence, not inferred aliases.
+          qa=json.loads((base/'ALL_89_METRICS_QA.json').read_text())
+          exact_gate=json.loads((base/'EXACT_COUNT_RELEASE_GATE.json').read_text())
+          reader=json.loads((base/'reader_validation.json').read_text())
+          # Adams regression from base TREB career output if columns permit.
+          c=pd.read_parquet(base/'exact_rebound_overlay_career.parquet')
+          ad=c[c.player_id.astype(str).str.replace(r'\.0$','',regex=True).eq('203500')]
+          ad_minutes=None
+          for col in ['minutes_on','on_minutes','minutes']:
+              if col in ad.columns and len(ad):
+                  vals=pd.to_numeric(ad[col],errors='coerce').dropna()
+                  if len(vals): ad_minutes=float(vals.max()); break
+          report={
+            'status':'PASS_AUDIT',
+            'authoritative_v2_keys':len(v2set),
+            'base_all_metrics_keys':len(baseset),
+            'base_all_metrics_rows':len(allm),
+            'base_metric_count':int(allm.metric.astype(str).nunique()) if 'metric' in allm.columns else None,
+            'base_missing_v2_keys':len(missing_base),
+            'base_extra_nonv2_keys':len(extra_base),
+            'base_treb_overlay_keys':len(trebset),
+            'base_treb_missing_v2_keys':len(missing_treb),
+            'base_treb_extra_nonv2_keys':len(extra_treb),
+            'validated_overlay_keys':len(ovset),
+            'overlay_keys_missing_from_base_all_metrics':len(overlay_missing_in_base),
+            'overlay_keys_already_present_in_base_all_metrics':len(overlay_present_in_base),
+            'all89_qa':qa,
+            'exact_count_release_gate':exact_gate,
+            'reader_validation':reader,
+            'steven_adams_base_treb_minutes_on':ad_minutes,
+            'repair_decision': 'PATCH_ONLY_23' if set(missing_base)==ovset and not extra_base else ('BASE_ALREADY_CANONICAL' if not missing_base and not extra_base else 'REQUIRES_EXPLICIT_DIFF_REVIEW'),
+            'missing_base_keys':missing_base,
+            'extra_base_keys':extra_base,
+            'overlay_missing_in_base_keys':overlay_missing_in_base,
+          }
+          (out/'IMMUTABLE_BASE_OVERLAY_AUDIT.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          print(json.dumps({k:v for k,v in report.items() if k not in ['all89_qa','exact_count_release_gate','reader_validation','missing_base_keys','extra_base_keys','overlay_missing_in_base_keys']},indent=2))
+          assert len(v2set)==14524
+          assert len(ovset)==23
+          PY
+      - name: Persist audit checkpoint
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$OUT"
+          git commit -m 'TREB: persist immutable-base overlay audit' || true
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-immutable-base-overlay-audit-${{ github.run_id }}
+          path: ${{ env.OUT }}
+          retention-days: 90
+          if-no-files-found: error
