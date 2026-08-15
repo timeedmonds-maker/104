@@ -1,0 +1,142 @@
+name: TREB starter 8-blocker overlap audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-blocker-8-overlap-audit.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-blocker-8-overlap-audit
+  cancel-in-progress: false
+
+env:
+  CROSS_RUN: '31862649422'
+  CROSS_ARTIFACT: TREB-starter-crossplayer-55-analysis-31862649422
+  RESIDUAL_RUN: '31862335344'
+  RESIDUAL_ARTIFACT: TREB-starter-residual-64-diagnostic-31862335344
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download authoritative 55-key blocker analysis
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.CROSS_ARTIFACT }}
+          path: /tmp/cross
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.CROSS_RUN }}
+      - name: Download authoritative 64-key residual diagnostic
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RESIDUAL_ARTIFACT }}
+          path: /tmp/residual
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.RESIDUAL_RUN }}
+      - name: Audit exact overlap and blocker minute envelopes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          import pandas as pd
+
+          def sid(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+
+          b=pd.read_csv('/tmp/cross/CROSSPLAYER_55_BLOCKERS.csv',dtype={'player_id':str},low_memory=False)
+          b['player_id']=b.player_id.map(sid)
+          b['team_id']=pd.to_numeric(b.team_id,errors='raise').astype('int64')
+          truth=b[b.mandatory_best_state_blocker.astype(str).str.lower().isin(['true','1'])].copy()
+          assert len(truth)==8, f'expected 8 mandatory blockers, got {len(truth)}'
+          assert truth.drop_duplicates(['season','team_id','player_id']).shape[0]==8
+
+          r=pd.read_csv('/tmp/residual/STARTER_RESIDUAL_64_KEYS.csv',dtype={'player_id':str},low_memory=False)
+          r['player_id']=r.player_id.map(sid)
+          r['team_id']=pd.to_numeric(r.team_id,errors='raise').astype('int64')
+          mu=r[r.diagnostic_cause.astype(str).eq('PLAYER_MINUTES_UNREACHABLE_WITHIN_60S')].copy()
+          assert len(mu)==8, f'expected 8 minute-unreachable residual keys, got {len(mu)}'
+          mu_keys=set(zip(mu.season.astype(str),mu.team_id.astype(int),mu.player_id.astype(str)))
+
+          names={}
+          with gzip.open(Path('${{ env.TARGETS }}'),'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip(): continue
+                  x=json.loads(line)
+                  if not bool(x.get('full_core_reuse')): continue
+                  k=(str(x.get('season')),int(x.get('team_id')),sid(x.get('player_id')))
+                  names[k]=str(x.get('player') or x.get('player_name') or '')
+
+          rows=[]
+          for x in truth.itertuples(index=False):
+              k=(str(x.season),int(x.team_id),sid(x.player_id))
+              min_err=float(x.min_abs_seconds_error)
+              target=float(x.target_seconds)
+              lo=float(x.min_achievable_seconds); hi=float(x.max_achievable_seconds)
+              indiv=int(x.individually_compatible_states)
+              outside_env=max(0.0,lo-target,target-hi)
+              rows.append({
+                  'season':k[0],'team_id':k[1],'player_id':k[2],'player':names.get(k,''),
+                  'is_prior_minute_unreachable_key':k in mu_keys,
+                  'is_crossplayer_scoped_key':str(x.is_crossplayer_scoped_key).lower() in ('true','1'),
+                  'target_seconds':target,'min_achievable_seconds':lo,'max_achievable_seconds':hi,
+                  'min_abs_seconds_error':min_err,'individually_compatible_states':indiv,
+                  'outside_achievable_envelope_seconds':outside_env,
+                  'best_state_min_abs_seconds_error':float(x.best_state_min_abs_seconds_error),
+                  'best_state_max_abs_seconds_error':float(x.best_state_max_abs_seconds_error),
+                  'classification':('INDIVIDUALLY_UNREACHABLE_UNDER_CURRENT_STARTER_EVIDENCE' if indiv==0 else 'INDIVIDUALLY_REACHABLE_BUT_FULL_TEAM_CONFLICT')
+              })
+          out=pd.DataFrame(rows).sort_values(['season','team_id','player_id']).reset_index(drop=True)
+          overlap=int(out.is_prior_minute_unreachable_key.sum())
+          individually_unreachable=int((out.individually_compatible_states==0).sum())
+          individually_reachable=8-individually_unreachable
+          scoped=int(out.is_crossplayer_scoped_key.sum())
+          max_min_err=float(out.min_abs_seconds_error.max())
+          max_env=float(out.outside_achievable_envelope_seconds.max())
+          summary={
+              'status':'PASS','mandatory_blocker_players':8,'prior_minute_unreachable_keys':8,
+              'blocker_overlap_with_prior_minute_unreachable':overlap,
+              'blockers_outside_prior_minute_unreachable':8-overlap,
+              'blockers_that_are_crossplayer_scoped_keys':scoped,
+              'blockers_external_to_55_scoped_keys':8-scoped,
+              'blockers_individually_unreachable':individually_unreachable,
+              'blockers_individually_reachable_but_full_team_conflict':individually_reachable,
+              'max_blocker_min_abs_seconds_error':max_min_err,
+              'max_blocker_outside_achievable_envelope_seconds':max_env,
+              'minutes_tolerance_seconds':60.0,
+              'promoted_keys':0,'2015_16_keys_touched':0,'material_key_1_touched':0,
+              'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,
+              'partial_tenure_whole_team_subtraction_used':False,
+              'next_scope':'only_unique_root_cause_blocker_players'
+          }
+          out.to_csv('/tmp/out/STARTER_BLOCKER_8_PLAYERS.csv',index=False)
+          Path('/tmp/out/STARTER_BLOCKER_8_GATE.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary,indent=2))
+          print(out[['season','team_id','player_id','player','is_prior_minute_unreachable_key','is_crossplayer_scoped_key','min_abs_seconds_error','individually_compatible_states','classification']].to_string(index=False))
+          PY
+      - name: Upload retained 8-blocker overlap audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-blocker-8-overlap-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
