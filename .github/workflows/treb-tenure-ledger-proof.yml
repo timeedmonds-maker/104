@@ -1,0 +1,76 @@
+name: TREB exact tenure ledger proof
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-tenure-ledger-proof.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download blocker and consensus artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/blocker /tmp/consensus /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9250180970/zip > /tmp/b.zip
+          unzip -q /tmp/b.zip -d /tmp/blocker
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/c.zip
+          unzip -q /tmp/c.zip -d /tmp/consensus
+      - name: Prove exact game membership from retained roster ledger
+        run: |
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections
+          bp=next(pathlib.Path('/tmp/blocker').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          blockers=list(csv.DictReader(open(bp,newline='')))
+          bkeys={(str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0')) for r in blockers}
+          target={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt') as f:
+            for line in f:
+              if not line.strip(): continue
+              r=json.loads(line); k=(str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0'))
+              if k in bkeys: target[k]=r
+          ledger='team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz'
+          with gzip.open(ledger,'rt',newline='') as f:
+            rd=csv.DictReader(f); fields=rd.fieldnames or []; data=list(rd)
+          print('LEDGER_FIELDS',fields,'ROWS',len(data))
+          def field(opts):
+            low={x.lower():x for x in fields}
+            for o in opts:
+              if o.lower() in low:return low[o.lower()]
+            return None
+          fs=field(['season']); ft=field(['team_id']); fp=field(['player_id']); fg=field(['game_id']); fr=field(['on_roster','roster','in_roster','eligible','active'])
+          if not all([fs,ft,fp,fg]): raise SystemExit('ledger lacks required identity fields')
+          games=collections.defaultdict(set)
+          for r in data:
+            try:k=(str(r[fs]),str(int(float(r[ft]))),str(r[fp]).removesuffix('.0'))
+            except:continue
+            if k not in bkeys:continue
+            if fr and str(r.get(fr,'')).lower() in {'0','false','no','n'}:continue
+            games[k].add(str(r[fg]))
+          rows=[]; exact=0
+          for k in sorted(bkeys):
+            expected=int(target[k]['team_games_in_tenure']); n=len(games.get(k,set())); ok=(n==expected and n>0); exact+=ok
+            rows.append({'season':k[0],'team_id':k[1],'player_id':k[2],'expected_team_games_in_tenure':expected,'ledger_games':n,'identity_count_match':ok,'game_ids':'|'.join(sorted(games.get(k,set())))})
+          out=pathlib.Path('/tmp/out');
+          with open(out/'TREB_TENURE_LEDGER_PROOF.csv','w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=rows[0].keys());w.writeheader();w.writerows(rows)
+          qa={'status':'PASS','blockers':len(bkeys),'ledger_fields':fields,'keys_with_explicit_ledger_games':sum(bool(games.get(k)) for k in bkeys),'keys_identity_count_matches':exact,'keys_not_matching':len(bkeys)-exact,'next':'Intersect explicit ledger game IDs with exact consensus player-game and team-game bundles; promote only exact identity-complete keys.'}
+          (out/'TREB_TENURE_LEDGER_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-tenure-ledger-proof-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
