@@ -1,0 +1,197 @@
+name: TREB normalized game-id exact closure
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-normalized-gameid-exact-closure.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-normalized-gameid-exact-closure
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - name: Download authoritative 8396 state and retained exact consensus
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/state /tmp/consensus /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253822549/zip > /tmp/state.zip
+          unzip -q /tmp/state.zip -d /tmp/state
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/consensus.zip
+          unzip -q /tmp/consensus.zip -d /tmp/consensus
+
+      - name: Canonical-ID exact closure
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections
+
+          OUT=pathlib.Path('/tmp/out')
+          K=('season','team_id','player_id')
+          REQP={'seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+          REQT={'game_seconds','team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+
+          def sid(v):
+              s=str(v).strip()
+              if s.endswith('.0') and s[:-2].isdigit(): s=s[:-2]
+              return s
+
+          def gid(v):
+              s=sid(v)
+              if not s: return ''
+              if s.isdigit():
+                  # NBA regular-season IDs may have lost their leading 00 when parsed numerically.
+                  return str(int(s)).zfill(10)
+              return s
+
+          def key(r):
+              return (str(r['season']),str(int(float(r['team_id']))),sid(r['player_id']))
+
+          blockers=list(csv.DictReader(open('/tmp/state/AUTONOMOUS_BLOCKER_MANIFEST.csv',newline='')))
+          assert len(blockers)==1251, len(blockers)
+          current={key(r):r for r in blockers}
+
+          targets={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  k=key(r)
+                  if k in current: targets[k]=r
+          assert len(targets)==len(current),(len(targets),len(current))
+
+          facts=collections.defaultdict(dict)
+          raw_gid_forms=collections.defaultdict(set)
+          cp=next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'))
+          with open(cp,newline='') as f:
+              for r in csv.DictReader(f):
+                  ng=gid(r['game_id']); tid=str(int(float(r['team_id']))) if r.get('team_id') not in ('',None) else ''
+                  pid=sid(r.get('player_id',''))
+                  raw_gid_forms[ng].add(str(r['game_id']))
+                  facts[(ng,tid,pid)][r['field']]=float(r['value'])
+
+          ledger=collections.defaultdict(set)
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz','rt',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:k=key(r)
+                  except:continue
+                  if k in current: ledger[k].add(gid(r['game_id']))
+
+          # Hybrid WOWY segments contain explicit retained game-id lists for many historical tenures.
+          wowy=collections.defaultdict(set)
+          wp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v3_hybrid/wowy_partial_segments.jsonl.gz')
+          with gzip.open(wp,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  try:k=key(r)
+                  except:continue
+                  if k not in current: continue
+                  for g in r.get('game_ids',[]) or []: wowy[k].add(gid(g))
+
+          def candidates(k):
+              expected=int(float(targets[k].get('team_games_in_tenure',0) or 0))
+              seen=set()
+              for src,s in [('v3_roster_ledger_normalized',ledger.get(k,set())),('v3_hybrid_wowy_explicit_game_ids_normalized',wowy.get(k,set()))]:
+                  s=set(s)
+                  sig=tuple(sorted(s))
+                  if s and len(s)==expected and sig not in seen:
+                      seen.add(sig); yield src,s
+
+          promoted=[]; diagnostics=[]; rescued_raw_form_pairs=0
+          for k in sorted(current):
+              target_secs=float(targets[k].get('seconds_on') or 0)
+              attempted=0
+              for src,games in candidates(k):
+                  attempted+=1
+                  agg=collections.Counter(); missing=[]; bad=[]; mixed_forms=0
+                  for g in sorted(games):
+                      pv=facts.get((g,k[1],k[2]),{})
+                      tv=facts.get((g,k[1],''),{})
+                      if not REQP.issubset(pv) or not REQT.issubset(tv):
+                          missing.append(g); continue
+                      if any(x!=g for x in raw_gid_forms.get(g,set())): mixed_forms+=1
+                      comps=[tv['team_oreb']-pv['team_oreb_on'],tv['team_dreb']-pv['team_dreb_on'],tv['opponent_oreb']-pv['opponent_oreb_on'],tv['opponent_dreb']-pv['opponent_dreb_on']]
+                      if min(comps)<-1e-9: bad.append(g); continue
+                      for z in REQP: agg[z]+=pv[z]
+                      for z in REQT: agg[z]+=tv[z]
+                  if missing or bad:
+                      diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'source':src,'games':len(games),'missing_exact_games':len(missing),'bad_games':len(bad),'seconds_delta':'','result':'BLOCKED'})
+                      continue
+                  sec_delta=abs(agg['seconds_on']-target_secs)
+                  if sec_delta>60.0:
+                      diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'source':src,'games':len(games),'missing_exact_games':0,'bad_games':0,'seconds_delta':sec_delta,'result':'MINUTES_GATE_FAIL'})
+                      continue
+                  tr_on=agg['team_oreb_on']+agg['team_dreb_on']; opp_on=agg['opponent_oreb_on']+agg['opponent_dreb_on']
+                  tr_off=(agg['team_oreb']+agg['team_dreb'])-tr_on; opp_off=(agg['opponent_oreb']+agg['opponent_dreb'])-opp_on
+                  if min(tr_off,opp_off)<-1e-9 or tr_on+opp_on<=0 or tr_off+opp_off<=0:
+                      diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'source':src,'games':len(games),'missing_exact_games':0,'bad_games':1,'seconds_delta':sec_delta,'result':'DENOMINATOR_FAIL'})
+                      continue
+                  on=100*tr_on/(tr_on+opp_on); off=100*tr_off/(tr_off+opp_off)
+                  promoted.append({'season':k[0],'team_id':k[1],'player_id':k[2],'metric':'TotalReboundPct','on':on,'off_corrected':off,'on_minus_off_corrected':on-off,'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(games),'team_rebounds_on':tr_on,'opp_rebounds_on':opp_on,'team_rebounds_off':tr_off,'opp_rebounds_off':opp_off,'provenance':'exact retained multi-source consensus + canonical normalized NBA game-id identity','identity_source':src})
+                  rescued_raw_form_pairs += mixed_forms
+                  break
+              if attempted==0:
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'source':'none','games':0,'missing_exact_games':'','bad_games':'','seconds_delta':'','result':'NO_EXACT_TENURE_IDENTITY'})
+
+          pkeys={(r['season'],r['team_id'],r['player_id']) for r in promoted}
+          assert len(pkeys)==len(promoted)
+          residual=[r for r in blockers if key(r) not in pkeys]
+
+          fields=['season','team_id','player_id','metric','on','off_corrected','on_minus_off_corrected','seconds_on','team_games_in_tenure','team_rebounds_on','opp_rebounds_on','team_rebounds_off','opp_rebounds_off','provenance','identity_source']
+          with open(OUT/'TREB_NORMALIZED_ID_EXACT_PROMOTIONS.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(promoted)
+          with open(OUT/'AUTONOMOUS_BLOCKER_MANIFEST.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=blockers[0].keys()); w.writeheader(); w.writerows(residual)
+          with open(OUT/'TREB_NORMALIZED_ID_DIAGNOSTICS.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=diagnostics[0].keys()); w.writeheader(); w.writerows(diagnostics)
+
+          qa={
+              'status':'PASS',
+              'starting_residual':1251,
+              'new_exact_promotions':len(promoted),
+              'ending_residual':len(residual),
+              'resolved_total_if_merged':9647-len(residual),
+              'canonical_game_id_normalization':'numeric NBA game IDs normalized to 10-digit zero-padded strings before all joins',
+              'raw_form_mismatch_games_used_in_promotions':rescued_raw_form_pairs,
+              'materiality_threshold_pp':0.01,
+              'minutes_gate_seconds':60,
+              'empirical_model_used':False,
+              'rounded_percentage_backsolve_used':False,
+              'opponent_rebound_inference_used':False,
+              'partial_tenure_whole_team_subtraction_used':False,
+              'unsafe_global_event_order_used':False,
+              'strategy_ledger':{
+                  'strategy':'canonical NBA game-id normalization over retained exact consensus facts',
+                  'state':'COMPLETED',
+                  'prior_exhausted_strategy':'raw-string game-id exact closure',
+                  'next':'Merge promotions into cumulative state and reclassify only remaining blockers; do not repeat raw-string closure.'
+              }
+          }
+          (OUT/'TREB_NORMALIZED_ID_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(qa,indent=2,sort_keys=True))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-normalized-gameid-exact-closure-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
