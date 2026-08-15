@@ -1,0 +1,184 @@
+name: TREB 2025-26 residual staged diagnostic
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2025-residual-stage-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+
+concurrency:
+  group: treb-2025-residual-staged-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  staged-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage 1 - acquire authoritative inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work/residual work/reconcile progress
+          curl --fail --location --retry 4 \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            -o work/residual.zip \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9242191393/zip"
+          curl --fail --location --retry 4 \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            -o work/reconcile.zip \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9242514787/zip"
+          unzip -q work/residual.zip -d work/residual
+          unzip -q work/reconcile.zip -d work/reconcile
+          python - <<'PY'
+          import json, pathlib, time
+          p=pathlib.Path('progress/stage_1.json')
+          p.write_text(json.dumps({'stage':1,'name':'acquire_authoritative_inputs','status':'PASS','ts':time.time()},indent=2))
+          PY
+
+      - name: Upload Stage 1 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2025-residual-stage-1-${{ github.run_id }}
+          path: progress/stage_1.json
+          retention-days: 90
+
+      - name: Stage 2 - verify exact 409-key universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,time
+          p=next(pathlib.Path('work/residual').rglob('TREB_RESIDUAL_1751_MANIFEST.csv.gz'))
+          rows=[]
+          with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
+              rows=list(csv.DictReader(f))
+          def season(r): return str(r.get('season','')).replace('_','-')
+          modern=[r for r in rows if season(r)=='2025-26']
+          keys={(int(float(r['player_id'])),int(float(r['team_id']))) for r in modern}
+          if len(keys)!=409: raise SystemExit(f'EXPECTED_409_GOT_{len(keys)}')
+          pathlib.Path('work/keys_409.json').write_text(json.dumps(sorted([{'player_id':p,'team_id':t} for p,t in keys],key=lambda x:(x['team_id'],x['player_id'])),indent=2))
+          pathlib.Path('progress/stage_2.json').write_text(json.dumps({'stage':2,'name':'verify_409_key_universe','status':'PASS','canonical_keys':409,'ts':time.time()},indent=2))
+          print('STAGE2_GATE=PASS canonical_keys=409')
+          PY
+
+      - name: Upload Stage 2 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2025-residual-stage-2-${{ github.run_id }}
+          path: |
+            progress/stage_2.json
+            work/keys_409.json
+          retention-days: 90
+
+      - name: Stage 3 - classify absence from validated lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,time,collections
+          manifest=next(pathlib.Path('work/residual').rglob('TREB_RESIDUAL_1751_MANIFEST.csv.gz'))
+          with gzip.open(manifest,'rt',encoding='utf-8',newline='') as f: rows=list(csv.DictReader(f))
+          modern=[r for r in rows if str(r.get('season','')).replace('_','-')=='2025-26']
+          fields=set().union(*(r.keys() for r in modern))
+          interesting=[f for f in fields if any(x in f.lower() for x in ('class','reason','status','source','failure','window','start','end','partial','core'))]
+          counts={}
+          for f in sorted(interesting):
+              c=collections.Counter((r.get(f) or '').strip() for r in modern)
+              if len(c)<=20: counts[f]=dict(c)
+          report={'stage':3,'name':'classify_absence','status':'PASS','rows':len(modern),'candidate_fields':sorted(interesting),'value_counts':counts,'ts':time.time()}
+          pathlib.Path('work/stage_3_classification.json').write_text(json.dumps(report,indent=2,sort_keys=True))
+          pathlib.Path('progress/stage_3.json').write_text(json.dumps({'stage':3,'name':'classify_absence','status':'PASS','rows':len(modern),'ts':time.time()},indent=2))
+          print('STAGE3_GATE=PASS rows=',len(modern))
+          PY
+
+      - name: Upload Stage 3 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2025-residual-stage-3-${{ github.run_id }}
+          path: |
+            progress/stage_3.json
+            work/stage_3_classification.json
+          retention-days: 90
+
+      - name: Stage 4 - map to smallest deterministic recovery buckets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,time,collections
+          manifest=next(pathlib.Path('work/residual').rglob('TREB_RESIDUAL_1751_MANIFEST.csv.gz'))
+          with gzip.open(manifest,'rt',encoding='utf-8',newline='') as f: rows=list(csv.DictReader(f))
+          modern=[r for r in rows if str(r.get('season','')).replace('_','-')=='2025-26']
+          def first(r,names):
+              for n in names:
+                  if r.get(n) not in (None,''): return str(r[n]).strip()
+              return ''
+          buckets=collections.Counter()
+          out=[]
+          for r in modern:
+              failure=first(r,['failure_class','class','reason','status']) or 'UNCLASSIFIED'
+              source=first(r,['source','source_class','resolution'])
+              bucket=failure if failure!='UNCLASSIFIED' else ('SOURCE_DISCOVERY' if 'source' in source.lower() else 'UNCLASSIFIED')
+              buckets[bucket]+=1
+              out.append({'season':'2025-26','player_id':r.get('player_id'),'team_id':r.get('team_id'),'bucket':bucket})
+          with open('work/recovery_buckets.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['season','player_id','team_id','bucket']); w.writeheader(); w.writerows(out)
+          report={'stage':4,'name':'recovery_bucket_map','status':'PASS','total':len(out),'buckets':dict(buckets),'ts':time.time()}
+          pathlib.Path('work/recovery_bucket_summary.json').write_text(json.dumps(report,indent=2,sort_keys=True))
+          pathlib.Path('progress/stage_4.json').write_text(json.dumps(report,indent=2,sort_keys=True))
+          print('STAGE4_GATE=PASS total=',len(out),'buckets=',dict(buckets))
+          PY
+
+      - name: Upload Stage 4 checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2025-residual-stage-4-${{ github.run_id }}
+          path: |
+            progress/stage_4.json
+            work/recovery_buckets.csv
+            work/recovery_bucket_summary.json
+          retention-days: 90
+
+      - name: Stage 5 - final diagnostic package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,pathlib,time,hashlib
+          stages=[]
+          for p in sorted(pathlib.Path('progress').glob('stage_*.json')):
+              stages.append(json.loads(p.read_text()))
+          final={'gate':'PASS','stages':stages,'authoritative_2025_residual_keys':409,'ts':time.time()}
+          data=json.dumps(final,indent=2,sort_keys=True).encode()
+          pathlib.Path('work/final_staged_diagnostic.json').write_bytes(data)
+          pathlib.Path('work/final_staged_diagnostic.sha256').write_text(hashlib.sha256(data).hexdigest()+'  final_staged_diagnostic.json\n')
+          print('STAGE5_GATE=PASS')
+          PY
+
+      - name: Upload final staged diagnostic
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-2025-residual-staged-diagnostic-${{ github.run_id }}
+          path: |
+            progress/
+            work/stage_3_classification.json
+            work/recovery_buckets.csv
+            work/recovery_bucket_summary.json
+            work/final_staged_diagnostic.json
+            work/final_staged_diagnostic.sha256
+          retention-days: 90
+          if-no-files-found: warn
