@@ -1,0 +1,60 @@
+name: TREB autonomous completion loop
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-autonomous-completion-loop.yml
+      - team_trb_all_players/treb_autonomous_loop.py
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: treb-autonomous-completion-loop
+  cancel-in-progress: false
+
+jobs:
+  supervise:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Run autonomous decision cycle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: timeedmonds-maker/104
+          BRANCH: agent/treb-final-exact-assembly
+        run: python team_trb_all_players/treb_autonomous_loop.py
+      - name: Persist supervisor state
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/autonomous_supervisor_state.json team_trb_all_players/autonomous_strategy_ledger.json || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Persist TREB autonomous supervisor checkpoint"
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-autonomous-loop-${{ github.run_id }}
+          path: |
+            team_trb_all_players/autonomous_supervisor_state.json
+            team_trb_all_players/autonomous_strategy_ledger.json
+            /tmp/treb-loop-report.json
+          retention-days: 90
+          compression-level: 1
