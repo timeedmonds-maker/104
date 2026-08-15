@@ -32,7 +32,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/game_evidence/artifacts /tmp/game_evidence/out
           python - <<'PY'
-          import json, os, io, zipfile, urllib.request, re
+          import json, os, io, zipfile, urllib.request, urllib.error, re
           from pathlib import Path
           import pandas as pd
 
@@ -45,18 +45,38 @@ jobs:
           def api(path):
               req=urllib.request.Request(base+path,headers=hdr)
               with urllib.request.urlopen(req,timeout=60) as r:return json.load(r)
-          def getbytes(url):
-              req=urllib.request.Request(url,headers=hdr)
-              with urllib.request.urlopen(req,timeout=180) as r:return r.read()
+
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return None
+
+          no_redirect=urllib.request.build_opener(NoRedirect)
+
+          def get_artifact_bytes(aid):
+              api_url=base+f'/actions/artifacts/{aid}/zip'
+              req=urllib.request.Request(api_url,headers=hdr)
+              try:
+                  with no_redirect.open(req,timeout=60) as r:
+                      return r.read()
+              except urllib.error.HTTPError as e:
+                  if e.code not in (301,302,303,307,308):
+                      raise
+                  signed=e.headers.get('Location')
+                  if not signed:
+                      raise RuntimeError(f'Artifact {aid} redirect missing Location header')
+                  # Signed blob URL authenticates via its query string. Do NOT forward GitHub auth.
+                  req2=urllib.request.Request(signed,headers={'User-Agent':'treb-game-evidence'})
+                  with urllib.request.urlopen(req2,timeout=180) as r:
+                      return r.read()
+
           def extract_artifact(aid,name=''):
-              b=getbytes(base+f'/actions/artifacts/{aid}/zip')
+              b=get_artifact_bytes(aid)
               z=zipfile.ZipFile(io.BytesIO(b))
               d=Path('/tmp/game_evidence/artifacts')/str(aid)
               d.mkdir(parents=True,exist_ok=True)
               z.extractall(d)
               return {'id':aid,'name':name,'dir':str(d),'files':z.namelist()}
 
-          # Seed from the exact retained V3 blocker artifact. No heuristic discovery.
           seed=extract_artifact(AUTHORITATIVE_BLOCKER_ARTIFACT,'TREB-autonomous-residual-v3-blockers-31895030855')
           blocker_path=Path(seed['dir'])/'AUTONOMOUS_BLOCKER_MANIFEST.csv'
           if not blocker_path.exists():
@@ -71,7 +91,6 @@ jobs:
           if len(block)!=1252:
               raise SystemExit(f'Fail closed: authoritative blocker key count {len(block)} != 1252')
 
-          # Download broad retained evidence universe, always preserving the authoritative seed.
           arts=[]
           for page in range(1,31):
               xs=api(f'/actions/artifacts?per_page=100&page={page}').get('artifacts',[])
@@ -84,17 +103,11 @@ jobs:
               try: extracted.append(extract_artifact(a['id'],a.get('name','')))
               except Exception as e: extracted.append({'id':a['id'],'name':a.get('name',''),'error':repr(e)})
 
-          # Inspect retained tabular facts and map exact game IDs to blocker keys whenever schemas permit.
           fact_files=[]
           file_frames={}
           game_ids=set()
           key_games={}
           blocker_keys=set(map(tuple,block[['season','team_id','player_id']].astype(str).itertuples(index=False,name=None)))
-
-          def norm_season(v):
-              s=str(v).strip()
-              if re.fullmatch(r'\d{4}',s): return s
-              return s
 
           def inspect_df(fp,df):
               cmap={str(c).strip().lower():c for c in df.columns}
@@ -106,12 +119,9 @@ jobs:
               rec={'file':str(fp),'rows':int(len(df)),'game_id_col':gid_col,'game_count':len(vals),'columns':list(df.columns)[:120]}
               fact_files.append(rec)
               file_frames[str(fp)]=(df,cmap,gid_col)
-
-              # Strongest join: season+team+player+game all explicit.
               if {'season','team_id','player_id'}.issubset(cmap):
                   sub=df[[cmap['season'],cmap['team_id'],cmap['player_id'],gid_col]].copy()
                   sub.columns=['season','team_id','player_id','game_id']
-                  sub=sub.dropna(subset=['game_id'])
                   sub['game_id']=pd.to_numeric(sub['game_id'],errors='coerce')
                   sub=sub.dropna(subset=['game_id'])
                   for r in sub.itertuples(index=False):
@@ -132,7 +142,6 @@ jobs:
                           if rows:inspect_df(fp,pd.DataFrame(rows))
                   except Exception: pass
 
-          # Per-game evidence bundles across all retained files.
           bundles=[]
           for gid in sorted(game_ids):
               files=[]
