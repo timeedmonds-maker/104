@@ -1,0 +1,69 @@
+name: Native89 raw component audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-raw-component-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Inspect candidate raw component sources
+        run: |
+          python - <<'PY'
+          import gzip,json,csv,pathlib,os,itertools
+          candidates=[
+            'team_trb_all_players/impact_database/roster_tenure_v3_hybrid/wowy_partial_segments.jsonl.gz',
+            'team_trb_all_players/impact_database/roster_tenure_v2/wowy_partial_segments.jsonl.gz',
+            'team_trb_all_players/impact_database/roster_tenure_v3/core_boxscore_reconciliation.csv.gz',
+            'team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/recovered_short_tenure_16/recovered_short_tenure_16.jsonl.gz',
+            'team_trb_all_players/final_integrity_rebuild/diagnostics/stage2_missing_23/recovered_short_tenure_16/recovered_short_tenure_16_metrics.csv',
+          ]
+          out={}
+          for p in candidates:
+            info={'exists':os.path.exists(p)}
+            if not info['exists']:
+              out[p]=info; continue
+            try:
+              if p.endswith('.jsonl.gz'):
+                rows=[]; fields=set()
+                with gzip.open(p,'rt',encoding='utf-8') as f:
+                  for line in f:
+                    if not line.strip():continue
+                    r=json.loads(line); fields.update(r.keys()); rows.append(r)
+                    if len(rows)>=5:break
+                info['fields']=sorted(fields);info['samples']=rows
+              elif p.endswith('.csv.gz'):
+                with gzip.open(p,'rt',newline='',encoding='utf-8') as f:
+                  rd=csv.DictReader(f);info['fields']=rd.fieldnames;info['samples']=list(itertools.islice(rd,5))
+              elif p.endswith('.csv'):
+                with open(p,'r',newline='',encoding='utf-8') as f:
+                  rd=csv.DictReader(f);info['fields']=rd.fieldnames;info['samples']=list(itertools.islice(rd,5))
+            except Exception as e:info['error']=repr(e)
+            out[p]=info
+          # Also inventory all modest structured files whose names suggest raw/poss/box/onoff/wowy/component/accumulator.
+          found=[]
+          toks=('wowy','poss','box','raw','component','accum','on_off','onoff','lineup','totals')
+          for p in pathlib.Path('team_trb_all_players').rglob('*'):
+            if not p.is_file():continue
+            s=str(p).lower()
+            if not any(t in s for t in toks):continue
+            if p.stat().st_size>120_000_000:continue
+            if not any(s.endswith(x) for x in ('.csv','.csv.gz','.jsonl','.jsonl.gz','.json')):continue
+            found.append({'path':str(p),'size':p.stat().st_size})
+          out['_candidate_inventory']=sorted(found,key=lambda x:x['path'])[:1000]
+          pathlib.Path('raw_component_audit.json').write_text(json.dumps(out,indent=2,default=str)+'\n')
+          print(json.dumps(out,indent=2,default=str))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-raw-component-audit-${{ github.run_id }}
+          path: raw_component_audit.json
+          retention-days: 30
+          if-no-files-found: error
