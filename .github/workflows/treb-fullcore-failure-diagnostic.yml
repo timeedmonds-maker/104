@@ -1,0 +1,228 @@
+name: TREB full-core exact failed-game diagnostic
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - team_trb_all_players/fullcore_failure_diagnostic_trigger.txt
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-fullcore-failure-diagnostic
+  cancel-in-progress: false
+
+env:
+  ORIGINAL_RUN_ID: '31854913173'
+  RESUME_RUN_ID: '31858884423'
+
+jobs:
+  diagnose:
+    name: classify exact full-core failed games
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Download original fanout artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-fullcore-exact-*-${{ env.ORIGINAL_RUN_ID }}
+          path: /tmp/original
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.ORIGINAL_RUN_ID }}
+
+      - name: Download checkpoint-resume artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-fullcore-resume-*-${{ env.RESUME_RUN_ID }}
+          path: /tmp/resume
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.RESUME_RUN_ID }}
+
+      - name: Consolidate and classify all historical failure evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/diagnostic
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          import pandas as pd
+
+          RESUMED_YEARS={2000,2004,2005,2007,2008,2011,2012,2018,2020,2022,2024}
+          EXPECTED_HISTORICAL_ROWS=9647-409
+          EXPECTED_PASS_ROWS=6466
+          EXPECTED_FAILURE_ROWS=EXPECTED_HISTORICAL_ROWS-EXPECTED_PASS_ROWS
+
+          def year_from_result(path: Path):
+              m=re.search(r'fresh_fullcore_(\d{4})\.csv$',path.name)
+              return int(m.group(1)) if m else None
+
+          def collect_result_files(root: Path):
+              out={}
+              for p in root.rglob('fresh_fullcore_*.csv'):
+                  y=year_from_result(p)
+                  if y is not None:
+                      if y in out:
+                          raise RuntimeError(f'duplicate result file for year {y}: {out[y]} and {p}')
+                      out[y]=p
+              return out
+
+          original=collect_result_files(Path('/tmp/original'))
+          resumed=collect_result_files(Path('/tmp/resume'))
+
+          selected={}
+          source_kind={}
+          for y in range(2000,2025):
+              if y in RESUMED_YEARS:
+                  if y not in resumed:
+                      raise RuntimeError(f'missing resumed final result for {y}')
+                  selected[y]=resumed[y]; source_kind[y]='resume'
+              else:
+                  if y not in original:
+                      raise RuntimeError(f'missing original final result for {y}')
+                  selected[y]=original[y]; source_kind[y]='original'
+
+          all_rows=[]
+          game_failures=[]
+          season_summary=[]
+          for y,p in sorted(selected.items()):
+              d=pd.read_csv(p,low_memory=False)
+              season=f'{y}-{(y+1)%100:02d}'
+              if set(d['season'].astype(str))!={season}:
+                  raise RuntimeError(f'season mismatch in {p}')
+              all_rows.append(d)
+
+              gf=p.parent/'game_failures.json'
+              if not gf.is_file():
+                  raise RuntimeError(f'missing final game_failures.json beside {p}')
+              failures=json.loads(gf.read_text())
+              if not isinstance(failures,list):
+                  raise RuntimeError(f'bad failure payload {gf}')
+              for r in failures:
+                  x=dict(r)
+                  x['season']=season
+                  x['year']=y
+                  x['selected_source']=source_kind[y]
+                  teams=x.get('teams',[])
+                  x['teams_json']=json.dumps(teams,separators=(',',':'))
+                  x['team_count']=len(teams) if isinstance(teams,list) else 0
+                  err=str(x.get('error',''))
+                  x['exception_type']=err.split(':',1)[0] if ':' in err else ''
+                  sig=re.sub(r'\b\d+(?:\.\d+)?\b','<N>',err)
+                  sig=re.sub(r'\s+',' ',sig).strip()
+                  x['error_signature']=sig
+                  game_failures.append(x)
+
+              vc=d['status'].astype(str).value_counts().to_dict()
+              season_summary.append({
+                  'season':season,'year':y,'selected_source':source_kind[y],
+                  'rows':len(d),'pass_rows':int(vc.get('PASS',0)),
+                  'team_game_gap_rows':int(vc.get('TEAM_GAME_GAP',0)),
+                  'invalid_exact_rows':int(vc.get('INVALID_EXACT_ROW',0)),
+                  'other_failure_rows':int(len(d)-vc.get('PASS',0)-vc.get('TEAM_GAME_GAP',0)-vc.get('INVALID_EXACT_ROW',0)),
+                  'game_failure_records':len(failures),
+              })
+
+          rows=pd.concat(all_rows,ignore_index=True,sort=False)
+          rows['status']=rows.status.astype(str)
+          if len(rows)!=EXPECTED_HISTORICAL_ROWS:
+              raise RuntimeError(f'historical row count {len(rows)} != {EXPECTED_HISTORICAL_ROWS}')
+          pass_rows=int(rows.status.eq('PASS').sum())
+          if pass_rows!=EXPECTED_PASS_ROWS:
+              raise RuntimeError(f'historical PASS count {pass_rows} != {EXPECTED_PASS_ROWS}')
+          failures_rows=rows[~rows.status.eq('PASS')].copy()
+          if len(failures_rows)!=EXPECTED_FAILURE_ROWS:
+              raise RuntimeError(f'historical failure row count {len(failures_rows)} != {EXPECTED_FAILURE_ROWS}')
+
+          gap=int(rows.status.eq('TEAM_GAME_GAP').sum())
+          invalid=int(rows.status.eq('INVALID_EXACT_ROW').sum())
+          other=int(len(failures_rows)-gap-invalid)
+          if gap!=2700 or invalid!=72 or other!=0:
+              raise RuntimeError(f'failure partition changed gap={gap} invalid={invalid} other={other}')
+
+          gf=pd.DataFrame(game_failures)
+          if len(gf):
+              wanted=['season','year','selected_source','game_id','status','teams_json','team_count','exception_type','error_signature','error']
+              for c in wanted:
+                  if c not in gf.columns: gf[c]=''
+              gf=gf[wanted].sort_values(['season','game_id','status'],kind='stable')
+          else:
+              gf=pd.DataFrame(columns=['season','year','selected_source','game_id','status','teams_json','team_count','exception_type','error_signature','error'])
+
+          class_summary=(gf.groupby(['status','exception_type','error_signature'],dropna=False)
+                           .size().reset_index(name='game_failure_records')
+                           .sort_values(['game_failure_records','status'],ascending=[False,True],kind='stable'))
+          by_season=(gf.groupby(['season','selected_source','status'],dropna=False)
+                       .size().reset_index(name='game_failure_records')
+                       .sort_values(['season','status'],kind='stable'))
+
+          invalid_rows=rows[rows.status.eq('INVALID_EXACT_ROW')].copy()
+          keep=[c for c in ['season','team_id','player_id','player','target_minutes_on','direct_minutes_on','error'] if c in invalid_rows.columns]
+          invalid_rows=invalid_rows[keep].sort_values(['season','team_id','player_id'],kind='stable')
+
+          pd.DataFrame(season_summary).to_csv('/tmp/diagnostic/SEASON_FAILURE_SUMMARY.csv',index=False)
+          gf.to_csv('/tmp/diagnostic/ALL_GAME_FAILURES.csv',index=False)
+          class_summary.to_csv('/tmp/diagnostic/GAME_FAILURE_CLASS_SUMMARY.csv',index=False)
+          by_season.to_csv('/tmp/diagnostic/GAME_FAILURE_BY_SEASON.csv',index=False)
+          invalid_rows.to_csv('/tmp/diagnostic/INVALID_EXACT_ROWS.csv',index=False)
+          failures_rows.to_csv('/tmp/diagnostic/ALL_HISTORICAL_FAILURE_ROWS.csv.gz',index=False,compression='gzip')
+
+          summary={
+              'status':'PASS',
+              'scope':'full-core historical exact failure diagnostic through 2024-25; 2025-26 source absence separate',
+              'historical_target_rows':EXPECTED_HISTORICAL_ROWS,
+              'historical_pass_rows':pass_rows,
+              'historical_failure_rows':len(failures_rows),
+              'team_game_gap_rows':gap,
+              'invalid_exact_rows':invalid,
+              'game_failure_records':int(len(gf)),
+              'source_set_gap_games':int(gf.status.astype(str).eq('SOURCE_SET_GAP').sum()) if len(gf) else 0,
+              'reconstruction_fail_games':int(gf.status.astype(str).eq('RECONSTRUCTION_FAIL').sum()) if len(gf) else 0,
+              'unique_failed_game_ids':int(gf.game_id.nunique()) if len(gf) else 0,
+              'seasons_with_game_failures':sorted(gf.loc[:,'season'].astype(str).unique().tolist()) if len(gf) else [],
+              'resumed_years_used':sorted(RESUMED_YEARS),
+              'original_run_id':31854913173,
+              'resume_run_id':31858884423,
+              'safeguards':{
+                  'rounded_percentage_backsolve_used':False,
+                  'opponent_rebound_inference_used':False,
+                  'partial_tenure_whole_team_subtraction_used':False,
+              },
+          }
+          Path('/tmp/diagnostic/DIAGNOSTIC.json').write_text(json.dumps(summary,indent=2)+'\n')
+          Path('/tmp/diagnostic/README.txt').write_text(
+              'Exact failure evidence merged from the original full-core fanout and checkpoint-resume outputs.\n'
+              'For each 2000-01 through 2024-25 season, the resumed artifact supersedes the original artifact only where a resumed final result exists.\n'
+              '2025-26 remains a separate missing-source problem and is not classified as a game reconstruction failure here.\n'
+          )
+          print(json.dumps(summary,indent=2))
+          print('\nTOP FAILURE CLASSES')
+          print(class_summary.head(30).to_string(index=False))
+          PY
+
+      - name: Upload exact failure diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-fullcore-failure-diagnostic-${{ github.run_id }}
+          path: /tmp/diagnostic
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
