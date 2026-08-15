@@ -1,0 +1,122 @@
+name: TREB 2015 residual v3 extended
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-2015-residual-v3-extended.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONPATH: /home/runner/work/104/104/team_trb_all_players
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  BLOCKER_RUN: "31877755142"
+  PLAN_RUN: "31875740731"
+  HIST_SOURCE_RUN: "31871719056"
+  EXACT_SEASON_RUN: "31854913173"
+
+jobs:
+  recover2015:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-materiality-consolidated-${{ env.BLOCKER_RUN }}
+          path: /tmp/current
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.BLOCKER_RUN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-materiality-autopilot-plan-${{ env.PLAN_RUN }}
+          path: /tmp/plan
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.PLAN_RUN }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-auto-v3-historical-2015-*-${{ env.HIST_SOURCE_RUN }}
+          path: /tmp/historical
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.HIST_SOURCE_RUN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-exact-2015-${{ env.EXACT_SEASON_RUN }}
+          path: /tmp/exactseason
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.EXACT_SEASON_RUN }}
+      - name: Reassert V2 and materialize only 2015-16 unresolved targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out /tmp/src /tmp/prior
+          cp -a /tmp/exactseason /tmp/prior/exactseason
+          cp -a /tmp/historical /tmp/prior/historical
+          python - <<'PY'
+          import gzip,json,pandas as pd
+          rows=[json.loads(x) for x in gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt') if x.strip()]
+          assert len(rows)==14524
+          assert sum(bool(r.get('full_core_reuse')) for r in rows)==9647
+          assert sum(not bool(r.get('full_core_reuse')) for r in rows)==4877
+          b=pd.read_csv('/tmp/current/AUTONOMOUS_BLOCKER_MANIFEST.csv',dtype={'player_id':str})
+          b=b[b.season.eq('2015-16')]
+          ks={(r.season,int(r.team_id),str(r.player_id).removesuffix('.0')) for r in b.itertuples()}
+          selected=[]
+          for r in rows:
+              k=(str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0'))
+              if k in ks:
+                  assert bool(r.get('full_core_reuse')); selected.append(r)
+          assert len(selected)==len(ks)>0
+          with gzip.open('/tmp/targets.jsonl.gz','wt') as f:
+              for r in selected: f.write(json.dumps(r,separators=(',',':'))+'\n')
+          print('V2_GATE=PASS 14524/9647/4877; TARGETS=',len(selected))
+          PY
+      - name: Download retained 2015 source trio
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --connect-timeout 15 --max-time 60 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' > /tmp/urls.tsv
+          vals={}
+          for line in open('/tmp/list_data.txt'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_2015'; assert k in vals,k; print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_2015.tar.xz"
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 300 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+      - name: Extended exact legal-scenario recovery only for 2015-16
+        timeout-minutes: 70
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/residual_materiality_autopilot_v3.py --year 2015 --targets /tmp/targets.jsonl.gz --historical-dir /tmp/prior --report /tmp/plan/GAME_GAP_FORENSIC_REPORT.json --candidates /tmp/plan/GAME_GAP_CANDIDATE_REPAIRS.json --nba /tmp/src/nbastats_2015.csv --v3 /tmp/src/nbastatsv3_2015.csv --pbp /tmp/src/pbpstats_2015.csv --out /tmp/out | tee /tmp/out/SUPERVISOR_V3_EXTENDED.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-2015-residual-v3-extended-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
