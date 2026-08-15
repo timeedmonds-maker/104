@@ -1,0 +1,176 @@
+name: TREB full-core ambiguous-starter materiality audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - team_trb_all_players/fullcore_starter_materiality_trigger.txt
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-fullcore-starter-materiality
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  DIAG_RUN_ID: '31859842642'
+  DIAG_ARTIFACT: TREB-fullcore-failure-diagnostic-31859842642
+  THRESHOLD_PP: '0.01'
+
+jobs:
+  audit:
+    name: starter materiality ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 17
+      matrix:
+        include:
+          - {year: 2000, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2000-31858884423'}
+          - {year: 2001, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2001-31854913173'}
+          - {year: 2002, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2002-31854913173'}
+          - {year: 2003, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2003-31854913173'}
+          - {year: 2004, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2004-31858884423'}
+          - {year: 2005, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2005-31858884423'}
+          - {year: 2009, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2009-31854913173'}
+          - {year: 2010, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2010-31854913173'}
+          - {year: 2013, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2013-31854913173'}
+          - {year: 2015, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2015-31854913173'}
+          - {year: 2016, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2016-31854913173'}
+          - {year: 2018, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2018-31858884423'}
+          - {year: 2019, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2019-31854913173'}
+          - {year: 2020, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2020-31858884423'}
+          - {year: 2022, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2022-31858884423'}
+          - {year: 2023, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2023-31854913173'}
+          - {year: 2024, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2024-31858884423'}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact audit dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download merged failed-game diagnostic
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.DIAG_ARTIFACT }}
+          path: /tmp/diag
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.DIAG_RUN_ID }}
+      - name: Download retained exact season baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.baseline_artifact }}
+          path: /tmp/baseline
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ matrix.baseline_run }}
+      - name: Download retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'; mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals: raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${prefix}_${y}.csv"; done
+      - name: Enumerate coherent starter variants and measure 0.01 pp materiality
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          python -u team_trb_all_players/audit_ambiguous_starter_materiality.py \
+            --year "$y" --targets "$TARGETS" --diagnostic-dir /tmp/diag --baseline-dir /tmp/baseline \
+            --nba "/tmp/src/nbastats_${y}.csv" --v3 "/tmp/src/nbastatsv3_${y}.csv" --pbp "/tmp/src/pbpstats_${y}.csv" \
+            --threshold-pp "$THRESHOLD_PP" --output-dir /tmp/out
+      - name: Upload season materiality audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-materiality-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+  consolidate:
+    name: consolidate 0.01 pp starter materiality gate
+    needs: audit
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download every season materiality result
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: TREB-starter-materiality-*-${{ github.run_id }}
+          path: /tmp/seasons
+          merge-multiple: false
+      - name: Build durable aggregate materiality gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path('/tmp/seasons'); key_parts=[]; team_parts=[]; game_parts=[]; gates=[]
+          for p in sorted(root.rglob('STARTER_MATERIALITY_KEYS.csv')): key_parts.append(pd.read_csv(p,low_memory=False))
+          for p in sorted(root.rglob('STARTER_MATERIALITY_TEAM_SEASONS.csv')): team_parts.append(pd.read_csv(p,low_memory=False))
+          for p in sorted(root.rglob('AMBIGUOUS_GAME_VARIANT_SUMMARY.csv')): game_parts.append(pd.read_csv(p,low_memory=False))
+          for p in sorted(root.rglob('SEASON_STARTER_MATERIALITY_GATE.json')): gates.append(json.loads(p.read_text()))
+          keys=pd.concat(key_parts,ignore_index=True,sort=False) if key_parts else pd.DataFrame(); teams=pd.concat(team_parts,ignore_index=True,sort=False) if team_parts else pd.DataFrame(); games=pd.concat(game_parts,ignore_index=True,sort=False) if game_parts else pd.DataFrame()
+          if len(keys): keys.to_csv('/tmp/final/STARTER_MATERIALITY_KEYS.csv',index=False)
+          if len(teams): teams.to_csv('/tmp/final/STARTER_MATERIALITY_TEAM_SEASONS.csv',index=False)
+          if len(games): games.to_csv('/tmp/final/AMBIGUOUS_GAME_VARIANT_SUMMARY.csv',index=False)
+          expected_seasons=17; expected_games=86; expected_pure_teams=119; expected_pure_keys=1485
+          accepted=int(keys.status.astype(str).eq('ACCEPT_IMMATERIAL').sum()) if len(keys) else 0; material=int(keys.status.astype(str).eq('MATERIAL_REPAIR_REQUIRED').sum()) if len(keys) else 0; unresolved=int(keys.status.astype(str).eq('AUDIT_UNRESOLVED').sum()) if len(keys) else 0
+          audited=int(len(keys)); unique_keys=int(keys.drop_duplicates(['season','team_id','player_id']).shape[0]) if len(keys) else 0; pure_teams=int(sum(int(g.get('pure_ambiguity_team_seasons',0)) for g in gates)); max_range=float(pd.to_numeric(keys.get('max_range_pp'),errors='coerce').max()) if len(keys) and 'max_range_pp' in keys else None
+          complete=(len(gates)==expected_seasons and int(sum(int(g.get('ambiguous_games',0)) for g in gates))==expected_games and pure_teams==expected_pure_teams and audited==unique_keys==expected_pure_keys and accepted+material+unresolved==expected_pure_keys)
+          summary={'status':'PASS' if complete else 'INCOMPLETE','threshold_pp':0.01,'season_gates':len(gates),'expected_season_gates':expected_seasons,'ambiguous_games':int(sum(int(g.get('ambiguous_games',0)) for g in gates)),'expected_ambiguous_games':expected_games,'pure_ambiguity_team_seasons':pure_teams,'expected_pure_ambiguity_team_seasons':expected_pure_teams,'audited_keys':audited,'unique_audited_keys':unique_keys,'expected_pure_ambiguity_keys':expected_pure_keys,'accepted_immaterial_keys':accepted,'material_repair_required_keys':material,'audit_unresolved_keys':unresolved,'accepted_immaterial_team_seasons':int(teams.status.astype(str).eq('ACCEPT_IMMATERIAL').sum()) if len(teams) else 0,'material_team_seasons':int(teams.status.astype(str).eq('MATERIAL_REPAIR_REQUIRED').sum()) if len(teams) else 0,'unresolved_team_seasons':int(teams.status.astype(str).eq('AUDIT_UNRESOLVED').sum()) if len(teams) else 0,'max_observed_range_pp':max_range,'minutes_gate_tolerance_seconds':60.0,'acceptance_rule':'coherent starter variants satisfying established target-minute gate; max TREB ON/OFF/SWING range <= 0.01 percentage points','rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'next_scope':'material_repair_required_and_audit_unresolved_only'}
+          Path('/tmp/final/STARTER_MATERIALITY_GATE.json').write_text(json.dumps(summary,indent=2)+'\n')
+          Path('/tmp/final/README.txt').write_text("Materiality audit for the 86 non-unique starter games only. Established threshold: 0.01 percentage points.\nAcceptance requires coherent exact lineup variants satisfying the existing <=60-second target-minute gate and <=0.01 pp range in TREB ON, OFF, and SWING.\nNo rounded backsolve, opponent inference, or partial-tenure whole-team subtraction.\n")
+          print(json.dumps(summary,indent=2))
+          PY
+      - name: Upload consolidated starter materiality result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-materiality-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
