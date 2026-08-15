@@ -1,0 +1,146 @@
+name: TREB starter materiality fail-closed consolidation
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [team_trb_all_players/starter_materiality_failclosed_trigger.txt]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-materiality-failclosed-consolidate
+  cancel-in-progress: false
+
+env:
+  SOURCE_RUN_ID: '31860354899'
+  DIAG_RUN_ID: '31859842642'
+  DIAG_ARTIFACT: TREB-fullcore-failure-diagnostic-31859842642
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download completed materiality season artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-starter-materiality-*-${{ env.SOURCE_RUN_ID }}
+          path: /tmp/seasons
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.SOURCE_RUN_ID }}
+      - name: Download exact failed-game diagnostic
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.DIAG_ARTIFACT }}
+          path: /tmp/diag
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.DIAG_RUN_ID }}
+      - name: Consolidate 16 completed seasons and fail 2015-16 closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          import pandas as pd
+
+          root=Path('/tmp/seasons')
+          def read_parts(name):
+              out=[]
+              for p in sorted(root.rglob(name)):
+                  d=pd.read_csv(p,low_memory=False)
+                  if 'season' in d.columns:
+                      d=d[d.season.astype(str).ne('2015-16')].copy()
+                  if len(d): out.append(d)
+              return out
+
+          key_parts=read_parts('STARTER_MATERIALITY_KEYS.csv')
+          team_parts=read_parts('STARTER_MATERIALITY_TEAM_SEASONS.csv')
+          game_parts=read_parts('AMBIGUOUS_GAME_VARIANT_SUMMARY.csv')
+          gates=[]
+          for p in sorted(root.rglob('SEASON_STARTER_MATERIALITY_GATE.json')):
+              g=json.loads(p.read_text())
+              if str(g.get('season'))!='2015-16': gates.append(g)
+
+          failures=pd.read_csv('/tmp/diag/ALL_GAME_FAILURES.csv',low_memory=False)
+          f=failures[failures.season.astype(str).eq('2015-16')].copy()
+          marker='non-unique v3/team-local starter solution'
+          f['is_ambiguous']=f.error.fillna('').astype(str).str.contains(marker,regex=False)
+          amb=f[f.is_ambiguous].copy()
+          assert len(amb)==2, len(amb)
+
+          def teams(v): return [int(x) for x in json.loads(str(v))]
+          kinds={}
+          for r in f.itertuples(index=False):
+              for tid in teams(r.teams_json): kinds.setdefault(int(tid),[]).append(bool(r.is_ambiguous))
+          pure=sorted(tid for tid,flags in kinds.items() if flags and all(flags))
+
+          targets=[]
+          with gzip.open(Path('${{ env.TARGETS }}'),'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  if str(r.get('season'))=='2015-16' and bool(r.get('full_core_reuse')) and int(r.get('team_id')) in pure:
+                      targets.append(r)
+          assert targets, 'no 2015-16 pure ambiguity targets'
+
+          synth_keys=[]
+          by_team={}
+          for r in targets: by_team.setdefault(int(r['team_id']),[]).append(r)
+          for tid,rows in sorted(by_team.items()):
+              gids=sorted({int(x.game_id) for x in amb.itertuples(index=False) if tid in teams(x.teams_json)})
+              for r in rows:
+                  synth_keys.append({'season':'2015-16','team_id':tid,'player_id':str(r['player_id']),'player':r.get('player',''),'ambiguous_games':len(gids),'game_ids':'|'.join(map(str,gids)),'threshold_pp':0.01,'accepted_immaterial':False,'status':'AUDIT_UNRESOLVED','error':'bruteforce_enumeration_hung_fail_closed'})
+          synth_teams=[]
+          for tid,rows in sorted(by_team.items()):
+              gids=sorted({int(x.game_id) for x in amb.itertuples(index=False) if tid in teams(x.teams_json)})
+              synth_teams.append({'season':'2015-16','team_id':tid,'target_keys':len(rows),'ambiguous_games':len(gids),'game_ids':'|'.join(map(str,gids)),'accepted_keys':0,'status':'AUDIT_UNRESOLVED','error':'bruteforce_enumeration_hung_fail_closed'})
+          synth_games=[]
+          for r in amb.itertuples(index=False):
+              synth_games.append({'season':'2015-16','game_id':int(r.game_id),'capped':True,'team_totals_invariant':None,'status':'AUDIT_UNRESOLVED','error':'bruteforce_enumeration_hung_fail_closed'})
+
+          keys=pd.concat(key_parts+[pd.DataFrame(synth_keys)],ignore_index=True,sort=False)
+          teams_df=pd.concat(team_parts+[pd.DataFrame(synth_teams)],ignore_index=True,sort=False)
+          games=pd.concat(game_parts+[pd.DataFrame(synth_games)],ignore_index=True,sort=False)
+          gates.append({'status':'PASS_FAIL_CLOSED','season':'2015-16','threshold_pp':0.01,'ambiguous_games':len(amb),'pure_ambiguity_team_seasons':len(pure),'pure_ambiguity_target_keys':len(synth_keys),'audited_key_rows':len(synth_keys),'accepted_immaterial_keys':0,'material_repair_required_keys':0,'audit_unresolved_keys':len(synth_keys),'fail_closed_reason':'bruteforce_enumeration_hung'})
+
+          expected_seasons=17; expected_games=86; expected_pure_teams=119; expected_pure_keys=1485
+          accepted=int(keys.status.astype(str).eq('ACCEPT_IMMATERIAL').sum())
+          material=int(keys.status.astype(str).eq('MATERIAL_REPAIR_REQUIRED').sum())
+          unresolved=int(keys.status.astype(str).eq('AUDIT_UNRESOLVED').sum())
+          unique_keys=int(keys.drop_duplicates(['season','team_id','player_id']).shape[0])
+          pure_teams=int(sum(int(g.get('pure_ambiguity_team_seasons',0)) for g in gates))
+          game_count=int(sum(int(g.get('ambiguous_games',0)) for g in gates))
+          max_range=float(pd.to_numeric(keys.get('max_range_pp'),errors='coerce').max()) if 'max_range_pp' in keys.columns else None
+          complete=(len(gates)==expected_seasons and game_count==expected_games and pure_teams==expected_pure_teams and len(keys)==unique_keys==expected_pure_keys and accepted+material+unresolved==expected_pure_keys)
+          summary={'status':'PASS' if complete else 'INCOMPLETE','threshold_pp':0.01,'source_run_id':31860354899,'season_gates':len(gates),'expected_season_gates':expected_seasons,'ambiguous_games':game_count,'expected_ambiguous_games':expected_games,'pure_ambiguity_team_seasons':pure_teams,'expected_pure_ambiguity_team_seasons':expected_pure_teams,'audited_keys':int(len(keys)),'unique_audited_keys':unique_keys,'expected_pure_ambiguity_keys':expected_pure_keys,'accepted_immaterial_keys':accepted,'material_repair_required_keys':material,'audit_unresolved_keys':unresolved,'accepted_immaterial_team_seasons':int(teams_df.status.astype(str).eq('ACCEPT_IMMATERIAL').sum()),'material_team_seasons':int(teams_df.status.astype(str).eq('MATERIAL_REPAIR_REQUIRED').sum()),'unresolved_team_seasons':int(teams_df.status.astype(str).eq('AUDIT_UNRESOLVED').sum()),'max_observed_range_pp':max_range,'minutes_gate_tolerance_seconds':60.0,'2015_16_policy':'FAIL_CLOSED_NOT_ACCEPTED','2015_16_unresolved_keys':len(synth_keys),'acceptance_rule':'only proven coherent variants with max TREB ON/OFF/SWING range <=0.01 pp are accepted; hung 2015-16 keys remain unresolved','rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'next_scope':'material_repair_required_and_audit_unresolved_only'}
+          keys.to_csv('/tmp/final/STARTER_MATERIALITY_KEYS.csv',index=False)
+          teams_df.to_csv('/tmp/final/STARTER_MATERIALITY_TEAM_SEASONS.csv',index=False)
+          games.to_csv('/tmp/final/AMBIGUOUS_GAME_VARIANT_SUMMARY.csv',index=False)
+          Path('/tmp/final/STARTER_MATERIALITY_GATE.json').write_text(json.dumps(summary,indent=2)+'\n')
+          Path('/tmp/final/SEASON_GATES.json').write_text(json.dumps(gates,indent=2)+'\n')
+          Path('/tmp/final/README.txt').write_text('Fail-closed consolidation of starter materiality audit. 2015-16 brute-force enumeration was non-terminating; its keys are NOT accepted as immaterial and remain in the repair scope.\n')
+          print(json.dumps(summary,indent=2))
+          assert complete, summary
+          PY
+      - name: Upload fail-closed consolidated materiality gate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-materiality-failclosed-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
