@@ -12,6 +12,7 @@ MAX_SECONDS=45*60
 POLL_SECONDS=60
 
 STRATEGIES=[
+ ('GAME_ID_EVIDENCE_ASSEMBLY','treb-game-id-evidence-assembly.yml'),
  ('RETAINED_SOURCE_INVENTORY','treb-residual-retained-source-scan.yml'),
  ('2015_SINGLE_KEY_ISOLATION','treb-2015-single-key-isolation.yml'),
  ('2019_SOURCE_GAP_WIDE_INVENTORY','treb-2019-source-gap-wide-inventory.yml'),
@@ -64,7 +65,6 @@ while time.time()-started < MAX_SECONDS:
     runs=all_runs()
     active=active_non_controller(runs)
 
-    # Reconcile launched ledger entries against authoritative workflow conclusions.
     for entry in ledger.get('strategies',[]):
         if entry.get('status')!='LAUNCHED':
             continue
@@ -99,7 +99,6 @@ while time.time()-started < MAX_SECONDS:
     persist(state,ledger,{'time':int(time.time()),'events':events[-30:],'active_treb_runs':[],'state':state,'ledger':ledger})
     time.sleep(15)
 
-# If the finite controller window ends while work remains, enqueue the next controller generation.
 if state.get('status')=='ACTIVE':
     try:
         api('/actions/workflows/treb-autonomous-completion-loop.yml/dispatches','POST',{'ref':BRANCH})
