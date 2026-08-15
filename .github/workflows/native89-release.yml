@@ -23,6 +23,13 @@ jobs:
           curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw+json" \
             "https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/scripts/build_native89_release.py?ref=agent%2Ftreb-final-exact-assembly" \
             -o /tmp/build_native89_release.py
+          python - <<'PY'
+          p='/tmp/build_native89_release.py'
+          s=open(p).read()
+          s=s.replace("off=pick(['off','off_value','OFF','value_off'])", "off=pick(['off_corrected','off','off_value','OFF','value_off'])")
+          s=s.replace("swing=pick(['swing','swing_value','SWING','value_swing'])", "swing=pick(['on_minus_off_corrected','swing','swing_value','SWING','value_swing'])")
+          open(p,'w').write(s)
+          PY
       - name: Build and fail-closed QA native 89 metric release
         run: python /tmp/build_native89_release.py
       - uses: actions/upload-artifact@v4
