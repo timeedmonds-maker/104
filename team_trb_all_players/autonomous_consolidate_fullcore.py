@@ -66,8 +66,16 @@ def main():
 
     hist_files=sorted(Path(a.historical_dir).rglob('fresh_fullcore_*.csv'))
     hist_all=[]
+    empty_hist_files=[]
     for p in hist_files:
-        raw=pd.read_csv(p,dtype={'player_id':str},low_memory=False)
+        if p.stat().st_size == 0:
+            empty_hist_files.append(str(p))
+            continue
+        try:
+            raw=pd.read_csv(p,dtype={'player_id':str},low_memory=False)
+        except pd.errors.EmptyDataError:
+            empty_hist_files.append(str(p))
+            continue
         h=prep(raw,f'HISTORICAL_EXACT_{p.stem}',True)
         if len(h): hist_all.append(h)
     hist=pd.concat(hist_all,ignore_index=True) if hist_all else pd.DataFrame(columns=K+['direct_treb_on','direct_treb_off','source','status'])
@@ -89,6 +97,7 @@ def main():
       'resolved':int(len(resolved)),
       'unresolved':int(len(unresolved)),
       'historical_files':len(hist_files),
+      'empty_historical_files':len(empty_hist_files),
       'historical_pass_rows':int(len(hist)),
       'source_counts':{str(k):int(v) for k,v in resolved['source'].value_counts().to_dict().items()},
       'empirical_model_used':False,
