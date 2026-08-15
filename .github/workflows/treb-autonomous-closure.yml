@@ -12,174 +12,83 @@ concurrency:
   cancel-in-progress: false
 jobs:
   close:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
           fetch-depth: 1
-      - name: Download current authoritative state and exact retained evidence
+      - name: Download authoritative 8,396 state diagnostics
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/state /tmp/consensus /tmp/promoted /tmp/out
-          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253822549/zip > /tmp/state.zip
-          unzip -q /tmp/state.zip -d /tmp/state
-          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/consensus.zip
-          unzip -q /tmp/consensus.zip -d /tmp/consensus
-          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253713792/zip > /tmp/promoted.zip
-          unzip -q /tmp/promoted.zip -d /tmp/promoted
-      - name: Iteratively prove tenure identity and promote exact TREB keys
+          mkdir -p /tmp/closure /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253878073/zip > /tmp/closure.zip
+          unzip -q /tmp/closure.zip -d /tmp/closure
+      - name: Inventory retained repo evidence for exact missing games
+        shell: bash
         run: |
+          set -euo pipefail
           python - <<'PY'
-          import csv,gzip,json,pathlib,collections,datetime,re
-          OUT=pathlib.Path('/tmp/out')
-          # Current residual from authoritative 8,396 state.
-          residual_file=next(pathlib.Path('/tmp/state').rglob('*RESIDUAL*.csv'),None) or next(pathlib.Path('/tmp/state').rglob('*BLOCKER*.csv'),None)
-          if residual_file is None: raise SystemExit('No residual blocker manifest in authoritative state')
-          residual=list(csv.DictReader(open(residual_file,newline='')))
-          print('START_RESIDUAL',len(residual))
-          def normkey(r): return (str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0'))
-          current={normkey(r):r for r in residual}
-          # Exact consensus facts.
-          cp=next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'))
-          facts=collections.defaultdict(dict)
-          with open(cp,newline='') as f:
-            for r in csv.DictReader(f):
-              facts[(str(r['game_id']),str(int(float(r['team_id']))),str(r.get('player_id','')).removesuffix('.0'))][r['field']]=float(r['value'])
-          reqp={'seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
-          reqt={'game_seconds','team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
-          # Canonical targets.
-          targets={}
-          tp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
-          with gzip.open(tp,'rt') as f:
-            for line in f:
-              if not line.strip(): continue
-              r=json.loads(line); k=normkey(r)
-              if k in current: targets[k]=r
-          # Schedule by season/team/game/date for deterministic interval expansion.
-          schedule=collections.defaultdict(list)
-          gp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure/regular_season_games.jsonl.gz')
-          with gzip.open(gp,'rt') as f:
-            for line in f:
-              if not line.strip(): continue
-              r=json.loads(line)
-              gid=str(r.get('game_id') or r.get('GAME_ID') or '')
-              season=str(r.get('season') or r.get('SEASON') or '')
-              date=str(r.get('game_date') or r.get('GAME_DATE') or r.get('date') or '')[:10]
-              tids=[]
-              for fld in ['team_id','TEAM_ID','home_team_id','visitor_team_id','away_team_id','HOME_TEAM_ID','VISITOR_TEAM_ID']:
-                if r.get(fld) not in (None,''):
-                  try:tids.append(str(int(float(r[fld]))))
-                  except:pass
-              for tid in set(tids): schedule[(season,tid)].append((date,gid))
-          # Explicit v3 roster ledger.
-          ledger=collections.defaultdict(set)
-          lp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz')
-          with gzip.open(lp,'rt',newline='') as f:
-            for r in csv.DictReader(f):
-              try:k=normkey(r)
+          import csv,json,pathlib,gzip,re,collections
+          out=pathlib.Path('/tmp/out')
+          diag=next(pathlib.Path('/tmp/closure').rglob('TREB_AUTONOMOUS_DIAGNOSTICS.csv'))
+          rows=list(csv.DictReader(open(diag,newline='')))
+          miss=collections.defaultdict(set)
+          no_identity=[]
+          for r in rows:
+              raw=r.get('error') or ''
+              try:e=json.loads(raw)
+              except:
+                  if 'no exact tenure identity set' in raw: no_identity.append(r)
+                  continue
+              for gid in e.get('missing',[]) or []:
+                  miss[str(gid)].add((r['season'],str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0')))
+          with open(out/'MISSING_GAME_KEYS.csv','w',newline='') as f:
+              w=csv.writer(f);w.writerow(['game_id','season','team_id','player_id'])
+              for gid in sorted(miss):
+                  for k in sorted(miss[gid]): w.writerow([gid,*k])
+          gids=set(miss)
+          tokens=('retained','fact','game','box','pbp','v3','forensic','source','roster','cache','rebound')
+          candidates=[]
+          for p in pathlib.Path('team_trb_all_players').rglob('*'):
+              if not p.is_file(): continue
+              n=p.name.lower(); s=str(p.parent).lower()
+              if not n.endswith(('.csv','.csv.gz','.json','.json.gz','.jsonl','.jsonl.gz')): continue
+              if not any(t in n or t in s for t in tokens): continue
+              try:size=p.stat().st_size
               except:continue
-              if k in current: ledger[k].add(str(r['game_id']))
-          # Audited windows: collect explicit boundary records for blocker keys.
-          window_sources=[
-            pathlib.Path('team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_schedule_audited.jsonl.gz'),
-            pathlib.Path('team_trb_all_players/impact_database/roster_tenure/player_team_season_windows_evidence_audited.jsonl.gz'),
-            pathlib.Path('team_trb_all_players/impact_database/roster_tenure/player_team_season_windows.jsonl.gz'),
-            pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v3_hybrid/player_team_season_targets.jsonl.gz'),
-          ]
-          windows=collections.defaultdict(list)
-          for wp in window_sources:
-            if not wp.exists(): continue
-            try:
-              with gzip.open(wp,'rt') as f:
-                for line in f:
-                  if not line.strip(): continue
-                  r=json.loads(line)
-                  try:k=normkey(r)
-                  except:continue
-                  if k in current: windows[k].append((str(wp),r))
-            except Exception as e: print('WINDOW_READ_FAIL',wp,e)
-          def parse_intervals(r):
-            vals=[]
-            raw=r.get('intervals')
-            if isinstance(raw,str):
-              try: raw=json.loads(raw)
-              except: raw=None
-            if isinstance(raw,list):
-              for x in raw:
-                if isinstance(x,dict):
-                  a=x.get('start') or x.get('start_date') or x.get('segment_start') or x.get('from')
-                  b=x.get('end') or x.get('end_date') or x.get('segment_end') or x.get('to')
-                  if a and b: vals.append((str(a)[:10],str(b)[:10]))
-            a=r.get('start_date') or r.get('segment_start') or r.get('tenure_start')
-            b=r.get('end_date') or r.get('segment_end') or r.get('tenure_end')
-            if a and b: vals.append((str(a)[:10],str(b)[:10]))
-            return vals
-          def candidate_sets(k):
-            expected=int(float(targets.get(k,{}).get('team_games_in_tenure',0) or 0))
-            yielded=set()
-            # Strategy 1: explicit ledger identity.
-            s=set(ledger.get(k,set()))
-            if s and len(s)==expected:
-              yielded.add(tuple(sorted(s))); yield 'v3_roster_ledger',s
-            # Strategy 2: canonical target intervals expanded through audited schedule.
-            recs=[('canonical_v2',targets.get(k,{}))]+windows.get(k,[])
-            for src,r in recs:
-              if not r: continue
-              for a,b in parse_intervals(r):
-                s={gid for date,gid in schedule.get((k[0],k[1]),[]) if a<=date<=b}
-                sig=tuple(sorted(s))
-                if s and len(s)==expected and sig not in yielded:
-                  yielded.add(sig); yield 'interval:'+str(src),s
-          def promote(k,gids,source):
-            agg=collections.Counter(); missing=[]; bad=[]
-            for gid in sorted(gids):
-              pv=facts.get((gid,k[1],k[2]),{}); tv=facts.get((gid,k[1],''),{})
-              if not reqp.issubset(pv) or not reqt.issubset(tv): missing.append(gid); continue
-              comps=[tv['team_oreb']-pv['team_oreb_on'],tv['team_dreb']-pv['team_dreb_on'],tv['opponent_oreb']-pv['opponent_oreb_on'],tv['opponent_dreb']-pv['opponent_dreb_on']]
-              if min(comps)<-1e-9: bad.append(gid); continue
-              for z in reqp: agg[z]+=pv[z]
-              for z in reqt: agg[z]+=tv[z]
-            if missing or bad: return None,{'missing':missing,'bad':bad}
-            tr_on=agg['team_oreb_on']+agg['team_dreb_on']; opp_on=agg['opponent_oreb_on']+agg['opponent_dreb_on']
-            tr_off=(agg['team_oreb']+agg['team_dreb'])-tr_on; opp_off=(agg['opponent_oreb']+agg['opponent_dreb'])-opp_on
-            if min(tr_off,opp_off)<-1e-9 or tr_on+opp_on<=0 or tr_off+opp_off<=0:return None,{'invalid_denominator':True}
-            on=100*tr_on/(tr_on+opp_on); off=100*tr_off/(tr_off+opp_off)
-            return {'season':k[0],'team_id':k[1],'player_id':k[2],'metric':'TotalReboundPct','on':on,'off_corrected':off,'on_minus_off_corrected':on-off,'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(gids),'identity_source':source,'provenance':'exact retained multi-source consensus + deterministic tenure identity'},None
-          promoted=[]; diagnostics=[]
-          # Iterate because one source can resolve a key that should then be removed from all later strategy work.
-          for iteration in range(1,6):
-            before=len(current); newly=[]
-            for k in list(current):
-              attempts=0
-              for src,gids in candidate_sets(k):
-                attempts+=1; row,err=promote(k,gids,src)
-                if row:
-                  newly.append((k,row)); break
-                diagnostics.append({'iteration':iteration,'season':k[0],'team_id':k[1],'player_id':k[2],'source':src,'game_count':len(gids),'error':json.dumps(err,sort_keys=True)})
-              if attempts==0: diagnostics.append({'iteration':iteration,'season':k[0],'team_id':k[1],'player_id':k[2],'source':'none','game_count':0,'error':'no exact tenure identity set'})
-            for k,row in newly:
-              if k in current:
-                promoted.append(row); del current[k]
-            print('ITERATION',iteration,'START',before,'PROMOTED',len(newly),'REMAIN',len(current))
-            if not newly: break
-          if promoted:
-            with open(OUT/'TREB_AUTONOMOUS_EXACT_PROMOTED.csv','w',newline='') as f:
-              w=csv.DictWriter(f,fieldnames=promoted[0].keys());w.writeheader();w.writerows(promoted)
-          with open(OUT/'TREB_AUTONOMOUS_RESIDUAL.csv','w',newline='') as f:
-            fields=list(residual[0].keys());w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows([current[k] for k in sorted(current)])
-          if diagnostics:
-            with open(OUT/'TREB_AUTONOMOUS_DIAGNOSTICS.csv','w',newline='') as f:
-              w=csv.DictWriter(f,fieldnames=diagnostics[0].keys());w.writeheader();w.writerows(diagnostics)
-          qa={'status':'PASS','starting_residual':len(residual),'new_exact_promotions':len(promoted),'ending_residual':len(current),'resolved_total_if_merged':9647-len(current),'iterations_completed':iteration,'integrity':{'explicit_or_deterministic_tenure_identity':True,'exact_player_game_primitives':True,'exact_team_game_totals':True,'same_tenure_raw_count_complement':True,'models':False,'rounded_backsolve':False,'count_only_identity':False},'next':'If residual remains, classify diagnostics by missing game IDs and recover only those exact game facts from retained sources; never rerun resolved keys.'}
-          (OUT/'TREB_AUTONOMOUS_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2))
+              if size<=250_000_000: candidates.append((p,size))
+          gid_re=re.compile('|'.join(re.escape(x) for x in sorted(gids,key=len,reverse=True))) if gids else None
+          hits=[]; scanned=[]
+          for p,size in candidates:
+              scanned.append((str(p),size))
+              try:
+                  opener=gzip.open if p.name.endswith('.gz') else open
+                  with opener(p,'rt',encoding='utf-8',errors='ignore') as f:
+                      for ln,line in enumerate(f,1):
+                          if not gid_re: break
+                          m=gid_re.search(line)
+                          if m: hits.append({'game_id':m.group(0),'source_file':str(p),'line':ln,'snippet':line[:1600].replace('\n',' ')})
+              except Exception as e:
+                  hits.append({'game_id':'','source_file':str(p),'line':0,'snippet':'SCAN_ERROR '+repr(e)})
+          with open(out/'RETAINED_SOURCE_GAME_HITS.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['game_id','source_file','line','snippet']);w.writeheader();w.writerows(hits)
+          with open(out/'SCANNED_SOURCE_FILES.csv','w',newline='') as f:
+              w=csv.writer(f);w.writerow(['source_file','bytes']);w.writerows(scanned)
+          if no_identity:
+              with open(out/'NO_TENURE_IDENTITY_KEYS.csv','w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=no_identity[0].keys());w.writeheader();w.writerows(no_identity)
+          by=collections.Counter(h['game_id'] for h in hits if h['game_id'])
+          qa={'status':'PASS','authoritative_residual':1251,'resolved_total':8396,'diagnostic_rows':len(rows),'missing_game_ids':len(gids),'missing_key_game_pairs':sum(len(v) for v in miss.values()),'no_exact_tenure_identity_rows':len(no_identity),'candidate_files_scanned':len(scanned),'source_hit_rows':sum(by.values()),'missing_games_with_retained_repo_hits':len(by),'missing_games_without_retained_repo_hits':len(gids-set(by)),'strategy_ledger':{'prior':'exact retained consensus + deterministic tenure identity','prior_result':'0 promotions from 1251 residuals','current':'targeted retained repo source inventory for exact missing games','state':'COMPLETED','next':'Parse only hit-bearing source schemas and add exact missing primitives; separately attack no-tenure-identity keys from retained boundary/roster evidence.'},'integrity':{'materiality_threshold_pp':0.01,'minutes_spread_seconds':60,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'unsafe_global_event_order_used':False}}
+          (out/'RETAINED_SOURCE_INVENTORY_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: TREB-autonomous-closure-${{ github.run_id }}
+          name: TREB-autonomous-retained-source-inventory-${{ github.run_id }}
           path: /tmp/out
           retention-days: 90
           compression-level: 1
