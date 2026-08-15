@@ -1,0 +1,47 @@
+name: Native89 raw WoWY additive denominator probe
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-raw-key-denominator-probe.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Probe retained raw WoWY rows
+        run: |
+          python - <<'PY'
+          import gzip,json,pathlib,collections,math
+          root=pathlib.Path('team_trb_all_players/impact_database/corrected_off_wowy/cache')
+          rows=[]
+          for p in sorted(root.glob('*.json.gz')):
+            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+            for side,r in (o.get('rows') or {}).items():
+              if isinstance(r,dict): rows.append((p.name,side,r))
+          keys=collections.defaultdict(list)
+          for fn,side,r in rows:
+            for k,v in r.items():
+              try:x=float(v)
+              except:continue
+              if math.isfinite(x): keys[k].append(x)
+          print('ROW_COUNT',len(rows),'NUMERIC_KEYS',len(keys))
+          for k in sorted(keys): print(k)
+          # emit one complete team_on/off sample with all numeric keys
+          samples=[]
+          for fn,side,r in rows:
+            if side.startswith('team'):
+              samples.append({'file':fn,'side':side,'row':r})
+              if len(samples)>=6:break
+          pathlib.Path('native89_raw_key_probe.json').write_text(json.dumps({'numeric_keys':sorted(keys),'samples':samples},indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-raw-key-denominator-probe-${{ github.run_id }}
+          path: native89_raw_key_probe.json
+          retention-days: 30
