@@ -1,4 +1,4 @@
-name: OREB missed-3 career scatter
+name: OREB missed-3 recent scatter
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
           python-version: '3.11'
       - name: Install dependencies
         run: pip install pandas matplotlib adjustText
-      - name: Build missed-3 OREB scatter
+      - name: Build missed-3 OREB scatter since 2021-22
         run: |
           python - <<'PY'
           import gzip, json, pathlib
@@ -30,20 +30,23 @@ jobs:
           from adjustText import adjust_text
 
           SRC=pathlib.Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
-          OUT=pathlib.Path('oreb_missed3_out'); OUT.mkdir(exist_ok=True)
+          OUT=pathlib.Path('oreb_missed3_recent_out'); OUT.mkdir(exist_ok=True)
           METRIC='OReb% - Missed 3s'
-          MIN_MINUTES=10000.0
+          MIN_MINUTES=2000.0
+          START_SEASON='2021-22'
+          END_SEASON='2025-26'
 
           rows=[]
           with gzip.open(SRC,'rt',encoding='utf-8') as f:
               for line in f:
                   if not line.strip(): continue
                   r=json.loads(line)
-                  if r.get('complete') is True and r.get('metric') == METRIC:
+                  season=str(r.get('season') or '')
+                  if r.get('complete') is True and r.get('metric') == METRIC and START_SEASON <= season <= END_SEASON:
                       rows.append({
                           'player_id':str(r.get('player_id')),
                           'player':r.get('player'),
-                          'season':r.get('season'),
+                          'season':season,
                           'minutes_on':r.get('minutes_on'),
                           'minutes_off':r.get('minutes_off'),
                           'on':r.get('on'),
@@ -76,7 +79,7 @@ jobs:
           c=c[(c.minutes_on>=MIN_MINUTES)&c.oreb_missed3_on_pct.notna()&c.oreb_missed3_swing_pp.notna()].copy()
           c=c.sort_values('oreb_missed3_swing_pp').reset_index(drop=True)
           if c.empty: raise SystemExit('No eligible players')
-          c.to_csv(OUT/'oreb_missed3_career_scatter_data_10000min.csv',index=False)
+          c.to_csv(OUT/'oreb_missed3_scatter_data_2021-22_to_2025-26_2000min.csv',index=False)
 
           narrow=pathlib.Path('fonts-local/etc/fonts/TTF/LiberationSansNarrow-Bold.ttf')
           regular=pathlib.Path('fonts-local/etc/fonts/TTF/LiberationSans-Regular.ttf')
@@ -113,9 +116,9 @@ jobs:
 
           fig.text(.065,.955,'OFFENSIVE REBOUNDING',fontproperties=head,fontsize=29,va='top',color='#202020')
           fig.text(.065,.905,'AFTER MISSED 3-POINT SHOTS',fontproperties=head,fontsize=25,va='top',color='#c62828')
-          fig.text(.067,.858,'NBA regular season • 2000-01 to 2025-26 • Minimum 10,000 on-court minutes',fontproperties=body,fontsize=9.5,va='top',color='#555555')
-          fig.text(.067,.835,f'{len(c):,} qualifying players • Each dot is one career',fontproperties=body,fontsize=9,va='top',color='#777777')
-          fig.text(.065,.060,'Career ON and corrected OFF rates are exposure-weighted across retained tenure segments.',fontproperties=body,fontsize=7.2,color='#666666')
+          fig.text(.067,.858,'NBA regular season • 2021-22 to 2025-26 • Minimum 2,000 on-court minutes',fontproperties=body,fontsize=9.5,va='top',color='#555555')
+          fig.text(.067,.835,f'{len(c):,} qualifying players • Each dot is one player across the period',fontproperties=body,fontsize=9,va='top',color='#777777')
+          fig.text(.065,.060,'ON and corrected OFF rates are exposure-weighted across retained tenure segments from 2021-22 onward.',fontproperties=body,fontsize=7.2,color='#666666')
           fig.text(.065,.039,'Source: final 89-metric production database • @funakistats',fontproperties=body,fontsize=7.2,color='#666666')
           fig.text(.925,.035,'@funakistats',ha='right',fontproperties=bb,fontsize=8.7,color='#333333')
 
@@ -124,18 +127,18 @@ jobs:
           ax.set_xlim(c.oreb_missed3_swing_pp.min()-.08*xr,c.oreb_missed3_swing_pp.max()+.10*xr)
           ax.set_ylim(c.oreb_missed3_on_pct.min()-.08*yr,c.oreb_missed3_on_pct.max()+.12*yr)
 
-          fig.savefig(OUT/'oreb_missed3_oncourt_vs_swing_10000min.png',dpi=240,facecolor=fig.get_facecolor())
-          fig.savefig(OUT/'oreb_missed3_oncourt_vs_swing_10000min.svg',facecolor=fig.get_facecolor())
+          fig.savefig(OUT/'oreb_missed3_oncourt_vs_swing_2021-22_to_2025-26_2000min.png',dpi=240,facecolor=fig.get_facecolor())
+          fig.savefig(OUT/'oreb_missed3_oncourt_vs_swing_2021-22_to_2025-26_2000min.svg',facecolor=fig.get_facecolor())
           plt.close(fig)
 
           adams=c[c.player.eq('Steven Adams')].to_dict('records')
-          audit={'status':'PASS','metric':METRIC,'min_minutes_on':MIN_MINUTES,'qualifying_players':int(len(c)),'steven_adams':adams,'x_min':float(c.oreb_missed3_swing_pp.min()),'x_max':float(c.oreb_missed3_swing_pp.max()),'y_min':float(c.oreb_missed3_on_pct.min()),'y_max':float(c.oreb_missed3_on_pct.max())}
+          audit={'status':'PASS','metric':METRIC,'seasons':f'{START_SEASON} to {END_SEASON}','min_minutes_on':MIN_MINUTES,'qualifying_players':int(len(c)),'steven_adams':adams,'x_min':float(c.oreb_missed3_swing_pp.min()),'x_max':float(c.oreb_missed3_swing_pp.max()),'y_min':float(c.oreb_missed3_on_pct.min()),'y_max':float(c.oreb_missed3_on_pct.max())}
           (OUT/'audit.json').write_text(json.dumps(audit,indent=2))
           print(json.dumps(audit,indent=2))
           PY
       - name: Upload finished scatter
         uses: actions/upload-artifact@v4
         with:
-          name: oreb-missed3-oncourt-vs-swing-10000min
-          path: oreb_missed3_out/
+          name: oreb-missed3-2021-22-to-2025-26-2000min
+          path: oreb_missed3_recent_out/
           if-no-files-found: error
