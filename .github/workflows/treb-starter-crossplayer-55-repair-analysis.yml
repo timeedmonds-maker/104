@@ -1,0 +1,272 @@
+name: TREB starter cross-player 55-key repair analysis
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-starter-crossplayer-55-repair-analysis.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-starter-crossplayer-55-repair-analysis
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  DIAG_RUN: '31862335344'
+  DIAG_ARTIFACT: TREB-starter-residual-64-diagnostic-31862335344
+  MINUTES_TOLERANCE_SECONDS: '60.0'
+
+jobs:
+  analyze:
+    name: cross-player conflict analysis ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - {year: 2001, baseline_run: '31854913173', baseline_artifact: 'TREB-fullcore-exact-2001-31854913173'}
+          - {year: 2024, baseline_run: '31858884423', baseline_artifact: 'TREB-fullcore-resume-2024-31858884423'}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deterministic analysis dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Download authoritative 64-key diagnostic
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.DIAG_ARTIFACT }}
+          path: /tmp/diag
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.DIAG_RUN }}
+
+      - name: Download retained exact season baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.baseline_artifact }}
+          path: /tmp/baseline
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ matrix.baseline_run }}
+
+      - name: Download retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'; mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals: raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do test -s "/tmp/src/${prefix}_${y}.csv"; done
+
+      - name: Decompose exact cross-player incompatibility
+        timeout-minutes: 22
+        env:
+          YEAR: ${{ matrix.year }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u - <<'PY'
+          import hashlib,json,os,sys
+          from itertools import combinations
+          from pathlib import Path
+          import pandas as pd
+
+          sys.path.insert(0,'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+
+          year=int(os.environ['YEAR']); season=f'{year}-{(year+1)%100:02d}'; tol=float(os.environ['MINUTES_TOLERANCE_SECONDS'])
+          out=Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+
+          d=pd.read_csv('/tmp/diag/STARTER_RESIDUAL_64_KEYS.csv',dtype={'player_id':str},low_memory=False)
+          d['player_id']=d.player_id.map(mat.sid); d['team_id']=pd.to_numeric(d.team_id,errors='raise').astype('int64')
+          scope=d[(d.season.astype(str)==season) & (d.diagnostic_cause.astype(str)=='CROSS_PLAYER_STATE_INCOMPATIBILITY')].copy()
+          expected={2001:3,2024:52}[year]
+          if len(scope)!=expected:
+              raise RuntimeError(f'cross-player scope drift {season}: expected={expected} got={len(scope)}')
+
+          targets=mat.load_targets(Path(os.environ['TARGETS']),season)
+          target_by_team={}
+          for r in targets: target_by_team.setdefault(int(r['team_id']),[]).append(r)
+
+          nba=mat.io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{year}.csv',low_memory=False))
+          v3=mat.lineup_engine.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{year}.csv',low_memory=False))
+          pbp=mat.io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{year}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          baseline_team,baseline_player=mat.aggregate_baseline(
+              pd.read_csv('/tmp/baseline/team_game_treb.csv.gz',low_memory=False),
+              pd.read_csv('/tmp/baseline/player_game_treb_on.csv.gz',dtype={'player_id':str},low_memory=False))
+
+          def gids_from(series):
+              ans=set()
+              for v in series:
+                  if pd.isna(v): continue
+                  for x in str(v).split('|'):
+                      if x.strip(): ans.add(int(float(x)))
+              return sorted(ans)
+          def state_sig(st): return tuple(sorted((str(pid),)+tuple(int(v) for v in vals) for pid,vals in st.items()))
+          def sha(sig): return hashlib.sha256(json.dumps(sig,separators=(',',':')).encode()).hexdigest()
+
+          game_cache={}; team_rows=[]; player_rows=[]; pair_rows=[]; best_state_rows=[]
+          for tid,tscope in scope.groupby('team_id',sort=True):
+              tid=int(tid); team_targets=target_by_team.get(tid,[])
+              if not team_targets: raise RuntimeError(f'no targets {season} team={tid}')
+              scoped_pids=sorted(set(tscope.player_id.map(mat.sid)))
+              gids=gids_from(tscope.game_ids); option_sigs=[]; added_team_rows=[]
+              for gid in gids:
+                  if gid not in game_cache:
+                      variants,meta=mat.enumerate_game_variants(gid,ng[gid],vg[gid],pg[gid],20000,5000)
+                      game_cache[gid]=(variants,meta)
+                  variants,meta=game_cache[gid]
+                  if meta['capped'] or not meta['team_totals_invariant'] or not variants:
+                      raise RuntimeError(f'unsafe enumeration {season} game={gid}: {meta}')
+                  tc=[r for r in variants[0]['team_rows'] if int(r['team_id'])==tid]
+                  if len(tc)!=1: raise RuntimeError(f'missing team row {season} {tid} {gid}')
+                  added_team_rows.append(tc[0])
+                  opts=sorted(set(mat.contribution_signature(v['player_rows'],tid) for v in variants))
+                  option_sigs.append(opts or [tuple()])
+
+              team_total=dict(baseline_team.get(tid,{f:0 for f in mat.TEAM_FIELDS}))
+              for r in added_team_rows:
+                  for f in mat.TEAM_FIELDS: team_total[f]=int(team_total.get(f,0))+int(r[f])
+              states,capped=mat.combine_team_states(option_sigs,200000)
+              if capped or not states: raise RuntimeError(f'team state enumeration unsafe {season} {tid}')
+
+              evals=[]
+              for st in states:
+                  diffs={}; actuals={}
+                  for t in team_targets:
+                      pid=mat.sid(t['player_id']); base=baseline_player.get((tid,pid),{f:0 for f in mat.PLAYER_FIELDS}); add=st.get(pid,(0,0,0,0,0))
+                      actual=int(base['seconds_on'])+int(add[0]); target=float(t.get('seconds_on',0.0)); actuals[pid]=actual; diffs[pid]=float(actual-target)
+                  outside={pid for pid,v in diffs.items() if abs(v)>tol}
+                  scoped_inside=sum(abs(diffs.get(pid,float('inf')))<=tol for pid in scoped_pids)
+                  obj=(len(outside),max([abs(v) for v in diffs.values()] or [0.0]),sum(abs(v) for v in diffs.values()))
+                  evals.append({'st':st,'sig':state_sig(st),'diffs':diffs,'actuals':actuals,'outside':outside,'scoped_inside':scoped_inside,'obj':obj})
+              evals.sort(key=lambda x:(x['obj'][0],x['obj'][1],x['obj'][2],x['sig']))
+              best_obj=evals[0]['obj']; best=[x for x in evals if x['obj']==best_obj]
+              max_scoped=max(x['scoped_inside'] for x in evals); max_scoped_states=[x for x in evals if x['scoped_inside']==max_scoped]
+              joint_scoped=[x for x in evals if x['scoped_inside']==len(scoped_pids)]
+              team_compatible=[x for x in evals if not x['outside']]
+              always_outside=set.intersection(*(set(x['outside']) for x in best)) if best else set()
+              sometimes_outside=set.union(*(set(x['outside']) for x in best)) if best else set()
+
+              team_rows.append({'season':season,'team_id':tid,'cross_player_scoped_keys':len(tscope),'scoped_players':len(scoped_pids),'ambiguous_games':len(gids),'game_ids':'|'.join(map(str,gids)),'coherent_states':len(evals),'team_compatible_states':len(team_compatible),'joint_scoped_compatible_states':len(joint_scoped),'max_scoped_players_satisfied':max_scoped,'best_outside_player_count':best_obj[0],'best_max_abs_seconds_error':best_obj[1],'best_sum_abs_seconds_error':best_obj[2],'best_objective_state_count':len(best),'always_outside_best_players':'|'.join(sorted(always_outside)),'sometimes_outside_best_players':'|'.join(sorted(sometimes_outside)),'repair_class':'BLOCKER_TARGET_SECONDS_OR_STARTER_ASSIGNMENT'})
+
+              target_map={mat.sid(t['player_id']):t for t in team_targets}
+              all_pids=sorted(target_map)
+              for pid in all_pids:
+                  diffs=[x['diffs'][pid] for x in evals]; actuals=[x['actuals'][pid] for x in evals]; t=float(target_map[pid].get('seconds_on',0.0))
+                  compatible_states=sum(abs(v)<=tol for v in diffs)
+                  best_diffs=[x['diffs'][pid] for x in best]
+                  player_rows.append({'season':season,'team_id':tid,'player_id':pid,'is_crossplayer_scoped_key':pid in scoped_pids,'target_seconds':t,'min_achievable_seconds':min(actuals),'max_achievable_seconds':max(actuals),'min_abs_seconds_error':min(abs(v) for v in diffs),'individually_compatible_states':compatible_states,'outside_in_all_best_states':all(abs(v)>tol for v in best_diffs),'outside_in_any_best_state':any(abs(v)>tol for v in best_diffs),'best_state_min_abs_seconds_error':min(abs(v) for v in best_diffs),'best_state_max_abs_seconds_error':max(abs(v) for v in best_diffs),'mandatory_best_state_blocker':pid in always_outside})
+
+              for p1,p2 in combinations(scoped_pids,2):
+                  both=sum(abs(x['diffs'].get(p1,float('inf')))<=tol and abs(x['diffs'].get(p2,float('inf')))<=tol for x in evals)
+                  if both==0:
+                      pair_rows.append({'season':season,'team_id':tid,'player_id_1':p1,'player_id_2':p2,'pair_compatible_states':0,'conflict':'PAIRWISE_INCOMPATIBLE_WITHIN_60S'})
+
+              for rank,x in enumerate(best[:25],1):
+                  best_state_rows.append({'season':season,'team_id':tid,'rank':rank,'state_sha256':sha(x['sig']),'outside_players':len(x['outside']),'outside_player_ids':'|'.join(sorted(x['outside'])),'max_abs_seconds_error':x['obj'][1],'sum_abs_seconds_error':x['obj'][2],'scoped_players_satisfied':x['scoped_inside']})
+
+          tr=pd.DataFrame(team_rows); pr=pd.DataFrame(player_rows); qr=pd.DataFrame(pair_rows); br=pd.DataFrame(best_state_rows)
+          tr.to_csv(out/f'CROSSPLAYER_TEAMS_{year}.csv',index=False); pr.to_csv(out/f'CROSSPLAYER_BLOCKERS_{year}.csv',index=False); qr.to_csv(out/f'CROSSPLAYER_PAIR_CONFLICTS_{year}.csv',index=False); br.to_csv(out/f'CROSSPLAYER_BEST_STATES_{year}.csv',index=False)
+          summary={'status':'PASS','season':season,'expected_crossplayer_keys':expected,'crossplayer_keys':len(scope),'teams':len(tr),'teams_with_joint_scoped_state':int((tr.joint_scoped_compatible_states>0).sum()),'teams_with_full_team_state':int((tr.team_compatible_states>0).sum()),'mandatory_blocker_players':int(pr.mandatory_best_state_blocker.sum()),'pairwise_conflict_rows':len(qr),'promoted_keys':0,'minutes_gate_tolerance_seconds':tol,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False}
+          (out/'season_gate.json').write_text(json.dumps(summary,indent=2)+'\n'); print(json.dumps(summary,indent=2),flush=True)
+          PY
+
+      - name: Upload retained conflict decomposition
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-crossplayer-analysis-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: consolidate 55-key cross-player repair analysis
+    needs: analyze
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download both retained analyses
+        uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-starter-crossplayer-analysis-*-${{ github.run_id }}
+          path: /tmp/parts
+          merge-multiple: false
+      - name: Build fail-closed 55-key conflict gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import pandas as pd
+          root=Path('/tmp/parts'); teams=[]; blockers=[]; pairs=[]; best=[]; gates=[]
+          for p in root.rglob('CROSSPLAYER_TEAMS_*.csv'): teams.append(pd.read_csv(p,low_memory=False))
+          for p in root.rglob('CROSSPLAYER_BLOCKERS_*.csv'): blockers.append(pd.read_csv(p,dtype={'player_id':str},low_memory=False))
+          for p in root.rglob('CROSSPLAYER_PAIR_CONFLICTS_*.csv'):
+              try: pairs.append(pd.read_csv(p,dtype=str,low_memory=False))
+              except pd.errors.EmptyDataError: pass
+          for p in root.rglob('CROSSPLAYER_BEST_STATES_*.csv'): best.append(pd.read_csv(p,low_memory=False))
+          for p in root.rglob('season_gate.json'): gates.append(json.loads(p.read_text()))
+          td=pd.concat(teams,ignore_index=True,sort=False); bd=pd.concat(blockers,ignore_index=True,sort=False); sd=pd.concat(best,ignore_index=True,sort=False); pdx=pd.concat(pairs,ignore_index=True,sort=False) if pairs else pd.DataFrame()
+          scoped=bd[bd.is_crossplayer_scoped_key.astype(str).str.lower().isin(['true','1'])].copy()
+          scoped_unique=int(scoped.drop_duplicates(['season','team_id','player_id']).shape[0])
+          complete=(len(gates)==2 and all(str(g.get('status'))=='PASS' for g in gates) and len(scoped)==scoped_unique==55)
+          td.to_csv('/tmp/final/CROSSPLAYER_55_TEAMS.csv',index=False); bd.to_csv('/tmp/final/CROSSPLAYER_55_BLOCKERS.csv',index=False); pdx.to_csv('/tmp/final/CROSSPLAYER_55_PAIR_CONFLICTS.csv',index=False); sd.to_csv('/tmp/final/CROSSPLAYER_55_BEST_STATES.csv',index=False)
+          summary={'status':'PASS' if complete else 'INCOMPLETE','crossplayer_scoped_keys':len(scoped),'unique_crossplayer_scoped_keys':scoped_unique,'teams':len(td),'teams_with_joint_scoped_state':int((pd.to_numeric(td.joint_scoped_compatible_states,errors='coerce')>0).sum()),'teams_with_full_team_state':int((pd.to_numeric(td.team_compatible_states,errors='coerce')>0).sum()),'mandatory_blocker_players':int(bd.mandatory_best_state_blocker.astype(str).str.lower().isin(['true','1']).sum()),'pairwise_conflicts':len(pdx),'season_gates':len(gates),'promoted_keys':0,'2015_16_keys_touched':0,'minute_unreachable_8_touched':0,'material_key_1_touched':0,'next_scope':'mandatory_blocker_players_and_pairwise_conflicts_only'}
+          Path('/tmp/final/CROSSPLAYER_55_GATE.json').write_text(json.dumps(summary,indent=2)+'\n'); print(json.dumps(summary,indent=2))
+          if not complete: raise SystemExit('55-key cross-player gate incomplete')
+          PY
+      - name: Upload consolidated 55-key repair analysis
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-starter-crossplayer-55-analysis-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
