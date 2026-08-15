@@ -1,0 +1,34 @@
+name: Native89 final assembler preflight
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-final-assembler-preflight.yml, team_trb_all_players/build_native89_analysis_ready_final.py]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Compile assembler and validate canonical metric catalog
+        run: |
+          python -m py_compile team_trb_all_players/build_native89_analysis_ready_final.py
+          python - <<'PY'
+          import gzip,json,sys
+          sys.path.insert(0,'team_trb_all_players')
+          import build_native89_analysis_ready_final as b
+          rows=[]
+          with gzip.open(b.TENURE_SOURCE,'rt',encoding='utf-8') as f:
+            for line in f:
+              if line.strip(): rows.append(json.loads(line))
+          metrics=sorted({str(r['metric']) for r in rows})
+          cat=b.metric_catalog(metrics)
+          assert len(metrics)==89 and len(cat)==89
+          assert {r['metric'] for r in cat}==set(metrics)
+          assert next(r for r in cat if r['metric']=='OReb%')['sufficient_stat_fields']=='team.OffRebounds;opponent.DefRebounds'
+          print('ASSEMBLER_PREFLIGHT=PASS metrics=89 rows=',len(rows))
+          PY
