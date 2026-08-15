@@ -1,0 +1,314 @@
+name: TREB official V3 gap recovery v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-official-v3-gap-recovery-v2.yml
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-official-v3-gap-recovery-v2
+  cancel-in-progress: false
+
+env:
+  PYTHONUNBUFFERED: "1"
+  PYTHONPATH: /home/runner/work/104/104/team_trb_all_players
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+  V3_RUN: "31895030855"
+  PLAN_RUN: "31875740731"
+
+jobs:
+  recover2012:
+    name: A - targeted official V3 recovery 2012
+    runs-on: ubuntu-24.04
+    timeout-minutes: 32
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz requests
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-autonomous-residual-v3-consolidated-31895030855
+          path: /tmp/current
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31895030855"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-autonomous-residual-v3-2012-31895030855
+          path: /tmp/v3old
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31895030855"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-materiality-autopilot-plan-31875740731
+          path: /tmp/plan
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31875740731"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-exact-2012-31854913173
+          path: /tmp/exactseason
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31854913173"
+      - name: A1 - derive exact scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/src /tmp/prior /tmp/out
+          cp -a /tmp/exactseason /tmp/prior/exactseason
+          python - <<'PY'
+          import gzip,json,pandas as pd
+          season='2012-13'
+          b=pd.read_csv('/tmp/current/AUTONOMOUS_BLOCKER_MANIFEST.csv',dtype={'player_id':str})
+          b=b[b.season.eq(season)]
+          ks={(int(r.team_id),str(r.player_id).removesuffix('.0')) for r in b.itertuples()}
+          selected=[]
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt') as f:
+              for line in f:
+                  r=json.loads(line)
+                  k=(int(r['team_id']),str(r['player_id']).removesuffix('.0'))
+                  if r['season']==season and k in ks:
+                      selected.append(r)
+          assert len(selected)==len(ks)==368
+          with gzip.open('/tmp/targets.jsonl.gz','wt') as f:
+              for r in selected:
+                  print(json.dumps(r,separators=(',',':')),file=f)
+          q=json.load(open('/tmp/v3old/GAME_SCENARIO_QA.json'))
+          games=[int(g) for g,x in q.items() if x.get('status')=='SOURCE_SET_GAP' and not x.get('v3')]
+          assert len(games)==16,games
+          json.dump(games,open('/tmp/games.json','w'))
+          print('GAME_SCOPE_PASS',games)
+          PY
+      - name: A2 - download retained 2012 feeds
+        shell: bash
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --connect-timeout 15 --max-time 60 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' > /tmp/urls.tsv
+          vals={}
+          for line in open('/tmp/list_data.txt'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              print(p,vals[f'{p}_2012'],sep='\t')
+          PY
+          while IFS=$'\t' read -r p u; do
+            curl --fail --location --retry 3 --retry-all-errors --connect-timeout 20 --max-time 300 -o "/tmp/src/$p.tar.xz" "$u"
+            tar -xJf "/tmp/src/$p.tar.xz" -C /tmp/src
+          done < /tmp/urls.tsv
+      - name: A3 - retrieve official chronology and identity validate
+        shell: bash
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          python team_trb_all_players/recover_missing_v3_official.py --nba /tmp/src/nbastats_2012.csv --v3 /tmp/src/nbastatsv3_2012.csv --games /tmp/games.json --out /tmp/src/nbastatsv3_2012_augmented.csv --qa /tmp/out/OFFICIAL_V3_RECOVERY_QA.json
+      - name: A4 - exact legal-scenario replay
+        shell: bash
+        timeout-minutes: 10
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/residual_materiality_autopilot_v3.py --year 2012 --targets /tmp/targets.jsonl.gz --historical-dir /tmp/prior --report /tmp/plan/GAME_GAP_FORENSIC_REPORT.json --candidates /tmp/plan/GAME_GAP_CANDIDATE_REPAIRS.json --nba /tmp/src/nbastats_2012.csv --v3 /tmp/src/nbastatsv3_2012_augmented.csv --pbp /tmp/src/pbpstats_2012.csv --out /tmp/out | tee /tmp/out/REPLAY.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-official-v3-gap-2012-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: B - gated full-core reconsolidation
+    needs: recover2012
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    outputs:
+      ready: ${{ steps.gate.outputs.ready }}
+      unresolved: ${{ steps.gate.outputs.unresolved }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-materiality-autopilot-*-31875740731
+          path: /tmp/allhist/stageb
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31875740731"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-autonomous-residual-v3-*-31895030855
+          path: /tmp/allhist/v3
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31895030855"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-official-v3-gap-2012-${{ github.run_id }}
+          path: /tmp/allhist/v4/2012
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-resume-consolidated-31858884423
+          path: /tmp/baseexact
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31858884423"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-accept-immaterial-overlay-31861830762
+          path: /tmp/starter1367
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31861830762"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-captains-call-63-consolidated-31864265375
+          path: /tmp/starter63
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31864265375"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-modern409-team-fanout-consolidated-31869325468
+          path: /tmp/modern409
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31869325468"
+      - name: B1 - fail-closed union
+        shell: bash
+        run: |
+          set -euo pipefail
+          MODERN=$(find /tmp/modern409 -name TREB_2025_26_RESIDUAL_409_TEAM_FANOUT.csv -print -quit)
+          test -n "$MODERN"
+          python team_trb_all_players/autonomous_consolidate_fullcore.py --targets "$TARGETS" --baseexact /tmp/baseexact/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz --starter1367 /tmp/starter1367/STARTER_ACCEPT_IMMATERIAL_OVERLAY_1367.csv.gz --starter63 /tmp/starter63/STARTER_CAPTAINS_CALL_63_OVERLAY.csv.gz --modern409 "$MODERN" --historical-dir /tmp/allhist --out /tmp/consolidated
+      - name: B2 - readiness gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          q=json.load(open('/tmp/consolidated/AUTONOMOUS_CONSOLIDATION_QA.json'))
+          print(json.dumps(q,indent=2,sort_keys=True))
+          open('/tmp/ready','w').write('true' if q['status']=='PASS' else 'false')
+          open('/tmp/unresolved','w').write(str(q['unresolved']))
+          PY
+          echo "ready=$(cat /tmp/ready)" >> "$GITHUB_OUTPUT"
+          echo "unresolved=$(cat /tmp/unresolved)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-official-v3-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+          retention-days: 90
+          compression-level: 1
+
+  final_release:
+    name: C - final 90-metric database ZIP
+    needs: consolidate
+    if: needs.consolidate.outputs.ready == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --disable-pip-version-check pandas numpy pyarrow duckdb
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-prepared-canonical-layers-31844978593
+          path: /tmp/prep
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: "31844978593"
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-official-v3-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+      - name: C1 - assemble canonical release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python team_trb_all_players/autonomous_finalize_exact_release.py --targets "$TARGETS" --native /tmp/prep/native_89_canonical.parquet --partial /tmp/prep/exact_partial_4877.parquet --fullcore /tmp/consolidated/FULLCORE_TOTALREBOUNDPCT_AUTONOMOUS.csv.gz --out /tmp/final
+      - name: C2 - hard QA and ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          q=json.load(open('/tmp/final/FINAL_QA.json'))
+          assert q['status']=='PASS'
+          assert q['canonical_keys']==14524 and q['seasons']==26
+          assert q['native_metrics']==89 and q['total_metrics']==90
+          assert q['native_canonical_rows']==1292636
+          assert q['partial_treb']==4877 and q['full_core_treb']==9647
+          assert q['total_rebound_pct_rows']==14524
+          assert q['duplicate_total_rebound_pct']==0 and q['missing_total_rebound_pct']==0
+          assert q['steven_adams_career_total_rebound_pct_rows']==1
+          assert 20460 <= q['steven_adams_career_minutes'] <= 20485
+          assert 540 <= q['career_10000_min_total_rebound_pct_population'] <= 565
+          assert not q['rounded_percentage_backsolve']
+          assert not q['opponent_rebound_inference']
+          assert not q['partial_tenure_whole_team_subtraction']
+          assert not q['empirical_model_used']
+          print(json.dumps(q,indent=2,sort_keys=True))
+          PY
+          cd /tmp/final
+          zip -q -9 TREB_final_database_2000-01_to_2025-26.zip $(find . -maxdepth 1 -type f ! -name TREB_final_database_2000-01_to_2025-26.zip -printf '%P\n' | sort)
+          unzip -t TREB_final_database_2000-01_to_2025-26.zip > FINAL_ZIP_INTEGRITY.txt
+          sha256sum TREB_final_database_2000-01_to_2025-26.zip | tee FINAL_ZIP_SHA256.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-final-database-official-v3-${{ github.run_id }}
+          path: |
+            /tmp/final/TREB_final_database_2000-01_to_2025-26.zip
+            /tmp/final/FINAL_QA.json
+            /tmp/final/FINAL_ZIP_SHA256.txt
+            /tmp/final/FINAL_ZIP_INTEGRITY.txt
+          retention-days: 90
+          compression-level: 0
+
+  blocked:
+    name: D - retain blocker map
+    needs: consolidate
+    if: always() && needs.consolidate.outputs.ready != 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-official-v3-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-official-v3-blockers-${{ github.run_id }}
+          path: /tmp/consolidated
+          retention-days: 90
+          compression-level: 1
