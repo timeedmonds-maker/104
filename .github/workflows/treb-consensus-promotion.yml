@@ -1,0 +1,67 @@
+name: TREB consensus promotion
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-consensus-promotion.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Download exact retained consensus artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/consensus
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/consensus.zip
+          unzip -q /tmp/consensus.zip -d /tmp/consensus
+      - name: Inventory promotability against unresolved TREB blockers
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib,collections,glob,os
+          c='/tmp/consensus/PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'
+          facts=collections.defaultdict(dict)
+          with open(c,newline='') as f:
+            for r in csv.DictReader(f):
+              k=(r['game_id'],r['team_id'],r.get('player_id',''))
+              facts[k][r['field']]=float(r['value'])
+          fields=collections.Counter()
+          for v in facts.values(): fields.update(v.keys())
+          # Locate durable unresolved/blocker manifests already in repository; do not invent a new universe.
+          candidates=[]
+          for pat in ['**/*unresolved*.json','**/*unresolved*.csv','**/*blocker*.json','**/*blocker*.csv','**/*pending*.json','**/*pending*.csv']:
+            candidates += glob.glob(pat,recursive=True)
+          candidates=[p for p in candidates if '.git/' not in p and os.path.getsize(p)<50_000_000]
+          report={'status':'PASS','consensus_rows':sum(len(v) for v in facts.values()),'fact_entities':len(facts),'field_entity_counts':dict(fields),'candidate_blocker_manifests':candidates[:200]}
+          # Exact primitive bundles that are independently sufficient for a player's on-court TREB numerator/denominator.
+          req={'team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+          player_bundles=[]
+          for (gid,tid,pid),v in facts.items():
+            if pid and req.issubset(v): player_bundles.append((gid,tid,pid))
+          report['player_game_exact_oncourt_bundles']=len(player_bundles)
+          # Full-game team totals needed for exact complements/off-court.
+          teamreq={'team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+          team_bundles=[]
+          for (gid,tid,pid),v in facts.items():
+            if not pid and teamreq.issubset(v): team_bundles.append((gid,tid))
+          report['team_game_exact_total_bundles']=len(team_bundles)
+          report['games_with_exact_team_totals']=len({g for g,t in team_bundles})
+          out=pathlib.Path('/tmp/promotion'); out.mkdir(exist_ok=True)
+          (out/'TREB_CONSENSUS_PROMOTION_INVENTORY.json').write_text(json.dumps(report,indent=2)+'\n')
+          with open(out/'EXACT_PLAYER_GAME_BUNDLES.csv','w',newline='') as f:
+            w=csv.writer(f); w.writerow(['game_id','team_id','player_id']); w.writerows(player_bundles)
+          print(json.dumps(report,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-consensus-promotion-${{ github.run_id }}
+          path: /tmp/promotion
+          retention-days: 90
