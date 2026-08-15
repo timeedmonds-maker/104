@@ -1,0 +1,38 @@
+name: TREB retained game evidence closure
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-game-evidence-closure.yml
+      - scripts/treb_game_evidence_closure.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  closure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Reconcile retained facts for high-yield implicated games
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/treb_game_evidence_closure.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-game-evidence-closure-${{ github.run_id }}
+          path: /tmp/treb_game_closure/out
+          retention-days: 90
+          compression-level: 1
