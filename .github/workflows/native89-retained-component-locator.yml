@@ -1,0 +1,73 @@
+name: Native89 retained additive component locator
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-retained-component-locator.yml]
+permissions:
+  contents: read
+jobs:
+  locate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Locate production writers and retained additive schemas
+        run: |
+          set -euo pipefail
+          mkdir -p locator
+          python - <<'PY'
+          import os,re,json,gzip,csv,pathlib
+          root=pathlib.Path('.')
+          code_hits=[]
+          needles=re.compile(r'(rebound_stat_results|stage2_http_cache|core_reuse_index|OffRebounds|OReb%|get-on-off|corrected_off/cache)',re.I)
+          for p in root.rglob('*'):
+            if not p.is_file() or p.stat().st_size>3_000_000: continue
+            if any(x in p.parts for x in ['.git','node_modules']): continue
+            if p.suffix.lower() not in {'.py','.yml','.yaml','.sh','.md','.txt','.json'}: continue
+            try:s=p.read_text(errors='ignore')
+            except:continue
+            if needles.search(s):
+              lines=[]
+              for i,line in enumerate(s.splitlines(),1):
+                if needles.search(line): lines.append({'line':i,'text':line[:1000]})
+              code_hits.append({'path':str(p),'hits':lines[:150]})
+          # scan compressed CSV headers for additive/stat + subject/identity coexistence
+          csv_hits=[]
+          for p in root.rglob('*.csv.gz'):
+            try:
+              with gzip.open(p,'rt',encoding='utf-8',errors='replace',newline='') as f:
+                r=csv.reader(f); hdr=next(r,[])
+              low='|'.join(hdr).lower()
+              score=sum(k in low for k in ['offrebounds','off_rebounds','oreb','subject_player','player_id','team_id','offposs','defposs','points','opponentpoints'])
+              if score>=2:
+                csv_hits.append({'path':str(p),'size':p.stat().st_size,'columns':hdr,'score':score})
+            except Exception as e: pass
+          # scan compressed JSON top structures for additive + subject identity; cap sample work per file
+          json_hits=[]
+          for p in root.rglob('*.json.gz'):
+            if p.stat().st_size>50_000_000: continue
+            try:
+              with gzip.open(p,'rt',encoding='utf-8',errors='replace') as f:o=json.load(f)
+              blob=json.dumps(o if p.stat().st_size<2_000_000 else (list(o)[:20] if isinstance(o,dict) else o[:5]),default=str)[:2_000_000]
+              low=blob.lower()
+              if ('offrebounds' in low or 'off_rebounds' in low) and any(k in low for k in ['subject_player','focal_player','player_id']):
+                json_hits.append({'path':str(p),'size':p.stat().st_size,'top_type':type(o).__name__,'top_keys':list(o)[:80] if isinstance(o,dict) else None})
+            except Exception: pass
+          out={'code_hits':code_hits,'csv_hits':sorted(csv_hits,key=lambda x:(-x['score'],x['path'])),'json_hits':json_hits}
+          pathlib.Path('locator/native89_retained_component_locator.json').write_text(json.dumps(out,indent=2)+'\n')
+          print('CODE_HITS',len(code_hits));
+          for h in code_hits[:80]: print('\n###',h['path']); [print(x['line'],x['text']) for x in h['hits'][:30]]
+          print('\nCSV_HITS',len(csv_hits));
+          for h in sorted(csv_hits,key=lambda x:(-x['score'],x['path']))[:100]: print(h['score'],h['path'],h['columns'])
+          print('\nJSON_HITS',len(json_hits));
+          for h in json_hits[:100]: print(h)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-retained-component-locator-${{ github.run_id }}
+          path: locator/native89_retained_component_locator.json
+          retention-days: 30
+          if-no-files-found: error
