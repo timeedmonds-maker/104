@@ -1,0 +1,240 @@
+name: TREB game-gap forensic fanout v2
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-game-gap-forensics-fanout-v2.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-game-gap-forensics-fanout-v2
+  cancel-in-progress: true
+
+env:
+  SOURCE_RUN: "31871719056"
+  PYTHONUNBUFFERED: "1"
+  PYTHONPATH: "${{ github.workspace }}/team_trb_all_players"
+
+jobs:
+  prepare:
+    name: A - extract unique failed games
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-auto-v3-historical-*-${{ env.SOURCE_RUN }}
+          path: /tmp/historical
+          merge-multiple: false
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: ${{ env.SOURCE_RUN }}
+      - name: A1 - deduplicate failures and build season fanout
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/plan
+          python - <<'PY'
+          import json,re,pathlib,csv
+          root=pathlib.Path('/tmp/historical')
+          by={}
+          for p in root.rglob('game_failures.json'):
+              m=re.search(r'TREB-auto-v3-historical-(\d{4})-\d+-31871719056',str(p))
+              if not m: continue
+              year=int(m.group(1))
+              for r in json.loads(p.read_text()):
+                  gid=int(r['game_id'])
+                  by[(year,gid)]={'year':year,'season':f'{year}-{(year+1)%100:02d}','game_id':gid,'status':str(r.get('status','')),'error':str(r.get('error','')),'teams':r.get('teams',[])}
+          rows=sorted(by.values(),key=lambda r:(r['year'],r['game_id']))
+          assert rows
+          years=sorted({r['year'] for r in rows})
+          matrix={'include':[{'year':y,'season':f'{y}-{(y+1)%100:02d}','failure_games':sum(r['year']==y for r in rows)} for y in years]}
+          pathlib.Path('/tmp/plan/FAILED_GAMES.json').write_text(json.dumps(rows,indent=2)+'\n')
+          with open('/tmp/plan/FAILED_GAMES.csv','w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=['year','season','game_id','status','error','teams']); w.writeheader()
+              for r in rows: w.writerow({**r,'teams':','.join(map(str,r['teams']))})
+          pathlib.Path('/tmp/plan/PLAN_QA.json').write_text(json.dumps({'status':'PASS','unique_failed_games':len(rows),'season_count':len(years),'years':years},indent=2)+'\n')
+          pathlib.Path('/tmp/matrix.json').write_text(json.dumps(matrix,separators=(',',':')))
+          print(json.dumps({'unique_failed_games':len(rows),'season_count':len(years),'years':years},indent=2))
+          PY
+          echo "matrix=$(cat /tmp/matrix.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-game-gap-plan-v2-${{ github.run_id }}
+          path: /tmp/plan
+          retention-days: 90
+          compression-level: 1
+
+  forensic:
+    name: B - ${{ matrix.season }} exact failed-game forensics (${{ matrix.failure_games }})
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      max-parallel: 26
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - uses: actions/download-artifact@v4
+        with:
+          name: TREB-game-gap-plan-v2-${{ github.run_id }}
+          path: /tmp/plan
+      - name: B1 - resolve retained source URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 3 --connect-timeout 15 --max-time 60 --output /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - '${{ matrix.year }}' <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_{y}'; assert k in vals,k; print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${{ matrix.year }}.tar.xz"
+            curl --fail --location --retry 3 --retry-all-errors --retry-delay 2 --connect-timeout 20 --max-time 300 --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+      - name: B2 - derive only unique complete order-preserving exact candidates
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          YEAR='${{ matrix.year }}' python - <<'PY'
+          import json,os,pathlib
+          import pandas as pd
+          import local_treb_rebuild as core
+          import production_rebound_v3 as join_engine
+          import production_treb_engine_v3 as lineup_engine
+          import run_local_treb_production as io
+          year=int(os.environ['YEAR']); season=f'{year}-{(year+1)%100:02d}'
+          failures=[r for r in json.load(open('/tmp/plan/FAILED_GAMES.json')) if int(r['year'])==year]
+          gids={int(r['game_id']) for r in failures}
+          nba=io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{year}.csv',low_memory=False))
+          v3=lineup_engine.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{year}.csv',low_memory=False))
+          pbp=io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{year}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba[pd.to_numeric(nba.GAME_ID,errors='coerce').isin(gids)].groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3[pd.to_numeric(v3.gameId,errors='coerce').isin(gids)].groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp[pd.to_numeric(pbp.GAMEID,errors='coerce').isin(gids)].groupby('GAMEID',sort=False)}
+          def elapsed(period,clock): return int(core.elapsed_seconds(int(period),clock))
+          def rebound_rows(frame):
+              d=frame.copy(); d['_ord']=range(len(d)); d=d[d.DESCRIPTION.fillna('').str.contains('rebound',case=False)].copy(); d['_start']=[elapsed(p,c) for p,c in zip(d.PERIOD,d.STARTTIME)]; d['_end']=[elapsed(p,c) for p,c in zip(d.PERIOD,d.ENDTIME)]; return d
+          reports=[]; promoted=[]; control_applicable=control_correct=control_wrong=0
+          for gid in sorted(gids):
+              rep={'game_id':gid,'season':season,'status':'UNRESOLVED'}
+              try:
+                  assert gid in ng and gid in vg and gid in pg, 'source-set gap'
+                  lineups=lineup_engine.reconstruct_game_lineups(ng[gid],vg[gid])
+                  joined,audit=join_engine.join_pbp_rebounds(lineups,pg[gid])
+                  rows=rebound_rows(pg[gid]); nbaev=lineups.events
+                  used=set(pd.to_numeric(joined.NBA_INDEX,errors='coerce').dropna().astype(int)); unmatched=[idx for idx in rows.index if idx not in set(joined.index)]
+                  reb_indices=[int(i) for i in nbaev.index[pd.to_numeric(nbaev.EVENTMSGTYPE,errors='coerce').eq(4)]]
+                  def candidates(idx,used_now):
+                      r=rows.loc[idx]; lo=min(int(r['_start']),int(r['_end']))-5; hi=max(int(r['_start']),int(r['_end']))+5; period=int(r.PERIOD); out=[]
+                      for ni in reb_indices:
+                          if ni in used_now: continue
+                          n=nbaev.loc[ni]
+                          if int(n.PERIOD)!=period: continue
+                          e=int(n.ELAPSED)
+                          if lo <= e <= hi: out.append(ni)
+                      return sorted(out,key=lambda ni:(int(nbaev.loc[ni,'ELAPSED']),int(nbaev.loc[ni,'EVENTNUM'])))
+                  for idx,jr in joined.iterrows():
+                      if idx not in rows.index or pd.isna(jr.get('NBA_INDEX')): continue
+                      actual=int(jr['NBA_INDEX']); cs=candidates(idx,used-{actual})
+                      if len(cs)==1:
+                          control_applicable+=1
+                          if cs[0]==actual: control_correct+=1
+                          else: control_wrong+=1
+                  ordered=sorted(unmatched,key=lambda idx:(int(rows.loc[idx,'PERIOD']),int(rows.loc[idx,'_ord']))); solutions=[]
+                  def walk(pos,chosen,local_used,last_eventnum):
+                      if len(solutions)>1: return
+                      if pos==len(ordered): solutions.append(chosen.copy()); return
+                      idx=ordered[pos]
+                      for ni in candidates(idx,used|local_used):
+                          ev=int(nbaev.loc[ni,'EVENTNUM'])
+                          if ev <= last_eventnum: continue
+                          chosen.append((idx,ni)); local_used.add(ni); walk(pos+1,chosen,local_used,ev); local_used.remove(ni); chosen.pop()
+                  walk(0,[],set(),-1); recs=[]
+                  if ordered and len(solutions)==1:
+                      for idx,ni in solutions[0]:
+                          r=rows.loc[idx]; n=nbaev.loc[ni]; recs.append({'game_id':gid,'period':int(r.PERIOD),'start_time':str(r.STARTTIME),'end_time':str(r.ENDTIME),'pbp_description':str(r.DESCRIPTION),'nba_eventnum':int(n.EVENTNUM),'nba_elapsed':int(n.ELAPSED),'lineup':[int(x) for x in n.LINEUP],'real':bool(core._nba_real_rebound(nbaev,ni)),'method':'unique_complete_order_preserving_assignment_within_existing_legal_window'})
+                      rep['status']='UNIQUE_COMPLETE_CANDIDATE'; promoted.extend(recs)
+                  elif not ordered: rep['status']='NO_UNMATCHED_AFTER_BASE'
+                  else: rep['status']='AMBIGUOUS_OR_NO_COMPLETE_ASSIGNMENT'
+                  rep.update({'unmatched_rows':len(ordered),'complete_solutions_capped':len(solutions),'candidate_repairs':recs,'join_audit':audit})
+              except Exception as exc:
+                  rep.update(status='FORENSIC_ERROR',error=f'{type(exc).__name__}: {exc}')
+              reports.append(rep)
+          statuses={}
+          for r in reports: statuses[r['status']]=statuses.get(r['status'],0)+1
+          qa={'status':'PASS','season':season,'failed_games':len(failures),'reports':len(reports),'status_counts':statuses,'candidate_repairs':len(promoted),'candidate_games':len({r['game_id'] for r in promoted}),'control_applicable':control_applicable,'control_correct':control_correct,'control_wrong':control_wrong,'promotion_gate_pass':bool(promoted) and control_wrong==0}
+          out=pathlib.Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True); (out/'FORENSIC_REPORT.json').write_text(json.dumps(reports,indent=2)+'\n'); (out/'CANDIDATE_REPAIRS.json').write_text(json.dumps({'status':'CANDIDATE_ONLY','season':season,'control_applicable':control_applicable,'control_correct':control_correct,'control_wrong':control_wrong,'repairs':promoted},indent=2)+'\n'); (out/'FORENSIC_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-game-gap-forensic-v2-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    name: C - consolidate forensic candidate gates
+    needs: [prepare, forensic]
+    if: always() && needs.prepare.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-game-gap-forensic-v2-*-${{ github.run_id }}
+          path: /tmp/forensic
+          merge-multiple: false
+      - name: C1 - fail-closed candidate union
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/consolidated
+          python - <<'PY'
+          import json,pathlib
+          qas=[]; repairs=[]; reports=[]
+          for p in pathlib.Path('/tmp/forensic').rglob('FORENSIC_QA.json'): qas.append(json.loads(p.read_text()))
+          for p in pathlib.Path('/tmp/forensic').rglob('CANDIDATE_REPAIRS.json'): repairs.extend(json.loads(p.read_text()).get('repairs',[]))
+          for p in pathlib.Path('/tmp/forensic').rglob('FORENSIC_REPORT.json'): reports.extend(json.loads(p.read_text()))
+          wrong=sum(int(q.get('control_wrong',0)) for q in qas); unique={(int(r['game_id']),int(r['period']),str(r['start_time']),str(r['end_time']),str(r['pbp_description'])) for r in repairs}; assert len(unique)==len(repairs)
+          status_counts={}
+          for r in reports: status_counts[r['status']]=status_counts.get(r['status'],0)+1
+          qa={'status':'PASS' if wrong==0 else 'BLOCKED','source_run':31871719056,'season_jobs':len(qas),'failed_games':len(reports),'candidate_games':len({int(r['game_id']) for r in repairs}),'candidate_repairs':len(repairs),'control_applicable':sum(int(q.get('control_applicable',0)) for q in qas),'control_correct':sum(int(q.get('control_correct',0)) for q in qas),'control_wrong':wrong,'status_counts':status_counts,'next_gate':'runtime replay validation before promotion'}
+          out=pathlib.Path('/tmp/consolidated'); (out/'GAME_GAP_FORENSIC_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); (out/'GAME_GAP_CANDIDATE_REPAIRS.json').write_text(json.dumps({'status':'CANDIDATE_ONLY','repairs':repairs},indent=2)+'\n'); (out/'GAME_GAP_FORENSIC_REPORT.json').write_text(json.dumps(reports,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-game-gap-forensic-v2-consolidated-${{ github.run_id }}
+          path: /tmp/consolidated
+          retention-days: 90
+          compression-level: 1
