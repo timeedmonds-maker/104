@@ -1,0 +1,231 @@
+name: TREB exact full-core fanout recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-fullcore-exact-fanout.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-fullcore-exact-fanout
+  cancel-in-progress: false
+
+env:
+  TARGETS: team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz
+
+jobs:
+  collect:
+    name: exact full-core ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 58
+    strategy:
+      fail-fast: false
+      max-parallel: 26
+      matrix:
+        year: [2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install exact reconstruction dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+
+      - name: Download three retained full-season source feeds
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          mkdir -p /tmp/src /tmp/out
+          printf '{"phase":"SOURCE_DOWNLOAD","year":%s}\n' "$y" > /tmp/out/progress.json
+          curl --fail --location --retry 6 --retry-all-errors --retry-delay 2 \
+            --output /tmp/list_data.txt \
+            https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for prefix in ('nbastats','nbastatsv3','pbpstats'):
+              key=f'{prefix}_{y}'
+              if key not in vals:
+                  raise SystemExit(f'MISSING_SOURCE_URL {key}')
+              print(prefix,vals[key],sep='\t')
+          PY
+          while IFS=$'\t' read -r prefix url; do
+            arc="/tmp/src/${prefix}_${y}.tar.xz"
+            echo "SOURCE_FETCH year=$y prefix=$prefix url=$url"
+            curl --fail --location --retry 6 --retry-all-errors --retry-delay 3 --connect-timeout 20 \
+              --output "$arc" "$url"
+            tar -xJf "$arc" -C /tmp/src
+          done < /tmp/urls.tsv
+          for prefix in nbastats nbastatsv3 pbpstats; do
+            test -s "/tmp/src/${prefix}_${y}.csv"
+          done
+          printf '{"phase":"SOURCE_READY","year":%s}\n' "$y" > /tmp/out/progress.json
+
+      - name: Reconstruct exact season facts and full-core TREB
+        timeout-minutes: 40
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          (
+            while sleep 120; do
+              echo "HEARTBEAT year=$y utc=$(date -u +%FT%TZ)"
+              if [ -f /tmp/out/progress.json ]; then cat /tmp/out/progress.json; fi
+            done
+          ) &
+          hb=$!
+          trap 'kill "$hb" 2>/dev/null || true' EXIT
+          python -u team_trb_all_players/rebuild_fullcore_treb_fanout.py \
+            --year "$y" \
+            --targets "$TARGETS" \
+            --nba "/tmp/src/nbastats_${y}.csv" \
+            --v3 "/tmp/src/nbastatsv3_${y}.csv" \
+            --pbp "/tmp/src/pbpstats_${y}.csv" \
+            --output-dir /tmp/out
+          kill "$hb" 2>/dev/null || true
+          trap - EXIT
+
+      - name: Upload season checkpoint and exact rows
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-fullcore-exact-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+  consolidate:
+    name: consolidate 9,647 full-core keys
+    needs: collect
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - run: python -m pip install --disable-pip-version-check pandas
+
+      - name: Download every season result/checkpoint
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: TREB-fullcore-exact-*-${{ github.run_id }}
+          path: /tmp/seasons
+          merge-multiple: false
+
+      - name: Consolidate exact PASS rows and retain every failure
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          import pandas as pd
+
+          target_path=Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          targets=[]
+          with gzip.open(target_path,'rt',encoding='utf-8') as fh:
+              for line in fh:
+                  if line.strip():
+                      r=json.loads(line)
+                      if bool(r.get('full_core_reuse')):
+                          targets.append((str(r['season']),int(r['team_id']),str(r['player_id']).removesuffix('.0')))
+          target=set(targets)
+          assert len(targets)==9647 and len(target)==9647,(len(targets),len(target))
+
+          parts=[]
+          gates=[]
+          for p in sorted(Path('/tmp/seasons').rglob('fresh_fullcore_*.csv')):
+              try:
+                  parts.append(pd.read_csv(p,low_memory=False))
+              except Exception as exc:
+                  gates.append({'file':str(p),'read_error':repr(exc)})
+          for p in sorted(Path('/tmp/seasons').rglob('season_gate.json')):
+              try: gates.append(json.loads(p.read_text()))
+              except Exception as exc: gates.append({'file':str(p),'gate_read_error':repr(exc)})
+
+          if parts:
+              d=pd.concat(parts,ignore_index=True,sort=False)
+          else:
+              d=pd.DataFrame(columns=['season','team_id','player_id','status'])
+          if len(d):
+              d['season']=d.season.astype(str)
+              d['team_id']=pd.to_numeric(d.team_id,errors='coerce').astype('Int64')
+              d['player_id']=d.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+              d['_key']=list(zip(d.season,d.team_id.astype('int64'),d.player_id))
+          else:
+              d['_key']=[]
+
+          dup=int(d.duplicated(['season','team_id','player_id']).sum()) if len(d) else 0
+          passd=d[d.status.astype(str).eq('PASS')].copy() if len(d) else d.copy()
+          pass_keys=set(passd['_key']) if len(passd) else set()
+          missing=sorted(target-pass_keys)
+          extra=sorted(pass_keys-target)
+          exact_match=(len(passd)==9647 and len(pass_keys)==9647 and not missing and not extra and dup==0)
+
+          if len(passd):
+              passd.drop(columns=['_key'],errors='ignore').to_csv('/tmp/final/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz',index=False,compression='gzip')
+          if exact_match:
+              passd=passd.sort_values(['season','team_id','player_id'],kind='stable')
+              passd.drop(columns=['_key'],errors='ignore').to_csv('/tmp/final/FULLCORE_TOTALREBOUNDPCT_EXACT_9647.csv.gz',index=False,compression='gzip')
+          if missing:
+              pd.DataFrame(missing,columns=['season','team_id','player_id']).to_csv('/tmp/final/MISSING_FULLCORE_KEYS.csv',index=False)
+          failures=d[~d.status.astype(str).eq('PASS')].drop(columns=['_key'],errors='ignore') if len(d) else d
+          if len(failures): failures.to_csv('/tmp/final/FULLCORE_FAILURE_ROWS.csv',index=False)
+
+          summary={
+              'status':'PASS' if exact_match else 'INCOMPLETE',
+              'required_full_core_keys':9647,
+              'season_result_files':len(parts),
+              'rows_returned':int(len(d)),
+              'pass_rows':int(len(passd)),
+              'unique_pass_keys':int(len(pass_keys)),
+              'missing_keys':int(len(missing)),
+              'extra_keys':int(len(extra)),
+              'duplicate_rows':dup,
+              'season_gates':gates,
+              'rounded_percentage_backsolve_used':False,
+              'opponent_rebound_inference_used':False,
+              'whole_team_subtraction_across_partial_tenure_used':False,
+              'full_core_only':True,
+              'next_retry_scope':'missing_keys_only',
+          }
+          Path('/tmp/final/FANOUT_GATE.json').write_text(json.dumps(summary,indent=2)+'\n')
+          Path('/tmp/final/README.txt').write_text(
+              'Fresh exact TotalReboundPct recovery for the 9,647 full_core_reuse keys only.\n'
+              'The established 4,877 exact partial-tenure keys and native 89 Stage2 metrics are not rebuilt here.\n'
+              'Successful rows retain exact rebound counts and ON/OFF values. Any retry scope is missing keys only.\n'
+          )
+          print(json.dumps({k:summary[k] for k in ['status','season_result_files','rows_returned','pass_rows','unique_pass_keys','missing_keys','duplicate_rows']},indent=2))
+          PY
+
+      - name: Upload consolidated recovery even when incomplete
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-fullcore-exact-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
