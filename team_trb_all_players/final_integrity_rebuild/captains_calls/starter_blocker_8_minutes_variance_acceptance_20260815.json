@@ -1,0 +1,39 @@
+{
+  "decision": "ACCEPT_NARROW_MINUTES_VARIANCE_EXCEPTION",
+  "date": "2026-08-15",
+  "production_branch": "agent/treb-final-exact-assembly",
+  "scope": {
+    "keys": 8,
+    "global_minutes_gate_seconds": 60,
+    "exception_max_abs_seconds": 131,
+    "global_gate_changed": false
+  },
+  "basis": {
+    "root_cause_run": 31863100199,
+    "root_cause_artifact_id": 9241202619,
+    "root_cause_artifact": "TREB-starter-blocker-8-rootcause-31863100199",
+    "root_cause_digest": "sha256:2fd8466e60d7ec7e5ebcb85bc1785a297b750e266c59a8c474becec5c1c408e5",
+    "provenance_run": 31863736945,
+    "provenance_artifact_id": 9241358675,
+    "provenance_artifact": "TREB-starter-blocker-8-target-provenance-31863736945",
+    "provenance_digest": "sha256:780d411c9950e254161d5542ca9cc5d503c0e65e1c037baea0f3028ce78fe214"
+  },
+  "accepted_blockers": [
+    {"player":"Jeff Foster","team":"IND","season":"2001-02","min_abs_seconds_error":72},
+    {"player":"Zeke Nnaji","team":"DEN","season":"2024-25","min_abs_seconds_error":73},
+    {"player":"Trey Alexander","team":"DEN","season":"2024-25","min_abs_seconds_error":73},
+    {"player":"Gabe Vincent","team":"LAL","season":"2024-25","min_abs_seconds_error":131},
+    {"player":"Adem Bona","team":"PHI","season":"2024-25","min_abs_seconds_error":78},
+    {"player":"Justin Edwards","team":"PHI","season":"2024-25","min_abs_seconds_error":78},
+    {"player":"Paul Reed","team":"DET","season":"2024-25","min_abs_seconds_error":115},
+    {"player":"Jalen Duren","team":"DET","season":"2024-25","min_abs_seconds_error":115}
+  ],
+  "interpretation": "Captain's-call acceptance of the nearest legal coherent starter-state reconstruction for these eight identified blocker players only. This does not relax the <=60-second canonical minutes gate for any other key and does not claim the chosen starter state is uniquely true.",
+  "downstream_effect": "The 55 cross-player incompatibility keys previously shown to be jointly compatible may proceed using the retained coherent representative states once this narrow blocker exception is applied.",
+  "excluded": [
+    "Greg Buckner DEN 2005-06 material ambiguity",
+    "54 fail-closed 2015-16 starter keys",
+    "all other minutes-gate failures",
+    "all other structural/data-integrity gates"
+  ]
+}
