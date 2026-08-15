@@ -42,10 +42,10 @@ def main() -> int:
                 targets.append(r)
     if not targets:
         raise RuntimeError(f'No targets for {season}')
-    team_ids = sorted({int(r['team_id']) for r in targets})
-    if len(team_ids) != 1:
-        raise RuntimeError(f'Target-team wrapper requires exactly one team, got {team_ids}')
-    target_team = team_ids[0]
+    target_teams = sorted({int(r['team_id']) for r in targets})
+    if len(target_teams) > 2:
+        raise RuntimeError(f'Bounded wrapper allows at most two teams, got {target_teams}')
+    target_team_set = set(target_teams)
 
     outdir = args.output_dir
     outdir.mkdir(parents=True, exist_ok=True)
@@ -56,11 +56,11 @@ def main() -> int:
     nba_norm = io.normalize_nba(nba_raw.copy())
     target_games = []
     for gid, game in nba_norm.groupby('GAME_ID', sort=False):
-        if target_team in engine.nba_game_teams(game):
+        if engine.nba_game_teams(game) & target_team_set:
             target_games.append(int(gid))
     target_games = sorted(set(target_games))
     if not target_games:
-        raise RuntimeError(f'No NBA games found for target team {target_team} {season}')
+        raise RuntimeError(f'No NBA games found for target teams {target_teams} {season}')
     target_set = set(target_games)
 
     def filter_source(raw_path: Path, game_col: str, out_path: Path) -> tuple[int, int]:
@@ -84,7 +84,7 @@ def main() -> int:
     qa = {
         'status': 'PASS',
         'season': season,
-        'target_team_id': target_team,
+        'target_team_ids': target_teams,
         'target_keys': len(targets),
         'selected_games': len(target_games),
         'first_game_id': target_games[0],
