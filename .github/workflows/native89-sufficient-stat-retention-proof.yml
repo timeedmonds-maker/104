@@ -1,0 +1,56 @@
+name: Native89 sufficient-stat retention proof
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-sufficient-stat-retention-proof.yml]
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Inspect retained partial-tenure cache and core payloads
+        run: |
+          python - <<'PY'
+          import gzip,json,pathlib,re,itertools,collections
+          out={}
+          # representative partial-tenure corrected-off cache payloads
+          cdir=pathlib.Path('team_trb_all_players/impact_database/corrected_off/cache')
+          cps=sorted(cdir.glob('*.json.gz'))
+          chosen=[]
+          for p in cps:
+            if len(chosen)>=6: break
+            try:
+              with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+              chosen.append((p,o))
+            except Exception: pass
+          def summarize(o,depth=0):
+            if depth>5:return {'type':type(o).__name__}
+            if isinstance(o,dict):
+              return {str(k):summarize(v,depth+1) for k,v in list(o.items())[:80]}
+            if isinstance(o,list):
+              return {'type':'list','len':len(o),'samples':[summarize(v,depth+1) for v in o[:3]]}
+            return {'type':type(o).__name__,'value':o}
+          out['cache_count']=len(cps)
+          out['cache_samples']=[{'path':str(p),'payload':summarize(o)} for p,o in chosen]
+          # representative core checkpoint, expose relevant top-level objects fully enough
+          cp=pathlib.Path('team_trb_all_players/impact_database/core_checkpoints/2021-22/1610612747.json.gz')
+          with gzip.open(cp,'rt',encoding='utf-8') as f:o=json.load(f)
+          rel={k:o.get(k) for k in ['team_profiles','team_on_off_results','rebound_stat_results','rebound_derived','requests','payload_meta']}
+          out['core_relevant']={k:summarize(v) for k,v in rel.items()}
+          pathlib.Path('native89_sufficient_stat_retention_proof.json').write_text(json.dumps(out,indent=2,default=str)+'\n')
+          print('CACHE_COUNT',len(cps))
+          for e in out['cache_samples'][:2]: print(json.dumps(e,indent=2,default=str)[:30000])
+          print('CORE_RELEVANT',json.dumps(out['core_relevant'],indent=2,default=str)[:60000])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-sufficient-stat-retention-proof-${{ github.run_id }}
+          path: native89_sufficient_stat_retention_proof.json
+          retention-days: 30
+          if-no-files-found: error
