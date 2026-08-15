@@ -1,0 +1,57 @@
+name: Native89 retained core checkpoint schema
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-core-checkpoint-schema.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Inspect representative retained core checkpoints
+        run: |
+          python - <<'PY'
+          import gzip,json,pathlib,re
+          roots=[]
+          for season,team in [('2000-01','1610612737'),('2021-22','1610612747'),('2025-26','1610612737')]:
+            p=pathlib.Path(f'team_trb_all_players/impact_database/core_checkpoints/{season}/{team}.json.gz')
+            with gzip.open(p,'rt',encoding='utf-8') as f: obj=json.load(f)
+            def walk(x,prefix='',depth=0):
+              out=[]
+              if depth>5:return out
+              if isinstance(x,dict):
+                for k,v in x.items():
+                  q=f'{prefix}.{k}' if prefix else str(k)
+                  if isinstance(v,(dict,list)):
+                    desc={'path':q,'type':type(v).__name__,'len':len(v)}
+                    out.append(desc); out.extend(walk(v,q,depth+1))
+                  else:
+                    out.append({'path':q,'type':type(v).__name__,'sample':v})
+              elif isinstance(x,list):
+                for i,v in enumerate(x[:3]):
+                  q=f'{prefix}[{i}]'
+                  if isinstance(v,(dict,list)):
+                    out.append({'path':q,'type':type(v).__name__,'len':len(v)}); out.extend(walk(v,q,depth+1))
+                  else: out.append({'path':q,'type':type(v).__name__,'sample':v})
+              return out
+            paths=walk(obj)
+            raw=[z for z in paths if re.search(r'(oreb|off.?reb|def.?reb|rebound|poss|point|pts|fgm|fga|fta|ftm|turnover|assist|seconds|minutes|on|off)',z['path'],re.I)]
+            roots.append({'season':season,'team_id':team,'top_type':type(obj).__name__,'top_keys':list(obj) if isinstance(obj,dict) else None,'path_count':len(paths),'rawish_paths':raw[:1500]})
+          pathlib.Path('native89_core_checkpoint_schema.json').write_text(json.dumps(roots,indent=2,default=str)+'\n')
+          for r in roots:
+            print('\n===',r['season'],r['team_id'],'===')
+            print('TOP',r['top_keys'])
+            for z in r['rawish_paths'][:250]:print(json.dumps(z,default=str))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-core-checkpoint-schema-${{ github.run_id }}
+          path: native89_core_checkpoint_schema.json
+          retention-days: 30
+          if-no-files-found: error
