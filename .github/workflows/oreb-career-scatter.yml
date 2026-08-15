@@ -1,0 +1,47 @@
+name: OREB career scatter production
+
+on:
+  push:
+    branches: [agent/oreb-career-scatter]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pandas matplotlib adjustText
+      - name: Inspect production source and build diagnostic
+        run: |
+          python - <<'PY'
+          import gzip, json, pathlib
+          src=pathlib.Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
+          out=pathlib.Path('oreb_scatter_out'); out.mkdir(exist_ok=True)
+          rows=[]
+          with gzip.open(src,'rt',encoding='utf-8') as f:
+              for i,line in enumerate(f):
+                  if line.strip(): rows.append(json.loads(line))
+                  if len(rows)>=20: break
+          diag={
+              'source':str(src),
+              'sample_count':len(rows),
+              'keys':sorted(rows[0].keys()) if rows else [],
+              'sample':rows[:3]
+          }
+          (out/'source_schema_sample.json').write_text(json.dumps(diag,indent=2,default=str))
+          print(json.dumps(diag,indent=2,default=str)[:30000])
+          PY
+      - name: Upload diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: oreb-career-scatter-diagnostic
+          path: oreb_scatter_out/
+          if-no-files-found: error
