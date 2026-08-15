@@ -1,0 +1,205 @@
+name: TREB release-lineage repair inventory
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - .github/workflows/treb-release-lineage-repair-inventory.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-release-lineage-repair-inventory
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      REPO: timeedmonds-maker/104
+      BASE_ARTIFACT_ID: '9211673158'
+      BASE_RUN_ID: '31780434242'
+      BASE_HEAD: '9d6e963412d88e78e4a25c874af95fe010930df8'
+      BASE_CREATED: '2026-08-14T07:42:22Z'
+      OUT: team_trb_all_players/final_integrity_rebuild/release_lineage_repair_inventory
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout production branch with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/treb-final-exact-assembly
+
+      - name: Configure monitoring and durable checkpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          mkdir -p "$OUT"
+          cat > /tmp/checkpoint.sh <<'SH'
+          checkpoint() {
+            local label="$1"
+            git add "$OUT"
+            if ! git diff --cached --quiet; then
+              git commit -m "TREB release-lineage checkpoint: ${label}"
+              git push origin HEAD:agent/treb-final-exact-assembly
+            fi
+          }
+          SH
+          echo "phase=setup utc=$(date -u +%FT%TZ)" | tee "$OUT/progress.txt"
+
+      - name: Recover exact 7:42pm base release and inventory it
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /tmp/checkpoint.sh
+          (
+            while true; do
+              echo "HEARTBEAT phase=base-release utc=$(date -u +%FT%TZ)";
+              sleep 120;
+            done
+          ) & HB=$!
+          trap 'kill $HB 2>/dev/null || true' EXIT
+
+          echo "phase=base-download artifact=$BASE_ARTIFACT_ID utc=$(date -u +%FT%TZ)" | tee "$OUT/progress.txt"
+          curl --fail --location --retry 3 --retry-delay 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/actions/artifacts/$BASE_ARTIFACT_ID/zip" \
+            -o /tmp/treb_base_artifact.zip
+          sha256sum /tmp/treb_base_artifact.zip | tee "$OUT/base_artifact_download.sha256"
+          mkdir -p /tmp/treb_base
+          unzip -q /tmp/treb_base_artifact.zip -d /tmp/treb_base
+          {
+            echo "BASE_RUN_ID=$BASE_RUN_ID"
+            echo "BASE_ARTIFACT_ID=$BASE_ARTIFACT_ID"
+            echo "BASE_HEAD=$BASE_HEAD"
+            echo "BASE_CREATED=$BASE_CREATED"
+            echo "OUTER_BYTES=$(stat -c%s /tmp/treb_base_artifact.zip)"
+            echo
+            echo "OUTER_CONTENTS"
+            find /tmp/treb_base -maxdepth 3 -type f -printf '%s\t%p\n' | sort -nr
+            echo
+            echo "INNER_ZIP_LISTINGS"
+            while IFS= read -r z; do
+              echo "--- $z ---"
+              unzip -l "$z" | tail -n +1
+            done < <(find /tmp/treb_base -type f -name '*.zip' | sort)
+          } > "$OUT/base_release_inventory.txt"
+          find /tmp/treb_base -type f \( -iname '*manifest*' -o -iname '*validation*' -o -iname '*readme*' -o -iname '*.sha256' \) -size -5M -print0 | while IFS= read -r -d '' f; do
+            safe=$(echo "$f" | sed 's#^/tmp/treb_base/##; s#[/]#__#g')
+            cp "$f" "$OUT/base__${safe}"
+          done
+          echo "phase=base-inventoried utc=$(date -u +%FT%TZ)" | tee "$OUT/progress.txt"
+          checkpoint base-release-inventoried
+
+      - name: Pin post-release solved lineage only
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /tmp/checkpoint.sh
+          (
+            while true; do
+              echo "HEARTBEAT phase=post-release-lineage utc=$(date -u +%FT%TZ)";
+              sleep 120;
+            done
+          ) & HB=$!
+          trap 'kill $HB 2>/dev/null || true' EXIT
+
+          echo "phase=lineage utc=$(date -u +%FT%TZ)" | tee "$OUT/progress.txt"
+          git merge-base --is-ancestor "$BASE_HEAD" HEAD
+          git log --reverse --date=iso-strict \
+            --format='%H%x09%ad%x09%an%x09%s' "$BASE_HEAD"..HEAD \
+            > "$OUT/post_release_commits.tsv"
+          git diff --name-status "$BASE_HEAD"..HEAD > "$OUT/post_release_changed_paths.tsv"
+          grep -Ei 'treb|rebound|canonical|overlay|repair|material|exact|residual|release|database|totalrebound|stage2|v13|23.key|full.core' \
+            "$OUT/post_release_changed_paths.tsv" > "$OUT/post_release_high_value_paths.tsv" || true
+          git log --reverse --name-status --date=iso-strict \
+            --format='COMMIT%x09%H%x09%ad%x09%s' "$BASE_HEAD"..HEAD -- \
+            team_trb_all_players .github/workflows \
+            > "$OUT/post_release_detailed_lineage.txt"
+          echo "phase=lineage-pinned commits=$(wc -l < "$OUT/post_release_commits.tsv") utc=$(date -u +%FT%TZ)" | tee "$OUT/progress.txt"
+          checkpoint post-release-lineage-pinned
+
+      - name: Inventory current durable solved overlays and post-release artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source /tmp/checkpoint.sh
+          (
+            while true; do
+              echo "HEARTBEAT phase=overlay-artifact-inventory utc=$(date -u +%FT%TZ)";
+              sleep 120;
+            done
+          ) & HB=$!
+          trap 'kill $HB 2>/dev/null || true' EXIT
+
+          echo "phase=overlay-inventory utc=$(date -u +%FT%TZ)" | tee "$OUT/progress.txt"
+          {
+            echo -e 'bytes\tpath'
+            git ls-tree -r -l HEAD team_trb_all_players | \
+              awk '{size=$4; $1=$2=$3=$4=""; sub(/^    /,""); print size "\t" $0}' | \
+              grep -Ei 'treb|rebound|canonical|overlay|repair|material|exact|residual|release|database|totalrebound|stage2|v13|23.key|full.core' | \
+              sort -nr || true
+          } > "$OUT/current_durable_candidate_files.tsv"
+
+          gh api --paginate --slurp "repos/$REPO/actions/artifacts?per_page=100" > /tmp/artifact_pages.json
+          jq --arg since "$BASE_CREATED" '
+            [ .[]?.artifacts[]?
+              | select(.created_at >= $since)
+              | select((.name | test("TREB|rebound|canonical|stage2|final|database|overlay|repair|exact|material|residual"; "i")))
+              | {id,name,size_in_bytes,created_at,expires_at,expired,digest,workflow_run}
+            ] | sort_by(.created_at)
+          ' /tmp/artifact_pages.json > "$OUT/post_release_artifacts.json"
+          jq -r '.[] | [.created_at,.id,.size_in_bytes,.name,(.workflow_run.id // ""),(.workflow_run.head_sha // "")] | @tsv' \
+            "$OUT/post_release_artifacts.json" > "$OUT/post_release_artifacts.tsv"
+
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+          out = Path('team_trb_all_players/final_integrity_rebuild/release_lineage_repair_inventory')
+          commits = [x for x in (out/'post_release_commits.tsv').read_text(errors='ignore').splitlines() if x.strip()]
+          paths = [x for x in (out/'post_release_high_value_paths.tsv').read_text(errors='ignore').splitlines() if x.strip()]
+          artifacts = json.loads((out/'post_release_artifacts.json').read_text())
+          key_patterns = re.compile(r'(totalrebound|canonical.*23|23.*overlay|exact.*overlay|partial|full.?core|final.database|release|v13|residual|material)', re.I)
+          selected_paths = [p for p in paths if key_patterns.search(p)]
+          selected_artifacts = [a for a in artifacts if key_patterns.search(a.get('name',''))]
+          report = [
+              '# TREB release-lineage repair inventory', '',
+              f'- Base run: 31780434242',
+              f'- Base artifact: 9211673158',
+              f'- Base head: 9d6e963412d88e78e4a25c874af95fe010930df8',
+              f'- Post-release commits: {len(commits)}',
+              f'- High-value changed paths: {len(paths)}',
+              f'- Post-release TREB artifacts: {len(artifacts)}',
+              f'- Strong overlay/materialization path hits: {len(selected_paths)}',
+              f'- Strong overlay/materialization artifact hits: {len(selected_artifacts)}', '',
+              '## Strong path hits',
+              *[f'- `{p}`' for p in selected_paths[:200]], '',
+              '## Strong artifact hits',
+              *[f"- {a.get('created_at')} | {a.get('id')} | {a.get('size_in_bytes')} bytes | `{a.get('name')}` | run {a.get('workflow_run',{}).get('id','')}" for a in selected_artifacts[:200]], '',
+              '## Contract',
+              '- The 7:42pm 217 MB release is the immutable base.',
+              '- Only post-release solved overlays/materializations are candidates for repair.',
+              '- No Stage2 rebuild, live NBA fetch, rounded percentage backsolve, or historical reconstruction is authorized.'
+          ]
+          (out/'REPORT.md').write_text('\n'.join(report)+'\n')
+          PY
+          echo "phase=inventory-complete artifacts=$(jq length "$OUT/post_release_artifacts.json") utc=$(date -u +%FT%TZ)" | tee "$OUT/progress.txt"
+          checkpoint overlay-and-artifact-inventory-complete
+
+      - name: Upload durable repair inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-release-lineage-repair-inventory-${{ github.run_id }}
+          path: team_trb_all_players/final_integrity_rebuild/release_lineage_repair_inventory
+          if-no-files-found: error
+          retention-days: 30
