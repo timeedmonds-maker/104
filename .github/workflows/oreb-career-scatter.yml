@@ -1,4 +1,4 @@
-name: OREB missed-3 metric scan
+name: OREB missed-3 career scatter
 
 on:
   push:
@@ -8,23 +8,134 @@ permissions:
   contents: read
 
 jobs:
-  scan:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Scan metric names
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pandas matplotlib adjustText
+      - name: Build missed-3 OREB scatter
         run: |
           python - <<'PY'
-          import gzip, json
-          p='team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz'
-          metrics=set()
-          with gzip.open(p,'rt',encoding='utf-8') as f:
+          import gzip, json, pathlib
+          import numpy as np
+          import pandas as pd
+          import matplotlib.pyplot as plt
+          from matplotlib import font_manager
+          from matplotlib.ticker import FuncFormatter
+          from adjustText import adjust_text
+
+          SRC=pathlib.Path('team_trb_all_players/impact_database/corrected_off/tenure_segment_on_off.jsonl.gz')
+          OUT=pathlib.Path('oreb_missed3_out'); OUT.mkdir(exist_ok=True)
+          METRIC='OReb% - Missed 3s'
+          MIN_MINUTES=10000.0
+
+          rows=[]
+          with gzip.open(SRC,'rt',encoding='utf-8') as f:
               for line in f:
-                  if line.strip():
-                      m=json.loads(line).get('metric')
-                      if m: metrics.add(str(m))
-          for m in sorted(metrics):
-              ml=m.lower()
-              if ('reb' in ml or 'oreb' in ml) and ('3' in ml or 'three' in ml or 'miss' in ml):
-                  print(m)
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  if r.get('complete') is True and r.get('metric') == METRIC:
+                      rows.append({
+                          'player_id':str(r.get('player_id')),
+                          'player':r.get('player'),
+                          'season':r.get('season'),
+                          'minutes_on':r.get('minutes_on'),
+                          'minutes_off':r.get('minutes_off'),
+                          'on':r.get('on'),
+                          'off':r.get('off_corrected')
+                      })
+          d=pd.DataFrame(rows)
+          if d.empty: raise SystemExit('No missed-3 OREB rows found')
+          for col in ['minutes_on','minutes_off','on','off']:
+              d[col]=pd.to_numeric(d[col],errors='coerce')
+
+          def cname(s):
+              s=s.dropna().astype(str)
+              return s.mode().iloc[0] if len(s) else ''
+
+          career=[]
+          for pid,g in d.groupby('player_id',sort=False):
+              gon=g[g['on'].notna() & g['minutes_on'].gt(0)]
+              goff=g[g['off'].notna() & g['minutes_off'].gt(0)]
+              mins=float(g['minutes_on'].fillna(0).sum())
+              on=float(np.average(gon['on'],weights=gon['minutes_on'])) if len(gon) else np.nan
+              off=float(np.average(goff['off'],weights=goff['minutes_off'])) if len(goff) else np.nan
+              career.append({
+                  'player_id':pid,'player':cname(g['player']),'minutes_on':mins,
+                  'oreb_missed3_on_pct':on*100.0,
+                  'oreb_missed3_off_pct':off*100.0,
+                  'oreb_missed3_swing_pp':(on-off)*100.0 if np.isfinite(on) and np.isfinite(off) else np.nan,
+                  'seasons':g['season'].nunique()
+              })
+          c=pd.DataFrame(career)
+          c=c[(c.minutes_on>=MIN_MINUTES)&c.oreb_missed3_on_pct.notna()&c.oreb_missed3_swing_pp.notna()].copy()
+          c=c.sort_values('oreb_missed3_swing_pp').reset_index(drop=True)
+          if c.empty: raise SystemExit('No eligible players')
+          c.to_csv(OUT/'oreb_missed3_career_scatter_data_10000min.csv',index=False)
+
+          narrow=pathlib.Path('fonts-local/etc/fonts/TTF/LiberationSansNarrow-Bold.ttf')
+          regular=pathlib.Path('fonts-local/etc/fonts/TTF/LiberationSans-Regular.ttf')
+          bold=pathlib.Path('fonts-local/etc/fonts/TTF/LiberationSans-Bold.ttf')
+          for p in [narrow,regular,bold]:
+              if p.exists(): font_manager.fontManager.addfont(str(p))
+          head=font_manager.FontProperties(fname=str(narrow)) if narrow.exists() else font_manager.FontProperties(weight='bold')
+          body=font_manager.FontProperties(fname=str(regular)) if regular.exists() else font_manager.FontProperties()
+          bb=font_manager.FontProperties(fname=str(bold)) if bold.exists() else font_manager.FontProperties(weight='bold')
+
+          fig=plt.figure(figsize=(7.5,10),dpi=200,facecolor='#f2f2f2')
+          ax=fig.add_axes([0.13,0.13,0.80,0.69],facecolor='#efefef')
+          ax.scatter(c.oreb_missed3_swing_pp,c.oreb_missed3_on_pct,s=29,c='#203a56',edgecolors='#a7c1d5',linewidths=.65,alpha=.88,zorder=3)
+          ax.axvline(0,color='#777777',linestyle=(0,(3,4)),linewidth=1,alpha=.75,zorder=1)
+          ax.grid(True,color='#d4d4d4',linewidth=.55,alpha=.65,zorder=0)
+          for s in ax.spines.values(): s.set_visible(False)
+          ax.tick_params(axis='both',labelsize=9,length=0,pad=7)
+          ax.xaxis.set_major_formatter(FuncFormatter(lambda x,pos:f'{x:+.1f}'))
+          ax.yaxis.set_major_formatter(FuncFormatter(lambda y,pos:f'{y:.1f}%'))
+          ax.set_xlabel('OREB% ON MISSED 3s SWING  •  ON − OFF (PCT. PTS.)',fontproperties=bb,fontsize=10.5,labelpad=12,color='#c62828')
+          ax.set_ylabel('ON-COURT OREB% ON MISSED 3s',fontproperties=bb,fontsize=10.5,labelpad=12,color='#222222')
+
+          ids=[]
+          for frame in [c.nsmallest(5,'oreb_missed3_swing_pp'),c.nlargest(5,'oreb_missed3_swing_pp'),c.nlargest(4,'oreb_missed3_on_pct')]:
+              for i in frame.index:
+                  if i not in ids: ids.append(i)
+          for i in c.index[c.player.eq('Steven Adams')]:
+              if i not in ids: ids.append(i)
+          texts=[]
+          for i in ids:
+              r=c.loc[i]
+              texts.append(ax.text(r.oreb_missed3_swing_pp,r.oreb_missed3_on_pct,r.player,fontproperties=bb,fontsize=7.4,color='#202020',zorder=5))
+          adjust_text(texts,ax=ax,expand=(1.16,1.25),force_text=(.35,.55),force_points=(.18,.25),arrowprops=dict(arrowstyle='-',color='#7f7f7f',lw=.65,alpha=.8),min_arrow_len=5)
+
+          fig.text(.065,.955,'OFFENSIVE REBOUNDING',fontproperties=head,fontsize=29,va='top',color='#202020')
+          fig.text(.065,.905,'AFTER MISSED 3-POINT SHOTS',fontproperties=head,fontsize=25,va='top',color='#c62828')
+          fig.text(.067,.858,'NBA regular season • 2000-01 to 2025-26 • Minimum 10,000 on-court minutes',fontproperties=body,fontsize=9.5,va='top',color='#555555')
+          fig.text(.067,.835,f'{len(c):,} qualifying players • Each dot is one career',fontproperties=body,fontsize=9,va='top',color='#777777')
+          fig.text(.065,.060,'Career ON and corrected OFF rates are exposure-weighted across retained tenure segments.',fontproperties=body,fontsize=7.2,color='#666666')
+          fig.text(.065,.039,'Source: final 89-metric production database • @funakistats',fontproperties=body,fontsize=7.2,color='#666666')
+          fig.text(.925,.035,'@funakistats',ha='right',fontproperties=bb,fontsize=8.7,color='#333333')
+
+          xr=max(c.oreb_missed3_swing_pp.max()-c.oreb_missed3_swing_pp.min(),1)
+          yr=max(c.oreb_missed3_on_pct.max()-c.oreb_missed3_on_pct.min(),1)
+          ax.set_xlim(c.oreb_missed3_swing_pp.min()-.08*xr,c.oreb_missed3_swing_pp.max()+.10*xr)
+          ax.set_ylim(c.oreb_missed3_on_pct.min()-.08*yr,c.oreb_missed3_on_pct.max()+.12*yr)
+
+          fig.savefig(OUT/'oreb_missed3_oncourt_vs_swing_10000min.png',dpi=240,facecolor=fig.get_facecolor())
+          fig.savefig(OUT/'oreb_missed3_oncourt_vs_swing_10000min.svg',facecolor=fig.get_facecolor())
+          plt.close(fig)
+
+          adams=c[c.player.eq('Steven Adams')].to_dict('records')
+          audit={'status':'PASS','metric':METRIC,'min_minutes_on':MIN_MINUTES,'qualifying_players':int(len(c)),'steven_adams':adams,'x_min':float(c.oreb_missed3_swing_pp.min()),'x_max':float(c.oreb_missed3_swing_pp.max()),'y_min':float(c.oreb_missed3_on_pct.min()),'y_max':float(c.oreb_missed3_on_pct.max())}
+          (OUT/'audit.json').write_text(json.dumps(audit,indent=2))
+          print(json.dumps(audit,indent=2))
           PY
+      - name: Upload finished scatter
+        uses: actions/upload-artifact@v4
+        with:
+          name: oreb-missed3-oncourt-vs-swing-10000min
+          path: oreb_missed3_out/
+          if-no-files-found: error
