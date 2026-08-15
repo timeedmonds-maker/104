@@ -46,7 +46,7 @@ if linked!=1250: raise SystemExit(f'fail closed: expected 1250 linked blockers, 
 g2b=defaultdict(list)
 for x in km:
     for g in x.get('game_ids',[]): g2b[int(g)].append((str(x['season']),str(x['team_id']),str(x['player_id'])))
-ranked=sorted(g2b,key=lambda g:(-len(g2b[g]),g)); target=set(ranked[:300])
+ranked=sorted(g2b,key=lambda g:(-len(g2b[g]),g)); target=set(ranked)
 prog(phase='SEED',linked_blockers=linked,unlinked_blockers=1252-linked,implicated_games=len(g2b),target_games=len(target),max_blockers_per_game=max(map(len,g2b.values())))
 
 recs=dl.get('downloaded',[]) if isinstance(dl,dict) else dl
@@ -121,7 +121,7 @@ for (gid,tid,pid),fd in facts.items():
             conf.append({'game_id':gid,'team_id':tid,'player_id':pid,'field':field,'values':sorted(by),'source_counts':{str(k):len(v) for k,v in by.items()}})
 
 cb=Counter(x['game_id'] for x in cons); xb=Counter(x['game_id'] for x in conf)
-report=[{'game_id':g,'blocker_keys_affected':len(g2b[g]),'consensus_facts':cb[g],'conflict_facts':xb[g],'blocker_keys':[{'season':a,'team_id':b,'player_id':c} for a,b,c in g2b[g]]} for g in ranked[:300]]
+report=[{'game_id':g,'blocker_keys_affected':len(g2b[g]),'consensus_facts':cb[g],'conflict_facts':xb[g],'blocker_keys':[{'season':a,'team_id':b,'player_id':c} for a,b,c in g2b[g]]} for g in ranked]
 report.sort(key=lambda x:(-x['blocker_keys_affected'],-x['consensus_facts'],x['conflict_facts'],x['game_id']))
 pd.DataFrame(cons).to_csv(OUT/'PROMOTABLE_RETAINED_FACT_CONSENSUS.csv',index=False)
 (OUT/'RETAINED_FACT_CONFLICTS.json').write_text(json.dumps(conf,indent=2)+'\n')
