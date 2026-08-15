@@ -1,0 +1,139 @@
+name: TREB residual 1751 exact manifest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-residual-1751-manifest.yml
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-residual-1751-exact-manifest
+  cancel-in-progress: false
+
+jobs:
+  manifest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install --disable-pip-version-check pandas pyarrow
+      - name: Download exact full-core resume
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-resume-consolidated-31858884423
+          path: /tmp/fullcore
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31858884423'
+      - name: Download starter 1367 overlay
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-accept-immaterial-overlay-31861830762
+          path: /tmp/a1367
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31861830762'
+      - name: Download starter 63 overlay
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-starter-captains-call-63-consolidated-31864265375
+          path: /tmp/a63
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31864265375'
+      - name: Download failure diagnostic
+        uses: actions/download-artifact@v4
+        with:
+          name: TREB-fullcore-failure-diagnostic-31859842642
+          path: /tmp/diag
+          github-token: ${{ github.token }}
+          repository: timeedmonds-maker/104
+          run-id: '31859842642'
+      - name: Build exact residual manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          python - <<'PY'
+          import gzip,json
+          from pathlib import Path
+          import pandas as pd
+          KEYS=['season','team_id','player_id']
+          def sid(v):
+              s=str(v).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def canon(d):
+              d=d.copy()
+              d['season']=d['season'].astype(str)
+              d['team_id']=pd.to_numeric(d['team_id'],errors='coerce').astype('Int64')
+              d['player_id']=d['player_id'].map(sid)
+              return d
+          rows=[]
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if line.strip(): rows.append(json.loads(line))
+          t=canon(pd.DataFrame(rows)); full=t[t.full_core_reuse.astype(bool)].copy()
+          assert len(full)==9647
+          exact=canon(pd.read_csv('/tmp/fullcore/FULLCORE_TOTALREBOUNDPCT_PASS_ROWS.csv.gz',dtype={'player_id':str},low_memory=False))
+          a1367=canon(pd.read_csv('/tmp/a1367/STARTER_ACCEPT_IMMATERIAL_OVERLAY_1367.csv.gz',dtype={'player_id':str},low_memory=False))
+          a63=canon(pd.read_csv('/tmp/a63/STARTER_CAPTAINS_CALL_63_OVERLAY.csv.gz',dtype={'player_id':str},low_memory=False))
+          solved=pd.concat([exact[KEYS],a1367[KEYS],a63[KEYS]],ignore_index=True).drop_duplicates()
+          residual=full.merge(solved,on=KEYS,how='left',indicator=True)
+          residual=residual[residual._merge.eq('left_only')].drop(columns='_merge')
+          assert len(residual)==1751, len(residual)
+          # ingest every diagnostic table carrying canonical keys; prefer most specific class fields
+          diag_frames=[]
+          for p in Path('/tmp/diag').rglob('*'):
+              try:
+                  if p.suffix=='.csv' or p.name.endswith('.csv.gz'):
+                      d=pd.read_csv(p,dtype={'player_id':str},low_memory=False)
+                  elif p.suffix in {'.jsonl','.gz'} and ('jsonl' in p.name):
+                      d=pd.read_json(p,lines=True,compression='infer')
+                  else: continue
+              except Exception: continue
+              if all(k in d.columns for k in KEYS):
+                  d=canon(d)
+                  keep=KEYS+[c for c in ['failure_class','error_class','class','status','error','reason','game_id','failed_game_id'] if c in d.columns]
+                  diag_frames.append(d[keep].copy())
+          if diag_frames:
+              dg=pd.concat(diag_frames,ignore_index=True,sort=False)
+              dg=dg[dg[KEYS].notna().all(axis=1)]
+              # combine all diagnostic text for each key without losing multiple games
+              nonkeys=[c for c in dg.columns if c not in KEYS]
+              def aggcol(s):
+                  vals=[]
+                  for x in s.dropna().astype(str):
+                      if x and x not in vals: vals.append(x)
+                  return ' | '.join(vals[:20])
+              dg=dg.groupby(KEYS,as_index=False).agg({c:aggcol for c in nonkeys})
+              residual=residual.merge(dg,on=KEYS,how='left',validate='one_to_one')
+          # derive class, with 2025-26 unresolved source discovery explicit when no historical diagnostic class exists
+          candidates=[c for c in ['failure_class','error_class','class','reason','error'] if c in residual.columns]
+          def classify(r):
+              txt=' | '.join(str(r.get(c,'')) for c in candidates if pd.notna(r.get(c,''))).upper()
+              for name in ['NON_UNIQUE_STARTER','UNMATCHED_PBP_REBOUND','SOURCE_SET_GAP','MISSING_LINEUP_TRANSITION','NO_LEGAL_STARTER','TEAM_PLAYER_SECONDS_MISMATCH','INVALID_EXACT_ROW','TEAM_GAME_GAP']:
+                  if name in txt: return name
+              if str(r['season'])=='2025-26': return '2025_26_SOURCE_DISCOVERY'
+              return 'UNCLASSIFIED_RESIDUAL'
+          residual['residual_class']=residual.apply(classify,axis=1)
+          residual.to_csv('/tmp/out/TREB_RESIDUAL_1751_MANIFEST.csv.gz',index=False,compression='gzip')
+          byclass=residual.groupby('residual_class').size().reset_index(name='keys').sort_values('keys',ascending=False)
+          byseason=residual.groupby(['season','residual_class']).size().reset_index(name='keys').sort_values(['season','keys'],ascending=[True,False])
+          byclass.to_csv('/tmp/out/TREB_RESIDUAL_1751_BY_CLASS.csv',index=False)
+          byseason.to_csv('/tmp/out/TREB_RESIDUAL_1751_BY_SEASON_CLASS.csv',index=False)
+          report={'status':'PASS','residual_keys':len(residual),'classes':dict(zip(byclass.residual_class,byclass['keys'].astype(int))),'seasons':int(residual.season.nunique()),'unclassified':int((residual.residual_class=='UNCLASSIFIED_RESIDUAL').sum())}
+          Path('/tmp/out/TREB_RESIDUAL_1751_MANIFEST_QA.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          print(byseason.to_string(index=False))
+          PY
+      - name: Upload residual manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-residual-1751-manifest-${{ github.run_id }}
+          path: /tmp/out/*
+          retention-days: 90
+          if-no-files-found: error
