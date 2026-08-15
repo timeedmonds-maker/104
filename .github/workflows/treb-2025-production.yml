@@ -2,9 +2,12 @@ name: TREB 2025-26 final production
 
 on:
   push:
-    branches: [treb-final-production-20260812]
+    branches:
+      - treb-final-production-20260812
+      - agent/treb-final-exact-assembly
     paths:
       - team_trb_all_players/impact_database/FINAL_2025_PRODUCTION_CONTROL.json
+      - .github/workflows/treb-2025-production.yml
   workflow_dispatch:
 
 permissions:
