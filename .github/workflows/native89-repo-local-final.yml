@@ -14,58 +14,39 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Inventory full retained sufficient-stat coverage
+      - name: Inspect core checkpoint sufficient-stat schema
         run: |
           python - <<'PY'
-          import pathlib,gzip,json,collections,re
-          root=pathlib.Path('team_trb_all_players/impact_database')
-          src=root/'corrected_off/tenure_segment_on_off.jsonl.gz'
-          rows=[]
-          with gzip.open(src,'rt',encoding='utf-8') as f:
-            for line in f:
-              if line.strip(): rows.append(json.loads(line))
-          metrics=sorted({str(r['metric']) for r in rows}); seasons=sorted({str(r['season']) for r in rows})
-          def key(r): return (str(r['season']),str(r['team_id']),str(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')))
-          canon={key(r) for r in rows}
-          assert len(metrics)==89 and len(seasons)==26 and len(canon)==15206
-          def filekey(p):
-            s=p.name[:-8] if p.name.endswith('.json.gz') else p.stem
-            a=s.split('__')
-            return tuple(a[:5]) if len(a)>=5 else None
-          dirs=['corrected_off/cache','corrected_off_wowy/cache','core_checkpoints','pair_checkpoints','outputs']
-          inv={}
-          for d in dirs:
-            q=root/d
-            fs=list(q.rglob('*')) if q.exists() else []
-            gz=[p for p in fs if p.is_file() and p.name.endswith(('.json.gz','.jsonl.gz','.csv.gz','.parquet'))]
-            keyed={k for p in gz if (k:=filekey(p)) in canon}
-            inv[d]={'exists':q.exists(),'all_files':sum(p.is_file() for p in fs),'data_files':len(gz),'canonical_filename_keys':len(keyed),'sample_files':[str(p.relative_to(root)) for p in gz[:8]]}
-          # Full schema census of corrected_off cache (retained, complete marker present).
-          cache=root/'corrected_off/cache'; cfiles=sorted(cache.glob('*.json.gz'))
-          marker=(cache/'.complete_cache_index_v1').read_text().strip() if (cache/'.complete_cache_index_v1').exists() else None
-          leaf=collections.Counter(); keysets=collections.Counter(); top=collections.Counter(); types=collections.Counter()
-          samples=[]
+          import pathlib,gzip,json,collections
+          root=pathlib.Path('team_trb_all_players/impact_database/core_checkpoints')
+          files=sorted(root.glob('*/*.json.gz'))
+          assert len(files)==780,len(files)
+          leaf=collections.Counter(); keysets=collections.Counter(); top=collections.Counter(); samples=[]
           def walk(x):
             if isinstance(x,dict):
               keysets[tuple(sorted(map(str,x.keys())))]+=1
               for k,v in x.items(): leaf[str(k)]+=1; walk(v)
             elif isinstance(x,list):
               for v in x: walk(v)
-          for p in cfiles[:100]:
+          for p in files[:30]:
             with gzip.open(p,'rt',encoding='utf-8') as f: obj=json.load(f)
             if isinstance(obj,dict):
               for k in obj: top[str(k)]+=1
             walk(obj)
-            if len(samples)<2: samples.append({'file':p.name,'object':obj})
-          fields=sorted(k for k in leaf if any(t in k.lower() for t in ['rebound','oreb','poss','point','minute','second','fieldgoal','free throw','freethrow']))
-          report={'status':'PASS','native_rows':len(rows),'native_metrics':len(metrics),'seasons':len(seasons),'canonical_tenures':len(canon),'inventory':inv,'corrected_off_cache_files':len(cfiles),'complete_cache_marker':marker,'corrected_off_filename_overlap':len({filekey(p) for p in cfiles if filekey(p) in canon}),'candidate_fields':fields,'top_level_keys':top.most_common(),'top_keysets':[{'keys':list(k),'count':v} for k,v in keysets.most_common(20)],'samples':samples}
-          pathlib.Path('NATIVE89_REPO_LOCAL_COVERAGE_REPORT.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
-          print(json.dumps({k:v for k,v in report.items() if k not in ('samples','top_keysets')},indent=2))
-          print('TOP_KEYSETS',json.dumps(report['top_keysets'][:8],indent=2))
+            if len(samples)<3: samples.append({'file':str(p),'object':obj})
+          wanted=sorted(k for k in leaf if any(t in k.lower() for t in ['rebound','oreb','poss','point','minute','second','fieldgoal','free','missed']))
+          report={'status':'PASS','core_files':len(files),'candidate_fields':wanted,'top_level_keys':top.most_common(),'top_keysets':[{'keys':list(k),'count':v} for k,v in keysets.most_common(30)],'samples':samples}
+          pathlib.Path('NATIVE89_CORE_SCHEMA_REPORT.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          print('CORE_FILES',len(files))
+          print('CANDIDATE_FIELDS',wanted)
+          print('TOP_KEYSETS',json.dumps(report['top_keysets'][:12],indent=2))
+          for s in samples:
+            print('SAMPLE_FILE',s['file'])
+            if isinstance(s['object'],dict): print('SAMPLE_TOP_KEYS',sorted(s['object'].keys()))
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: native89-repo-local-coverage-${{ github.run_id }}
-          path: NATIVE89_REPO_LOCAL_COVERAGE_REPORT.json
+          name: native89-core-schema-${{ github.run_id }}
+          path: NATIVE89_CORE_SCHEMA_REPORT.json
           retention-days: 30
           if-no-files-found: error
