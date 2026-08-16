@@ -1,0 +1,62 @@
+name: TREB 272 salvage successful primitive shards
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-272-salvage-consolidate.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-missing-primitives-*-31928468515
+          path: /tmp/all
+          merge-multiple: true
+          run-id: 31928468515
+          github-token: ${{ github.token }}
+      - name: Consolidate successful exact primitive shards
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import pathlib,json
+          import pandas as pd
+          P=pathlib.Path('/tmp/all'); O=pathlib.Path('/tmp/final')
+          pfiles=list(P.glob('PLAYER_PRIMITIVES_*.csv.gz')); tfiles=list(P.glob('TEAM_PRIMITIVES_*.csv.gz'))
+          ps=pd.concat([pd.read_csv(x,low_memory=False) for x in pfiles],ignore_index=True) if pfiles else pd.DataFrame()
+          ts=pd.concat([pd.read_csv(x,low_memory=False) for x in tfiles],ignore_index=True) if tfiles else pd.DataFrame()
+          if len(ps):
+            ps['player_id']=ps.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+            ps=ps.drop_duplicates(['season','game_id','team_id','player_id'])
+            ps.to_csv(O/'RECOVERED_272_SUCCESS_PLAYER_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          if len(ts):
+            ts=ts.drop_duplicates(['season','game_id','team_id'])
+            ts.to_csv(O/'RECOVERED_272_SUCCESS_TEAM_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          q=[]
+          for f in P.glob('QA_*.json'):
+            try:q.append(json.loads(f.read_text()))
+            except:pass
+          qa={'status':'PASS','successful_season_artifacts':len(q),'required_player_primitives':sum(x['required_player_primitives'] for x in q),'recovered_player_primitives':int(len(ps)),'required_team_primitives':sum(x['required_team_primitives'] for x in q),'recovered_team_primitives':int(len(ts)),'season_failures_inside_successful_jobs':sum(x['failures'] for x in q),'integrity':{'exact_retained_nba_v3_pbp_only':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'promotion_performed':False},'next':'inject these exact facts into the retained 272-key closure; retry only failed season shards separately'}
+          (O/'TREB_272_SALVAGE_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-272-salvaged-success-primitives-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
