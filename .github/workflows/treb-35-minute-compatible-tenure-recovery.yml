@@ -1,0 +1,225 @@
+name: TREB 35 minute-compatible tenure recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-35-minute-compatible-tenure-recovery.yml
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  AUTH_ARTIFACT_ID: '9268264223'
+  RECLOSE_ARTIFACT_ID: '9263563808'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_EXACT_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  RECOVERED_CURRENT_ARTIFACT_ID: '9263341092'
+  MINUTES_GATE_SECONDS: '60'
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q pandas
+      - name: Download retained exact state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in auth reclose consensus pbp old mid new current; do mkdir -p "/tmp/$d"; done
+          for spec in \
+            "auth:$AUTH_ARTIFACT_ID" \
+            "reclose:$RECLOSE_ARTIFACT_ID" \
+            "consensus:$CONSENSUS_ARTIFACT_ID" \
+            "pbp:$PBP_EXACT_ARTIFACT_ID" \
+            "old:$RECOVERED_OLD_ARTIFACT_ID" \
+            "mid:$RECOVERED_MID_ARTIFACT_ID" \
+            "new:$RECOVERED_NEW_ARTIFACT_ID" \
+            "current:$RECOVERED_CURRENT_ARTIFACT_ID"; do
+            d="${spec%%:*}"; a="${spec##*:}"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" > "/tmp/${d}.zip"
+            unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"
+          done
+      - name: Recover unique minute-compatible tenure identities and exact rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          python -u - <<'PY'
+          import csv,gzip,json,pathlib,collections,math
+          import pandas as pd
+
+          GATE=float('60')
+          REQP=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on')
+          REQT=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          def pid(x):
+              s=str(x).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def tid(x): return str(int(float(x)))
+          def gid(x):
+              s=str(x).strip()
+              if s.endswith('.0'): s=s[:-2]
+              try:return str(int(float(s))).zfill(10)
+              except:return s.zfill(10)
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          def finite(x):
+              try:
+                  v=float(x); return v if math.isfinite(v) else None
+              except:return None
+
+          auth=list(csv.DictReader(open('/tmp/auth/TREB_AUTHORITATIVE_RESIDUAL_BLOCKER_MANIFEST.csv',newline='')))
+          authk={key(r) for r in auth}
+          diag=pd.read_csv('/tmp/reclose/TREB_CURRENT_RECLOSURE_DIAGNOSTICS.csv',low_memory=False)
+          diag['season']=diag.season.astype(str); diag['team_id']=diag.team_id.map(tid); diag['player_id']=diag.player_id.map(pid)
+          diagk=set(zip(diag.season,diag.team_id,diag.player_id))
+          val=set(zip(diag.loc[diag.status=='BLOCKED_VALIDATION','season'],diag.loc[diag.status=='BLOCKED_VALIDATION','team_id'],diag.loc[diag.status=='BLOCKED_VALIDATION','player_id'])) & authk
+          no_tenure=authk-diagk
+          wanted=val|no_tenure
+          assert len(val)==19,(len(val),sorted(val))
+          assert len(no_tenure)==16,(len(no_tenure),sorted(no_tenure))
+          assert len(wanted)==35
+
+          targets={}
+          tp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          with gzip.open(tp,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  try:k=key(r)
+                  except:continue
+                  if k in wanted: targets[k]=r
+          assert len(targets)==35,(35-len(targets))
+
+          # Exact roster ledger gives team schedule plus exact zero-minute evidence where present.
+          ledger=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz')
+          team_sched=collections.defaultdict(set); player_ledger=collections.defaultdict(dict)
+          with gzip.open(ledger,'rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:
+                      s=str(r['season']); t=tid(r['team_id']); g=gid(r['game_id']); p=pid(r['player_id'])
+                  except:continue
+                  team_sched[(s,t)].add(g)
+                  k=(s,t,p)
+                  if k in wanted: player_ledger[k][g]=finite(r.get('seconds_game'))
+
+          # Exact retained facts.
+          pf=collections.defaultdict(dict); tf=collections.defaultdict(dict)
+          cp=next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'))
+          with open(cp,newline='') as f:
+              for r in csv.DictReader(f):
+                  try:
+                      g=gid(r['game_id']); t=tid(r['team_id']); p=pid(r.get('player_id','')); field=str(r['field']); v=float(r['value'])
+                  except:continue
+                  if p and field in REQP: pf[(g,t,p)][field]=v
+                  elif not p and field in REQT: tf[(g,t)][field]=v
+
+          for root in ('/tmp/old','/tmp/mid','/tmp/new','/tmp/current'):
+              for pth in pathlib.Path(root).rglob('*.csv*'):
+                  name=pth.name
+                  if 'PLAYER_GAME_PRIMITIVES' not in name: continue
+                  op=gzip.open if name.endswith('.gz') else open
+                  with op(pth,'rt',encoding='utf-8',newline='') as f:
+                      for r in csv.DictReader(f):
+                          try:kpg=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                          except:continue
+                          for z in REQP:
+                              v=finite(r.get(z))
+                              if v is not None:
+                                  old=pf[kpg].get(z)
+                                  if old is not None and abs(old-v)>1e-9: raise RuntimeError(f'PLAYER_FACT_CONFLICT {kpg} {z} {old} {v}')
+                                  pf[kpg][z]=v
+
+          pp=next(pathlib.Path('/tmp/pbp').rglob('TREB_143_V2_PBP_EXACT_AUDIT.csv'))
+          with open(pp,newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')!='PASS_EXACT' or str(r.get('validation_pass','')).lower() not in {'true','1'}: continue
+                  kt=(gid(r['game_id']),tid(r['team_id']))
+                  vals={z:finite(r.get(z)) for z in REQT}
+                  if any(v is None for v in vals.values()): continue
+                  for z,v in vals.items():
+                      old=tf[kt].get(z)
+                      if old is not None and abs(old-v)>1e-9: raise RuntimeError(f'TEAM_FACT_CONFLICT {kt} {z} {old} {v}')
+                      tf[kt][z]=v
+
+          audits=[]; recovered=[]; promoted=[]
+          for k in sorted(wanted):
+              s,t,p=k; tr=targets[k]
+              expected=int(float(tr.get('team_games_in_tenure') or 0))
+              target_sec=finite(tr.get('seconds_on'))
+              if target_sec is None:
+                  m=finite(tr.get('minutes_on')); target_sec=None if m is None else m*60
+              sched=sorted(team_sched.get((s,t),set()))
+              known=set(player_ledger.get(k,{})) | {g for (g,tt,pp) in pf if tt==t and pp==p and g in set(sched)}
+              rec={'season':s,'team_id':t,'player_id':p,'expected_games':expected,'schedule_games':len(sched),'known_evidence_games':len(known),'target_seconds':target_sec,'prior_class':'VALIDATION' if k in val else 'NO_TENURE'}
+              if expected<=0 or len(sched)<expected or target_sec is None:
+                  rec.update(status='UNRESOLVED',reason='INSUFFICIENT_TARGET_OR_SCHEDULE'); audits.append(rec); continue
+              candidates=[]
+              # Team tenure is a contiguous block of that team's regular-season schedule. Fail closed if uniqueness is absent.
+              for i in range(0,len(sched)-expected+1):
+                  games=sched[i:i+expected]; gs=set(games)
+                  if not known.issubset(gs): continue
+                  sec=0.0; complete=True
+                  for g in games:
+                      row=pf.get((g,t,p),{})
+                      if all(z in row for z in REQP): sec+=float(row['seconds_on'])
+                      else:
+                          lv=player_ledger.get(k,{}).get(g)
+                          if lv is not None and abs(lv)<=1e-9: pass
+                          else: complete=False; break
+                  if not complete: continue
+                  delta=sec-target_sec
+                  if abs(delta)<=GATE+1e-9: candidates.append((tuple(games),sec,delta))
+              rec['minute_compatible_candidates']=len(candidates)
+              if len(candidates)!=1:
+                  rec.update(status='UNRESOLVED',reason='NO_UNIQUE_MINUTE_COMPATIBLE_CONTIGUOUS_TENURE'); audits.append(rec); continue
+              games,sec,delta=candidates[0]
+              rec.update(status='RECOVERED_UNIQUE_TENURE',minutes_delta_seconds=delta,game_ids='|'.join(games),reason='unique exact team-game-count window containing all retained roster/player evidence and satisfying <=60-second exact-player-minutes gate')
+              audits.append(rec); recovered.append(dict(rec))
+
+              # Promote only if every game in the recovered tenure has complete exact player + team rebound primitives.
+              sums={z:0.0 for z in REQP+REQT}; missing=[]; bad=[]
+              for g in games:
+                  pr=pf.get((g,t,p),{}); tm=tf.get((g,t),{})
+                  if not all(z in pr for z in REQP): missing.append('P:'+g); continue
+                  if not all(z in tm for z in REQT): missing.append('T:'+g); continue
+                  vals=[tm['team_oreb']-pr['team_oreb_on'],tm['team_dreb']-pr['team_dreb_on'],tm['opponent_oreb']-pr['opponent_oreb_on'],tm['opponent_dreb']-pr['opponent_dreb_on']]
+                  if min(vals)<-1e-9: bad.append(g); continue
+                  for z in REQP:sums[z]+=float(pr[z])
+                  for z in REQT:sums[z]+=float(tm[z])
+              if missing or bad: continue
+              ton=sums['team_oreb_on']+sums['team_dreb_on']; oon=sums['opponent_oreb_on']+sums['opponent_dreb_on']
+              tt=sums['team_oreb']+sums['team_dreb']; ot=sums['opponent_oreb']+sums['opponent_dreb']; toff=tt-ton; ooff=ot-oon
+              if min(ton,oon,toff,ooff)<-1e-9 or ton+oon<=0 or toff+ooff<=0: continue
+              on=100*ton/(ton+oon); off=100*toff/(toff+ooff)
+              promoted.append({'season':s,'team_id':t,'player_id':p,'metric':'TotalReboundPct','on':on,'off_corrected':off,'on_minus_off_corrected':on-off,'seconds_on':sums['seconds_on'],'team_games_in_tenure':expected,'provenance':'EXACT_MINUTE_COMPATIBLE_TENURE_RECOVERY; exact retained player/team raw rebound counts; unique contiguous team schedule tenure; <=60-second target-minute gate'})
+
+          out=pathlib.Path('/tmp/out')
+          pd.DataFrame(audits).to_csv(out/'TREB_35_TENURE_MINUTES_AUDIT.csv',index=False)
+          pd.DataFrame(recovered).to_csv(out/'TREB_35_RECOVERED_EXACT_TENURES.csv',index=False)
+          pd.DataFrame(promoted).to_csv(out/'TREB_35_EXACT_PROMOTIONS.csv',index=False)
+          qa={'status':'PASS','target_keys':35,'validation_only_keys':19,'no_exact_tenure_keys':16,'recovered_unique_tenures':len(recovered),'exact_full_row_promotions':len(promoted),'minutes_gate_seconds':GATE,'integrity':{'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'ambiguous_tenures_promoted':False}}
+          (out/'TREB_35_TENURE_MINUTES_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - name: Upload retained 35-key recovery
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-35-minute-compatible-tenure-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
