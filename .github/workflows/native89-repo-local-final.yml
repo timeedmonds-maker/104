@@ -1,0 +1,68 @@
+name: Native89 repo-local final packaging
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-repo-local-final.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Inspect retained production components and build canary
+        run: |
+          python - <<'PY'
+          import pathlib,gzip,json,collections,hashlib
+          root=pathlib.Path('team_trb_all_players/impact_database')
+          src=root/'corrected_off/tenure_segment_on_off.jsonl.gz'
+          cache=root/'corrected_off_wowy/cache'
+          assert src.exists(),src
+          files=sorted(cache.glob('*.json.gz'))
+          assert files,'no retained WOWY cache files'
+          rows=[]
+          with gzip.open(src,'rt',encoding='utf-8') as f:
+            for line in f:
+              if line.strip(): rows.append(json.loads(line))
+          metrics=sorted({str(r['metric']) for r in rows}); seasons=sorted({str(r['season']) for r in rows})
+          keys={(str(r['season']),str(r['team_id']),str(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date'))) for r in rows}
+          assert len(metrics)==89,(len(metrics),metrics)
+          assert len(seasons)==26 and seasons[0]=='2000-01' and seasons[-1]=='2025-26',seasons
+          assert len(keys)==15206,len(keys)
+          samples=[]; leaf_keys=collections.Counter(); dict_keysets=collections.Counter()
+          def walk(x,path=''):
+            if isinstance(x,dict):
+              dict_keysets[tuple(sorted(map(str,x.keys())))]+=1
+              for k,v in x.items():
+                leaf_keys[str(k)]+=1; walk(v,path+'/'+str(k))
+            elif isinstance(x,list):
+              for i,v in enumerate(x[:10]): walk(v,path+f'/{i}')
+          for p in files[:5]:
+            with gzip.open(p,'rt',encoding='utf-8') as f: obj=json.load(f)
+            walk(obj)
+            samples.append({'file':p.name,'top_type':type(obj).__name__,'top_keys':sorted(obj.keys()) if isinstance(obj,dict) else None,'sample':obj})
+          candidates=[k for k in leaf_keys if any(t in k.lower() for t in ['rebound','oreb','possess','point','minute','second'])]
+          report={
+            'status':'CANARY_PASS',
+            'native_rows':len(rows),'native_metrics':len(metrics),'seasons':len(seasons),'canonical_tenures':len(keys),
+            'cache_files':len(files),'cache_first':files[0].name,'cache_last':files[-1].name,
+            'candidate_numeric_field_names':sorted(candidates),
+            'top_dict_keysets':[{'keys':list(k),'count':v} for k,v in dict_keysets.most_common(25)],
+            'samples':samples[:2]
+          }
+          pathlib.Path('NATIVE89_REPO_LOCAL_COMPONENT_REPORT.json').write_text(json.dumps(report,indent=2,default=str)+'\n')
+          print(json.dumps({k:v for k,v in report.items() if k!='samples' and k!='top_dict_keysets'},indent=2))
+          print('TOP_KEYSETS')
+          for x in report['top_dict_keysets'][:10]: print(x)
+          print('SAMPLE_TOP_KEYS',samples[0]['top_keys'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-repo-local-component-report-${{ github.run_id }}
+          path: NATIVE89_REPO_LOCAL_COMPONENT_REPORT.json
+          retention-days: 30
+          if-no-files-found: error
