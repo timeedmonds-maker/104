@@ -1,0 +1,127 @@
+name: TREB 949 schedule tenure identity audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-949-schedule-tenure-identity-audit.yml
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  CLOSURE_ARTIFACT_ID: '9258172940'
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - name: Download current residual closure
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/closure /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/${CLOSURE_ARTIFACT_ID}/zip > /tmp/closure.zip
+          unzip -q /tmp/closure.zip -d /tmp/closure
+
+      - name: Audit deterministic schedule-derived tenure identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,datetime
+          C=pathlib.Path('/tmp/closure'); O=pathlib.Path('/tmp/out')
+          diag=next(C.rglob('TREB_PBP_CONSENSUS_DIAGNOSTICS.csv'))
+          blocked=[r for r in csv.DictReader(open(diag,newline='')) if r.get('status')=='NO_EXACT_TENURE_IDENTITY']
+          assert len(blocked)==949,len(blocked)
+          def pid(x): return str(x).strip().removesuffix('.0')
+          def tid(x): return str(int(float(x)))
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          B={key(r):r for r in blocked}
+
+          target_path=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          targets={}
+          with gzip.open(target_path,'rt',encoding='utf-8') as f:
+            for line in f:
+              if not line.strip(): continue
+              r=json.loads(line); k=key(r)
+              if k in B: targets[k]=r
+          assert len(targets)==949,len(targets)
+
+          schedule_path=pathlib.Path('team_trb_all_players/impact_database/roster_tenure/regular_season_games.jsonl.gz')
+          schedule=[]
+          with gzip.open(schedule_path,'rt',encoding='utf-8') as f:
+            for line in f:
+              if line.strip(): schedule.append(json.loads(line))
+
+          ledger_path=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz')
+          ledger={k:set() for k in B}
+          with gzip.open(ledger_path,'rt',encoding='utf-8',newline='') as f:
+            for r in csv.DictReader(f):
+              try:k=key(r)
+              except:continue
+              if k in ledger:
+                try: gid=str(int(float(r['game_id']))).zfill(10)
+                except: gid=str(r['game_id']).strip().zfill(10)
+                ledger[k].add(gid)
+
+          def d(v):
+            s=str(v or '').strip()
+            if not s:return None
+            return datetime.date.fromisoformat(s[:10])
+          rows=[]; exact=0; missing_fields=0; count_mismatch=0; ledger_extra=0
+          for k in sorted(B):
+            t=targets[k]
+            start=d(t.get('query_start_date')); end=d(t.get('query_end_date'))
+            expected=int(float(t.get('team_games_in_tenure') or 0))
+            if start is None or end is None:
+              missing_fields+=1
+              rows.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'MISSING_CANONICAL_DATE_WINDOW','expected_team_games':expected,'schedule_games':0,'ledger_games':len(ledger[k]),'missing_from_ledger':0,'extra_in_ledger':0,'query_start_date':t.get('query_start_date',''),'query_end_date':t.get('query_end_date',''),'schedule_game_ids':''})
+              continue
+            games=[]
+            for g in schedule:
+              if str(g.get('season'))!=k[0]: continue
+              teams={tid(g.get('home_team_id')),tid(g.get('away_team_id'))}
+              if k[1] not in teams: continue
+              gd=d(g.get('game_date'))
+              if gd is not None and start<=gd<=end:
+                try: gid=str(int(float(g['game_id']))).zfill(10)
+                except: gid=str(g['game_id']).strip().zfill(10)
+                games.append(gid)
+            S=set(games); L=ledger[k]
+            miss=sorted(S-L); extra=sorted(L-S)
+            match=len(S)==expected
+            subset=not extra
+            candidate=match and subset and expected>0
+            if candidate: exact+=1; status='EXACT_SCHEDULE_TENURE_IDENTITY'
+            elif not match: count_mismatch+=1; status='SCHEDULE_COUNT_MISMATCH'
+            else: ledger_extra+=1; status='LEDGER_OUTSIDE_CANONICAL_WINDOW'
+            rows.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':status,'expected_team_games':expected,'schedule_games':len(S),'ledger_games':len(L),'missing_from_ledger':len(miss),'extra_in_ledger':len(extra),'query_start_date':start.isoformat(),'query_end_date':end.isoformat(),'schedule_game_ids':'|'.join(sorted(S)),'missing_game_ids':'|'.join(miss),'extra_game_ids':'|'.join(extra)})
+
+          fields=sorted({c for r in rows for c in r})
+          with open(O/'TREB_949_SCHEDULE_TENURE_IDENTITY_AUDIT.csv','w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          qa={'status':'PASS','target_keys':949,'exact_schedule_identity_candidates':exact,'missing_canonical_date_window':missing_fields,'schedule_count_mismatch':count_mismatch,'ledger_outside_canonical_window':ledger_extra,'integrity':{'canonical_target_date_windows_only':True,'canonical_regular_season_schedule_only':True,'exact_team_identity_only':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'promotion_performed':False},'next':'use only EXACT_SCHEDULE_TENURE_IDENTITY keys in targeted exact closure; retain all others blocked'}
+          (O/'TREB_949_SCHEDULE_TENURE_IDENTITY_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2),flush=True)
+          assert len(rows)==949
+          PY
+
+      - name: Upload audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-949-schedule-tenure-identity-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
