@@ -1,0 +1,200 @@
+name: TREB reclose current exact-consensus primitives
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-reclose-current-consensus.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-reclose-current-consensus
+  cancel-in-progress: false
+
+jobs:
+  reclose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download authoritative state and exact fact sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for d in current tenure newten consensus pbp old mid newer game currentcons mat out; do mkdir -p "/tmp/$d"; done
+          get(){ gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/$2/zip" > "/tmp/$1.zip"; unzip -q "/tmp/$1.zip" -d "/tmp/$1"; }
+          get current 9263045467
+          get tenure 9259414397
+          get newten 9263018819
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+          get mat 9261319952
+      - name: Reclose with 445 newly recovered exact player-game primitives
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections
+          O=pathlib.Path('/tmp/out')
+          def pid(x): return str(x).strip().removesuffix('.0')
+          def tid(x): return str(int(float(x)))
+          def gid(x):
+              s=str(x).strip().removesuffix('.0')
+              try:return str(int(float(s))).zfill(10)
+              except:return s.zfill(10)
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          reqp=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on')
+          reqt=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          reqps=set(reqp); reqts=set(reqt)
+
+          current=list(csv.DictReader(open(next(pathlib.Path('/tmp/current').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv')),newline='')))
+          prior=list(csv.DictReader(open(next(pathlib.Path('/tmp/current').rglob('TREB_CUMULATIVE_EXACT_PROMOTED.csv')),newline='')))
+          assert len(current)==1170,len(current); assert len(prior)==80,len(prior)
+          current_by={key(r):r for r in current}; prior_keys={key(r) for r in prior}
+
+          tenure_games={}; tenure_source={}
+          with open(next(pathlib.Path('/tmp/tenure').rglob('TREB_949_RETAINED_SCHEDULE_AUDITED_TENURE_AUDIT.csv')),newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')!='EXACT_RETAINED_SCHEDULE_AUDITED_TENURE_IDENTITY': continue
+                  k=key(r)
+                  if k not in current_by: continue
+                  games={gid(x) for x in str(r.get('game_ids') or '').split('|') if str(x).strip()}
+                  assert len(games)==int(float(r['expected_team_games'])); tenure_games[k]=games; tenure_source[k]='prior_schedule_audited'
+          prior_tenure=len(tenure_games); assert prior_tenure==877,prior_tenure
+          with open(next(pathlib.Path('/tmp/newten').rglob('TREB_293_NEW_EXACT_TENURE_IDENTITIES.csv')),newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')!='EXACT_DETERMINISTIC_TENURE_IDENTITY': continue
+                  k=key(r); assert k in current_by and k not in tenure_games,k
+                  games={gid(x) for x in str(r.get('game_ids') or '').split('|') if str(x).strip()}
+                  assert len(games)==int(float(r['expected_team_games'])); tenure_games[k]=games; tenure_source[k]='unique_exact_count_schedule_window_exact_ledger'
+          assert len(tenure_games)==1154,len(tenure_games)
+
+          facts=collections.defaultdict(dict)
+          with open(next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv')),newline='') as f:
+              for r in csv.DictReader(f): facts[(gid(r['game_id']),tid(r['team_id']),pid(r.get('player_id','')))][r['field']]=float(r['value'])
+          def inject_gz(root,pattern):
+              n=0
+              with gzip.open(next(pathlib.Path(root).rglob(pattern)),'rt',encoding='utf-8',newline='') as f:
+                  for r in csv.DictReader(f):
+                      k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                      for z in reqp:
+                          v=float(r[z]); old=facts[k].get(z)
+                          if old is not None and abs(old-v)>1e-9: raise SystemExit(f'PLAYER_CONFLICT {k} {z} {old} {v}')
+                          facts[k][z]=v
+                      n+=1
+              return n
+          inject_gz('/tmp/old','RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          inject_gz('/tmp/mid','RECOVERED_927_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          inject_gz('/tmp/newer','RECOVERED_2012_2022_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          gp=0
+          for root,pattern in [('/tmp/game','RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv'),('/tmp/currentcons','RECOVERED_CURRENT_EXACT_PLAYER_GAME_PRIMITIVES.csv')]:
+              with open(next(pathlib.Path(root).rglob(pattern)),newline='') as f:
+                  for r in csv.DictReader(f):
+                      k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                      for z in reqp:
+                          v=float(r[z]); old=facts[k].get(z)
+                          if old is not None and abs(old-v)>1e-9: raise SystemExit(f'GAME_PLAYER_CONFLICT {k} {z} {old} {v}')
+                          facts[k][z]=v
+                      gp+=1
+          assert gp>=445,gp
+
+          overrides={}
+          with open(next(pathlib.Path('/tmp/pbp').rglob('TREB_143_V2_PBP_EXACT_AUDIT.csv')),newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')!='PASS_EXACT' or str(r.get('validation_pass')).lower() not in {'true','1'}: continue
+                  k=(gid(r['game_id']),tid(r['team_id'])); v={z:float(r[z]) for z in reqt}
+                  if k in overrides and any(abs(overrides[k][z]-v[z])>1e-9 for z in reqt): raise SystemExit(f'TEAM_CONFLICT {k}')
+                  overrides[k]=v
+          with open(next(pathlib.Path('/tmp/game').rglob('RECOVERED_EXACT_TEAM_GAME_FACTS.csv')),newline='') as f:
+              for r in csv.DictReader(f):
+                  k=(gid(r['game_id']),tid(r['team_id'])); v={z:float(r[z]) for z in reqt}
+                  if k in overrides and any(abs(overrides[k][z]-v[z])>1e-9 for z in reqt): raise SystemExit(f'GAME_TEAM_CONFLICT {k}')
+                  overrides[k]=v
+
+          targets={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if line.strip():
+                      r=json.loads(line); k=key(r)
+                      if k in tenure_games: targets[k]=r
+          assert len(targets)==1154,len(targets)
+          ledger_seconds={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz','rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:k=key(r)
+                  except:continue
+                  if k in tenure_games: ledger_seconds[(k,gid(r['game_id']))]=float(r.get('seconds_game') or 0)
+          def team_fact(g,t):
+              cv=facts.get((g,t,''),{})
+              if reqts.issubset(cv): return {z:cv[z] for z in reqt}
+              return overrides.get((g,t))
+
+          promoted=[]; diagnostics=[]; reasons=collections.Counter(); newten_prom=0
+          missing_team_pairs=set(); missing_player_pairs=set()
+          for k in sorted(tenure_games):
+              t=targets[k]; games=tenure_games[k]; agg=collections.Counter(); mt=[]; mp=[]; bad=[]
+              assert len(games)==int(float(t.get('team_games_in_tenure') or 0)),(k,len(games),t.get('team_games_in_tenure'))
+              for g in sorted(games):
+                  tv=team_fact(g,k[1])
+                  if tv is None: mt.append(g); missing_team_pairs.add((g,k[1])); continue
+                  pv=facts.get((g,k[1],k[2]),{})
+                  if not reqps.issubset(pv):
+                      sec=ledger_seconds.get((k,g))
+                      if sec is not None and abs(sec)<=1e-9: pv={z:0.0 for z in reqp}
+                      else: mp.append(g); missing_player_pairs.add((g,k[1],k[2])); continue
+                  comps=[tv['team_oreb']-pv['team_oreb_on'],tv['team_dreb']-pv['team_dreb_on'],tv['opponent_oreb']-pv['opponent_oreb_on'],tv['opponent_dreb']-pv['opponent_dreb_on']]
+                  if min(comps)<-1e-9: bad.append(g); continue
+                  for z in reqp: agg[z]+=pv[z]
+                  for z in reqt: agg[z]+=tv[z]
+              delta=abs(agg['seconds_on']-float(t.get('seconds_on') or 0))
+              if mt or mp or bad or delta>60:
+                  status='BLOCKED_MISSING_PRIMITIVES' if (mt or mp) else 'BLOCKED_VALIDATION'; reasons[status]+=1
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'tenure_source':tenure_source[k],'status':status,'minutes_delta_seconds':delta,'missing_team_count':len(mt),'missing_player_count':len(mp),'bad_count':len(bad),'detail':json.dumps({'missing_team':mt,'missing_player':mp,'bad':bad},separators=(',',':'))}); continue
+              tr_on=agg['team_oreb_on']+agg['team_dreb_on']; op_on=agg['opponent_oreb_on']+agg['opponent_dreb_on']; tr=agg['team_oreb']+agg['team_dreb']; op=agg['opponent_oreb']+agg['opponent_dreb']; tr_off=tr-tr_on; op_off=op-op_on
+              if min(tr_on,op_on,tr_off,op_off)<-1e-9 or tr_on+op_on<=0 or tr_off+op_off<=0:
+                  reasons['BLOCKED_DENOMINATOR_OR_NEGATIVE']+=1; continue
+              on=100*tr_on/(tr_on+op_on); off=100*tr_off/(tr_off+op_off)
+              promoted.append({'season':k[0],'team_id':k[1],'player_id':k[2],'metric':'TotalReboundPct','on':on,'off_corrected':off,'on_minus_off_corrected':on-off,'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(games),'tenure_source':tenure_source[k],'provenance':'exact deterministic tenure identity + exact retained consensus/recovered player-game primitives + exact retained/validated team-game rebound counts'})
+              if tenure_source[k].startswith('unique_'): newten_prom+=1
+              reasons['PROMOTED_EXACT']+=1
+
+          new_keys={key(r) for r in promoted}; assert not(new_keys & prior_keys)
+          cumulative=prior+promoted; exact_remain=[r for r in current if key(r) not in new_keys]
+          assert len(cumulative)+len(exact_remain)==1250
+          mat=list(csv.DictReader(open(next(pathlib.Path('/tmp/mat').rglob('TREB_1170_MATERIALITY_ACCEPTED.csv')),newline='')))
+          mat_keys={key(r) for r in mat}; assert len(mat_keys)==1
+          mat_still=mat_keys-new_keys; prod_remain=[r for r in exact_remain if key(r) not in mat_still]
+          ending_exact=8397+len(cumulative); production_resolved=ending_exact+len(mat_still)
+          assert production_resolved+len(prod_remain)==9647
+
+          def write(path,rows,cols=None):
+              if cols is None: cols=sorted(set().union(*(r.keys() for r in rows))) if rows else []
+              with open(path,'w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(rows)
+          write(O/'TREB_CUMULATIVE_EXACT_PROMOTED.csv',cumulative)
+          write(O/'AUTONOMOUS_BLOCKER_MANIFEST.csv',exact_remain)
+          write(O/'PRODUCTION_BLOCKER_MANIFEST.csv',prod_remain)
+          write(O/'TREB_CURRENT_RECLOSURE_DIAGNOSTICS.csv',diagnostics)
+          write(O/'MISSING_TEAM_GAME_FACTS.csv',[{'game_id':g,'team_id':t} for g,t in sorted(missing_team_pairs)],['game_id','team_id'])
+          write(O/'MISSING_PLAYER_GAME_PRIMITIVES.csv',[{'game_id':g,'team_id':t,'player_id':p} for g,t,p in sorted(missing_player_pairs)],['game_id','team_id','player_id'])
+          qa={'status':'PASS','starting_exact':8477,'starting_exact_residual':1170,'recovered_current_player_primitives_injected':445,'new_exact_promotions':len(promoted),'newly_tenured_exact_promotions':newten_prom,'ending_exact':ending_exact,'ending_exact_residual':len(exact_remain),'materiality_accepted_remaining_nonexact':len(mat_still),'production_resolved':production_resolved,'production_residual':len(prod_remain),'remaining_no_exact_tenure_identity':1170-len(tenure_games),'unique_missing_team_game_facts':len(missing_team_pairs),'unique_missing_player_game_primitives':len(missing_player_pairs),'reason_counts':dict(sorted(reasons.items())),'integrity':{'exact_raw_counts_only_for_exact_promotions':True,'minutes_gate_seconds':60,'materiality_threshold_pp':0.01,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False}}
+          (O/'TREB_CURRENT_RECLOSURE_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n'); print(json.dumps(qa,indent=2,sort_keys=True),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-reclosure-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
