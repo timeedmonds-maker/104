@@ -141,3 +141,5 @@ jobs:
           retention-days: 90
           compression-level: 1
           if-no-files-found: error
+
+# Triggered after V3-only audit 31925265643 returned 143/143 ReadTimeout failures; preserve fail-closed direct-count route.
