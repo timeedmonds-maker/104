@@ -1,0 +1,152 @@
+name: TREB PBP-only team total zero-error controls
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-pbp-only-team-total-controls.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  CURRENT_ARTIFACT_ID: '9263563808'
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 17
+      matrix:
+        year: [2000,2001,2003,2004,2005,2009,2010,2012,2015,2017,2018,2019,2020,2021,2022,2023,2024]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download current residual
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          mkdir -p /tmp/current /tmp/src /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Download retained source trio
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              print(p,vals[f'{p}_{y}'],sep='\t')
+          PY
+          while IFS=$'\t' read -r p u; do
+            curl --fail --location --retry 5 --retry-all-errors --connect-timeout 15 -o "/tmp/src/${p}_${y}.tar.xz" "$u"
+            tar -xJf "/tmp/src/${p}_${y}.tar.xz" -C /tmp/src
+          done < /tmp/urls.tsv
+      - name: Validate target PBP classes against exact reconstructed controls and promote only zero-error classes
+        run: |
+          set -euo pipefail
+          python -u - '${{ matrix.year }}' <<'PY'
+          import sys,csv,json,pathlib,collections
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import run_local_treb_production as io
+          import production_treb_engine_v3 as le
+          import build_exact_game_fact_layer as base
+          import pbp_only_team_total_candidate as cand
+          y=int(sys.argv[1]); season=f'{y}-{(y+1)%100:02d}'; O=pathlib.Path('/tmp/out')
+          def gid(x): return str(int(float(str(x).strip().removesuffix('.0')))).zfill(10)
+          def tid(x): return str(int(float(x)))
+          prefix=f'002{str(y)[-2:]}'
+          missing=[]
+          for r in csv.DictReader(open(next(pathlib.Path('/tmp/current').rglob('MISSING_TEAM_GAME_FACTS.csv')),newline='')):
+              if gid(r['game_id']).startswith(prefix): missing.append((gid(r['game_id']),tid(r['team_id'])))
+          if not missing:
+              (O/f'PBP_TEAM_QA_{y}.json').write_text(json.dumps({'season':season,'status':'PASS_EMPTY','missing':0},indent=2)+'\n'); raise SystemExit(0)
+          nba=io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{y}.csv',low_memory=False)); v3=le.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{y}.csv',low_memory=False)); pbp=io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{y}.csv',low_memory=False))
+          ng={gid(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={gid(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}; pg={gid(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          target_classes=set()
+          for g,t in missing:
+              if g in pg:
+                  _,m=cand.pbp_team_rows(pg[g]); target_classes.add((int(m.get('generic_uncertain',-1)),int(m.get('generic_placeholders',-1))))
+          # Build exact controls only for classes actually needed. Up to 40 games/class, stop after 25 exact games/class.
+          class_controls=collections.defaultdict(list); control_records=[]
+          for g in sorted(set(ng)&set(vg)&set(pg)):
+              if all(len(class_controls[c])>=25 for c in target_classes): break
+              _,m=cand.pbp_team_rows(pg[g]); cls=(int(m.get('generic_uncertain',-1)),int(m.get('generic_placeholders',-1)))
+              if cls not in target_classes or len(class_controls[cls])>=25: continue
+              try: tr,pr,audit=base.build_game(int(g),ng[g],vg[g],pg[g])
+              except Exception: continue
+              candidate,cm=cand.pbp_team_rows(pg[g]); amap=cand.team_abbr_map(ng[g]); inv={v:k for k,v in amap.items()}
+              game_ok=True; pairs=[]
+              for r in tr:
+                  t=tid(r['team_id']); abbr=inv.get(t)
+                  if abbr not in candidate: game_ok=False; break
+                  got=tuple(int(candidate[abbr][z]) for z in ('team_oreb','team_dreb','opponent_oreb','opponent_dreb'))
+                  exp=tuple(int(r[z]) for z in ('team_oreb','team_dreb','opponent_oreb','opponent_dreb'))
+                  ok=got==exp; game_ok &= ok; pairs.append((t,got,exp,ok))
+              class_controls[cls].append(bool(game_ok))
+              for t,got,exp,ok in pairs: control_records.append({'season':season,'game_id':g,'team_id':t,'class':str(cls),'ok':ok,'got':str(got),'expected':str(exp)})
+              print(json.dumps({'event':'CONTROL','season':season,'game':g,'class':cls,'game_ok':game_ok,'n':len(class_controls[cls])}),flush=True)
+          safe={c for c,v in class_controls.items() if len(v)>=20 and all(v)}
+          recovered=[]; audit=[]
+          for g,t in missing:
+              if g not in ng or g not in pg:
+                  audit.append({'season':season,'game_id':g,'team_id':t,'status':'SOURCE_GAP'}); continue
+              rows,m=cand.pbp_team_rows(pg[g]); cls=(int(m.get('generic_uncertain',-1)),int(m.get('generic_placeholders',-1))); amap=cand.team_abbr_map(ng[g]); inv={v:k for k,v in amap.items()}; abbr=inv.get(t)
+              if cls not in safe:
+                  audit.append({'season':season,'game_id':g,'team_id':t,'status':'CONTROL_CLASS_NOT_PROVEN','class':str(cls),'controls':len(class_controls.get(cls,[])),'control_pass':sum(class_controls.get(cls,[]))}); continue
+              if abbr not in rows:
+                  audit.append({'season':season,'game_id':g,'team_id':t,'status':'TEAM_MAP_GAP','class':str(cls)}); continue
+              v=rows[abbr]; recovered.append({'season':season,'game_id':g,'team_id':t,**v,'provenance':'PBP Stats possession rebound universe/team identity; PBP-only generic-team-rebound classifier exact in >=20 same-class reconstructed control games with zero errors'}); audit.append({'season':season,'game_id':g,'team_id':t,'status':'PROMOTED','class':str(cls),'controls':len(class_controls[cls])})
+          def write(name,rows,cols):
+              with open(O/name,'w',newline='') as f: w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(rows)
+          write(f'PBP_TEAM_RECOVERED_{y}.csv',recovered,['season','game_id','team_id','team_oreb','team_dreb','opponent_oreb','opponent_dreb','provenance'])
+          ac=sorted(set().union(*(r.keys() for r in audit))) if audit else ['season','game_id','team_id','status']; write(f'PBP_TEAM_AUDIT_{y}.csv',audit,ac)
+          write(f'PBP_TEAM_CONTROLS_{y}.csv',control_records,['season','game_id','team_id','class','ok','got','expected'])
+          qa={'season':season,'status':'PASS','missing':len(missing),'target_classes':[str(c) for c in sorted(target_classes)],'safe_classes':[{'class':str(c),'exact_control_games':len(class_controls[c])} for c in sorted(safe)],'control_games':sum(len(v) for v in class_controls.values()),'control_failed_games':sum(sum(not x for x in v) for v in class_controls.values()),'promoted':len(recovered),'integrity':{'lineup_used_for_controls_only':True,'target_lineup_used':False,'empirical_model_used':False,'rounded_rate_backsolve_used':False,'opponent_inference_used':False,'zero_error_min20_same_class_gate':True}}
+          (O/f'PBP_TEAM_QA_{y}.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: 'TREB-pbp-team-${{ matrix.year }}-${{ github.run_id }}', path: /tmp/out, retention-days: 90, compression-level: 1, if-no-files-found: warn}
+
+  consolidate:
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {pattern: 'TREB-pbp-team-*-${{ github.run_id }}', path: /tmp/all, merge-multiple: true}
+      - name: Consolidate exact control-gated team facts
+        run: |
+          python - <<'PY'
+          import pathlib,csv,json
+          R=pathlib.Path('/tmp/all'); O=pathlib.Path('/tmp/final'); O.mkdir(parents=True,exist_ok=True); facts={}; qas=[]
+          def gid(x): return str(int(float(str(x).strip().removesuffix('.0')))).zfill(10)
+          def tid(x): return str(int(float(x)))
+          F=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          for p in R.rglob('PBP_TEAM_QA_*.json'):
+              try: qas.append(json.loads(p.read_text()))
+              except: pass
+          for p in R.rglob('PBP_TEAM_RECOVERED_*.csv'):
+              for r in csv.DictReader(open(p,newline='')):
+                  k=(gid(r['game_id']),tid(r['team_id'])); v=tuple(int(float(r[z])) for z in F)
+                  if k in facts and facts[k]!=v: raise SystemExit(f'CONFLICT {k}')
+                  facts[k]=v
+          with open(O/'RECOVERED_PBP_CONTROL_GATED_TEAM_GAME_FACTS.csv','w',newline='') as f:
+              w=csv.writer(f); w.writerow(['game_id','team_id',*F]); [w.writerow([g,t,*v]) for (g,t),v in sorted(facts.items())]
+          qa={'status':'PASS','season_qas':len(qas),'recovered_team_facts':len(facts),'control_games':sum(int(q.get('control_games',0)) for q in qas),'control_failed_games':sum(int(q.get('control_failed_games',0)) for q in qas),'integrity':{'zero_error_same_class_min20_required':True,'target_lineup_used':False}}
+          (O/'TREB_PBP_TEAM_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with: {name: 'TREB-pbp-team-consolidated-${{ github.run_id }}', path: /tmp/final, retention-days: 90, compression-level: 1}
