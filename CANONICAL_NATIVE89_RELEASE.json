@@ -1,0 +1,39 @@
+{
+  "status": "CANONICAL_PINNED_COMPLETE",
+  "purpose": "Immutable reference point for the trusted Native-89 base that TREB/TotalReboundPct must be layered onto as metric 90. Do not replace, rebuild differently, or use fragment-summed qualification in downstream analysis.",
+  "release_file": "NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip",
+  "production_run_id": 31922941923,
+  "production_workflow": "Native89 approved microvariance final packaging",
+  "production_commit": "765356a96715ba99c3c3fd83f174762d60ff521a",
+  "artifact_id": 9256932230,
+  "inner_release_zip_bytes": 27362956,
+  "inner_release_zip_sha256": "8260630fcec4a621318f295ffc8105a202d8ac7ae5251def2b4b37e6918212d8",
+  "native_metric_count": 89,
+  "season_count": 26,
+  "season_first": "2000-01",
+  "season_last": "2025-26",
+  "native_rows": 1353334,
+  "transaction_tenure_rows": 15206,
+  "statistical_exposure_rows": 14600,
+  "duplicate_transaction_profile_groups": 457,
+  "duplicate_transaction_profile_rows": 1063,
+  "duplicate_profiles_counted_once": true,
+  "corrected_acceptance_2021_22_to_2025_26_min_2000": 437,
+  "corrected_acceptance_complete": 437,
+  "final_qa_pass": true,
+  "final_qa_gate_count": 25,
+  "treb_excluded_from_base": true,
+  "rate_averaging_used": false,
+  "swing_after_aggregation": true,
+  "steven_adams_explicit_validation_pass": true,
+  "approved_microvariance": {
+    "profiles": 2,
+    "minutes_total": 7.0,
+    "scope": "OREB denominator only; Net Rating components included normally",
+    "players": [
+      {"player_id": "1627863", "player_name": "Danuel House Jr.", "season": "2021-22", "team_id": "1610612752", "minutes_on": 3.0},
+      {"player_id": "1630551", "player_name": "Justin Champagnie", "season": "2022-23", "team_id": "1610612738", "minutes_on": 4.0}
+    ]
+  },
+  "downstream_rule": "Metric 90 (TotalReboundPct/TREB%) must be joined/layered onto this canonical Native-89 statistical-exposure architecture without changing any Native-89 value, identity, qualification rule, or aggregation rule."
+}
