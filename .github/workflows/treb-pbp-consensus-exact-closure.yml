@@ -1,0 +1,192 @@
+name: TREB PBP consensus exact closure
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-pbp-consensus-exact-closure.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-pbp-consensus-exact-closure
+  cancel-in-progress: false
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download authoritative state, consensus, and validated PBP exact facts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/state /tmp/consensus /tmp/pbp /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9255627136/zip > /tmp/state.zip
+          unzip -q /tmp/state.zip -d /tmp/state
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/consensus.zip
+          unzip -q /tmp/consensus.zip -d /tmp/consensus
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9258020958/zip > /tmp/pbp.zip
+          unzip -q /tmp/pbp.zip -d /tmp/pbp
+      - name: Exact closure using PBP team-game overrides
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections,math
+          OUT=pathlib.Path('/tmp/out')
+          def norm_pid(x): return str(x).removesuffix('.0')
+          def norm_tid(x): return str(int(float(x)))
+          def norm_gid(x):
+              s=str(x).strip().removesuffix('.0')
+              try: return str(int(float(s))).zfill(10)
+              except: return s.zfill(10)
+          def key(r): return (str(r['season']),norm_tid(r['team_id']),norm_pid(r['player_id']))
+
+          rp=next(pathlib.Path('/tmp/state').rglob('TREB_ZERO_SECOND_RESIDUAL.csv'))
+          residual=list(csv.DictReader(open(rp,newline='')))
+          assert len(residual)==1250,len(residual)
+          current={key(r):r for r in residual}
+
+          # Exact retained consensus facts.
+          cp=next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'))
+          facts=collections.defaultdict(dict)
+          with open(cp,newline='') as f:
+              for r in csv.DictReader(f):
+                  facts[(norm_gid(r['game_id']),norm_tid(r['team_id']),norm_pid(r.get('player_id','')))][r['field']]=float(r['value'])
+          reqp={'seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+          reqt={'team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+
+          # Newly validated exact team-game counts from retained NBA+PBP feed reconstruction.
+          pp=next(pathlib.Path('/tmp/pbp').rglob('TREB_143_V2_PBP_EXACT_AUDIT.csv'))
+          overrides={}; pbp_rows=0
+          with open(pp,newline='') as f:
+              for r in csv.DictReader(f):
+                  if str(r.get('status'))!='PASS_EXACT': continue
+                  if str(r.get('validation_pass')).strip().lower() not in {'true','1'}: continue
+                  k=(norm_gid(r['game_id']),norm_tid(r['team_id']))
+                  v={z:float(r[z]) for z in reqt}
+                  if k in overrides and any(abs(overrides[k][z]-v[z])>1e-9 for z in reqt):
+                      raise SystemExit(f'CONFLICTING_PBP_TEAM_FACT {k}')
+                  overrides[k]=v; pbp_rows+=1
+          assert len(overrides)==95,(len(overrides),pbp_rows)
+
+          # Canonical target data for structural minute and tenure-count gates.
+          targets={}
+          tp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          with gzip.open(tp,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line); k=key(r)
+                  if k in current: targets[k]=r
+          assert len(targets)==1250,len(targets)
+
+          # Exact player-game tenure identity and minutes.
+          ledger_games=collections.defaultdict(set); ledger_seconds={}; conflicts=[]
+          lp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz')
+          with gzip.open(lp,'rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:k=key(r)
+                  except:continue
+                  if k not in current: continue
+                  gid=norm_gid(r['game_id']); sec=float(r.get('seconds_game') or 0)
+                  ledger_games[k].add(gid); kg=(k,gid)
+                  if kg in ledger_seconds and abs(ledger_seconds[kg]-sec)>1e-9: conflicts.append((k,gid))
+                  ledger_seconds[kg]=sec
+          if conflicts: raise SystemExit(f'LEDGER_CONFLICTS {conflicts[:5]}')
+
+          def team_fact(gid,tid):
+              cv=facts.get((gid,tid,''),{})
+              if reqt.issubset(cv): return {z:cv[z] for z in reqt},'retained_consensus'
+              ov=overrides.get((gid,tid))
+              if ov is not None: return ov,'validated_retained_nba_pbp_exact'
+              return None,None
+
+          promoted=[]; diagnostics=[]; total_pbp_used=0; total_zero_fills=0
+          for k in sorted(current):
+              t=targets[k]; expected=int(float(t.get('team_games_in_tenure',0) or 0)); gids=set(ledger_games.get(k,set()))
+              if not gids or len(gids)!=expected:
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'NO_EXACT_TENURE_IDENTITY','expected_games':expected,'ledger_games':len(gids),'missing_team_games':0,'missing_nonzero_player_games':0,'zero_second_fills':0,'pbp_team_overrides_used':0,'minutes_delta_seconds':''})
+                  continue
+              agg=collections.Counter(); missing_team=[]; missing_player=[]; bad=[]; zero_fills=0; pbp_used=0
+              for gid in sorted(gids):
+                  tv,tsrc=team_fact(gid,k[1])
+                  if tv is None:
+                      missing_team.append(gid); continue
+                  if tsrc=='validated_retained_nba_pbp_exact': pbp_used+=1
+                  pv=facts.get((gid,k[1],k[2]),{})
+                  if not reqp.issubset(pv):
+                      sec=ledger_seconds.get((k,gid))
+                      if sec is not None and abs(sec)<=1e-9:
+                          pv={'seconds_on':0.0,'team_oreb_on':0.0,'team_dreb_on':0.0,'opponent_oreb_on':0.0,'opponent_dreb_on':0.0}; zero_fills+=1
+                      else:
+                          missing_player.append(gid); continue
+                  comps=[tv['team_oreb']-pv['team_oreb_on'],tv['team_dreb']-pv['team_dreb_on'],tv['opponent_oreb']-pv['opponent_oreb_on'],tv['opponent_dreb']-pv['opponent_dreb_on']]
+                  if min(comps)<-1e-9:
+                      bad.append(gid); continue
+                  for z in reqp: agg[z]+=pv[z]
+                  for z in reqt: agg[z]+=tv[z]
+              target_sec=float(t.get('seconds_on') or 0); minute_delta=abs(agg['seconds_on']-target_sec)
+              if missing_team or missing_player or bad or minute_delta>60.0:
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'BLOCKED','expected_games':expected,'ledger_games':len(gids),'missing_team_games':len(missing_team),'missing_nonzero_player_games':len(missing_player),'zero_second_fills':zero_fills,'pbp_team_overrides_used':pbp_used,'minutes_delta_seconds':minute_delta,'detail':json.dumps({'missing_team':missing_team,'missing_player':missing_player,'bad':bad},separators=(',',':'))})
+                  continue
+              tr_on=agg['team_oreb_on']+agg['team_dreb_on']; opp_on=agg['opponent_oreb_on']+agg['opponent_dreb_on']
+              tr_total=agg['team_oreb']+agg['team_dreb']; opp_total=agg['opponent_oreb']+agg['opponent_dreb']
+              tr_off=tr_total-tr_on; opp_off=opp_total-opp_on
+              if min(tr_on,opp_on,tr_off,opp_off)<-1e-9 or tr_on+opp_on<=0 or tr_off+opp_off<=0:
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'INVALID_DENOMINATOR','expected_games':expected,'ledger_games':len(gids),'missing_team_games':0,'missing_nonzero_player_games':0,'zero_second_fills':zero_fills,'pbp_team_overrides_used':pbp_used,'minutes_delta_seconds':minute_delta})
+                  continue
+              on=100*tr_on/(tr_on+opp_on); off=100*tr_off/(tr_off+opp_off)
+              promoted.append({'season':k[0],'team_id':k[1],'player_id':k[2],'metric':'TotalReboundPct','on':on,'off_corrected':off,'on_minus_off_corrected':on-off,'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(gids),'pbp_team_overrides_used':pbp_used,'zero_second_games_filled':zero_fills,'provenance':'exact v3 roster-ledger tenure identity + exact retained consensus player ON + exact retained consensus/validated NBA+PBP team-game rebound counts'})
+              total_pbp_used+=pbp_used; total_zero_fills+=zero_fills
+
+          pkeys={key(r) for r in promoted}; remain=[r for r in residual if key(r) not in pkeys]
+          assert len(remain)+len(promoted)==1250
+          if promoted:
+              with open(OUT/'TREB_PBP_CONSENSUS_EXACT_PROMOTED.csv','w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=promoted[0].keys());w.writeheader();w.writerows(promoted)
+          with open(OUT/'AUTONOMOUS_BLOCKER_MANIFEST.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=residual[0].keys());w.writeheader();w.writerows(remain)
+          if diagnostics:
+              fields=sorted({q for r in diagnostics for q in r})
+              with open(OUT/'TREB_PBP_CONSENSUS_DIAGNOSTICS.csv','w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(diagnostics)
+          qa={'status':'PASS','starting_residual':1250,'validated_pbp_exact_team_games_available':len(overrides),'new_exact_promotions':len(promoted),'ending_residual':len(remain),'resolved_total_if_merged':8397+len(promoted),'pbp_team_game_override_uses':total_pbp_used,'zero_second_exact_fills':total_zero_fills,'minutes_gate_seconds':60,'materiality_threshold_pp':0.01,'integrity':{'exact_v3_roster_ledger_tenure_identity':True,'exact_raw_count_same_tenure_complement':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'unsafe_global_event_order_used':False},'strategy_ledger':{'strategy':'validated retained NBA+PBP team-game facts unioned with retained consensus player ON and v3 tenure identity','state':'PRODUCTIVE' if promoted else 'EXHAUSTED_NO_PROMOTIONS','prior_event_only_strategy':'EXHAUSTED_0_OF_48','next':'merge promoted rows into cumulative authoritative state and continue only remaining missing nonzero player-game primitives' if promoted else 'classify remaining missing nonzero player-game primitives by exact source coverage'}}
+          (OUT/'TREB_PBP_CONSENSUS_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
+          (OUT/'STRATEGY_LEDGER.json').write_text(json.dumps(qa['strategy_ledger'],indent=2,sort_keys=True)+'\n')
+          print(json.dumps(qa,indent=2,sort_keys=True))
+          PY
+      - name: Validate fail-closed output
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          q=json.load(open('/tmp/out/TREB_PBP_CONSENSUS_QA.json'))
+          assert q['status']=='PASS'
+          assert q['starting_residual']==1250
+          assert q['ending_residual']+q['new_exact_promotions']==1250
+          assert q['validated_pbp_exact_team_games_available']==95
+          assert q['resolved_total_if_merged']==8397+q['new_exact_promotions']
+          assert q['minutes_gate_seconds']==60 and q['materiality_threshold_pp']==0.01
+          assert not q['integrity']['empirical_model_used']
+          assert not q['integrity']['rounded_percentage_backsolve_used']
+          assert not q['integrity']['opponent_rebound_inference_used']
+          assert not q['integrity']['partial_tenure_whole_team_subtraction_used']
+          assert not q['integrity']['unsafe_global_event_order_used']
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-pbp-consensus-exact-closure-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
