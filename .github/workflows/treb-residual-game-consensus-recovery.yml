@@ -1,0 +1,206 @@
+name: TREB residual per-game exact-consensus recovery
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-residual-game-consensus-recovery.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-residual-game-consensus-recovery
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9260774395'
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 48
+      matrix:
+        year: [2000,2001,2003,2004,2005,2009,2010,2012,2015,2017,2018,2019,2020,2021,2022,2023,2024,2025]
+        shard: [0,1,2,3]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download authoritative residual diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/src /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Download retained full-season source trio
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          curl --fail --location --retry 4 --retry-all-errors -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_{y}'
+              if k not in vals: raise SystemExit(f'MISSING_SOURCE_URL {k}')
+              print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do
+            curl --fail --location --retry 4 --retry-all-errors --connect-timeout 15 -o "/tmp/src/${p}.tar.xz" "$url"
+            tar -xJf "/tmp/src/${p}.tar.xz" -C /tmp/src
+            test -s "/tmp/src/${p}_${y}.csv"
+          done < /tmp/urls.tsv
+      - name: Exact-consensus missing primitives for this game shard
+        run: |
+          set -euo pipefail
+          python -u - '${{ matrix.year }}' '${{ matrix.shard }}' <<'PY'
+          import csv,json,pathlib,sys,collections
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+          y=int(sys.argv[1]); shard=int(sys.argv[2]); season=f'{y}-{(y+1)%100:02d}'
+          REQP=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on')
+          REQT=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          def pid(x):
+              s=str(x).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def tid(x): return str(int(float(x)))
+          def gid(x):
+              s=str(x).strip();
+              if s.endswith('.0'): s=s[:-2]
+              return str(int(float(s))).zfill(10)
+          diag=next(pathlib.Path('/tmp/current').rglob('TREB_8443_RECLOSURE_DIAGNOSTICS.csv'))
+          need_team=collections.defaultdict(set); need_player=collections.defaultdict(set)
+          with open(diag,newline='') as f:
+              for r in csv.DictReader(f):
+                  if str(r.get('season'))!=season: continue
+                  try:d=json.loads(r.get('detail') or '{}')
+                  except:continue
+                  t=tid(r['team_id']); p=pid(r['player_id'])
+                  for g in d.get('missing_team',[]):
+                      gg=gid(g)
+                      if int(gg)%4==shard: need_team[gg].add(t)
+                  for g in d.get('missing_player',[]):
+                      gg=gid(g)
+                      if int(gg)%4==shard: need_player[gg].add((t,p))
+          games=sorted(set(need_team)|set(need_player))
+          out=pathlib.Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+          if not games:
+              (out/f'QA_{y}_{shard}.json').write_text(json.dumps({'season':season,'shard':shard,'games':0,'status':'PASS_EMPTY'},indent=2)+'\n'); raise SystemExit(0)
+          nba=mat.io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{y}.csv',low_memory=False))
+          v3=mat.lineup_engine.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{y}.csv',low_memory=False))
+          pbp=mat.io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{y}.csv',low_memory=False))
+          ng={gid(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}
+          vg={gid(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}
+          pg={gid(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          team_rows=[]; player_rows=[]; audit=[]
+          for ix,g in enumerate(games,1):
+              if g not in ng or g not in vg or g not in pg:
+                  audit.append({'season':season,'game_id':g,'status':'SOURCE_SET_GAP','variants':0,'capped':False}); continue
+              try: variants,meta=mat.enumerate_game_variants(int(g),ng[g],vg[g],pg[g],20000,5000)
+              except Exception as e:
+                  audit.append({'season':season,'game_id':g,'status':'ENUMERATION_ERROR','variants':0,'capped':False,'error':repr(e)}); continue
+              capped=bool(meta.get('capped'))
+              if not variants or capped:
+                  audit.append({'season':season,'game_id':g,'status':'UNRESOLVED_CAPPED_OR_EMPTY','variants':len(variants),'capped':capped}); continue
+              tr_prom=0; pr_prom=0
+              for t in sorted(need_team.get(g,set())):
+                  vals=[]; valid=True
+                  for v in variants:
+                      rows=[r for r in v['team_rows'] if tid(r['team_id'])==t]
+                      if len(rows)!=1: valid=False; break
+                      vals.append(tuple(float(rows[0][z]) for z in REQT))
+                  uniq=set(vals)
+                  if valid and len(uniq)==1:
+                      x=next(iter(uniq)); team_rows.append({'season':season,'game_id':g,'team_id':t,**{REQT[i]:x[i] for i in range(len(REQT))},'provenance':'all_coherent_retained_source_variants_exact_consensus'}); tr_prom+=1
+              for t,p in sorted(need_player.get(g,set())):
+                  vals=[]; valid=True
+                  for v in variants:
+                      same=[r for r in v['player_rows'] if pid(r['player_id'])==p and tid(r['team_id'])==t]
+                      other=[r for r in v['player_rows'] if pid(r['player_id'])==p and tid(r['team_id'])!=t]
+                      if other or len(same)>1: valid=False; break
+                      if same: x=tuple(float(same[0][z]) for z in REQP)
+                      else: x=(0.0,0.0,0.0,0.0,0.0)
+                      vals.append(x)
+                  uniq=set(vals)
+                  if valid and len(uniq)==1:
+                      x=next(iter(uniq)); player_rows.append({'season':season,'game_id':g,'team_id':t,'player_id':p,**{REQP[i]:x[i] for i in range(len(REQP))},'provenance':'all_coherent_retained_source_variants_exact_consensus'}); pr_prom+=1
+              audit.append({'season':season,'game_id':g,'status':'ENUMERATED','variants':len(variants),'capped':False,'team_targets':len(need_team.get(g,set())),'team_promoted':tr_prom,'player_targets':len(need_player.get(g,set())),'player_promoted':pr_prom})
+              print(json.dumps({'event':'GAME_DONE','season':season,'shard':shard,'i':ix,'n':len(games),'game':g,'variants':len(variants),'team_promoted':tr_prom,'player_promoted':pr_prom}),flush=True)
+          def write(name,rows,cols):
+              with open(out/name,'w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(rows)
+          write(f'EXACT_TEAM_{y}_{shard}.csv',team_rows,['season','game_id','team_id',*REQT,'provenance'])
+          write(f'EXACT_PLAYER_{y}_{shard}.csv',player_rows,['season','game_id','team_id','player_id',*REQP,'provenance'])
+          acols=sorted(set().union(*(r.keys() for r in audit))) if audit else ['season','game_id','status']
+          write(f'AUDIT_{y}_{shard}.csv',audit,acols)
+          qa={'season':season,'shard':shard,'games':len(games),'needed_team_targets':sum(len(x) for x in need_team.values()),'needed_player_targets':sum(len(x) for x in need_player.values()),'exact_team_promoted':len(team_rows),'exact_player_promoted':len(player_rows),'status':'PASS'}
+          (out/f'QA_{y}_{shard}.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - name: Upload shard checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-game-consensus-${{ matrix.year }}-${{ matrix.shard }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          if-no-files-found: warn
+
+  consolidate:
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-game-consensus-*-*-${{ github.run_id }}
+          path: /tmp/all
+          merge-multiple: true
+      - name: Conflict-check and consolidate exact primitives
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib
+          root=pathlib.Path('/tmp/all'); out=pathlib.Path('/tmp/final'); out.mkdir(parents=True,exist_ok=True)
+          REQP=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'); REQT=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          def normid(x): return str(int(float(x)))
+          team={}; player={}; conflicts=[]; qas=[]
+          for p in root.glob('EXACT_TEAM_*.csv'):
+              for r in csv.DictReader(open(p,newline='')):
+                  k=(r['game_id'].zfill(10),normid(r['team_id'])); vals=tuple(float(r[z]) for z in REQT)
+                  if k in team and team[k][0]!=vals: conflicts.append(('team',k,team[k][0],vals))
+                  else: team[k]=(vals,r)
+          for p in root.glob('EXACT_PLAYER_*.csv'):
+              for r in csv.DictReader(open(p,newline='')):
+                  k=(r['game_id'].zfill(10),normid(r['team_id']),str(r['player_id']).removesuffix('.0')); vals=tuple(float(r[z]) for z in REQP)
+                  if k in player and player[k][0]!=vals: conflicts.append(('player',k,player[k][0],vals))
+                  else: player[k]=(vals,r)
+          for p in root.glob('QA_*.json'):
+              try: qas.append(json.loads(p.read_text()))
+              except:pass
+          if conflicts: raise SystemExit(f'CONFLICTS {conflicts[:5]} total={len(conflicts)}')
+          with open(out/'RECOVERED_EXACT_TEAM_GAME_FACTS.csv','w',newline='') as f:
+              cols=['season','game_id','team_id',*REQT,'provenance']; w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows([team[k][1] for k in sorted(team)])
+          with open(out/'RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv','w',newline='') as f:
+              cols=['season','game_id','team_id','player_id',*REQP,'provenance']; w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows([player[k][1] for k in sorted(player)])
+          qa={'status':'PASS','shard_qas':len(qas),'exact_team_game_facts':len(team),'exact_player_game_primitives':len(player),'conflicts':0,'method':'all coherent retained NBA/PBP/V3 variants must agree exactly per missing primitive'}
+          (out/'TREB_GAME_CONSENSUS_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-game-consensus-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
