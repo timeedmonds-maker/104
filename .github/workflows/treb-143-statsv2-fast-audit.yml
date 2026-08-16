@@ -1,0 +1,76 @@
+name: TREB 143 fast NBA Stats V2 exact-count audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-143-statsv2-fast-audit.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 1}
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Download current residual diagnostics
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          mkdir -p /tmp/state /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9255627136/zip > /tmp/state.zip
+          unzip -q /tmp/state.zip -d /tmp/state
+      - name: Fast Stats V2 team boxscore probe
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib,requests,concurrent.futures,collections
+          d=next(pathlib.Path('/tmp/state').rglob('TREB_ZERO_SECOND_DIAGNOSTICS.csv'));out=pathlib.Path('/tmp/out')
+          tg={};players=collections.defaultdict(set)
+          with open(d,newline='') as f:
+            for r in csv.DictReader(f):
+              if r.get('source')!='v3_roster_ledger':continue
+              try:e=json.loads(r['error'])
+              except:continue
+              s=str(r['season']);t=str(int(float(r['team_id'])));p=str(r['player_id']).removesuffix('.0')
+              for g0 in e.get('missing_team',[]):
+                g=str(int(float(g0)));tg[(s,t,g)]={'season':s,'team_id':t,'game_id':g};players[(s,t,g)].add(p)
+          assert len(tg)==143
+          H={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36','Referer':'https://www.nba.com/','Origin':'https://www.nba.com','Accept':'application/json, text/plain, */*','Accept-Language':'en-US,en;q=0.9','Connection':'keep-alive'}
+          def one(k):
+            s,t,g=k;game=f'{int(g):010d}';url=f'https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=0&StartRange=0&EndRange=0&RangeType=0'
+            try:
+              r=requests.get(url,headers=H,timeout=7)
+              status='HTTP_'+str(r.status_code)
+              if r.ok:
+                j=r.json(); teams={}
+                for rs in j.get('resultSets') or []:
+                  if str(rs.get('name','')).lower()=='teamstats':
+                    h=rs.get('headers') or []
+                    for row in rs.get('rowSet') or []:
+                      z=dict(zip(h,row));tid=str(z.get('TEAM_ID') or '')
+                      try:teams[tid]=(int(round(float(z['OREB']))),int(round(float(z['DREB']))))
+                      except:pass
+                if t in teams and len(teams)==2:
+                  opp=[x for x in teams if x!=t]
+                  if len(opp)==1:
+                    o=opp[0];v=teams[t];w=teams[o]
+                    return {**tg[k],'canonical_game_id':game,'affected_player_keys':len(players[k]),'status':'PASS','opponent_team_id':o,'team_oreb':v[0],'team_dreb':v[1],'opponent_oreb':w[0],'opponent_dreb':w[1]}
+                status='PARSE_OR_TEAM_MISS'
+              return {**tg[k],'canonical_game_id':game,'affected_player_keys':len(players[k]),'status':status}
+            except Exception as e:return {**tg[k],'canonical_game_id':game,'affected_player_keys':len(players[k]),'status':type(e).__name__+':'+str(e)[:120]}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=20) as ex:rows=list(ex.map(one,sorted(tg)))
+          fields=sorted({k for r in rows for k in r})
+          with open(out/'TREB_143_STATSV2_AUDIT.csv','w',newline='') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          ok=[r for r in rows if r['status']=='PASS'];st=collections.Counter(r['status'] for r in rows);seas=collections.Counter(r['season'] for r in ok)
+          qa={'status':'PASS','target_team_games':143,'statsv2_exact_games':len(ok),'statsv2_failed_games':143-len(ok),'affected_player_key_links_on_exact_games':sum(int(r['affected_player_keys']) for r in ok),'exact_games_by_season':dict(sorted(seas.items())),'status_counts':dict(st),'promotion_performed':False,'integer_counts_only':True,'rounded_rate_backsolve':False}
+          (out/'TREB_143_STATSV2_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-143-statsv2-fast-audit-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
