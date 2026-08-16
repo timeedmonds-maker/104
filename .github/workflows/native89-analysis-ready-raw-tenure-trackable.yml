@@ -1,0 +1,127 @@
+name: Native89 analysis-ready raw tenure trackable
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-analysis-ready-raw-tenure-trackable.yml]
+permissions:
+  contents: read
+concurrency:
+  group: native89-analysis-ready-raw-tenure-fanout
+  cancel-in-progress: true
+jobs:
+  collect:
+    name: raw shard ${{ matrix.shard }} of 256
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q requests
+      - name: Collect exact raw rows
+        env:
+          SHARD: ${{ matrix.shard }}
+          SHARDS: '256'
+        run: |
+          python - <<'PY'
+          import gzip,json,math,os,pathlib,random,time
+          from concurrent.futures import ThreadPoolExecutor,as_completed
+          import requests
+          S=int(os.environ['SHARD']); N=int(os.environ['SHARDS']); ROOT=pathlib.Path('team_trb_all_players/impact_database')
+          src=ROOT/'corrected_off/tenure_segment_on_off.jsonl.gz'; out=pathlib.Path('raw_out'); out.mkdir()
+          seen={}; metric_rows=0
+          with gzip.open(src,'rt',encoding='utf-8') as f:
+            for line in f:
+              if not line.strip(): continue
+              r=json.loads(line); metric_rows+=1
+              k=(str(r['season']),str(r['team_id']),str(r['player_id']),str(r['query_start_date']),str(r['query_end_date']))
+              if k not in seen: seen[k]={x:r.get(x) for x in ['season','team_id','team_abbr','player_id','player','segment_index','segment_count','query_start_date','query_end_date','minutes_on','minutes_off']}
+          targets=[seen[k] for k in sorted(seen)]; selected=[m for i,m in enumerate(targets) if i%N==S]
+          assert metric_rows==1353334 and len(targets)==15206
+          url='https://api.pbpstats.com/get-wowy-stats/nba'; transient={429,500,502,503,504}
+          def num(x):
+            try:
+              v=float(x); return v if math.isfinite(v) else None
+            except: return None
+          def mins(r):
+            v=num(r.get('Minutes'))
+            if v is not None: return v
+            v=num(r.get('SecondsPlayed')); return v/60 if v is not None else None
+          def get(meta,typ,state):
+            p={'Season':str(meta['season']),'SeasonType':'Regular Season','TeamId':str(meta['team_id']),'FromDate':str(meta['query_start_date']),'ToDate':str(meta['query_end_date']),'Type':typ,('0Exactly1OnFloor' if state=='on' else '0Exactly1OffFloor'):str(meta['player_id'])}
+            hist=[]
+            for a in range(1,7):
+              if a>1: time.sleep(min(2**(a-2),10)+random.random())
+              try:
+                rr=requests.get(url,params=p,timeout=60); hist.append(rr.status_code)
+                if rr.status_code==200:
+                  x=rr.json().get('single_row_table_data') or {}
+                  if isinstance(x,dict) and x: return x
+                if rr.status_code not in transient: break
+              except Exception: pass
+            raise RuntimeError(f'{typ}/{state} failed {hist}')
+          def one(m):
+            req=[('Team','on'),('Team','off'),('Opponent','on'),('Opponent','off')]; rows={}
+            with ThreadPoolExecutor(max_workers=4) as ex:
+              fs={ex.submit(get,m,*q):q for q in req}
+              for f in as_completed(fs):
+                typ,state=fs[f]; rows[f'{typ.lower()}_{state}']=f.result()
+            ton,toff=mins(rows['team_on']),mins(rows['team_off']); con,coff=num(m['minutes_on']),num(m['minutes_off'])
+            don=None if ton is None or con is None else ton-con; doff=None if toff is None or coff is None else toff-coff
+            if ton is None or toff is None or (don is not None and abs(don)>max(8,.05*max(con,1))) or (doff is not None and abs(doff)>max(8,.05*max(coff,1))): raise RuntimeError(f'minute mismatch raw={ton}/{toff} canonical={con}/{coff}')
+            return {**m,'raw_minutes_on':ton,'raw_minutes_off':toff,'minutes_on_delta':don,'minutes_off_delta':doff,'rows':rows,'source':'PBP Stats exact canonical tenure date window'}
+          errors=[]; ok=0; p=out/f'raw_tenure_shard_{S:03d}.jsonl.gz'
+          with gzip.open(p,'wt',encoding='utf-8') as f:
+            for i,m in enumerate(selected,1):
+              try: f.write(json.dumps(one(m),separators=(',',':'))+'\n'); ok+=1
+              except Exception as e: errors.append({'target':m,'error':repr(e)})
+              print(f'SHARD={S} progress={i}/{len(selected)} ok={ok} errors={len(errors)}',flush=True)
+          rep={'shard':S,'shards':N,'selected':len(selected),'successes':ok,'errors':len(errors),'error_rows':errors}
+          (out/f'raw_tenure_shard_{S:03d}_REPORT.json').write_text(json.dumps(rep,indent=2)+'\n')
+          if errors or ok!=len(selected): raise SystemExit(2)
+          PY
+      - name: Upload shard checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native89-trackable-shard-${{ matrix.shard }}-${{ github.run_id }}
+          path: raw_out/
+          retention-days: 30
+          if-no-files-found: error
+          compression-level: 1
+  gate:
+    if: always()
+    needs: collect
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native89-trackable-shard-*-${{ github.run_id }}
+          path: shards
+          merge-multiple: true
+      - run: |
+          python - <<'PY'
+          import pathlib,json,gzip
+          reps=[json.loads(p.read_text()) for p in pathlib.Path('shards').glob('*_REPORT.json')]; files=list(pathlib.Path('shards').glob('raw_tenure_shard_*.jsonl.gz'))
+          rows=sum(sum(1 for x in gzip.open(p,'rt') if x.strip()) for p in files); selected=sum(r['selected'] for r in reps); ok=sum(r['successes'] for r in reps); errs=sum(r['errors'] for r in reps)
+          g={'reports':len(reps),'files':len(files),'selected':selected,'successes':ok,'errors':errs,'rows':rows,'expected':15206,'pass':len(reps)==256 and len(files)==256 and selected==ok==rows==15206 and errs==0}
+          pathlib.Path('RAW_TENURE_FANOUT_GATE.json').write_text(json.dumps(g,indent=2)+'\n'); print(json.dumps(g,indent=2)); assert g['pass'],g
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native89-raw-tenure-COMPLETE-${{ github.run_id }}
+          path: |
+            shards/raw_tenure_shard_*.jsonl.gz
+            shards/raw_tenure_shard_*_REPORT.json
+            RAW_TENURE_FANOUT_GATE.json
+          retention-days: 30
+          compression-level: 1
