@@ -1,0 +1,85 @@
+name: TREB 143 fast NBA CDN exact-count audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-143-cdn-fast-audit.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 1}
+      - run: python -m pip install --disable-pip-version-check requests
+      - name: Download current exact residual diagnostics
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: |
+          mkdir -p /tmp/state /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9255627136/zip > /tmp/state.zip
+          unzip -q /tmp/state.zip -d /tmp/state
+      - name: Fetch exact integer rebound totals from NBA LiveData CDN
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib,requests,concurrent.futures,collections,time
+          d=next(pathlib.Path('/tmp/state').rglob('TREB_ZERO_SECOND_DIAGNOSTICS.csv')); out=pathlib.Path('/tmp/out')
+          tg={}; players=collections.defaultdict(set)
+          with open(d,newline='') as f:
+            for r in csv.DictReader(f):
+              if r.get('source')!='v3_roster_ledger':continue
+              try:e=json.loads(r['error'])
+              except:continue
+              s=str(r['season']);t=str(int(float(r['team_id'])));p=str(r['player_id']).removesuffix('.0')
+              for g0 in e.get('missing_team',[]):
+                g=str(int(float(g0)));tg[(s,t,g)]={'season':s,'team_id':t,'game_id':g};players[(s,t,g)].add(p)
+          assert len(tg)==143,len(tg)
+          H={'User-Agent':'Mozilla/5.0','Referer':'https://www.nba.com/','Accept':'application/json'}
+          def iv(s,*names):
+            if not isinstance(s,dict):return None
+            m={str(k).lower():v for k,v in s.items()}
+            for n in names:
+              try:return int(round(float(m[n.lower()])))
+              except:pass
+            return None
+          def one(k):
+            s,t,g=k; game=f'{int(g):010d}'; url=f'https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{game}.json'; err=''
+            for _ in range(2):
+              try:
+                r=requests.get(url,headers=H,timeout=6)
+                if r.ok:
+                  j=r.json();gm=j.get('game') or {}; teams={}
+                  for side in ('homeTeam','awayTeam'):
+                    x=gm.get(side) or {}; tid=str(x.get('teamId') or ''); st=x.get('statistics') or {}
+                    o=iv(st,'reboundsOffensive','offensiveRebounds','oreb'); de=iv(st,'reboundsDefensive','defensiveRebounds','dreb')
+                    if tid and o is not None and de is not None:teams[tid]=(o,de)
+                  if t in teams and len(teams)==2:
+                    opp=[z for z in teams if z!=t]
+                    if len(opp)==1:
+                      z=opp[0];return {**tg[k],'canonical_game_id':game,'affected_player_keys':len(players[k]),'status':'PASS','opponent_team_id':z,'team_oreb':teams[t][0],'team_dreb':teams[t][1],'opponent_oreb':teams[z][0],'opponent_dreb':teams[z][1],'source':'NBA_LIVEDATA_CDN_DIRECT_BOXSCORE'}
+                  err='PARSE_OR_TEAM_MISS'
+                else:err='HTTP_'+str(r.status_code)
+              except Exception as e:err=type(e).__name__+':'+str(e)
+              time.sleep(.1)
+            return {**tg[k],'canonical_game_id':game,'affected_player_keys':len(players[k]),'status':'FAIL','opponent_team_id':'','team_oreb':'','team_dreb':'','opponent_oreb':'','opponent_dreb':'','source':'NBA_LIVEDATA_CDN_DIRECT_BOXSCORE','error':err[:180]}
+          rows=[]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=16) as ex:
+            for i,r in enumerate(ex.map(one,sorted(tg)),1):
+              rows.append(r)
+              if i%25==0:print('PROGRESS',i,'/143',flush=True)
+          fields=sorted({k for r in rows for k in r})
+          with open(out/'TREB_143_CDN_AUDIT.csv','w',newline='') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          ok=[r for r in rows if r['status']=='PASS']; seasons=collections.Counter(r['season'] for r in ok)
+          qa={'status':'PASS','target_team_games':143,'cdn_exact_games':len(ok),'cdn_failed_games':143-len(ok),'affected_player_key_links_on_exact_games':sum(int(r['affected_player_keys']) for r in ok),'exact_games_by_season':dict(sorted(seasons.items())),'promotion_performed':False,'rounded_rate_backsolve':False,'integer_counts_only':True}
+          (out/'TREB_143_CDN_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-143-cdn-fast-audit-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
