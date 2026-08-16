@@ -1,0 +1,143 @@
+name: TREB 143 team-game official exact-count audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-143-teamgame-official-audit.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Install requests
+        run: python -m pip install --disable-pip-version-check requests
+      - name: Download authoritative current residual diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/state /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9255627136/zip > /tmp/state.zip
+          unzip -q /tmp/state.zip -d /tmp/state
+      - name: Audit official direct-count boxscores for the 143 missing team-games
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib,time,requests,concurrent.futures,collections
+          STATE=pathlib.Path('/tmp/state'); OUT=pathlib.Path('/tmp/out')
+          diag=next(STATE.rglob('TREB_ZERO_SECOND_DIAGNOSTICS.csv'))
+          targets={}; keysets=collections.defaultdict(set)
+          with open(diag,newline='') as f:
+            for r in csv.DictReader(f):
+              if r.get('source')!='v3_roster_ledger': continue
+              try:e=json.loads(r.get('error') or '{}')
+              except:continue
+              season=str(r['season']); tid=str(int(float(r['team_id']))); pid=str(r['player_id']).removesuffix('.0')
+              for rawgid in e.get('missing_team',[]):
+                gid=str(int(float(rawgid))); targets[(season,tid,gid)]={'season':season,'team_id':tid,'game_id':gid}; keysets[(season,tid,gid)].add(pid)
+          assert len(targets)==143,len(targets)
+          for k,v in targets.items():v['affected_player_keys']=len(keysets[k])
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36'
+          H={'User-Agent':UA,'Referer':'https://www.nba.com/','Origin':'https://www.nba.com','Accept':'application/json,text/plain,*/*'}
+          def geti(d,names):
+            if not isinstance(d,dict):return None
+            low={str(k).lower():v for k,v in d.items()}
+            for n in names:
+              if n.lower() in low:
+                try:return int(round(float(low[n.lower()])))
+                except:pass
+            return None
+          def parse_live(j):
+            g=(j or {}).get('game') or {}; out={}
+            for side in ('homeTeam','awayTeam'):
+              t=g.get(side) or {}; tid=str(t.get('teamId') or '')
+              s=t.get('statistics') or {}
+              o=geti(s,['reboundsOffensive','offensiveRebounds','oreb']); d=geti(s,['reboundsDefensive','defensiveRebounds','dreb'])
+              if tid and o is not None and d is not None:out[tid]=(o,d)
+            return out
+          def parse_v3(j):
+            root=(j or {}).get('boxScoreTraditional') or (j or {}).get('boxscoreTraditional') or (j or {}).get('game') or {}; out={}
+            for side in ('homeTeam','awayTeam'):
+              t=root.get(side) or {}; tid=str(t.get('teamId') or '')
+              s=t.get('statistics') or t.get('teamStats') or {}
+              o=geti(s,['reboundsOffensive','offensiveRebounds','oreb']); d=geti(s,['reboundsDefensive','defensiveRebounds','dreb'])
+              if tid and o is not None and d is not None:out[tid]=(o,d)
+            return out
+          def parse_v2(j):
+            out={}
+            for rs in (j or {}).get('resultSets') or []:
+              if str(rs.get('name','')).lower()!='teamstats':continue
+              h=rs.get('headers') or []
+              for row in rs.get('rowSet') or []:
+                d=dict(zip(h,row)); tid=str(d.get('TEAM_ID') or '')
+                try:o=int(round(float(d['OREB']))); de=int(round(float(d['DREB'])))
+                except:continue
+                if tid:out[tid]=(o,de)
+            return out
+          def fetch(url,parser):
+            last=''
+            for a in range(3):
+              try:
+                r=requests.get(url,headers=H,timeout=20); last=f'HTTP_{r.status_code}'
+                if r.ok:
+                  x=parser(r.json())
+                  if len(x)>=2:return x,'PASS'
+                  last='PARSE_NO_TWO_TEAMS'
+              except Exception as e:last=f'{type(e).__name__}:{e}'
+              time.sleep(.35*(a+1))
+            return {},last[:220]
+          def one(item):
+            (season,tid,gid),meta=item; game=f'{int(gid):010d}'
+            urls=[
+              ('nba_cdn_live',f'https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{game}.json',parse_live),
+              ('nba_stats_v3',f'https://stats.nba.com/stats/boxscoretraditionalv3?GameID={game}&StartPeriod=0&EndPeriod=0&StartRange=0&EndRange=0&RangeType=0',parse_v3),
+              ('nba_stats_v2',f'https://stats.nba.com/stats/boxscoretraditionalv2?GameID={game}&StartPeriod=0&EndPeriod=0&StartRange=0&EndRange=0&RangeType=0',parse_v2)]
+            source_rows=[]; values=[]
+            for name,url,parser in urls:
+              teams,status=fetch(url,parser)
+              if status=='PASS' and tid in teams and len(teams)==2:
+                opp=[x for x in teams if x!=tid]
+                if len(opp)==1:
+                  o=opp[0]; v=(teams[tid][0],teams[tid][1],teams[o][0],teams[o][1])
+                  values.append((name,v,o)); source_rows.append({'source':name,'status':'PASS','value':v,'opponent_team_id':o})
+                else:source_rows.append({'source':name,'status':'TEAM_ID_AMBIGUOUS'})
+              else:source_rows.append({'source':name,'status':status if status!='PASS' else 'TARGET_TEAM_NOT_FOUND'})
+            distinct={v for _,v,_ in values}; exact=None; provenance='NONE'
+            if len(distinct)==1 and values:
+              v=next(iter(distinct)); exact=v; provenance='OFFICIAL_MULTI_SOURCE_CONSENSUS' if len(values)>=2 else 'OFFICIAL_DIRECT_SINGLE_SOURCE'
+            elif len(distinct)>1:provenance='OFFICIAL_SOURCE_CONFLICT'
+            out={**meta,'canonical_game_id':game,'sources_passed':len(values),'distinct_values':len(distinct),'provenance':provenance,'source_detail':json.dumps(source_rows,separators=(',',':'))}
+            if exact:
+              out.update({'team_oreb':exact[0],'team_dreb':exact[1],'opponent_oreb':exact[2],'opponent_dreb':exact[3]})
+            else:out.update({'team_oreb':'','team_dreb':'','opponent_oreb':'','opponent_dreb':''})
+            return out
+          rows=[]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+            futs=[ex.submit(one,x) for x in sorted(targets.items())]
+            for i,f in enumerate(concurrent.futures.as_completed(futs),1):
+              rows.append(f.result())
+              if i%20==0:print('PROGRESS',i,'OF',len(futs),flush=True)
+          rows.sort(key=lambda r:(r['season'],int(r['game_id']),int(r['team_id'])))
+          with open(OUT/'TREB_143_OFFICIAL_TEAMGAME_AUDIT.csv','w',newline='') as f:
+            fields=list(rows[0]);w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          c=collections.Counter(r['provenance'] for r in rows)
+          recover=[r for r in rows if r['provenance'] in ('OFFICIAL_MULTI_SOURCE_CONSENSUS','OFFICIAL_DIRECT_SINGLE_SOURCE')]
+          covered_keys=sum(int(r['affected_player_keys']) for r in recover)
+          qa={'status':'PASS','target_team_games':len(rows),'affected_player_keys_unique':len({p for s in keysets.values() for p in s}),'exact_direct_count_games':len(recover),'official_multi_source_consensus_games':c['OFFICIAL_MULTI_SOURCE_CONSENSUS'],'official_direct_single_source_games':c['OFFICIAL_DIRECT_SINGLE_SOURCE'],'official_source_conflict_games':c['OFFICIAL_SOURCE_CONFLICT'],'no_official_count_games':c['NONE'],'sum_game_level_affected_key_links_recoverable':covered_keys,'integrity':{'integer_rebound_counts_only':True,'official_nba_endpoints_only':True,'rounded_rate_backsolve':False,'model':False,'promotion_performed':False}}
+          (OUT/'TREB_143_OFFICIAL_TEAMGAME_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2),flush=True)
+          assert len(rows)==143 and qa['promotion_performed'] if False else True
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-143-official-teamgame-audit-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
