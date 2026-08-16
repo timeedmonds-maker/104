@@ -9,212 +9,34 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Build self-contained Native89 analysis-ready release
+      - name: Inspect actual player nesting in one core checkpoint
         run: |
           python - <<'PY'
-          import pathlib,gzip,json,csv,math,zipfile,collections,statistics
-          ROOT=pathlib.Path('team_trb_all_players/impact_database')
-          SRC=ROOT/'corrected_off/tenure_segment_on_off.jsonl.gz'
-          CORE=ROOT/'core_checkpoints'
-          OUT=pathlib.Path('native89_analysis_ready_final'); OUT.mkdir(exist_ok=True)
-          rows=[]
-          with gzip.open(SRC,'rt',encoding='utf-8') as f:
-            for line in f:
-              if line.strip(): rows.append(json.loads(line))
-          metrics=sorted({str(r['metric']) for r in rows}); seasons=sorted({str(r['season']) for r in rows})
-          def tkey(r): return (str(r['season']),str(r['team_id']),str(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')))
-          byten={}
-          for r in rows: byten.setdefault(tkey(r),[]).append(r)
-          assert len(metrics)==89,(len(metrics),metrics); assert len(seasons)==26 and seasons[0]=='2000-01' and seasons[-1]=='2025-26'; assert len(byten)==15206
-          assert not any(m.lower() in ('totalreboundpct','treb%','total rebound pct') for m in metrics)
-
-          # Native long-with-exposures: values are copied, not recalculated.
-          long_fields=sorted({k for r in rows for k in r.keys()})
-          with gzip.open(OUT/'native_89_metrics_LONG_WITH_EXPOSURES.csv.gz','wt',newline='',encoding='utf-8') as g:
-            w=csv.DictWriter(g,fieldnames=long_fields,extrasaction='ignore'); w.writeheader(); w.writerows(rows)
-
-          # Canonical tenure exposure table.
-          ex_fields=['season','player_id','player_name','team_id','team_abbr','segment_index','segment_count','query_start_date','query_end_date','on_court_minutes','off_court_minutes']
-          tenures=[]
-          for k,rs in sorted(byten.items()):
-            r=rs[0]
-            tenures.append({'season':r.get('season'),'player_id':r.get('player_id'),'player_name':r.get('player') or r.get('player_name'),'team_id':r.get('team_id'),'team_abbr':r.get('team_abbr'),'segment_index':r.get('segment_index'),'segment_count':r.get('segment_count'),'query_start_date':r.get('query_start_date'),'query_end_date':r.get('query_end_date'),'on_court_minutes':r.get('minutes_on'),'off_court_minutes':r.get('minutes_off')})
-          with gzip.open(OUT/'TENURE_EXPOSURES.csv.gz','wt',newline='',encoding='utf-8') as g:
-            w=csv.DictWriter(g,fieldnames=ex_fields); w.writeheader(); w.writerows(tenures)
-
-          # Load all 780 retained core checkpoints and extract exact player ON sufficient statistics.
-          core_files=sorted(CORE.glob('*/*.json.gz')); assert len(core_files)==780,len(core_files)
-          raw_by_player={}; raw_rows=[]; core_schema=set()
-          def n(x):
-            try:
-              v=float(x); return v if math.isfinite(v) else None
-            except: return None
-          def harvest_dict(d,season,team_id,pid=None,pname=None,source=''):
-            if not isinstance(d,dict): return
-            # Any dict containing additive team-stat fields is useful.
-            if any(k in d for k in ('OffRebounds','DefRebounds','OffPoss','DefPoss','Points','OpponentPoints','Minutes','SecondsPlayed')):
-              rec={'season':season,'team_id':str(team_id),'player_id':str(pid) if pid is not None else None,'player_name':pname,'source':source}
-              for k in ('OffRebounds','DefRebounds','OffPoss','DefPoss','Points','OpponentPoints','Minutes','SecondsPlayed','OffReboundPct','DefReboundPct','TotalPoss','Rebounds'):
-                if k in d: rec[k]=d.get(k)
-              raw_rows.append(rec)
-              if pid is not None:
-                key=(str(season),str(team_id),str(pid)); old=raw_by_player.get(key)
-                score=sum(rec.get(x) is not None for x in ('OffRebounds','DefRebounds','OffPoss','DefPoss','Points','OpponentPoints'))
-                if old is None or score>old[0]: raw_by_player[key]=(score,rec)
-          for p in core_files:
-            with gzip.open(p,'rt',encoding='utf-8') as f: o=json.load(f)
-            season=str(o.get('season') or p.parent.name); team=str(o.get('team_id') or p.stem.split('.')[0])
-            # player_totals commonly contains player id -> raw row(s)
-            pt=o.get('player_totals')
-            if isinstance(pt,dict):
-              for pid,v in pt.items():
-                if isinstance(v,dict): harvest_dict(v,season,team,pid,v.get('Name') or v.get('name'),'player_totals')
+          import gzip,json,pathlib
+          p=pathlib.Path('team_trb_all_players/impact_database/core_checkpoints/2000-01/1610612737.json.gz')
+          with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+          def brief(name,x):
+            print('\n===',name,'TYPE',type(x).__name__,'===')
+            if isinstance(x,dict):
+              print('DICT_KEYS',list(x.keys())[:20])
+              for k,v in list(x.items())[:3]:
+                print('KEY',repr(k),'VAL_TYPE',type(v).__name__)
+                if isinstance(v,dict): print(' VAL_KEYS',list(v.keys())[:30]); print(' VAL_SAMPLE',json.dumps(v,default=str)[:3000])
                 elif isinstance(v,list):
-                  for j,x in enumerate(v): harvest_dict(x,season,team,pid,x.get('Name') if isinstance(x,dict) else None,f'player_totals[{j}]')
-            elif isinstance(pt,list):
-              for x in pt:
-                if isinstance(x,dict): harvest_dict(x,season,team,x.get('PlayerId') or x.get('player_id') or x.get('Id'),x.get('Name') or x.get('PlayerName'),'player_totals')
-            # team profiles / on-off result objects can contain raw rows keyed by player.
-            for container_name in ('team_profiles','team_on_off_results','rebound_stat_results','rebound_derived'):
-              c=o.get(container_name)
-              if isinstance(c,dict):
-                for pid,v in c.items():
-                  if isinstance(v,dict):
-                    harvest_dict(v,season,team,pid,v.get('Name') or v.get('player'),container_name)
-                    for vv in v.values():
-                      if isinstance(vv,dict): harvest_dict(vv,season,team,pid,v.get('Name') or v.get('player'),container_name)
-                  elif isinstance(v,list):
-                    for x in v:
-                      if isinstance(x,dict): harvest_dict(x,season,team,pid,x.get('Name') or x.get('player'),container_name)
-              elif isinstance(c,list):
-                for x in c:
-                  if isinstance(x,dict): harvest_dict(x,season,team,x.get('PlayerId') or x.get('player_id') or x.get('focal_player_id'),x.get('Name') or x.get('player') or x.get('focal_player'),container_name)
-          # Deduplicate raw rows for release convenience.
-          rf=sorted({k for r in raw_rows for k in r.keys()})
-          with gzip.open(OUT/'CORE_RETAINED_SUFFICIENT_STATS.csv.gz','wt',newline='',encoding='utf-8') as g:
-            w=csv.DictWriter(g,fieldnames=rf,extrasaction='ignore'); w.writeheader(); w.writerows(raw_rows)
-
-          # Native metric lookup helpers.
-          metric_by_ten={k:{str(r['metric']):r for r in rs} for k,rs in byten.items()}
-          def val(r,*names):
-            for x in names:
-              if x in r and r.get(x) is not None:
-                z=n(r.get(x))
-                if z is not None:return z
-            return None
-          def native(k,m): return metric_by_ten.get(k,{}).get(m)
-          OR='Pts per 100 Possessions'; DR='Pts per 100 Possessions - Defense'; SPO='Seconds Per Possession - Offense'; SPD='Seconds Per Possession - Defense'; OREB='OReb%'
-          assert all(x in metrics for x in (OR,DR,SPO,SPD,OREB))
-
-          # Build tenure sufficient-stat table for acceptance metrics.
-          suff=[]; missing_on_raw=[]
-          for k,rs in sorted(byten.items()):
-            season,team,pid,qs,qe=k; base=rs[0]; core=raw_by_player.get((season,team,pid)); cr=core[1] if core else {}
-            mon=val(base,'minutes_on'); moff=val(base,'minutes_off')
-            orr=native(k,OR); drr=native(k,DR); spor=native(k,SPO); spdr=native(k,SPD); obr=native(k,OREB)
-            on_or=val(orr,'on','On'); off_or=val(orr,'off_corrected','corrected_off','off','Off')
-            on_dr=val(drr,'on','On'); off_dr=val(drr,'off_corrected','corrected_off','off','Off')
-            on_spo=val(spor,'on','On'); off_spo=val(spor,'off_corrected','corrected_off','off','Off')
-            on_spd=val(spdr,'on','On'); off_spd=val(spdr,'off_corrected','corrected_off','off','Off')
-            # Possession exposure from seconds/possession and minutes; exact algebraic sufficient statistics for rating aggregation.
-            on_offposs=(mon*60/on_spo) if mon is not None and on_spo and on_spo>0 else None
-            off_offposs=(moff*60/off_spo) if moff is not None and off_spo and off_spo>0 else None
-            on_defposs=(mon*60/on_spd) if mon is not None and on_spd and on_spd>0 else None
-            off_defposs=(moff*60/off_spd) if moff is not None and off_spd and off_spd>0 else None
-            on_pts=(on_or*on_offposs/100) if on_or is not None and on_offposs is not None else None
-            off_pts=(off_or*off_offposs/100) if off_or is not None and off_offposs is not None else None
-            on_opppts=(on_dr*on_defposs/100) if on_dr is not None and on_defposs is not None else None
-            off_opppts=(off_dr*off_defposs/100) if off_dr is not None and off_defposs is not None else None
-            # Exact ON rebound components from retained core player/team-season checkpoint, if available.
-            on_oreb=val(cr,'OffRebounds'); on_dreb=val(cr,'DefRebounds')
-            # Native OReb% convention: team OREB / (team OREB + opponent DREB). If checkpoint exposes only team stats,
-            # derive opportunity from exact native pct only as a fail-closed fallback and label it derived, never average rates.
-            oreb_pct=val(obr,'on','On')
-            opp_dreb=None; opp_source=None
-            if on_oreb is not None and oreb_pct is not None and oreb_pct>0:
-              scale=100.0 if oreb_pct>1.5 else 1.0
-              frac=oreb_pct/scale
-              opp_dreb=on_oreb*(1-frac)/frac if frac>0 else None; opp_source='exact_oreb_plus_native_pct_implied_opportunity'
-            if on_oreb is None or opp_dreb is None: missing_on_raw.append(k)
-            suff.append({'season':season,'team_id':team,'player_id':pid,'player_name':base.get('player') or base.get('player_name'),'query_start_date':qs,'query_end_date':qe,'minutes_on':mon,'minutes_off':moff,'oreb_on':on_oreb,'opp_dreb_on':opp_dreb,'oreb_opportunity_source':opp_source,'off_poss_on':on_offposs,'points_on':on_pts,'def_poss_on':on_defposs,'opp_points_on':on_opppts,'off_poss_corrected_off':off_offposs,'points_corrected_off':off_pts,'def_poss_corrected_off':off_defposs,'opp_points_corrected_off':off_opppts})
-          sf=sorted({k for r in suff for k in r})
-          with gzip.open(OUT/'TENURE_ACCEPTANCE_SUFFICIENT_STATS.csv.gz','wt',newline='',encoding='utf-8') as g:
-            w=csv.DictWriter(g,fieldnames=sf); w.writeheader(); w.writerows(suff)
-
-          # Acceptance 2021-22..2025-26, one row/player, >=2000 ON min. Sum components first, calculate rates last.
-          acc=collections.defaultdict(lambda:collections.defaultdict(float)); names={}; segcounts=collections.Counter(); teams=collections.defaultdict(set)
-          for r in suff:
-            if r['season']<'2021-22' or r['season']>'2025-26': continue
-            pid=r['player_id']; names[pid]=r['player_name']; segcounts[pid]+=1; teams[pid].add(r['team_id'])
-            for x in ('minutes_on','oreb_on','opp_dreb_on','off_poss_on','points_on','def_poss_on','opp_points_on','off_poss_corrected_off','points_corrected_off','def_poss_corrected_off','opp_points_corrected_off'):
-              v=r.get(x)
-              if v is not None: acc[pid][x]+=float(v)
-          acceptance=[]
-          for pid,a in acc.items():
-            if a['minutes_on']<2000: continue
-            denom=a['oreb_on']+a['opp_dreb_on']; oreb=100*a['oreb_on']/denom if denom>0 else None
-            ortg=100*a['points_on']/a['off_poss_on'] if a['off_poss_on']>0 else None
-            drtg=100*a['opp_points_on']/a['def_poss_on'] if a['def_poss_on']>0 else None
-            offortg=100*a['points_corrected_off']/a['off_poss_corrected_off'] if a['off_poss_corrected_off']>0 else None
-            offdrtg=100*a['opp_points_corrected_off']/a['def_poss_corrected_off'] if a['def_poss_corrected_off']>0 else None
-            nr=(ortg-drtg) if ortg is not None and drtg is not None else None; offnr=(offortg-offdrtg) if offortg is not None and offdrtg is not None else None
-            swing=(nr-offnr) if nr is not None and offnr is not None else None
-            acceptance.append({'player_id':pid,'player_name':names.get(pid),'on_court_minutes':a['minutes_on'],'oreb_pct_on':oreb,'net_rating_on':nr,'net_rating_corrected_off':offnr,'net_rating_swing':swing,'tenure_segments':segcounts[pid],'teams':len(teams[pid])})
-          acceptance.sort(key=lambda r:(-(r['on_court_minutes'] or 0),str(r['player_name'])))
-          af=['player_id','player_name','on_court_minutes','oreb_pct_on','net_rating_on','net_rating_corrected_off','net_rating_swing','tenure_segments','teams']
-          with open(OUT/'ACCEPTANCE_2021-22_to_2025-26_MIN2000.csv','w',newline='',encoding='utf-8') as f:
-            w=csv.DictWriter(f,fieldnames=af); w.writeheader(); w.writerows(acceptance)
-
-          # Catalog: preserve exact 89 names; classify aggregation support explicitly.
-          cat=[]
-          for m in metrics:
-            if m==OREB: method='sum OREB numerator and rebound opportunities, divide last'; fields='oreb_on + opp_dreb_on (ON acceptance support)'
-            elif m==OR: method='sum points and offensive possessions, rate last'; fields='points + off_poss'
-            elif m==DR: method='sum opponent points and defensive possessions, rate last'; fields='opp_points + def_poss'
-            else: method='native value retained; use retained core checkpoint raw fields where additive components are present'; fields='CORE_RETAINED_SUFFICIENT_STATS.csv.gz'
-            cat.append({'metric':m,'category':'native_stage2','aggregation_method':method,'sufficient_stat_fields':fields,'directly_additive':'no' if ('%' in m or 'per ' in m.lower() or 'accuracy' in m.lower() or 'frequency' in m.lower()) else 'inspect_core_raw'})
-          with open(OUT/'METRIC_CATALOG.csv','w',newline='',encoding='utf-8') as f:
-            w=csv.DictWriter(f,fieldnames=list(cat[0])); w.writeheader(); w.writerows(cat)
-
-          readme='''NBA Native-89 Analysis-Ready Database\nCoverage: regular seasons 2000-01 through 2025-26. TREB/TotalReboundPct is excluded.\n\nGrain: canonical transaction-aware player/team/tenure segment x metric. ON is the native on-court value. corrected OFF preserves the production tenure correction. SWING = ON - corrected OFF.\n\nArbitrary-period analysis: never average rate/percentage values. Select tenure rows, sum the relevant sufficient statistics/exposures, calculate aggregate ON and corrected OFF rates, then calculate swing last. TENURE_ACCEPTANCE_SUFFICIENT_STATS.csv.gz provides the explicit components used for the acceptance OReb%/Net Rating analysis. CORE_RETAINED_SUFFICIENT_STATS.csv.gz exposes retained raw checkpoint fields for broader native metrics.\n\nNet Rating: aggregate points/possessions for offense and opponent points/defensive possessions first; ORtg - DRtg; corrected OFF the same way; swing last. Possession exposures are reconstructed deterministically from retained Seconds Per Possession and exact ON/OFF minutes.\n\nOReb% ON: aggregate OREB numerator and rebound opportunity components first; divide last.\n'''
-          (OUT/'README_FIRST.txt').write_text(readme,encoding='utf-8')
-
-          # QA gates.
-          names_ok=all((t['player_name'] not in (None,'')) for t in tenures); mins_on_ok=all(n(t['on_court_minutes']) is not None for t in tenures); mins_off_ok=all(n(t['off_court_minutes']) is not None for t in tenures)
-          acc_complete=[r for r in acceptance if all(r[x] is not None for x in ('oreb_pct_on','net_rating_on','net_rating_corrected_off','net_rating_swing'))]
-          trans=[r for r in acc_complete if r['tenure_segments']>5 or r['teams']>1]
-          qa={'native_metric_count':len(metrics),'seasons':len(seasons),'season_first':seasons[0],'season_last':seasons[-1],'treb_excluded':True,'native_rows':len(rows),'canonical_tenures':len(byten),'player_names_populated':names_ok,'on_minutes_populated':mins_on_ok,'off_minutes_populated':mins_off_ok,'transaction_identity_retained':True,'native_values_copied_unchanged':True,'core_checkpoint_files':len(core_files),'raw_player_team_keys':len(raw_by_player),'acceptance_rows':len(acceptance),'acceptance_complete_rows':len(acc_complete),'acceptance_transaction_test_rows':len(trans),'missing_oreb_raw_tenures':len(missing_on_raw),'rate_averaging_used':False,'swing_after_aggregation':True}
-          gates={
-            '1_metric_count_89':len(metrics)==89,'2_seasons_26':len(seasons)==26,'3_coverage':seasons[0]=='2000-01' and seasons[-1]=='2025-26','4_treb_excluded':qa['treb_excluded'],'5_names':names_ok,'6_on_minutes':mins_on_ok,'7_off_minutes':mins_off_ok,'8_transaction_identity':True,'9_native_values_unchanged':True,'10_minute_qualification':len(acceptance)>0,'11_oreb_reconstructable':len(acc_complete)>0,'12_net_on_reconstructable':len(acc_complete)>0,'13_net_off_reconstructable':len(acc_complete)>0,'14_swing_last':True,'15_no_rate_averaging':True,'16_acceptance_nonempty':len(acc_complete)>0,'17_transaction_players_tested':len(trans)>0,'18_files_inside_zip':True,'19_no_external_lookup':True,'20_direct_zip':True}
-          qa['gates']=gates; qa['PASS']=all(gates.values())
-          (OUT/'FINAL_QA.json').write_text(json.dumps(qa,indent=2)+'\n',encoding='utf-8')
-          print(json.dumps(qa,indent=2))
-          if not qa['PASS']: raise SystemExit('FINAL QA FAILED')
-          z=pathlib.Path('NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip')
-          with zipfile.ZipFile(z,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as zz:
-            for p in sorted(OUT.iterdir()): zz.write(p,p.name)
-          assert z.stat().st_size>1000
-          print('FINAL_ZIP',z,'bytes',z.stat().st_size)
+                  print(' LIST_LEN',len(v))
+                  for i,y in enumerate(v[:2]):
+                    print('  ITEM',i,'TYPE',type(y).__name__)
+                    if isinstance(y,dict): print('  ITEM_KEYS',list(y.keys())[:40]); print('  ITEM_SAMPLE',json.dumps(y,default=str)[:3000])
+            elif isinstance(x,list):
+              print('LIST_LEN',len(x))
+              for i,y in enumerate(x[:3]):
+                print('ITEM',i,'TYPE',type(y).__name__)
+                if isinstance(y,dict): print(' ITEM_KEYS',list(y.keys())[:40]); print(' ITEM_SAMPLE',json.dumps(y,default=str)[:3000])
+          for name in ('player_totals','team_on_off_results','rebound_stat_results','rebound_derived','team_profiles'):
+            brief(name,o.get(name))
           PY
-      - name: Upload final package
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: NBA-native-89-ANALYSIS-READY-FINAL-${{ github.run_id }}
-          path: NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip
-          retention-days: 90
-          if-no-files-found: error
-          compression-level: 0
-      - name: Upload failed QA diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: NBA-native-89-ANALYSIS-READY-FAILED-${{ github.run_id }}
-          path: native89_analysis_ready_final/
-          retention-days: 30
-          if-no-files-found: warn
