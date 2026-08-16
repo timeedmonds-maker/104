@@ -1,0 +1,71 @@
+name: Native89 approved microvariance final packaging
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/native89-approved-microvariance-final.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - name: Prepare explicitly approved two-profile variance build
+        run: |
+          python - <<'PATCH'
+          from pathlib import Path
+          src=Path('.github/workflows/native89-repo-local-final.yml').read_text(encoding='utf-8')
+          marker="          python - <<'PY'\n"
+          a=src.index(marker)+len(marker)
+          b=src.index("\n          PY\n",a)
+          raw=src[a:b]
+          code='\n'.join((line[10:] if line.startswith('          ') else line) for line in raw.splitlines())+'\n'
+          def repl(old,new,label):
+            global code
+            c=code.count(old)
+            assert c==1,(label,c)
+            code=code.replace(old,new,1)
+          anchor="OR='Pts per 100 Possessions'; DR='Pts per 100 Possessions - Defense'; SPO='Seconds Per Possession - Offense'; SPD='Seconds Per Possession - Defense'; OREB='OReb%'"
+          repl(anchor,anchor+"\nAPPROVED_OREB_MICROVARIANCE={\n  ('2021-22','1610612752','1627863'):{'player_name':'Danuel House Jr.','minutes_on':3.0},\n  ('2022-23','1610612738','1630551'):{'player_name':'Justin Champagnie','minutes_on':4.0},\n}",'approved constants')
+          repl("suff=[]; holes=[]; zero_profiles=0","suff=[]; holes=[]; zero_profiles=0; approved_variance_used=[]",'variance accumulator')
+          old="""if mon>0 and team_oreb is not None and native_oreb is not None and native_oreb>0:\n  frac=native_oreb if native_oreb<=1.5 else native_oreb/100\n  opp_dreb=team_oreb*(1-frac)/frac if frac>0 else None"""
+          new=old+"""\nelif mon>0 and g in APPROVED_OREB_MICROVARIANCE and team_oreb==0 and native_oreb==0:\n  spec=APPROVED_OREB_MICROVARIANCE[g]\n  assert abs(mon-spec['minutes_on'])<1e-9 and str(base.get('player') or base.get('player_name'))==spec['player_name']\n  # Explicit user-approved approximation: zero numerator is retained; unknown OREB denominator for this tiny stint is omitted.\n  opp_dreb=0.0; osrc='USER_APPROVED_ZERO_OREB_MICROSTINT_DENOMINATOR_OMITTED'\n  approved_variance_used.append({'season':season,'team_id':team,'player_id':pid,'player_name':spec['player_name'],'minutes_on':mon,'team_oreb_on':team_oreb,'native_oreb_pct_on':native_oreb,'treatment':'OREB numerator retained at zero; unknown opponent-DREB denominator omitted from career OREB aggregation','net_rating_treatment':'included normally; no Net Rating approximation'})"""
+          repl(old,new,'approved zero OREB handling')
+          anchor2="""with gzip.open(OUT/'STATISTICAL_EXPOSURES_PLAYER_TEAM_SEASON.csv.gz','wt',newline='',encoding='utf-8') as g:\n  w=csv.DictWriter(g,fieldnames=list(suff[0]));w.writeheader();w.writerows(suff)"""
+          extra=anchor2+"""\nassert len(approved_variance_used)==2 and abs(sum(x['minutes_on'] for x in approved_variance_used)-7.0)<1e-9, approved_variance_used\nwith open(OUT/'ACCEPTED_VARIANCE_EXCEPTIONS.csv','w',newline='',encoding='utf-8') as f:\n  w=csv.DictWriter(f,fieldnames=list(approved_variance_used[0]));w.writeheader();w.writerows(approved_variance_used)"""
+          repl(anchor2,extra,'variance file')
+          readme_write="(OUT/'README_FIRST.txt').write_text(readme,encoding='utf-8')"
+          readme_new="""readme += '\\nAPPROVED MICRO-VARIANCE EXCEPTION\\nTwo zero-OREB micro-stints are explicitly accepted so the release can proceed: Danuel House Jr., NYK 2021-22 (3 Stage2 minutes), and Justin Champagnie, BOS 2022-23 (4 Stage2 minutes). In both, retained team OREB ON is exactly 0 and native OREB% ON is 0.000, but the exact opponent defensive-rebound denominator is not retained. Their zero OREB numerators are retained, their unknown OREB denominators are omitted from multi-season/career OREB aggregation (7 minutes total), and all Net Rating components remain included normally. No other qualifying exception is permitted. See ACCEPTED_VARIANCE_EXCEPTIONS.csv.\\n'\n"""+readme_write
+          repl(readme_write,readme_new,'readme disclosure')
+          qa_anchor="gates={"
+          qa_extra="""qa['accepted_variance_profiles']=len(approved_variance_used)\nqa['accepted_variance_minutes']=sum(x['minutes_on'] for x in approved_variance_used)\nqa['accepted_variance_exceptions']=approved_variance_used\n"""+qa_anchor
+          repl(qa_anchor,qa_extra,'qa variance disclosure')
+          gate24="'24_statistical_exposure_map_complete':len(suff)==14600,"
+          gate25=gate24+"\n  '25_approved_microvariance_exactly_two_known_profiles':len(approved_variance_used)==2 and abs(sum(x['minutes_on'] for x in approved_variance_used)-7.0)<1e-9 and {x['player_id'] for x in approved_variance_used}=={'1627863','1630551'},"
+          repl(gate24,gate25,'variance gate')
+          required_tail="'MULTI_FRAGMENT_PROFILE_QA.csv','LEGACY_FALSE_QUALIFIERS_FROM_FRAGMENT_DOUBLE_COUNT.csv'}"
+          repl(required_tail,"'MULTI_FRAGMENT_PROFILE_QA.csv','LEGACY_FALSE_QUALIFIERS_FROM_FRAGMENT_DOUBLE_COUNT.csv','ACCEPTED_VARIANCE_EXCEPTIONS.csv'}",'required variance file')
+          Path('approved_native89_build.py').write_text(code,encoding='utf-8')
+          print('PATCHED_BUILD_READY',len(code))
+          PATCH
+      - name: Build final approved-variance Native89 ZIP
+        run: python approved_native89_build.py
+      - name: Upload final ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: NBA-native-89-ANALYSIS-READY-APPROVED-FINAL-${{ github.run_id }}
+          path: NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip
+          if-no-files-found: error
+          retention-days: 90
+      - name: Upload final QA separately
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NBA-native-89-APPROVED-FINAL-QA-${{ github.run_id }}
+          path: native89_analysis_ready_final/FINAL_QA.json
+          if-no-files-found: warn
+          retention-days: 90
