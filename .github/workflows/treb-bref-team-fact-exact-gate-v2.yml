@@ -1,0 +1,171 @@
+name: TREB BRef team fact exact gate v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-bref-team-fact-exact-gate-v2.yml
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-bref-team-fact-exact-gate-v2
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas requests beautifulsoup4 lxml
+      - name: Download retained exact consensus and current blocker diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/consensus /tmp/reclose /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/consensus.zip
+          unzip -q /tmp/consensus.zip -d /tmp/consensus
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9263563808/zip > /tmp/reclose.zip
+          unzip -q /tmp/reclose.zip -d /tmp/reclose
+      - name: Validate Basketball Reference team totals using shotdetail metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import io,json,pathlib,re,tarfile,time
+          import pandas as pd
+          import requests
+          from bs4 import BeautifulSoup,Comment
+          O=pathlib.Path('/tmp/out'); O.mkdir(exist_ok=True)
+          missing=pd.read_csv('/tmp/reclose/MISSING_TEAM_GAME_FACTS.csv')
+          missing['game_id']=pd.to_numeric(missing.game_id).astype('int64'); missing['team_id']=pd.to_numeric(missing.team_id).astype('int64')
+          cons=pd.read_csv('/tmp/consensus/PROMOTABLE_RETAINED_FACT_CONSENSUS.csv',low_memory=False)
+          cons=cons[cons.player_id.isna() & cons.field.isin(['team_oreb','team_dreb','opponent_oreb','opponent_dreb'])].copy()
+          cons['game_id']=pd.to_numeric(cons.game_id).astype('int64'); cons['team_id']=pd.to_numeric(cons.team_id).astype('int64')
+          exact=cons.pivot_table(index=['game_id','team_id'],columns='field',values='value',aggfunc='first').reset_index().dropna()
+          def year_of(g): s=str(int(g)).zfill(10); return 2000+int(s[3:5])
+          target_games=set(missing.game_id); years=sorted({year_of(g) for g in target_games})
+          sess=requests.Session(); sess.headers.update({'User-Agent':'Mozilla/5.0 TREB exact validation'})
+          txt=sess.get('https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt',timeout=30).text
+          urls={}
+          for line in txt.splitlines():
+              if '=' in line:
+                  k,v=line.split('=',1); urls[k.strip()]=v.strip()
+          meta={}
+          for y in years:
+              # shotdetail supplies canonical game date + home/away abbreviations
+              su=urls.get(f'shotdetail_{y}'); nu=urls.get(f'nbastats_{y}')
+              if not su or not nu: continue
+              sr=sess.get(su,timeout=90); sr.raise_for_status()
+              nr=sess.get(nu,timeout=90); nr.raise_for_status()
+              with tarfile.open(fileobj=io.BytesIO(sr.content),mode='r:xz') as tf:
+                  shot=pd.read_csv(tf.extractfile(f'shotdetail_{y}.csv'),low_memory=False)
+              with tarfile.open(fileobj=io.BytesIO(nr.content),mode='r:xz') as tf:
+                  nba=pd.read_csv(tf.extractfile(f'nbastats_{y}.csv'),low_memory=False)
+              shot['GAME_ID']=pd.to_numeric(shot.GAME_ID).astype('int64'); nba['GAME_ID']=pd.to_numeric(nba.GAME_ID).astype('int64')
+              sg=shot[['GAME_ID','GAME_DATE','HTM','VTM']].drop_duplicates('GAME_ID')
+              for r in sg.itertuples(index=False):
+                  date=pd.to_datetime(r.GAME_DATE,errors='coerce')
+                  if pd.isna(date): continue
+                  g=int(r.GAME_ID); gm=nba[nba.GAME_ID==g]
+                  pairs=[]
+                  for pref in ['PLAYER1','PLAYER2','PLAYER3']:
+                      tc=f'{pref}_TEAM_ID'; ac=f'{pref}_TEAM_ABBREVIATION'
+                      if tc in gm and ac in gm:
+                          z=gm[[tc,ac]].dropna().drop_duplicates()
+                          for rr in z.itertuples(index=False):
+                              try: tid=int(float(rr[0]))
+                              except: continue
+                              abb=str(rr[1]).strip().upper()
+                              if tid>0 and abb and abb!='NAN': pairs.append((tid,abb))
+                  byabb={}
+                  for tid,abb in pairs: byabb.setdefault(abb,[]).append(tid)
+                  def mode_id(abb):
+                      xs=byabb.get(str(abb).upper(),[])
+                      return max(set(xs),key=xs.count) if xs else None
+                  ht=str(r.HTM).upper(); vt=str(r.VTM).upper(); hid=mode_id(ht); vid=mode_id(vt)
+                  if hid and vid and hid!=vid:
+                      meta[g]={'date':date.strftime('%Y%m%d'),'home_abb':ht,'away_abb':vt,'teams':[(hid,ht),(vid,vt)]}
+          BREF={'BKN':'BRK','BRK':'BRK','PHX':'PHO','PHO':'PHO','CHA':'CHO','CHO':'CHO'}
+          def bref(a): return BREF.get(a,a)
+          cache={}
+          def fetch_game(g):
+              if g in cache:return cache[g]
+              m=meta.get(g)
+              if not m: raise RuntimeError('NO_GAME_METADATA')
+              url=f"https://www.basketball-reference.com/boxscores/{m['date']}0{bref(m['home_abb'])}.html"
+              rr=sess.get(url,timeout=30)
+              if rr.status_code!=200: raise RuntimeError(f'HTTP_{rr.status_code}:{url}')
+              soup=BeautifulSoup(rr.text,'lxml')
+              for c in list(soup.find_all(string=lambda t:isinstance(t,Comment))):
+                  if '<table' in c:c.replace_with(BeautifulSoup(c,'lxml'))
+              tables={}
+              for table in soup.find_all('table'):
+                  mm=re.match(r'box-([A-Z]{3})-game-basic$',table.get('id',''))
+                  if not mm:continue
+                  foot=table.find('tfoot'); tr=foot.find('tr') if foot else None
+                  if not tr:continue
+                  def val(s):
+                      x=tr.find(attrs={'data-stat':s}); return int(x.get_text(strip=True)) if x and x.get_text(strip=True) else None
+                  o,d=val('orb'),val('drb')
+                  if o is not None and d is not None: tables[mm.group(1)]=(o,d)
+              mapped={}
+              for tid,abb in m['teams']:
+                  if bref(abb) in tables:mapped[tid]=tables[bref(abb)]
+              if len(mapped)!=2: raise RuntimeError(f'BREF_PARSE_MAP:{url}:{tables}:{m}')
+              cache[g]=mapped; time.sleep(1.5); return mapped
+          controls=[]
+          for y in years:
+              candidates=[]
+              for g in sorted(set(exact.game_id)):
+                  if g in target_games or year_of(g)!=y or g not in meta:continue
+                  if len(exact[exact.game_id==g])==2:candidates.append(g)
+                  if len(candidates)>=3:break
+              controls+=candidates
+          rows=[]; passes=0; mismatch=0; errors=0
+          for g in controls:
+              try:
+                  got=fetch_game(g)
+                  for r in exact[exact.game_id==g].itertuples(index=False):
+                      if int(r.team_id) not in got:continue
+                      o,d=got[int(r.team_id)]; ok=(o==int(round(r.team_oreb)) and d==int(round(r.team_dreb)))
+                      passes+=int(ok); mismatch+=int(not ok)
+                      rows.append({'game_id':g,'team_id':int(r.team_id),'bref_oreb':o,'bref_dreb':d,'exact_oreb':int(round(r.team_oreb)),'exact_dreb':int(round(r.team_dreb)),'match':ok})
+              except Exception as e:
+                  errors+=1; rows.append({'game_id':g,'error':f'{type(e).__name__}:{e}','match':False})
+          pd.DataFrame(rows).to_csv(O/'BREF_TEAM_FACT_CONTROLS.csv',index=False)
+          gate=(passes>=40 and mismatch==0)
+          recovered=[]; terr=[]
+          if gate:
+              for g in sorted(target_games):
+                  try:
+                      got=fetch_game(g)
+                      for tid in sorted(set(missing[missing.game_id==g].team_id)):
+                          tid=int(tid)
+                          if tid not in got:raise RuntimeError(f'NO_TARGET_TEAM:{tid}')
+                          opp=[x for x in got if x!=tid]
+                          if len(opp)!=1:raise RuntimeError('NO_UNIQUE_OPPONENT')
+                          recovered.append({'game_id':g,'team_id':tid,'team_oreb':got[tid][0],'team_dreb':got[tid][1],'opponent_oreb':got[opp[0]][0],'opponent_dreb':got[opp[0]][1],'source':'basketball-reference basic box score','control_gate':'PASS_ZERO_MISMATCH'})
+                  except Exception as e:terr.append({'game_id':g,'error':f'{type(e).__name__}:{e}'})
+          pd.DataFrame(recovered).to_csv(O/'RECOVERED_BREF_EXACT_TEAM_FACTS.csv',index=False); pd.DataFrame(terr).to_csv(O/'BREF_TARGET_ERRORS.csv',index=False)
+          qa={'status':'PASS' if gate else 'CONTROL_GATE_FAIL','metadata_games':len(meta),'affected_seasons':years,'missing_team_fact_rows':len(missing),'target_games':len(target_games),'control_games_attempted':len(controls),'control_team_passes':passes,'control_mismatches':mismatch,'control_errors':errors,'recovered_target_team_facts':len(recovered),'target_errors':len(terr),'integrity':{'zero_control_mismatches_required':True,'independent_source_control_gated':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False}}
+          (O/'BREF_TEAM_FACT_RECOVERY_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2),flush=True)
+          if not gate:raise SystemExit('BREF exact team fact control gate failed')
+          PY
+      - name: Upload exact team-fact recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-bref-team-fact-exact-gate-v2-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
