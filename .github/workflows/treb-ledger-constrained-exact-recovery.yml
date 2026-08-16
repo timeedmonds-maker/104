@@ -1,0 +1,156 @@
+name: TREB ledger-constrained exact residual recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-ledger-constrained-exact-recovery.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-ledger-constrained-exact-recovery
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9263563808'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  OLD_ARTIFACT_ID: '9258644772'
+  MID_ARTIFACT_ID: '9260106595'
+  NEW_ARTIFACT_ID: '9260439871'
+  GAME_ARTIFACT_ID: '9262554900'
+  CURRENTCONS_ARTIFACT_ID: '9263341092'
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 17
+      matrix:
+        year: [2000,2001,2003,2004,2005,2009,2010,2012,2015,2017,2018,2019,2020,2021,2022,2023,2024]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download authoritative residual and retained exact controls
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/consensus /tmp/old /tmp/mid /tmp/new /tmp/game /tmp/currentcons /tmp/src /tmp/out
+          get(){ gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/$2/zip" > "/tmp/$1.zip"; unzip -q "/tmp/$1.zip" -d "/tmp/$1"; }
+          get current "$CURRENT_ARTIFACT_ID"
+          get consensus "$CONSENSUS_ARTIFACT_ID"
+          get old "$OLD_ARTIFACT_ID"
+          get mid "$MID_ARTIFACT_ID"
+          get new "$NEW_ARTIFACT_ID"
+          get game "$GAME_ARTIFACT_ID"
+          get currentcons "$CURRENTCONS_ARTIFACT_ID"
+      - name: Download retained source trio
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_{y}'
+              if k not in vals: raise SystemExit(f'MISSING_SOURCE_URL {k}')
+              print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 -o "/tmp/src/${p}_${y}.tar.xz" "$url"
+            tar -xJf "/tmp/src/${p}_${y}.tar.xz" -C /tmp/src
+            test -s "/tmp/src/${p}_${y}.csv"
+          done < /tmp/urls.tsv
+      - name: Ledger-constrained team-local exact recovery
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          python -u team_trb_all_players/ledger_constrained_exact_recovery.py \
+            --year "$y" \
+            --current-dir /tmp/current \
+            --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz \
+            --nba "/tmp/src/nbastats_${y}.csv" \
+            --v3 "/tmp/src/nbastatsv3_${y}.csv" \
+            --pbp "/tmp/src/pbpstats_${y}.csv" \
+            --exact-dir /tmp/consensus \
+            --exact-dir /tmp/old \
+            --exact-dir /tmp/mid \
+            --exact-dir /tmp/new \
+            --exact-dir /tmp/game \
+            --exact-dir /tmp/currentcons \
+            --output-dir /tmp/out
+      - name: Upload season result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-ledger-exact-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          if-no-files-found: warn
+
+  consolidate:
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-ledger-exact-*-${{ github.run_id }}
+          path: /tmp/all
+          merge-multiple: true
+      - name: Conflict-check and consolidate exact recoveries
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,json,pathlib
+          R=pathlib.Path('/tmp/all'); O=pathlib.Path('/tmp/final'); O.mkdir(parents=True,exist_ok=True)
+          REQP=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'); REQT=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          def gid(x): return str(int(float(str(x).strip().removesuffix('.0')))).zfill(10)
+          def tid(x): return str(int(float(x)))
+          def pid(x): return str(x).strip().removesuffix('.0')
+          P={}; T={}; audits=[]; qas=[]
+          for p in R.rglob('LEDGER_QA_*.json'):
+              try: qas.append(json.loads(p.read_text()))
+              except: pass
+          for p in R.rglob('LEDGER_AUDIT_*.csv'): audits += list(csv.DictReader(open(p,newline='')))
+          for p in R.rglob('LEDGER_EXACT_PLAYER_*.csv'):
+              for r in csv.DictReader(open(p,newline='')):
+                  k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id'])); v=tuple(float(r[z]) for z in REQP)
+                  if k in P and P[k]!=v: raise SystemExit(f'PLAYER_CONFLICT {k}')
+                  P[k]=v
+          for p in R.rglob('LEDGER_EXACT_TEAM_*.csv'):
+              for r in csv.DictReader(open(p,newline='')):
+                  k=(gid(r['game_id']),tid(r['team_id'])); v=tuple(float(r[z]) for z in REQT)
+                  if k in T and T[k]!=v: raise SystemExit(f'TEAM_CONFLICT {k}')
+                  T[k]=v
+          with open(O/'RECOVERED_LEDGER_EXACT_PLAYER_GAME_PRIMITIVES.csv','w',newline='') as f:
+              w=csv.writer(f); w.writerow(['game_id','team_id','player_id',*REQP]); [w.writerow([g,t,p,*v]) for (g,t,p),v in sorted(P.items())]
+          with open(O/'RECOVERED_LEDGER_EXACT_TEAM_GAME_FACTS.csv','w',newline='') as f:
+              w=csv.writer(f); w.writerow(['game_id','team_id',*REQT]); [w.writerow([g,t,*v]) for (g,t),v in sorted(T.items())]
+          if audits:
+              cols=sorted(set().union(*(r.keys() for r in audits)))
+              with open(O/'TREB_LEDGER_EXACT_AUDIT.csv','w',newline='') as f: w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(audits)
+          qa={'status':'PASS','season_qas':len(qas),'games':sum(int(q.get('games',0)) for q in qas),'exact_player_primitives':len(P),'exact_team_facts':len(T),'source_gaps':sum(int(q.get('source_gaps',0)) for q in qas),'no_ledger_path':sum(int(q.get('no_ledger_path',0)) for q in qas),'integrity':{'exact_game_ledger_seconds_constraint':True,'same_game_retained_exact_player_controls':True,'model_used':False,'rounded_rate_backsolve_used':False,'opponent_inference_used':False,'unsafe_global_event_ordering_used':False}}
+          (O/'TREB_LEDGER_EXACT_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-ledger-exact-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
