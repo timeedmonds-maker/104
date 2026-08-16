@@ -1,0 +1,200 @@
+name: TREB 2015 residual materiality single-key fanout
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2015-materiality-single-key-fanout.yml
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  CURRENT_ARTIFACT_ID: '9260774395'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  THRESHOLD_PP: '0.01'
+  MINUTES_GATE_SECONDS: '60'
+
+jobs:
+  audit:
+    name: materiality 2015 ${{ matrix.team_id }} ${{ matrix.player_id }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 18
+      matrix:
+        include:
+          - {team_id: '1610612739', player_id: '202389'}
+          - {team_id: '1610612739', player_id: '2210'}
+          - {team_id: '1610612739', player_id: '2747'}
+          - {team_id: '1610612757', player_id: '201945'}
+          - {team_id: '1610612757', player_id: '202329'}
+          - {team_id: '1610612757', player_id: '202334'}
+          - {team_id: '1610612757', player_id: '203081'}
+          - {team_id: '1610612757', player_id: '203086'}
+          - {team_id: '1610612757', player_id: '203090'}
+          - {team_id: '1610612761', player_id: '1626181'}
+          - {team_id: '1610612761', player_id: '200768'}
+          - {team_id: '1610612761', player_id: '201942'}
+          - {team_id: '1610612761', player_id: '202335'}
+          - {team_id: '1610612761', player_id: '202685'}
+          - {team_id: '1610612761', player_id: '202687'}
+          - {team_id: '1610612761', player_id: '202709'}
+          - {team_id: '1610612761', player_id: '203082'}
+          - {team_id: '1610612761', player_id: '2449'}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download authoritative retained artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current_full tenure consensus pbp recovered_old recovered_mid recovered_new; do mkdir -p "/tmp/$d"; done
+          for spec in \
+            "current_full:$CURRENT_ARTIFACT_ID" \
+            "tenure:$TENURE_ARTIFACT_ID" \
+            "consensus:$CONSENSUS_ARTIFACT_ID" \
+            "pbp:$PBP_ARTIFACT_ID" \
+            "recovered_old:$RECOVERED_OLD_ARTIFACT_ID" \
+            "recovered_mid:$RECOVERED_MID_ARTIFACT_ID" \
+            "recovered_new:$RECOVERED_NEW_ARTIFACT_ID"; do
+            d="${spec%%:*}"; a="${spec##*:}"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" > "/tmp/${d}.zip"
+            unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"
+          done
+      - name: Restrict current manifest to one 2015 key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          python - <<'PY'
+          import csv, pathlib
+          src=next(pathlib.Path('/tmp/current_full').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          rows=list(csv.DictReader(open(src,newline='')))
+          team='${{ matrix.team_id }}'; player='${{ matrix.player_id }}'
+          hit=[r for r in rows if str(r['season'])=='2015-16' and str(int(float(r['team_id'])))==team and str(r['player_id']).removesuffix('.0')==player]
+          assert len(hit)==1,(team,player,len(hit))
+          out=pathlib.Path('/tmp/current/AUTONOMOUS_BLOCKER_MANIFEST.csv')
+          with open(out,'w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=hit[0].keys()); w.writeheader(); w.writerows(hit)
+          PY
+      - name: Download retained 2015 full-season source feeds
+        timeout-minutes: 8
+        shell: bash
+        run: |
+          set -euo pipefail
+          y=2015
+          mkdir -p /tmp/src
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' > /tmp/urls.tsv
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              print(p,vals[f'{p}_2015'],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 -o "/tmp/src/${p}_2015.tar.xz" "$url"
+            tar -xJf "/tmp/src/${p}_2015.tar.xz" -C /tmp/src
+          done < /tmp/urls.tsv
+      - name: Apply fail-closed 0.01pp gate to single key
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/audit_current_residual_materiality.py \
+            --year 2015 \
+            --current-dir /tmp/current \
+            --tenure-dir /tmp/tenure \
+            --consensus-dir /tmp/consensus \
+            --pbp-dir /tmp/pbp \
+            --recovered-old-dir /tmp/recovered_old \
+            --recovered-mid-dir /tmp/recovered_mid \
+            --recovered-new-dir /tmp/recovered_new \
+            --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz \
+            --nba /tmp/src/nbastats_2015.csv \
+            --v3 /tmp/src/nbastatsv3_2015.csv \
+            --pbp /tmp/src/pbpstats_2015.csv \
+            --threshold-pp "$THRESHOLD_PP" \
+            --minutes-gate-seconds "$MINUTES_GATE_SECONDS" \
+            --max-enumeration-nodes 10000 \
+            --max-game-variants 5000 \
+            --max-key-states 200000 \
+            --output-dir /tmp/out
+      - name: Upload single-key checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2015-materiality-key-${{ matrix.team_id }}-${{ matrix.player_id }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+  consolidate:
+    name: consolidate 2015 single-key materiality
+    needs: audit
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: TREB-2015-materiality-key-*-${{ github.run_id }}
+          path: /tmp/keys
+      - name: Consolidate fail closed
+        shell: bash
+        run: |
+          mkdir -p /tmp/out
+          python - <<'PY'
+          import pathlib, pandas as pd, json
+          root=pathlib.Path('/tmp/keys')
+          parts=[pd.read_csv(p) for p in root.rglob('MATERIALITY_AUDIT_2015.csv')]
+          a=pd.concat(parts,ignore_index=True,sort=False) if parts else pd.DataFrame()
+          if len(a): a=a.drop_duplicates(['season','team_id','player_id'],keep='last')
+          expected=18
+          statuses=a.status.value_counts().to_dict() if len(a) else {}
+          qa={'status':'PASS','expected_keys':expected,'audited_keys':int(len(a)),
+              'accepted_immaterial_keys':int(statuses.get('ACCEPT_IMMATERIAL',0)),
+              'material_repair_required_keys':int(statuses.get('MATERIAL_REPAIR_REQUIRED',0)),
+              'audit_unresolved_keys':int(statuses.get('AUDIT_UNRESOLVED',0)),
+              'missing_or_failed_keys':expected-int(len(a)),
+              'fail_closed':True,'threshold_pp':0.01,'minutes_gate_seconds':60.0}
+          a.to_csv('/tmp/out/TREB_2015_SINGLE_KEY_MATERIALITY_AUDIT.csv',index=False)
+          acc=[pd.read_csv(p) for p in root.rglob('MATERIALITY_ACCEPTED_2015.csv')]
+          aa=pd.concat(acc,ignore_index=True,sort=False) if acc else pd.DataFrame()
+          aa.to_csv('/tmp/out/TREB_2015_SINGLE_KEY_MATERIALITY_ACCEPTED.csv',index=False)
+          pathlib.Path('/tmp/out/TREB_2015_SINGLE_KEY_MATERIALITY_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2015-single-key-materiality-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
