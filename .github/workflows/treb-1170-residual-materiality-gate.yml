@@ -1,0 +1,266 @@
+name: TREB 1170 residual fail-closed materiality gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-1170-residual-materiality-gate.yml
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-1170-residual-materiality-gate
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9260774395'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  THRESHOLD_PP: '0.01'
+  MINUTES_GATE_SECONDS: '60'
+
+jobs:
+  audit:
+    name: materiality ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 17
+      matrix:
+        year: [2000,2001,2003,2004,2005,2009,2010,2012,2015,2017,2018,2019,2020,2021,2022,2023,2024]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact audit dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download authoritative retained artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current tenure consensus pbp recovered_old recovered_mid recovered_new; do mkdir -p "/tmp/$d"; done
+          for spec in \
+            "current:$CURRENT_ARTIFACT_ID" \
+            "tenure:$TENURE_ARTIFACT_ID" \
+            "consensus:$CONSENSUS_ARTIFACT_ID" \
+            "pbp:$PBP_ARTIFACT_ID" \
+            "recovered_old:$RECOVERED_OLD_ARTIFACT_ID" \
+            "recovered_mid:$RECOVERED_MID_ARTIFACT_ID" \
+            "recovered_new:$RECOVERED_NEW_ARTIFACT_ID"; do
+            d="${spec%%:*}"; a="${spec##*:}"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" > "/tmp/${d}.zip"
+            unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"
+          done
+      - name: Download retained full-season source feeds
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_{y}'
+              if k not in vals: raise SystemExit(f'MISSING_SOURCE_URL {k}')
+              print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 \
+              -o "/tmp/src/${p}_${y}.tar.xz" "$url"
+            tar -xJf "/tmp/src/${p}_${y}.tar.xz" -C /tmp/src
+            test -s "/tmp/src/${p}_${y}.csv"
+          done < /tmp/urls.tsv
+      - name: Enumerate all legal retained-source variants and apply 0.01pp gate
+        timeout-minutes: 15
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          python -u team_trb_all_players/audit_current_residual_materiality.py \
+            --year "$y" \
+            --current-dir /tmp/current \
+            --tenure-dir /tmp/tenure \
+            --consensus-dir /tmp/consensus \
+            --pbp-dir /tmp/pbp \
+            --recovered-old-dir /tmp/recovered_old \
+            --recovered-mid-dir /tmp/recovered_mid \
+            --recovered-new-dir /tmp/recovered_new \
+            --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz \
+            --nba "/tmp/src/nbastats_${y}.csv" \
+            --v3 "/tmp/src/nbastatsv3_${y}.csv" \
+            --pbp "/tmp/src/pbpstats_${y}.csv" \
+            --threshold-pp "$THRESHOLD_PP" \
+            --minutes-gate-seconds "$MINUTES_GATE_SECONDS" \
+            --max-enumeration-nodes 10000 \
+            --max-game-variants 5000 \
+            --max-key-states 200000 \
+            --output-dir /tmp/out
+      - name: Upload season materiality checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-1170-materiality-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+  consolidate:
+    name: consolidate fail-closed 0.01pp residual gate
+    needs: audit
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download season audit outputs
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: TREB-1170-materiality-*-${{ github.run_id }}
+          path: /tmp/seasons
+          merge-multiple: false
+      - name: Download authoritative 8477 state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/final
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Build complete fail-closed materiality gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,json,pathlib
+          import pandas as pd
+
+          R=pathlib.Path('/tmp/seasons'); C=pathlib.Path('/tmp/current'); O=pathlib.Path('/tmp/final')
+          def pid(x): return str(x).strip().removesuffix('.0')
+          def tid(x): return str(int(float(x)))
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+
+          current=list(csv.DictReader(open(next(C.rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv')),newline='')))
+          assert len(current)==1170,len(current)
+          current_keys={key(r) for r in current}
+
+          audit_parts=[pd.read_csv(p,low_memory=False) for p in R.rglob('MATERIALITY_AUDIT_*.csv')]
+          audits=pd.concat(audit_parts,ignore_index=True,sort=False) if audit_parts else pd.DataFrame()
+          if len(audits):
+              audits['team_id']=pd.to_numeric(audits.team_id,errors='raise').astype('int64').astype(str)
+              audits['player_id']=audits.player_id.map(pid)
+              audits['season']=audits.season.astype(str)
+              audits=audits.drop_duplicates(['season','team_id','player_id'],keep='last')
+          audited_keys=set(zip(audits.season,audits.team_id,audits.player_id)) if len(audits) else set()
+
+          missing=current_keys-audited_keys
+          if missing:
+              synth=pd.DataFrame([{'season':s,'team_id':t,'player_id':p,'threshold_pp':0.01,
+                                   'minutes_gate_seconds':60.0,'status':'AUDIT_UNRESOLVED',
+                                   'accepted_immaterial':False,'reason':'SEASON_AUDIT_JOB_MISSING_OR_FAILED_FAIL_CLOSED'}
+                                  for s,t,p in sorted(missing)])
+              audits=pd.concat([audits,synth],ignore_index=True,sort=False)
+          assert len(audits)==1170,len(audits)
+          assert set(zip(audits.season.astype(str),audits.team_id.astype(str),audits.player_id.map(pid)))==current_keys
+
+          acc_parts=[pd.read_csv(p,low_memory=False) for p in R.rglob('MATERIALITY_ACCEPTED_*.csv')]
+          accepted=pd.concat(acc_parts,ignore_index=True,sort=False) if acc_parts else pd.DataFrame()
+          if len(accepted):
+              accepted['team_id']=pd.to_numeric(accepted.team_id,errors='raise').astype('int64').astype(str)
+              accepted['player_id']=accepted.player_id.map(pid)
+              accepted['season']=accepted.season.astype(str)
+              accepted=accepted.drop_duplicates(['season','team_id','player_id'],keep='last')
+              accepted=accepted[[key(r._asdict()) in current_keys for r in accepted.itertuples(index=False)]].copy()
+
+          audit_status={(str(r.season),str(r.team_id),pid(r.player_id)):str(r.status) for r in audits.itertuples(index=False)}
+          accepted_keys=set(zip(accepted.season,accepted.team_id,accepted.player_id)) if len(accepted) else set()
+          assert all(audit_status[k]=='ACCEPT_IMMATERIAL' for k in accepted_keys)
+          expected_accept={k for k,v in audit_status.items() if v=='ACCEPT_IMMATERIAL'}
+          assert accepted_keys==expected_accept,(len(accepted_keys),len(expected_accept))
+
+          remain=[r for r in current if key(r) not in accepted_keys]
+          statuses=pd.Series(list(audit_status.values())).value_counts().to_dict()
+          accepted_n=len(accepted_keys)
+          assert len(remain)+accepted_n==1170
+
+          audits.to_csv(O/'TREB_1170_MATERIALITY_AUDIT.csv',index=False)
+          if len(accepted):
+              accepted.to_csv(O/'TREB_1170_MATERIALITY_ACCEPTED.csv',index=False)
+          else:
+              pd.DataFrame(columns=['season','team_id','player_id','metric','on','off_corrected','on_minus_off_corrected']).to_csv(O/'TREB_1170_MATERIALITY_ACCEPTED.csv',index=False)
+          with open(O/'TREB_POST_MATERIALITY_BLOCKER_MANIFEST.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=current[0].keys()); w.writeheader(); w.writerows(remain)
+
+          qas=[]
+          for p in R.rglob('MATERIALITY_QA_*.json'):
+              try: qas.append(json.loads(p.read_text()))
+              except: pass
+          max_range=pd.to_numeric(audits.get('max_range_pp'),errors='coerce').max() if 'max_range_pp' in audits else None
+          qa={
+              'status':'PASS',
+              'starting_full_core_exact':8477,
+              'starting_residual':1170,
+              'threshold_pp':0.01,
+              'minutes_gate_seconds':60.0,
+              'season_audits_completed':len(qas),
+              'accepted_immaterial_keys':accepted_n,
+              'material_repair_required_keys':int(statuses.get('MATERIAL_REPAIR_REQUIRED',0)),
+              'audit_unresolved_keys':int(statuses.get('AUDIT_UNRESOLVED',0)),
+              'production_resolved_full_core':8477+accepted_n,
+              'ending_residual':len(remain),
+              'max_observed_range_pp':None if pd.isna(max_range) else float(max_range),
+              'acceptance_rule':'every coherent exact retained-source scenario satisfying the established <=60-second target-minute gate must keep TREB ON, OFF, and SWING each within <=0.01 percentage points',
+              'representative_policy':'lexicographically-first coherent legal retained-source scenario; accepted only after scenario spread proves the choice immaterial; never midpoint/model estimate',
+              'provenance_policy':'8477 remain exact-raw-count rows; accepted rows are separately tagged MATERIALITY_ACCEPTED and retain min/max/range audit evidence',
+              'integrity':{
+                  'fail_closed_on_missing_season_job':True,
+                  'fail_closed_on_source_gap':True,
+                  'fail_closed_on_enumeration_cap':True,
+                  'fail_closed_without_exact_tenure_identity':True,
+                  'empirical_model_used':False,
+                  'rounded_percentage_backsolve_used':False,
+                  'opponent_rebound_inference_used':False,
+                  'partial_tenure_whole_team_subtraction_used':False
+              },
+              'next':'merge MATERIALITY_ACCEPTED rows into the production TREB layer, then recover only the ending residual; if ending residual is zero launch final 90-metric assembly immediately'
+          }
+          (O/'TREB_1170_MATERIALITY_GATE.json').write_text(json.dumps(qa,indent=2)+'\n')
+          (O/'SEASON_MATERIALITY_QA.json').write_text(json.dumps(qas,indent=2)+'\n')
+          print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - name: Upload consolidated materiality gate
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-1170-materiality-gate-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
