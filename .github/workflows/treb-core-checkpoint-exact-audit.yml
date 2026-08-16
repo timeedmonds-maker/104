@@ -1,0 +1,91 @@
+name: TREB core-checkpoint exact audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-core-checkpoint-exact-audit.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download authoritative 8396 state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/state /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253822549/zip > /tmp/state.zip
+          unzip -q /tmp/state.zip -d /tmp/state
+      - name: Audit blocker overlap with exact checkpoint rebound facts
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections,math
+          K=('season','team_id','player_id')
+          def sid(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def key(r): return (str(r['season']),str(int(float(r['team_id']))),sid(r['player_id']))
+          blockers=list(csv.DictReader(open('/tmp/state/AUTONOMOUS_BLOCKER_MANIFEST.csv',newline='')))
+          assert len(blockers)==1251,len(blockers)
+          bkeys={key(r) for r in blockers}
+          rows=[]; exact_rows=[]; counts=collections.Counter(); samples=[]
+          root=pathlib.Path('team_trb_all_players/impact_database/core_checkpoints')
+          files=sorted(root.glob('*/*.json.gz'))
+          assert len(files)==780,len(files)
+          for p in files:
+              with gzip.open(p,'rt',encoding='utf-8') as f: obj=json.load(f)
+              season=str(obj.get('season',p.parent.name)); team=str(int(obj.get('team_id',p.stem)))
+              rd=obj.get('rebound_derived') or {}
+              # Known checkpoint shapes: mapping/list of player records with exact flag and rebound primitives.
+              vals=[]
+              if isinstance(rd,dict):
+                  if isinstance(rd.get('player_totals'),list): vals=rd['player_totals']
+                  elif all(isinstance(v,dict) for v in rd.values()): vals=list(rd.values())
+                  elif 'player_id' in rd: vals=[rd]
+              elif isinstance(rd,list): vals=rd
+              # Also inspect player_totals entries if rebound_derived is sparse.
+              pt=obj.get('player_totals') or []
+              if isinstance(pt,dict): pt=list(pt.values())
+              if isinstance(pt,list): vals += [v for v in pt if isinstance(v,dict)]
+              seen=set()
+              for r in vals:
+                  pid=sid(r.get('player_id') or r.get('PlayerId') or r.get('id') or '')
+                  if not pid: continue
+                  k=(season,team,pid)
+                  if k not in bkeys or (k,id(r)) in seen: continue
+                  seen.add((k,id(r)))
+                  ex=r.get('exact')
+                  rec={'season':season,'team_id':team,'player_id':pid,'file':str(p),'exact':ex,
+                       'seconds':r.get('seconds',r.get('SecondsPlayed',r.get('seconds_on',''))),
+                       'minutes':r.get('minutes',r.get('MinutesOn',r.get('minutes_on',''))),
+                       'team_rebounds':r.get('team_rebounds',''),'opponent_rebounds_exact':r.get('opponent_rebounds_exact',''),
+                       'team_off_rebounds':r.get('team_off_rebounds',''),'team_def_rebounds':r.get('team_def_rebounds',''),
+                       'off_rebound_pct_displayed':r.get('off_rebound_pct_displayed',''),'def_rebound_pct_displayed':r.get('def_rebound_pct_displayed','')}
+                  rows.append(rec); counts[str(ex)] += 1
+                  if ex is True:
+                      exact_rows.append(rec)
+                      if len(samples)<20: samples.append(rec)
+          fields=['season','team_id','player_id','file','exact','seconds','minutes','team_rebounds','opponent_rebounds_exact','team_off_rebounds','team_def_rebounds','off_rebound_pct_displayed','def_rebound_pct_displayed']
+          with open('/tmp/out/BLOCKER_CORE_CHECKPOINT_REBOUND_AUDIT.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+          exact_keys={ (r['season'],r['team_id'],r['player_id']) for r in exact_rows }
+          qa={'status':'PASS','authoritative_starting_residual':1251,'core_checkpoint_files':len(files),'blocker_records_found':len(rows),'unique_blocker_keys_with_records':len({(r['season'],r['team_id'],r['player_id']) for r in rows}),'exact_true_records':len(exact_rows),'unique_blocker_keys_with_exact_true':len(exact_keys),'exact_flag_counts':dict(counts),'sample_exact_records':samples,'strategy_ledger':{'strategy':'retained core-checkpoint exact rebound fact audit','state':'COMPLETED','purpose':'determine whether repo-local locked core contains exact, non-backsolved rebound facts for current blockers before any promotion','promotion_performed':False,'next':'If exact_true overlap is material, build a narrow validator that proves primitive sufficiency and provenance before promotion; otherwise mark strategy exhausted.'}}
+          pathlib.Path('/tmp/out/CORE_CHECKPOINT_EXACT_AUDIT_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True,default=str)+'\n')
+          print(json.dumps(qa,indent=2,sort_keys=True,default=str))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-core-checkpoint-exact-audit-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
