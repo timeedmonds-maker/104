@@ -1,0 +1,214 @@
+name: TREB 293 exact tenure-window recovery
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-293-tenure-window-recovery.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-293-tenure-window-recovery
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9260774395'
+  TENURE_ARTIFACT_ID: '9259414397'
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 25
+      matrix:
+        year: [2000,2001,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download authoritative residual and prior tenure audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/tenure /tmp/src /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${TENURE_ARTIFACT_ID}/zip" > /tmp/tenure.zip
+          unzip -q /tmp/tenure.zip -d /tmp/tenure
+      - name: Download retained regular-season NBA feed
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          curl --fail --location --retry 4 --retry-all-errors -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          url=$(python - "$y" <<'PY'
+          import sys
+          y=sys.argv[1]
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          print(vals.get(f'nbastats_{y}',''))
+          PY
+          )
+          test -n "$url"
+          curl --fail --location --retry 4 --retry-all-errors --connect-timeout 15 -o /tmp/src/nba.tar.xz "$url"
+          tar -xJf /tmp/src/nba.tar.xz -C /tmp/src
+          test -s "/tmp/src/nbastats_${y}.csv"
+      - name: Recover only unique exact tenure identities
+        run: |
+          set -euo pipefail
+          python - '${{ matrix.year }}' <<'PY'
+          import csv,gzip,json,pathlib,sys,datetime
+          y=int(sys.argv[1]); season=f'{y}-{(y+1)%100:02d}'
+          def pid(x):
+              s=str(x).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def tid(x): return str(int(float(x)))
+          def gid(x):
+              s=str(x).strip();
+              if s.endswith('.0'): s=s[:-2]
+              return str(int(float(s))).zfill(10)
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          cur=list(csv.DictReader(open(next(pathlib.Path('/tmp/current').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv')),newline='')))
+          wanted={key(r) for r in cur if str(r['season'])==season}
+          prior=set()
+          ap=next(pathlib.Path('/tmp/tenure').rglob('TREB_949_RETAINED_SCHEDULE_AUDITED_TENURE_AUDIT.csv'))
+          with open(ap,newline='') as f:
+              for r in csv.DictReader(f):
+                  if str(r.get('season'))==season and r.get('status')=='EXACT_RETAINED_SCHEDULE_AUDITED_TENURE_IDENTITY': prior.add(key(r))
+          # ledger evidence
+          ledger={k:set() for k in wanted}
+          lp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz')
+          with gzip.open(lp,'rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:k=key(r)
+                  except:continue
+                  if k in wanted: ledger.setdefault(k,set()).add(gid(r['game_id']))
+          # canonical targets
+          targets={}
+          tp=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
+          with gzip.open(tp,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  if str(r.get('season'))!=season: continue
+                  try:k=key(r)
+                  except:continue
+                  if k in wanted: targets[k]=r
+          # regular-season team schedule from retained NBA feed
+          nba=pathlib.Path(f'/tmp/src/nbastats_{y}.csv')
+          sched={}
+          with open(nba,newline='',encoding='utf-8-sig') as f:
+              rd=csv.DictReader(f); cols=set(rd.fieldnames or [])
+              gc=next((c for c in ['GAME_ID','gameId','GAMEID'] if c in cols),None)
+              tc=next((c for c in ['TEAM_ID','teamId','TEAMID'] if c in cols),None)
+              dc=next((c for c in ['GAME_DATE','GAME_DATE_EST','gameDate','GAME_DATE_TIME_EST','GAME_DATE_TIME_UTC'] if c in cols),None)
+              if not gc or not tc: raise SystemExit(f'MISSING_SCHEDULE_COLUMNS {sorted(cols)}')
+              for r in rd:
+                  try:g=gid(r[gc]); t=tid(r[tc])
+                  except:continue
+                  raw=(r.get(dc) if dc else '') or ''
+                  d=None
+                  if raw:
+                      try:d=datetime.datetime.fromisoformat(raw.replace('Z','+00:00')).date()
+                      except:
+                          for fmt in ('%Y-%m-%d','%m/%d/%Y','%b %d, %Y'):
+                              try:d=datetime.datetime.strptime(raw[:20],fmt).date(); break
+                              except:pass
+                  sched.setdefault(t,{})[g]=d
+          date_pairs=[('tenure_start_date','tenure_end_date'),('start_date','end_date'),('date_start','date_end'),('first_game_date','last_game_date')]
+          out=[]; audit=[]
+          for k in sorted(wanted-prior):
+              t=targets.get(k,{})
+              expected=int(float(t.get('team_games_in_tenure') or 0))
+              games=sched.get(k[1],{})
+              ordered=sorted(games, key=lambda g: ((games[g] is None), games[g] or datetime.date.max, int(g)))
+              ev=set(ledger.get(k,set()))
+              reason=''; candidates=[]; method=''
+              if expected<=0 or len(ordered)<expected:
+                  reason='BAD_EXPECTED_OR_SCHEDULE'
+              else:
+                  # Strongest route: canonical date window when both bounds exist and schedule has dates.
+                  bounds=None
+                  for a,b in date_pairs:
+                      if t.get(a) and t.get(b):
+                          try:
+                              lo=datetime.date.fromisoformat(str(t[a])[:10]); hi=datetime.date.fromisoformat(str(t[b])[:10]); bounds=(lo,hi); break
+                          except: pass
+                  if bounds and all(games[g] is not None for g in ordered):
+                      dg=[g for g in ordered if bounds[0] <= games[g] <= bounds[1]]
+                      if len(dg)==expected and ev.issubset(set(dg)):
+                          candidates=[dg]; method='CANONICAL_DATE_WINDOW_PLUS_LEDGER'
+                  # Otherwise require a unique contiguous team-schedule window of exact target length containing every ledger game.
+                  if not candidates and ev:
+                      for i in range(0,len(ordered)-expected+1):
+                          w=ordered[i:i+expected]
+                          if ev.issubset(set(w)): candidates.append(w)
+                      if len(candidates)==1: method='UNIQUE_EXACT_COUNT_SCHEDULE_WINDOW_CONTAINING_LEDGER'
+                  if len(candidates)!=1:
+                      reason=f'AMBIGUOUS_OR_NO_WINDOW:{len(candidates)}'
+              if len(candidates)==1:
+                  gs=candidates[0]
+                  out.append({'season':k[0],'team_id':k[1],'player_id':k[2],'expected_team_games':expected,'game_ids':'|'.join(gs),'status':'EXACT_DETERMINISTIC_TENURE_IDENTITY','method':method,'ledger_evidence_games':len(ev)})
+                  audit.append({**out[-1],'candidate_count':1,'reason':''})
+              else:
+                  audit.append({'season':k[0],'team_id':k[1],'player_id':k[2],'expected_team_games':expected,'game_ids':'','status':'UNRESOLVED_FAIL_CLOSED','method':'','ledger_evidence_games':len(ev),'candidate_count':len(candidates),'reason':reason})
+          cols=['season','team_id','player_id','expected_team_games','game_ids','status','method','ledger_evidence_games','candidate_count','reason']
+          with open(f'/tmp/out/TENURE_WINDOW_AUDIT_{y}.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(audit)
+          with open(f'/tmp/out/TENURE_WINDOW_ACCEPTED_{y}.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows([{**r,'candidate_count':1,'reason':''} for r in out])
+          q={'season':season,'input_residual_keys':len(wanted),'prior_exact_tenure_keys':len(wanted & prior),'attempted_missing_tenure_keys':len(wanted-prior),'accepted_exact_tenure_keys':len(out),'unresolved':len(audit)-len(out),'integrity':'FAIL_CLOSED_UNIQUE_WINDOW_ONLY'}
+          pathlib.Path(f'/tmp/out/TENURE_WINDOW_QA_{y}.json').write_text(json.dumps(q,indent=2)+'\n')
+          print(json.dumps(q,indent=2))
+          PY
+      - name: Upload season checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-293-tenure-window-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          if-no-files-found: warn
+
+  consolidate:
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-293-tenure-window-*-${{ github.run_id }}
+          path: /tmp/all
+          merge-multiple: true
+      - name: Consolidate fail-closed accepted identities
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib
+          root=pathlib.Path('/tmp/all'); out=pathlib.Path('/tmp/final'); out.mkdir(parents=True,exist_ok=True)
+          rows=[]; qas=[]
+          for p in root.glob('TENURE_WINDOW_ACCEPTED_*.csv'):
+              rows += list(csv.DictReader(open(p,newline='')))
+          for p in root.glob('TENURE_WINDOW_QA_*.json'):
+              try: qas.append(json.loads(p.read_text()))
+              except: pass
+          key=lambda r:(r['season'],str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0'))
+          ded={key(r):r for r in rows}
+          cols=['season','team_id','player_id','expected_team_games','game_ids','status','method','ledger_evidence_games','candidate_count','reason']
+          with open(out/'TREB_293_NEW_EXACT_TENURE_IDENTITIES.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows([ded[k] for k in sorted(ded)])
+          qa={'status':'PASS','season_jobs_with_qa':len(qas),'new_exact_tenure_identities':len(ded),'attempted_missing_tenure_keys':sum(int(q.get('attempted_missing_tenure_keys',0)) for q in qas),'failed_closed_remaining':sum(int(q.get('unresolved',0)) for q in qas),'rule':'exact target team-games count + retained regular-season team schedule + canonical date/ledger evidence; accept only one deterministic game set'}
+          (out/'TREB_293_TENURE_WINDOW_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-293-tenure-window-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
