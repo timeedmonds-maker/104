@@ -1,0 +1,188 @@
+name: TREB 30 review NBA-event exact total audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-30-review-nba-event-total-audit.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  audit:
+    name: NBA event totals ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        year: [2004,2009,2015,2017,2018,2019,2020,2022,2023,2024]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download consolidated 143-game audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/audit /tmp/src /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9258020958/zip > /tmp/audit.zip
+          unzip -q /tmp/audit.zip -d /tmp/audit
+      - name: Download retained NBA Stats season feed only
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          url=$(python - "$y" <<'PY'
+          import sys
+          y=sys.argv[1]
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          print(vals[f'nbastats_{y}'])
+          PY
+          )
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 20 -o "/tmp/src/nbastats_${y}.tar.xz" "$url"
+          tar -xJf "/tmp/src/nbastats_${y}.tar.xz" -C /tmp/src
+          test -s "/tmp/src/nbastats_${y}.csv"
+      - name: Count exact real rebounds directly from NBA event rows
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          python - "$y" <<'PY'
+          import sys,json,pathlib
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import local_treb_rebuild as core
+          import production_treb_engine as prod
+          import run_local_treb_production as io
+
+          y=int(sys.argv[1]); season=f'{y}-{(y+1)%100:02d}'
+          audit=pd.read_csv('/tmp/audit/TREB_143_V2_PBP_EXACT_AUDIT.csv',low_memory=False)
+          audit=audit[audit.season.astype(str).eq(season)].copy()
+          if audit.empty:
+              raise SystemExit(f'no audit rows for {season}')
+          review=audit[~audit.status.astype(str).eq('PASS_EXACT')].copy()
+          controls=audit[audit.status.astype(str).eq('PASS_EXACT')].copy()
+          nba=io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{y}.csv',low_memory=False))
+          wanted=set(pd.to_numeric(audit.game_id,errors='coerce').dropna().astype(int))
+          groups={int(g):x.copy() for g,x in nba[nba.GAME_ID.isin(wanted)].groupby('GAME_ID',sort=False)}
+
+          def event_totals(gid):
+              if gid not in groups: return {'status':'NBA_GAME_MISSING'}
+              raw=groups[gid]
+              prepared,_=prod.prepare_nba_game(raw)
+              prepared=prepared.sort_values(['PERIOD','EVENTNUM'],kind='stable').copy()
+              prepared['DESCRIPTION_NORM']=core.nba_description(prepared)
+              prepared['ELAPSED']=[core.elapsed_seconds(int(p),c) for p,c in zip(prepared.PERIOD,prepared.PCTIMESTRING)]
+              team_ids=set()
+              for n in (1,2,3):
+                  c=f'PLAYER{n}_TEAM_ID'
+                  if c in prepared:
+                      vals=pd.to_numeric(prepared[c],errors='coerce').dropna().astype('int64')
+                      team_ids.update(int(v) for v in vals if 1610612737 <= int(v) <= 1610612766)
+              if len(team_ids)!=2:
+                  return {'status':'TEAM_SET_INVALID','team_ids':sorted(team_ids)}
+              totals={tid:0 for tid in team_ids}; real=0; unassigned=[]
+              reb=prepared[prepared.EVENTMSGTYPE.eq(4)]
+              for pos,row in reb.iterrows():
+                  if not core._nba_real_rebound(prepared,pos):
+                      continue
+                  real+=1
+                  tid=None
+                  for n in (1,2,3):
+                      try:v=int(row.get(f'PLAYER{n}_TEAM_ID',0) or 0)
+                      except:v=0
+                      if v in team_ids:
+                          tid=v; break
+                  if tid is None:
+                      unassigned.append({'eventnum':int(row.EVENTNUM),'period':int(row.PERIOD),'home':str(row.get('HOMEDESCRIPTION','')),'visitor':str(row.get('VISITORDESCRIPTION',''))})
+                  else: totals[tid]+=1
+              return {'status':'PASS' if not unassigned else 'UNASSIGNED_REAL_REBOUND','team_ids':sorted(team_ids),'real_rebounds':real,'totals':totals,'unassigned':unassigned}
+
+          cache={gid:event_totals(gid) for gid in sorted(wanted)}
+          control_rows=[]; control_fail=0
+          for _,r in controls.iterrows():
+              gid=int(r.game_id); tid=int(r.team_id); e=cache[gid]
+              exp_team=int(r.team_oreb+r.team_dreb); exp_opp=int(r.opponent_oreb+r.opponent_dreb)
+              got_team=got_opp=None; ok=False
+              if e.get('status')=='PASS' and tid in e['totals']:
+                  opp=[x for x in e['team_ids'] if x!=tid]
+                  if len(opp)==1:
+                      got_team=int(e['totals'][tid]); got_opp=int(e['totals'][opp[0]]); ok=(got_team==exp_team and got_opp==exp_opp)
+              if not ok: control_fail+=1
+              control_rows.append({'season':season,'game_id':gid,'team_id':tid,'expected_team_reb':exp_team,'expected_opp_reb':exp_opp,'event_team_reb':got_team,'event_opp_reb':got_opp,'pass':ok,'event_detail':json.dumps(e,separators=(',',':'))})
+
+          targets=[]
+          controls_valid=(len(control_rows)>0 and control_fail==0)
+          for _,r in review.iterrows():
+              gid=int(r.game_id); tid=int(r.team_id); e=cache[gid]
+              row={'season':season,'game_id':gid,'team_id':tid,'affected_player_keys':int(r.affected_player_keys),'controls_valid':controls_valid,'source':'retained_shufinskiy_nbastats_direct_real_rebound_events','rounded_percentage_backsolve_used':False,'model_used':False}
+              if controls_valid and e.get('status')=='PASS' and tid in e.get('totals',{}):
+                  opp=[x for x in e['team_ids'] if x!=tid]
+                  if len(opp)==1:
+                      row.update(status='PASS_EXACT_EVENT_TOTALS',team_rebounds=int(e['totals'][tid]),opponent_rebounds=int(e['totals'][opp[0]]),opponent_team_id=int(opp[0]),detail=json.dumps(e,separators=(',',':')))
+                  else: row.update(status='REVIEW',detail=json.dumps(e,separators=(',',':')))
+              else:
+                  row.update(status='REVIEW',detail=json.dumps(e,separators=(',',':')))
+              targets.append(row)
+
+          out=pathlib.Path('/tmp/out')
+          pd.DataFrame(targets).to_csv(out/f'TREB_30_EVENT_TOTAL_TARGETS_{y}.csv',index=False)
+          pd.DataFrame(control_rows).to_csv(out/f'TREB_30_EVENT_TOTAL_CONTROLS_{y}.csv',index=False)
+          qa={'season':season,'review_rows':len(targets),'review_games':int(review.game_id.nunique()),'control_rows':len(control_rows),'control_failures':control_fail,'controls_valid':controls_valid,'target_pass_rows':sum(x['status']=='PASS_EXACT_EVENT_TOTALS' for x in targets),'target_review_rows':sum(x['status']!='PASS_EXACT_EVENT_TOTALS' for x in targets),'integrity':{'direct_nba_event_rebound_counts_only':True,'total_rebounds_only':True,'rounded_rate_backsolve':False,'model':False,'promotion_performed':False}}
+          (out/f'TREB_30_EVENT_TOTAL_QA_{y}.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-30-event-total-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    needs: audit
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-30-event-total-*-${{ github.run_id }}
+          path: /tmp/parts
+      - name: Consolidate review-only result
+        run: |
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import pathlib,json,pandas as pd
+          p=pathlib.Path('/tmp/parts'); out=pathlib.Path('/tmp/final')
+          fs=sorted(p.rglob('TREB_30_EVENT_TOTAL_TARGETS_*.csv'))
+          qs=sorted(p.rglob('TREB_30_EVENT_TOTAL_QA_*.json'))
+          parts=[pd.read_csv(x,low_memory=False) for x in fs if x.stat().st_size]
+          d=pd.concat(parts,ignore_index=True) if parts else pd.DataFrame()
+          passn=int(d.status.astype(str).eq('PASS_EXACT_EVENT_TOTALS').sum()) if len(d) else 0
+          qa={'status':'PASS' if len(d)==48 and passn==48 else 'INCOMPLETE','required_review_rows':48,'returned_review_rows':int(len(d)),'pass_exact_event_total_rows':passn,'remaining_review_rows':int(len(d)-passn),'season_qas':[json.loads(x.read_text()) for x in qs],'integrity':{'direct_nba_event_rebound_counts_only':True,'rounded_rate_backsolve':False,'model':False,'promotion_performed':False}}
+          if len(d): d.sort_values(['season','game_id','team_id'],kind='stable').to_csv(out/'TREB_30_EVENT_TOTAL_AUDIT.csv',index=False)
+          (out/'TREB_30_EVENT_TOTAL_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps({k:qa[k] for k in ['status','required_review_rows','returned_review_rows','pass_exact_event_total_rows','remaining_review_rows']},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-30-event-total-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
