@@ -14,79 +14,41 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Isolate corrected acceptance holes
+      - name: Inspect exact zero-OREB denominator sources
         run: |
           python - <<'PY'
-          import pathlib,gzip,json,collections,math
-          R=pathlib.Path('team_trb_all_players/impact_database'); C=R/'corrected_off/cache'; CORE=R/'core_checkpoints'
-          def n(x):
-            try:
-              v=float(x);return v if math.isfinite(v) else None
-            except:return None
-          def cid(x):
-            s=str(x or '');return s[:-2] if s.endswith('.0') else s
-          rows=[]
-          with gzip.open(R/'corrected_off/tenure_segment_on_off.jsonl.gz','rt',encoding='utf-8') as f:
-            for line in f:
-              if line.strip():rows.append(json.loads(line))
-          byten={}
-          for r in rows:
-            k=(str(r['season']),cid(r['team_id']),cid(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')));byten.setdefault(k,[]).append(r)
-          byg=collections.defaultdict(list)
-          for k,rs in byten.items():byg[k[:3]].append((k,rs))
-          selected={'2021-22','2022-23','2023-24','2024-25','2025-26'};mins=collections.Counter();names={}
-          for g,frags in byg.items():
-            if g[0] in selected:
-              m=n(frags[0][1][0].get('minutes_on')) or 0;mins[g[2]]+=m;names[g[2]]=frags[0][1][0].get('player')
-          q={p for p,m in mins.items() if m>=2000}
-          # core team OffRebounds ON by name->pid
-          rebound={}
-          for p in CORE.glob('*/*.json.gz'):
+          import gzip,json,pathlib
+          R=pathlib.Path('team_trb_all_players/impact_database/core_checkpoints')
+          cases=[('2021-22','1610612752','1627863','Danuel House Jr.'),('2022-23','1610612738','1630551','Justin Champagnie')]
+          out=[]
+          for season,team,pid,name in cases:
+            p=R/season/f'{team}.json.gz'
             with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
-            season=str(o.get('season') or p.parent.name);team=cid(o.get('team_id') or p.stem.split('.')[0]);mp={}
-            for x in o.get('player_totals') or []:
-              if isinstance(x,dict):
-                pid=cid(x.get('EntityId') or x.get('RowId') or x.get('player_id') or x.get('PlayerId'));nm=str(x.get('Name') or x.get('ShortName') or '')
-                if pid and nm:mp[nm]=pid
-            for x in (o.get('rebound_stat_results') or {}).get('OffRebounds') or []:
-              pid=mp.get(str(x.get('Name') or ''))
-              if pid:rebound[(season,team,pid)]=n(x.get('On'))
-          holes=[]
-          for g,frags in sorted(byg.items()):
-            if g[0] not in selected or g[2] not in q:continue
-            rs=frags[0][1];base=rs[0];mon=n(base.get('minutes_on')) or 0
-            if mon<=0:continue
-            mm={str(r['metric']):r for r in rs}; missing=[]
-            if len(frags)>1:
-              raw=[]
-              for k,_ in frags:
-                p=C/f'{g[0]}__{g[1]}__{g[2]}__{k[3]}__{k[4]}.json.gz'
-                if p.exists():
-                  with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
-                  mr=o.get('minute_source_row') or {};raw.append(n(mr.get('On')))
-                else:raw.append(None)
-              ore=raw[0] if raw and all(x==raw[0] and x is not None for x in raw) else None;source='multi_cache';detail=raw
-            else:
-              ore=rebound.get(g);source='core_rebound';detail=ore
-            if ore is None:missing.append('team_oreb_on')
-            obr=mm.get('OReb%');opct=n(obr.get('on')) if obr else None
-            if opct is None or opct<=0:missing.append('oreb_pct_native_on')
-            for metric in ('Pts per 100 Possessions','Pts per 100 Possessions - Defense','Seconds Per Possession - Offense','Seconds Per Possession - Defense'):
-              r=mm.get(metric)
-              if not r:missing.append(metric+':row')
-              else:
-                for fld in ('on','off_corrected'):
-                  if n(r.get(fld)) is None:missing.append(metric+':'+fld)
-            if missing:holes.append({'player_id':g[2],'player':names[g[2]],'group':g,'fragment_count':len(frags),'minutes_on':mon,'missing':missing,'oreb_source':source,'oreb_detail':detail,'native_oreb_on':opct,'windows':[k[3:] for k,_ in frags]})
-          byp=collections.defaultdict(list)
-          for h in holes:byp[h['player_id']].append(h)
-          print('QUALIFIERS',len(q),'HOLE_PLAYERS',len(byp),'HOLE_PROFILES',len(holes))
-          print(json.dumps([{'player_id':p,'player':names[p],'total_minutes':mins[p],'holes':hs} for p,hs in byp.items()],indent=2))
-          pathlib.Path('final_two_holes.json').write_text(json.dumps([{'player_id':p,'player':names[p],'total_minutes':mins[p],'holes':hs} for p,hs in byp.items()],indent=2),encoding='utf-8')
+            rd=o.get('rebound_derived') or []
+            hits=[]
+            for i,x in enumerate(rd):
+              if not isinstance(x,dict):continue
+              s=json.dumps(x,separators=(',',':'))
+              if pid in s or name in s:
+                hits.append({'index':i,'row':x})
+            # Also print rebound result rows for all rebound metrics and this player.
+            rr={}
+            for k,v in (o.get('rebound_stat_results') or {}).items():
+              if isinstance(v,list):
+                h=[x for x in v if isinstance(x,dict) and (str(x.get('Name') or '')==name or pid in json.dumps(x))]
+                if h:rr[k]=h
+            # inspect all rebound_derived keys/schema plus nearby rows if no direct identity fields
+            schema=[]
+            for i,x in enumerate(rd[:10]):
+              if isinstance(x,dict):schema.append({'index':i,'keys':list(x.keys()),'row':x})
+            rec={'case':{'season':season,'team':team,'pid':pid,'name':name},'core_path':str(p),'rebound_stat_results':rr,'rebound_derived_direct_hits':hits,'rebound_derived_schema_sample':schema,'rebound_derived_len':len(rd)}
+            out.append(rec)
+            print(json.dumps(rec,indent=2))
+          pathlib.Path('zero_oreb_denominator_sources.json').write_text(json.dumps(out,indent=2),encoding='utf-8')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native89-final-two-holes-${{ github.run_id }}
-          path: final_two_holes.json
+          name: native89-zero-oreb-denominator-${{ github.run_id }}
+          path: zero_oreb_denominator_sources.json
           if-no-files-found: error
