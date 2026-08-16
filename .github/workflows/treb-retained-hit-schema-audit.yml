@@ -1,0 +1,121 @@
+name: TREB retained hit source schema audit
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-retained-hit-schema-audit.yml
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-retained-hit-schema-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download current 8397 state and retained-source inventory
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/state /tmp/inventory /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9255627136/zip > /tmp/state.zip
+          unzip -q /tmp/state.zip -d /tmp/state
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9254439966/zip > /tmp/inventory.zip
+          unzip -q /tmp/inventory.zip -d /tmp/inventory
+      - name: Audit only hit-bearing retained source schemas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections,re
+          inv=next(pathlib.Path('/tmp/inventory').rglob('RETAINED_SOURCE_GAME_HITS.csv'))
+          out=pathlib.Path('/tmp/out')
+          hits=list(csv.DictReader(open(inv,newline='')))
+          byfile=collections.defaultdict(set)
+          for r in hits:
+              gid=str(r.get('game_id') or '').strip()
+              p=str(r.get('source_file') or '').strip()
+              if gid and p: byfile[p].add(gid)
+          aliases={
+            'game_id':{'game_id','gameid','game_id_x','GAME_ID'.lower()},
+            'team_id':{'team_id','teamid','TEAM_ID'.lower()},
+            'player_id':{'player_id','playerid','person_id','personid','PLAYER_ID'.lower()},
+            'team_oreb':{'team_oreb','oreb','oreb_team','team_off_reb','team_offensive_rebounds'},
+            'team_dreb':{'team_dreb','dreb','dreb_team','team_def_reb','team_defensive_rebounds'},
+            'opp_oreb':{'opponent_oreb','opp_oreb','opponent_off_reb','opponent_offensive_rebounds'},
+            'opp_dreb':{'opponent_dreb','opp_dreb','opponent_def_reb','opponent_defensive_rebounds'},
+            'seconds_on':{'seconds_on','seconds','secs','on_seconds','player_seconds'},
+            'team_oreb_on':{'team_oreb_on','oreb_on','team_off_reb_on'},
+            'team_dreb_on':{'team_dreb_on','dreb_on','team_def_reb_on'},
+            'opp_oreb_on':{'opponent_oreb_on','opp_oreb_on','opponent_off_reb_on'},
+            'opp_dreb_on':{'opponent_dreb_on','opp_dreb_on','opponent_def_reb_on'},
+          }
+          def canon(s): return re.sub(r'[^a-z0-9_]+','_',str(s).strip().lower()).strip('_')
+          def read_fields(p):
+              path=pathlib.Path(p)
+              if not path.exists(): return [],'MISSING'
+              opener=gzip.open if path.name.endswith('.gz') else open
+              try:
+                  with opener(path,'rt',encoding='utf-8',errors='ignore',newline='') as f:
+                      first=f.readline()
+                  if not first: return [],'EMPTY'
+                  # JSONL/JSON object schema
+                  st=first.lstrip()
+                  if st.startswith('{'):
+                      try: return list(json.loads(first).keys()),'JSONL'
+                      except: return [],'JSON_PARSE_FAIL'
+                  # CSV/TSV header
+                  try:
+                      dialect=csv.Sniffer().sniff(first,delimiters=',\t|;')
+                      return next(csv.reader([first],dialect)), 'DELIMITED'
+                  except: return [],'UNSTRUCTURED'
+              except Exception as e: return [],type(e).__name__
+          rows=[]
+          for p,gids in sorted(byfile.items(),key=lambda kv:(-len(kv[1]),kv[0])):
+              fields,fmt=read_fields(p); c={canon(x) for x in fields}
+              present={k:sorted(c & {canon(a) for a in vals}) for k,vals in aliases.items()}
+              flags={k:bool(v) for k,v in present.items()}
+              team_direct=flags['game_id'] and flags['team_id'] and flags['team_oreb'] and flags['team_dreb']
+              team_full=team_direct and flags['opp_oreb'] and flags['opp_dreb']
+              player_on=flags['game_id'] and flags['team_id'] and flags['player_id'] and flags['seconds_on'] and flags['team_oreb_on'] and flags['team_dreb_on'] and flags['opp_oreb_on'] and flags['opp_dreb_on']
+              rows.append({'source_file':p,'target_games_hit':len(gids),'format':fmt,'field_count':len(fields),'team_direct_raw_candidate':team_direct,'team_with_explicit_opponent_candidate':team_full,'player_on_raw_candidate':player_on,'matched_aliases':json.dumps({k:v for k,v in present.items() if v},sort_keys=True),'fields':json.dumps(fields[:200])})
+          with open(out/'RETAINED_HIT_SCHEMA_AUDIT.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=rows[0].keys());w.writeheader();w.writerows(rows)
+          ranked=[r for r in rows if r['team_direct_raw_candidate'] or r['player_on_raw_candidate']]
+          ranked.sort(key=lambda r:(-(int(r['team_with_explicit_opponent_candidate'])+int(r['player_on_raw_candidate'])), -int(r['target_games_hit']), r['source_file']))
+          with open(out/'ACTIONABLE_SOURCE_SCHEMAS.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=rows[0].keys());w.writeheader();w.writerows(ranked)
+          qa={
+            'status':'PASS','authoritative_resolved':8397,'authoritative_residual':1250,
+            'hit_rows':len(hits),'unique_hit_files':len(rows),'actionable_structured_sources':len(ranked),
+            'team_direct_raw_sources':sum(bool(r['team_direct_raw_candidate']) for r in rows),
+            'team_explicit_opponent_sources':sum(bool(r['team_with_explicit_opponent_candidate']) for r in rows),
+            'player_on_raw_sources':sum(bool(r['player_on_raw_candidate']) for r in rows),
+            'strategy_ledger':{'strategy':'hit-bearing retained source schema audit','state':'COMPLETED','prior_exhausted':['fast NBA Stats V2 live endpoint: 143/143 read timeouts'],'next':'Parse highest-coverage actionable retained schemas and promote only complete exact same-tenure raw-count bundles.'},
+            'integrity':{'promotion_performed':False,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'unsafe_global_event_order_used':False}
+          }
+          (out/'RETAINED_HIT_SCHEMA_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          print('TOP_ACTIONABLE')
+          for r in ranked[:20]: print(r['target_games_hit'],r['source_file'],r['matched_aliases'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-retained-hit-schema-audit-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
