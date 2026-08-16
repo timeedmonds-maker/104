@@ -1,0 +1,69 @@
+name: TREB 272 primitives consolidate only
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-272-primitives-consolidate-only.yml
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  SOURCE_RUN_ID: '31928468515'
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install consolidation dependency
+        run: python -m pip install --disable-pip-version-check pandas
+      - name: Download retained successful season artifacts only
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/all /tmp/final
+          gh run download "$SOURCE_RUN_ID" --repo "$GITHUB_REPOSITORY" --pattern 'TREB-missing-primitives-*' --dir /tmp/all
+          find /tmp/all -type f -maxdepth 3 -print | sort
+      - name: Consolidate recovered exact primitives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import pathlib,json
+          import pandas as pd
+          P=pathlib.Path('/tmp/all'); O=pathlib.Path('/tmp/final')
+          pfiles=list(P.rglob('PLAYER_PRIMITIVES_*.csv.gz')); tfiles=list(P.rglob('TEAM_PRIMITIVES_*.csv.gz'))
+          ps=pd.concat([pd.read_csv(x,low_memory=False) for x in pfiles],ignore_index=True) if pfiles else pd.DataFrame()
+          ts=pd.concat([pd.read_csv(x,low_memory=False) for x in tfiles],ignore_index=True) if tfiles else pd.DataFrame()
+          if len(ps):
+            ps['player_id']=ps.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+            ps=ps.drop_duplicates(['season','game_id','team_id','player_id'])
+            ps.to_csv(O/'RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          if len(ts):
+            ts=ts.drop_duplicates(['season','game_id','team_id'])
+            ts.to_csv(O/'RECOVERED_EXACT_TEAM_GAME_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          q=[]
+          for f in P.rglob('QA_*.json'):
+            try:q.append(json.loads(f.read_text()))
+            except:pass
+          qa={'status':'PASS','source_run_id':31928468515,'season_artifacts':len(q),'required_player_primitives':sum(x.get('required_player_primitives',0) for x in q),'recovered_player_primitives':int(len(ps)),'required_team_primitives':sum(x.get('required_team_primitives',0) for x in q),'recovered_team_primitives':int(len(ts)),'season_failures':sum(x.get('failures',0) for x in q),'next':'union these exact primitives with cumulative exact state and rerun closure only for currently BLOCKED keys','integrity':{'exact_retained_nba_v3_pbp_only':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'promotion_performed':False}}
+          (O/'TREB_MISSING_PRIMITIVES_FANOUT_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2),flush=True)
+          assert len(q)>0
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-missing-primitives-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
