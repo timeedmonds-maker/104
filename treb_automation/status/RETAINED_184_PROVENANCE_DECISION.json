@@ -1,0 +1,33 @@
+{
+  "status": "PASS_FAIL_CLOSED",
+  "decision": "DO_NOT_PROMOTE_RETAINED_184",
+  "authoritative_treb_universe": 9647,
+  "authoritative_exact_before_decision": 8397,
+  "authoritative_residual_before_decision": 1250,
+  "promoted_keys": 0,
+  "authoritative_exact_after_decision": 8397,
+  "authoritative_residual_after_decision": 1250,
+  "candidate_population_audited": 184,
+  "provenance_classification": "C_ROUNDED_PERCENTAGE_UNIQUE_INTEGER_INVERSION",
+  "finding": "rebound_derived.opponent_rebounds_exact is assigned when integer opponent OREB/DREB candidates back-solved from displayed OffReboundPct and DefReboundPct within the rounding band collapse to a single total; exact:true therefore denotes uniqueness of the rounded-rate inversion, not direct opponent rebound source counts.",
+  "established_exact_method": {
+    "rounded_percentage_backsolve_used": false,
+    "opponent_rebound_inference_used": false,
+    "requires_exact_integer_rebound_components_or_lossless_exact_sufficient_statistics": true
+  },
+  "integrity_decision": "The 184 retained candidates are not promoted because doing so would weaken the established TREB exactness gate.",
+  "evidence_paths": [
+    "team_trb_all_players/impact_database_build.py",
+    "team_trb_all_players/rebuild_fullcore_treb_fanout.py",
+    "team_trb_all_players/collect_direct_fullcore_treb.py",
+    "treb_automation/status/RETAINED_CORE_SOURCE_AUDIT_LATEST.json"
+  ],
+  "latest_proven_schema_audit_run": 31924386834,
+  "latest_proven_schema_audit_result": {
+    "status": "PASS",
+    "authoritative_resolved": 8397,
+    "authoritative_residual": 1250,
+    "promotion_performed": false,
+    "actionable_structured_sources": 0
+  }
+}
