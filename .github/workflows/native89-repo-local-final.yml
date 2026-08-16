@@ -9,104 +9,65 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Prove statistical exposure grain for fragmented tenures
+      - name: Inspect Lance core sufficient stats and corrected exposure count
         run: |
           python - <<'PY'
           import gzip,json,pathlib,collections,math
-          ROOT=pathlib.Path('team_trb_all_players/impact_database')
-          SRC=ROOT/'corrected_off/tenure_segment_on_off.jsonl.gz'
-          CORE=ROOT/'core_checkpoints'
-          def fnum(x):
+          R=pathlib.Path('team_trb_all_players/impact_database')
+          p=R/'core_checkpoints/2021-22/1610612754.json.gz'
+          with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+          def n(x):
             try:
-              v=float(x); return v if math.isfinite(v) else None
+              v=float(x);return v if math.isfinite(v) else None
             except:return None
-          def cid(x):
-            if x is None:return ''
-            s=str(x)
-            return s[:-2] if s.endswith('.0') else s
+          def pid(x):
+            s=str(x or '');return s[:-2] if s.endswith('.0') else s
+          lance_pt=[]
+          for x in o.get('player_totals') or []:
+            if pid(x.get('EntityId') or x.get('RowId') or x.get('player_id') or x.get('PlayerId'))=='202362' or str(x.get('Name') or '')=='Lance Stephenson': lance_pt.append(x)
+          rr={}
+          for k,v in (o.get('rebound_stat_results') or {}).items():
+            hits=[x for x in v if isinstance(x,dict) and str(x.get('Name') or '')=='Lance Stephenson'] if isinstance(v,list) else []
+            if hits: rr[k]=hits
+          rd=o.get('rebound_derived')
+          print('CORE_PATH',p)
+          print('TOP_LEVEL_KEYS',list(o))
+          print('LANCE_PLAYER_TOTALS',json.dumps(lance_pt,separators=(',',':')))
+          print('LANCE_REBOUND_STAT_RESULTS',json.dumps(rr,separators=(',',':')))
+          print('REBOUND_DERIVED_SCHEMA',json.dumps({'type':type(rd).__name__,'keys':list(rd) if isinstance(rd,dict) else None,'len':len(rd) if isinstance(rd,(list,dict)) else None},separators=(',',':')))
+          # Correct qualifying population if each player-team-season statistical profile is counted once.
           rows=[]
-          with gzip.open(SRC,'rt',encoding='utf-8') as f:
+          with gzip.open(R/'corrected_off/tenure_segment_on_off.jsonl.gz','rt',encoding='utf-8') as f:
             for line in f:
-              if line.strip(): rows.append(json.loads(line))
-          def k5(r):return (str(r['season']),cid(r['team_id']),cid(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')))
-          byten={}
-          for r in rows:byten.setdefault(k5(r),[]).append(r)
-          byg=collections.defaultdict(list)
-          for k,rs in byten.items():byg[k[:3]].append((k,rs))
-          # Core exact player/team-season seconds/minutes and OREB counts.
-          core={}
-          for p in sorted(CORE.glob('*/*.json.gz')):
-            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
-            season=str(o.get('season') or p.parent.name); team=cid(o.get('team_id') or p.stem.split('.')[0])
-            name_to_pid={}
-            for x in o.get('player_totals') or []:
-              if not isinstance(x,dict):continue
-              pid=cid(x.get('EntityId') or x.get('RowId') or x.get('player_id') or x.get('PlayerId'))
-              if not pid:continue
-              nm=x.get('Name') or x.get('ShortName')
-              if nm:name_to_pid[str(nm)]=pid
-              sec=fnum(x.get('SecondsPlayed')); mins=fnum(x.get('Minutes'))
-              if sec is not None: mins_exact=sec/60
-              else: mins_exact=mins
-              core[(season,team,pid)]={'minutes':mins_exact,'OffRebounds':fnum(x.get('OffRebounds')),'name':nm}
-            rr=o.get('rebound_stat_results') or {}
-            if isinstance(rr,dict):
-              for x in rr.get('OffRebounds') or []:
-                if not isinstance(x,dict):continue
-                pid=name_to_pid.get(str(x.get('Name') or ''))
-                if pid and (season,team,pid) in core:
-                  core[(season,team,pid)]['OffReboundsOn_rebound_stat']=fnum(x.get('On'))
-                  if core[(season,team,pid)]['minutes'] is None:core[(season,team,pid)]['minutes']=fnum(x.get('MinutesOn'))
-          multi={g:v for g,v in byg.items() if len(v)>1}
-          report=collections.Counter(); examples=[]; mismatches=[]
-          report['all_tenures']=len(byten); report['player_team_seasons']=len(byg); report['multi_fragment_groups']=len(multi); report['multi_fragment_rows']=sum(len(v) for v in multi.values())
-          # For each multi group test whether native 89 vectors and minutes are identical across fragments and equal core exposure.
-          for g,frags in sorted(multi.items()):
-            report['tested_multi_groups']+=1
-            minvals=[]; vecs=[]; windows=[]
-            for k,rs in frags:
-              base=rs[0]; minvals.append(fnum(base.get('minutes_on')))
-              vec=tuple(sorted((str(r.get('metric')),fnum(r.get('on')),fnum(r.get('off_corrected') if r.get('off_corrected') is not None else r.get('corrected_off')),fnum(r.get('on_minus_off_corrected') if r.get('on_minus_off_corrected') is not None else r.get('swing'))) for r in rs))
-              vecs.append(vec); windows.append((k[3],k[4]))
-            same_minutes=len(set(minvals))==1
-            same_vectors=all(v==vecs[0] for v in vecs[1:])
-            c=core.get(g); cm=c.get('minutes') if c else None
-            equal_core=bool(same_minutes and cm is not None and minvals[0] is not None and abs(minvals[0]-cm)<=1.1) # retained Stage2 minutes are integer-rounded
-            if same_minutes:report['multi_same_minutes']+=1
-            if same_vectors:report['multi_same_all89_vector']+=1
-            if equal_core:report['multi_each_fragment_minutes_equal_core']+=1
-            if same_minutes and same_vectors and equal_core:report['multi_proven_alias_groups']+=1
-            else:
-              mismatches.append({'group':g,'fragment_count':len(frags),'windows':windows,'minutes':minvals,'core_minutes':cm,'same_minutes':same_minutes,'same_all89_vector':same_vectors,'each_fragment_minutes_equal_core':equal_core,'player':frags[0][1][0].get('player')})
-            if g[2]=='202362' or len(examples)<12:
-              examples.append({'group':g,'player':frags[0][1][0].get('player'),'fragment_count':len(frags),'windows':windows,'minutes':minvals,'core_minutes':cm,'same_minutes':same_minutes,'same_all89_vector':same_vectors,'each_fragment_minutes_equal_core':equal_core,'core_oreb':c.get('OffReboundsOn_rebound_stat') if c else None})
-          # Compare acceptance population under legacy fragment summing vs statistical player-team-season deduplication.
-          selected={'2021-22','2022-23','2023-24','2024-25','2025-26'}
-          legacy=collections.Counter(); dedup=collections.Counter(); names={}
-          for k,rs in byten.items():
-            if k[0] not in selected:continue
-            m=fnum(rs[0].get('minutes_on')) or 0.0; legacy[k[2]]+=m; names[k[2]]=rs[0].get('player')
-          for g,frags in byg.items():
-            if g[0] not in selected:continue
-            c=core.get(g)
-            if c and c.get('minutes') is not None:m=c['minutes']
-            else:m=fnum(frags[0][1][0].get('minutes_on')) or 0.0
-            dedup[g[2]]+=m
-          legacy_q={p for p,m in legacy.items() if m>=2000}; dedup_q={p for p,m in dedup.items() if m>=2000}
-          dropped=sorted(({'player_id':p,'player':names.get(p),'legacy_minutes':legacy[p],'dedup_minutes':dedup[p]} for p in legacy_q-dedup_q),key=lambda x:-x['legacy_minutes'])
-          added=sorted(({'player_id':p,'player':names.get(p),'legacy_minutes':legacy[p],'dedup_minutes':dedup[p]} for p in dedup_q-legacy_q),key=lambda x:-x['dedup_minutes'])
-          result={'counts':dict(report),'legacy_acceptance_players':len(legacy_q),'dedup_player_team_season_acceptance_players':len(dedup_q),'legacy_only_players':dropped,'dedup_only_players':added,'representative_multi_groups':examples,'unproven_or_nonalias_multi_groups':mismatches[:100],'unproven_or_nonalias_count':len(mismatches)}
-          print(json.dumps(result,indent=2))
-          pathlib.Path('native89_statistical_grain_proof.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
+              if line.strip():rows.append(json.loads(line))
+          seen={}; legacy=collections.Counter(); one=collections.Counter(); names={}
+          for r in rows:
+            if str(r.get('season')) not in {'2021-22','2022-23','2023-24','2024-25','2025-26'}:continue
+            k=(str(r.get('season')),pid(r.get('team_id')),pid(r.get('player_id')),str(r.get('query_start_date')),str(r.get('query_end_date')))
+            if k in seen:continue
+            seen[k]=1
+            m=n(r.get('minutes_on')) or 0.0; legacy[k[2]]+=m; names[k[2]]=r.get('player')
+          # one statistical profile per season/team/player: every duplicate group has identical minutes/vector by run 31922357452
+          gseen={}
+          for r in rows:
+            if str(r.get('season')) not in {'2021-22','2022-23','2023-24','2024-25','2025-26'}:continue
+            g=(str(r.get('season')),pid(r.get('team_id')),pid(r.get('player_id')))
+            if g in gseen:continue
+            gseen[g]=1; one[g[2]]+=n(r.get('minutes_on')) or 0.0
+          lq={x for x,m in legacy.items() if m>=2000}; oq={x for x,m in one.items() if m>=2000}
+          print('LEGACY_QUALIFIERS',len(lq),'ONE_PROFILE_QUALIFIERS',len(oq))
+          print('LEGACY_ONLY',json.dumps(sorted([{'player_id':x,'player':names.get(x),'legacy_minutes':legacy[x],'corrected_minutes':one[x]} for x in lq-oq],key=lambda z:-z['legacy_minutes']),separators=(',',':')))
+          print('CORRECTED_ONLY',json.dumps(sorted([{'player_id':x,'player':names.get(x),'legacy_minutes':legacy[x],'corrected_minutes':one[x]} for x in oq-lq],key=lambda z:-z['corrected_minutes']),separators=(',',':')))
+          pathlib.Path('native89_lance_core_check.json').write_text(json.dumps({'core_path':str(p),'lance_player_totals':lance_pt,'lance_rebound_stat_results':rr,'legacy_qualifiers':len(lq),'corrected_qualifiers':len(oq),'legacy_only':sorted(lq-oq),'corrected_only':sorted(oq-lq)},indent=2),encoding='utf-8')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native89-statistical-grain-proof-${{ github.run_id }}
-          path: native89_statistical_grain_proof.json
+          name: native89-lance-core-check-${{ github.run_id }}
+          path: native89_lance_core_check.json
           if-no-files-found: error
