@@ -14,56 +14,48 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Inspect Lance Stephenson tenure cache
+      - name: Trace Lance cache retained source links
         run: |
           python - <<'PY'
           import gzip,json,pathlib,re
-          base=pathlib.Path('team_trb_all_players/impact_database/corrected_off/cache')
-          windows=[('2022-01-02','2022-01-10'),('2022-01-12','2022-01-23'),('2022-01-25','2022-02-02'),('2022-02-04','2022-04-10')]
-          keep=re.compile(r'rebound|oreb|dreb|offreb|defreb|points|opponentpoints|offposs|defposs|poss',re.I)
-          ident=re.compile(r'start|end|date|season|team|player|entity',re.I)
-          def brief(v):
-            if isinstance(v,dict): return {'type':'object','keys':list(v)}
-            if isinstance(v,list):
-              z={'type':'array','length':len(v)}
-              if v and isinstance(v[0],dict): z['first_item_keys']=list(v[0])
-              return z
-            return v
-          def scan(v,rx,path='',depth=0):
-            a=[]
-            if depth>9:return a
-            if isinstance(v,dict):
-              for k,x in v.items():
-                p=f'{path}.{k}' if path else str(k)
-                if rx.search(str(k)):a.append({'path':p,'value':brief(x)})
-                if isinstance(x,(dict,list)):a+=scan(x,rx,p,depth+1)
-            elif isinstance(v,list):
-              for i,x in enumerate(v[:60]):
-                if isinstance(x,(dict,list)):a+=scan(x,rx,f'{path}[{i}]',depth+1)
-            return a
-          out=[]
-          for qs,qe in windows:
-            p=base/f'2021-22__1610612754__202362__{qs}__{qe}.json.gz'
-            assert p.exists(),p
-            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
-            schema={'type':type(o).__name__}
-            if isinstance(o,dict):schema['keys']=list(o)
-            elif isinstance(o,list):schema.update(length=len(o),first_item_keys=list(o[0]) if o and isinstance(o[0],dict) else [])
-            hits=scan(o,keep); ids=scan(o,ident)
-            txt=json.dumps(ids,separators=(',',':'))
-            exact=all(x in txt for x in (qs,qe,'202362','1610612754'))
-            r={'file_path':str(p),'top_level_schema':schema,'relevant_rebound_fields':[x for x in hits if re.search(r'rebound|oreb|dreb|offreb|defreb',x['path'],re.I)],'relevant_points_possessions_fields':[x for x in hits if re.search(r'points|opponentpoints|offposs|defposs|poss',x['path'],re.I)],'exact_for_tenure_window':exact,'identity_date_fields':ids}
-            out.append(r)
-            print('FILE_PATH',r['file_path'])
-            print('TOP_LEVEL_SCHEMA',json.dumps(r['top_level_schema'],separators=(',',':')))
-            print('REBOUND_FIELDS',json.dumps(r['relevant_rebound_fields'],separators=(',',':')))
-            print('POINTS_POSSESSIONS_FIELDS',json.dumps(r['relevant_points_possessions_fields'],separators=(',',':')))
-            print('EXACT_FOR_TENURE_WINDOW',r['exact_for_tenure_window'])
-          pathlib.Path('lance_cache_diagnostic.json').write_text(json.dumps(out,indent=2),encoding='utf-8')
+          p=pathlib.Path('team_trb_all_players/impact_database/corrected_off/cache/2021-22__1610612754__202362__2022-01-02__2022-01-10.json.gz')
+          with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+          def shape(x):
+            if isinstance(x,dict): return {'type':'object','keys':list(x)}
+            if isinstance(x,list): return {'type':'array','length':len(x),'first_item':shape(x[0]) if x else None}
+            return {'type':type(x).__name__}
+          metrics=o.get('metrics')
+          wanted=('OReb%','OffRebounds','Pts per 100 Possessions','Pts per 100 Possessions - Defense','Seconds Per Possession - Offense','Seconds Per Possession - Defense')
+          selected={}
+          if isinstance(metrics,dict):
+            for k,v in metrics.items():
+              if any(w.lower() in str(k).lower() for w in wanted): selected[k]=v
+          elif isinstance(metrics,list):
+            for i,v in enumerate(metrics):
+              s=json.dumps(v,separators=(',',':'))
+              if any(w.lower() in s.lower() for w in wanted): selected[str(i)]=v
+          linkrx=re.compile(r'source|path|file|cache|request|url|endpoint|response',re.I)
+          links=[]
+          def walk(x,path='',depth=0):
+            if depth>8:return
+            if isinstance(x,dict):
+              for k,v in x.items():
+                q=f'{path}.{k}' if path else str(k)
+                if linkrx.search(str(k)):
+                  if isinstance(v,(str,int,float,bool)) or v is None: links.append({'path':q,'value':v})
+                  else: links.append({'path':q,'shape':shape(v)})
+                if isinstance(v,(dict,list)):walk(v,q,depth+1)
+            elif isinstance(x,list):
+              for i,v in enumerate(x[:100]):
+                if isinstance(v,(dict,list)):walk(v,f'{path}[{i}]',depth+1)
+          walk(o)
+          r={'file_path':str(p),'metrics_schema':shape(metrics),'selected_metrics':selected,'minute_source_row':o.get('minute_source_row'),'requests_schema':shape(o.get('requests')),'source_links':links}
+          print(json.dumps(r,indent=2))
+          pathlib.Path('lance_cache_source_trace.json').write_text(json.dumps(r,indent=2),encoding='utf-8')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native89-lance-cache-diagnostic-${{ github.run_id }}
-          path: lance_cache_diagnostic.json
+          name: native89-lance-cache-source-trace-${{ github.run_id }}
+          path: lance_cache_source_trace.json
           if-no-files-found: error
