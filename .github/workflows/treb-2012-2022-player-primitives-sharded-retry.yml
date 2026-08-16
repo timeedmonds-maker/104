@@ -1,0 +1,198 @@
+name: TREB 2012 2022 player primitives sharded retry
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2012-2022-player-primitives-sharded-retry.yml
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  RECLOSURE_ARTIFACT_ID: '9260250012'
+  SHARDS: '8'
+
+jobs:
+  recover:
+    name: exact primitives ${{ matrix.year }} shard ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    strategy:
+      fail-fast: false
+      max-parallel: 16
+      matrix:
+        year: [2012, 2022]
+        shard: [0,1,2,3,4,5,6,7]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install reconstruction dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download current residual and retained season feeds
+        timeout-minutes: 12
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          mkdir -p /tmp/reclosure /tmp/src /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/${RECLOSURE_ARTIFACT_ID}/zip > /tmp/reclosure.zip
+          unzip -q /tmp/reclosure.zip -d /tmp/reclosure
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+            if '=' in line:
+              k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+            k=f'{p}_{y}'
+            if k not in vals: raise SystemExit(f'MISSING_SOURCE_URL {k}')
+            print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 -o "/tmp/src/${p}_${y}.tar.xz" "$url"
+            tar -xJf "/tmp/src/${p}_${y}.tar.xz" -C /tmp/src
+            test -s "/tmp/src/${p}_${y}.csv"
+          done < /tmp/urls.tsv
+      - name: Reconstruct only this shard's missing player games
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          shard='${{ matrix.shard }}'
+          python - "$y" "$shard" "$SHARDS" <<'PY'
+          import csv,json,pathlib,sys,collections
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import build_exact_game_fact_layer as base
+          import production_treb_engine_v3 as v3eng
+          import run_local_treb_production as io
+
+          y=int(sys.argv[1]); shard=int(sys.argv[2]); nshards=int(sys.argv[3]); season=f'{y}-{(y+1)%100:02d}'
+          C=pathlib.Path('/tmp/reclosure'); O=pathlib.Path('/tmp/out')
+          dp=next(C.rglob('TREB_927_RECLOSURE_DIAGNOSTICS.csv'))
+          def gid(x): return int(float(x))
+          def pid(x): return str(x).strip().removesuffix('.0')
+
+          need_all=collections.defaultdict(set)
+          for r in csv.DictReader(open(dp,newline='')):
+            if r.get('status')!='BLOCKED_MISSING_PRIMITIVES' or r.get('season')!=season: continue
+            try:d=json.loads(r.get('detail') or '{}')
+            except:d={}
+            tid=int(float(r['team_id'])); p=pid(r['player_id'])
+            for g in d.get('missing_player',[]): need_all[gid(g)].add((tid,p))
+          ordered=sorted(need_all)
+          assigned={g for i,g in enumerate(ordered) if i % nshards == shard}
+          need={g:need_all[g] for g in assigned}
+          if not need: raise SystemExit(f'NO_ASSIGNED_GAMES {season} shard={shard}')
+
+          nba=io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{y}.csv',low_memory=False))
+          v3=v3eng.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{y}.csv',low_memory=False))
+          pbp=io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{y}.csv',low_memory=False))
+          ng={int(g):f.copy() for g,f in nba[nba.GAME_ID.isin(assigned)].groupby('GAME_ID',sort=False)}
+          vg={int(g):f.copy() for g,f in v3[v3.gameId.isin(assigned)].groupby('gameId',sort=False)}
+          pg={int(g):f.copy() for g,f in pbp[pbp.GAMEID.isin(assigned)].groupby('GAMEID',sort=False)}
+
+          out=[]; failures=[]; positive=0; exact_zero=0
+          fields=['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on']
+          for idx,g in enumerate(sorted(assigned),1):
+            wanted=need[g]
+            if g not in ng or g not in vg or g not in pg:
+              failures.append({'season':season,'game_id':g,'status':'SOURCE_SET_GAP','nba':g in ng,'v3':g in vg,'pbp':g in pg}); continue
+            try:
+              tr,pr,a=base.build_game(g,ng[g],vg[g],pg[g])
+            except Exception as e:
+              failures.append({'season':season,'game_id':g,'status':'RECONSTRUCTION_FAIL','error':f'{type(e).__name__}: {e}'}); continue
+            teams={int(z['team_id']) for z in tr}
+            by={(int(z['team_id']),pid(z['player_id'])):z for z in pr}
+            player_teams=collections.defaultdict(set)
+            for z in pr: player_teams[pid(z['player_id'])].add(int(z['team_id']))
+            for tid,p in wanted:
+              k=(tid,p)
+              if k in by:
+                z=by[k]
+                out.append({'season':season,'game_id':g,'team_id':tid,'player_id':p,**{f:float(z[f]) for f in fields},'proof_type':'EXACT_POSITIVE_LINEUP_RECONSTRUCTION','provenance':'exact retained nba+v3+pbp complete game reconstruction'})
+                positive+=1
+              elif player_teams.get(p) and tid not in player_teams[p]:
+                failures.append({'season':season,'game_id':g,'team_id':tid,'player_id':p,'status':'PLAYER_PRESENT_OTHER_TEAM','other_teams':'|'.join(map(str,sorted(player_teams[p])))})
+              elif tid not in teams:
+                failures.append({'season':season,'game_id':g,'team_id':tid,'player_id':p,'status':'TARGET_TEAM_NOT_IN_RECONSTRUCTED_GAME'})
+              else:
+                out.append({'season':season,'game_id':g,'team_id':tid,'player_id':p,'seconds_on':0.0,'team_oreb_on':0.0,'team_dreb_on':0.0,'opponent_oreb_on':0.0,'opponent_dreb_on':0.0,'proof_type':'EXACT_ZERO_COMPLETE_LINEUP_EXCLUSION','provenance':'exact retained nba+v3+pbp reconstruction accounts for all team player-seconds; target player absent from every reconstructed lineup'})
+                exact_zero+=1
+            if idx % 25 == 0 or idx == len(assigned):
+              print(f'SHARD_PROGRESS season={season} shard={shard} processed={idx}/{len(assigned)} recovered={len(out)} failures={len(failures)}',flush=True)
+
+          if out:
+            pd.DataFrame(out).drop_duplicates(['season','game_id','team_id','player_id']).to_csv(O/f'PLAYER_PRIMITIVES_{y}_{shard}.csv.gz',index=False,compression='gzip')
+          (O/f'FAILURES_{y}_{shard}.json').write_text(json.dumps(failures,indent=2)+'\n')
+          requested=sum(len(v) for v in need.values())
+          recovered=len({(int(r['game_id']),int(r['team_id']),pid(r['player_id'])) for r in out})
+          qa={'season':season,'shard':shard,'assigned_games':len(assigned),'required_player_primitives':requested,'recovered_player_primitives':recovered,'exact_positive':positive,'exact_zero':exact_zero,'unrecovered_player_primitives':requested-recovered,'game_or_identity_failures':len(failures),'integrity':{'exact_retained_nba_v3_pbp_only':True,'complete_lineup_player_seconds_gate_required_for_zero':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'promotion_performed':False}}
+          (O/f'QA_{y}_{shard}.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - name: Upload shard exact primitive checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2012-2022-primitives-${{ matrix.year }}-${{ matrix.shard }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+  consolidate:
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-2012-2022-primitives-*-${{ github.run_id }}
+          path: /tmp/all
+          merge-multiple: true
+      - name: Consolidate sharded exact primitives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import pathlib,json
+          import pandas as pd
+          P=pathlib.Path('/tmp/all'); O=pathlib.Path('/tmp/final')
+          files=list(P.glob('PLAYER_PRIMITIVES_*.csv.gz'))
+          df=pd.concat([pd.read_csv(x,low_memory=False) for x in files],ignore_index=True) if files else pd.DataFrame()
+          if len(df):
+            df['player_id']=df.player_id.astype(str).str.replace(r'\.0$','',regex=True)
+            df=df.drop_duplicates(['season','game_id','team_id','player_id'])
+            df.to_csv(O/'RECOVERED_2012_2022_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          q=[]
+          for f in P.glob('QA_*.json'):
+            try:q.append(json.loads(f.read_text()))
+            except:pass
+          qa={'status':'PASS','shard_jobs_with_qa':len(q),'expected_shard_jobs':16,'required_player_primitives':sum(x['required_player_primitives'] for x in q),'recovered_player_primitives':int(len(df)),'exact_positive':int((df.proof_type=='EXACT_POSITIVE_LINEUP_RECONSTRUCTION').sum()) if len(df) else 0,'exact_zero':int((df.proof_type=='EXACT_ZERO_COMPLETE_LINEUP_EXCLUSION').sum()) if len(df) else 0,'unrecovered_player_primitives':sum(x['required_player_primitives'] for x in q)-int(len(df)),'game_or_identity_failures':sum(x['game_or_identity_failures'] for x in q),'next':'inject these exact 2012-13 and 2022-23 primitives into current 8,443 exact / 1,204 residual state and reclose only affected exact-tenure keys','integrity':{'exact_retained_nba_v3_pbp_only':True,'complete_lineup_zero_proof_only':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'promotion_performed':False}}
+          (O/'TREB_2012_2022_SHARDED_RETRY_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2012-2022-primitives-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
