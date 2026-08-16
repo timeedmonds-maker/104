@@ -9,94 +9,104 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Validate retained tenure OffRebounds rows
+      - name: Prove statistical exposure grain for fragmented tenures
         run: |
           python - <<'PY'
           import gzip,json,pathlib,collections,math
-          root=pathlib.Path('team_trb_all_players/impact_database')
-          cache=root/'corrected_off/cache'
-          files=sorted(cache.glob('*.json.gz'))
-          counts=collections.Counter(); unsafe=[]; samples=[]
-          bykey={}
-          for p in files:
-            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
-            r=o.get('minute_source_row') if isinstance(o.get('minute_source_row'),dict) else None
-            req=(o.get('requests') or {}).get('stat_minutes') or {}
-            key=(str(o.get('season')),str(o.get('team_id')),str(o.get('player_id')),str(o.get('query_start_date')),str(o.get('query_end_date')))
-            mon=float(o.get('minutes_on') or 0)
-            counts['files']+=1
-            if mon>0: counts['positive_minutes']+=1
-            if req.get('ok') is True: counts['stat_req_ok']+=1
-            if req.get('skipped') is True: counts['stat_req_skipped']+=1
-            if r: counts['minute_row_present']+=1
-            exact_stat = bool(r and req.get('ok') is True and req.get('skipped') is not True and r.get('On') is not None)
-            if exact_stat:
-              try:
-                ore=float(r['On']); assert math.isfinite(ore) and ore>=0
-              except Exception:
-                exact_stat=False
-            if exact_stat: counts['exact_offreb_row']+=1
-            if mon>0 and exact_stat: counts['positive_exact_offreb']+=1
-            if mon>0 and not exact_stat:
-              unsafe.append({'key':key,'minutes_on':mon,'requests_stat_minutes':req,'minute_source_row':r})
-            bykey[key]={'exact':exact_stat,'oreb':float(r['On']) if exact_stat else None,'minutes_on':mon,'player':o.get('player')}
-            if str(o.get('player_id'))=='202362' and str(o.get('season'))=='2021-22' and str(o.get('team_id'))=='1610612754':
-              samples.append({'path':str(p),'key':key,'minutes_on':mon,'exact':exact_stat,'team_orebounds_on':float(r['On']) if exact_stat else None,'minute_source_row':r,'stat_request':req})
-          # Determine whether every positive-exposure tenure used by 2021-22..2025-26 / min-2000 acceptance has exact OREB row.
-          src=root/'corrected_off/tenure_segment_on_off.jsonl.gz'
-          tenures={}; oreb_rates={}
-          with gzip.open(src,'rt',encoding='utf-8') as f:
+          ROOT=pathlib.Path('team_trb_all_players/impact_database')
+          SRC=ROOT/'corrected_off/tenure_segment_on_off.jsonl.gz'
+          CORE=ROOT/'core_checkpoints'
+          def fnum(x):
+            try:
+              v=float(x); return v if math.isfinite(v) else None
+            except:return None
+          def cid(x):
+            if x is None:return ''
+            s=str(x)
+            return s[:-2] if s.endswith('.0') else s
+          rows=[]
+          with gzip.open(SRC,'rt',encoding='utf-8') as f:
             for line in f:
-              if not line.strip(): continue
-              o=json.loads(line)
-              k=(str(o.get('season')),str(o.get('team_id')),str(o.get('player_id')),str(o.get('query_start_date')),str(o.get('query_end_date')))
-              tenures.setdefault(k,{'season':str(o.get('season')),'pid':str(o.get('player_id')),'player':o.get('player'),'minutes_on':float(o.get('minutes_on') or 0)})
-              if o.get('metric')=='OReb%': oreb_rates[k]=o.get('on')
+              if line.strip(): rows.append(json.loads(line))
+          def k5(r):return (str(r['season']),cid(r['team_id']),cid(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')))
+          byten={}
+          for r in rows:byten.setdefault(k5(r),[]).append(r)
+          byg=collections.defaultdict(list)
+          for k,rs in byten.items():byg[k[:3]].append((k,rs))
+          # Core exact player/team-season seconds/minutes and OREB counts.
+          core={}
+          for p in sorted(CORE.glob('*/*.json.gz')):
+            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+            season=str(o.get('season') or p.parent.name); team=cid(o.get('team_id') or p.stem.split('.')[0])
+            name_to_pid={}
+            for x in o.get('player_totals') or []:
+              if not isinstance(x,dict):continue
+              pid=cid(x.get('EntityId') or x.get('RowId') or x.get('player_id') or x.get('PlayerId'))
+              if not pid:continue
+              nm=x.get('Name') or x.get('ShortName')
+              if nm:name_to_pid[str(nm)]=pid
+              sec=fnum(x.get('SecondsPlayed')); mins=fnum(x.get('Minutes'))
+              if sec is not None: mins_exact=sec/60
+              else: mins_exact=mins
+              core[(season,team,pid)]={'minutes':mins_exact,'OffRebounds':fnum(x.get('OffRebounds')),'name':nm}
+            rr=o.get('rebound_stat_results') or {}
+            if isinstance(rr,dict):
+              for x in rr.get('OffRebounds') or []:
+                if not isinstance(x,dict):continue
+                pid=name_to_pid.get(str(x.get('Name') or ''))
+                if pid and (season,team,pid) in core:
+                  core[(season,team,pid)]['OffReboundsOn_rebound_stat']=fnum(x.get('On'))
+                  if core[(season,team,pid)]['minutes'] is None:core[(season,team,pid)]['minutes']=fnum(x.get('MinutesOn'))
+          multi={g:v for g,v in byg.items() if len(v)>1}
+          report=collections.Counter(); examples=[]; mismatches=[]
+          report['all_tenures']=len(byten); report['player_team_seasons']=len(byg); report['multi_fragment_groups']=len(multi); report['multi_fragment_rows']=sum(len(v) for v in multi.values())
+          # For each multi group test whether native 89 vectors and minutes are identical across fragments and equal core exposure.
+          for g,frags in sorted(multi.items()):
+            report['tested_multi_groups']+=1
+            minvals=[]; vecs=[]; windows=[]
+            for k,rs in frags:
+              base=rs[0]; minvals.append(fnum(base.get('minutes_on')))
+              vec=tuple(sorted((str(r.get('metric')),fnum(r.get('on')),fnum(r.get('off_corrected') if r.get('off_corrected') is not None else r.get('corrected_off')),fnum(r.get('on_minus_off_corrected') if r.get('on_minus_off_corrected') is not None else r.get('swing'))) for r in rs))
+              vecs.append(vec); windows.append((k[3],k[4]))
+            same_minutes=len(set(minvals))==1
+            same_vectors=all(v==vecs[0] for v in vecs[1:])
+            c=core.get(g); cm=c.get('minutes') if c else None
+            equal_core=bool(same_minutes and cm is not None and minvals[0] is not None and abs(minvals[0]-cm)<=1.1) # retained Stage2 minutes are integer-rounded
+            if same_minutes:report['multi_same_minutes']+=1
+            if same_vectors:report['multi_same_all89_vector']+=1
+            if equal_core:report['multi_each_fragment_minutes_equal_core']+=1
+            if same_minutes and same_vectors and equal_core:report['multi_proven_alias_groups']+=1
+            else:
+              mismatches.append({'group':g,'fragment_count':len(frags),'windows':windows,'minutes':minvals,'core_minutes':cm,'same_minutes':same_minutes,'same_all89_vector':same_vectors,'each_fragment_minutes_equal_core':equal_core,'player':frags[0][1][0].get('player')})
+            if g[2]=='202362' or len(examples)<12:
+              examples.append({'group':g,'player':frags[0][1][0].get('player'),'fragment_count':len(frags),'windows':windows,'minutes':minvals,'core_minutes':cm,'same_minutes':same_minutes,'same_all89_vector':same_vectors,'each_fragment_minutes_equal_core':equal_core,'core_oreb':c.get('OffReboundsOn_rebound_stat') if c else None})
+          # Compare acceptance population under legacy fragment summing vs statistical player-team-season deduplication.
           selected={'2021-22','2022-23','2023-24','2024-25','2025-26'}
-          mins=collections.Counter()
-          for t in tenures.values():
-            if t['season'] in selected: mins[t['pid']]+=t['minutes_on']
-          qualifiers={p for p,m in mins.items() if m>=2000}
-          qpos=[(k,t) for k,t in tenures.items() if t['season'] in selected and t['pid'] in qualifiers and t['minutes_on']>0]
-          qmissing=[]
-          for k,t in qpos:
-            c=bykey.get(k)
-            if not c or not c['exact']:
-              qmissing.append({'key':k,**t,'cache':c,'oreb_rate':oreb_rates.get(k)})
-          # Cross-check exact stat-row OREB against retained full player-team-season totals whenever there is exactly one tenure key.
-          key3count=collections.Counter((k[0],k[1],k[2]) for k in tenures)
-          full={}
-          import csv
-          for season in sorted(selected):
-            p=root/'outputs'/season/'player_team_totals.csv.gz'
-            if not p.exists(): continue
-            with gzip.open(p,'rt',newline='') as f:
-              for r in csv.DictReader(f):
-                pid=str(r.get('player_id') or r.get('PlayerId') or r.get('playerId') or '').replace('.0','')
-                tid=str(r.get('team_id') or r.get('TeamId') or r.get('teamId') or '').replace('.0','')
-                try: val=float(r.get('OffRebounds'))
-                except Exception: continue
-                full[(season,tid,pid)]=val
-          checks=[]; mismatches=[]
-          for k,c in bykey.items():
-            k3=k[:3]
-            if k[0] not in selected or key3count[k3]!=1 or not c['exact'] or k3 not in full: continue
-            d=c['oreb']-full[k3]
-            rec={'key':k,'tenure_offreb':c['oreb'],'full_offreb':full[k3],'diff':d}
-            checks.append(rec)
-            if abs(d)>1e-9:mismatches.append(rec)
-          report={'counts':dict(counts),'lance_samples':samples,'acceptance_qualifiers':len(qualifiers),'acceptance_positive_tenures':len(qpos),'acceptance_positive_missing_exact_offreb':len(qmissing),'acceptance_missing_examples':qmissing[:50],'unique_tenure_crosschecks':len(checks),'unique_tenure_crosscheck_mismatches':len(mismatches),'crosscheck_mismatch_examples':mismatches[:20],'all_positive_unsafe_count':len(unsafe),'all_positive_unsafe_examples':unsafe[:20]}
-          pathlib.Path('native89_offreb_retention_validation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
-          print(json.dumps(report,indent=2))
+          legacy=collections.Counter(); dedup=collections.Counter(); names={}
+          for k,rs in byten.items():
+            if k[0] not in selected:continue
+            m=fnum(rs[0].get('minutes_on')) or 0.0; legacy[k[2]]+=m; names[k[2]]=rs[0].get('player')
+          for g,frags in byg.items():
+            if g[0] not in selected:continue
+            c=core.get(g)
+            if c and c.get('minutes') is not None:m=c['minutes']
+            else:m=fnum(frags[0][1][0].get('minutes_on')) or 0.0
+            dedup[g[2]]+=m
+          legacy_q={p for p,m in legacy.items() if m>=2000}; dedup_q={p for p,m in dedup.items() if m>=2000}
+          dropped=sorted(({'player_id':p,'player':names.get(p),'legacy_minutes':legacy[p],'dedup_minutes':dedup[p]} for p in legacy_q-dedup_q),key=lambda x:-x['legacy_minutes'])
+          added=sorted(({'player_id':p,'player':names.get(p),'legacy_minutes':legacy[p],'dedup_minutes':dedup[p]} for p in dedup_q-legacy_q),key=lambda x:-x['dedup_minutes'])
+          result={'counts':dict(report),'legacy_acceptance_players':len(legacy_q),'dedup_player_team_season_acceptance_players':len(dedup_q),'legacy_only_players':dropped,'dedup_only_players':added,'representative_multi_groups':examples,'unproven_or_nonalias_multi_groups':mismatches[:100],'unproven_or_nonalias_count':len(mismatches)}
+          print(json.dumps(result,indent=2))
+          pathlib.Path('native89_statistical_grain_proof.json').write_text(json.dumps(result,indent=2),encoding='utf-8')
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native89-offreb-retention-validation-${{ github.run_id }}
-          path: native89_offreb_retention_validation.json
+          name: native89-statistical-grain-proof-${{ github.run_id }}
+          path: native89_statistical_grain_proof.json
           if-no-files-found: error
