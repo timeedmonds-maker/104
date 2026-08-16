@@ -1,0 +1,84 @@
+name: TREB merge 2015 materiality promotions
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-merge-2015-materiality-promotions.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  merge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas
+      - name: Download authoritative pre-2015 materiality state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/base /tmp/new /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9262341403/zip > /tmp/base.zip
+          unzip -q /tmp/base.zip -d /tmp/base
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9267705324/zip > /tmp/new.zip
+          unzip -q /tmp/new.zip -d /tmp/new
+      - name: Merge only certified new materiality accepts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, pathlib
+          import pandas as pd
+          B=pathlib.Path('/tmp/base'); N=pathlib.Path('/tmp/new'); O=pathlib.Path('/tmp/out')
+          def one(root,name):
+              xs=list(root.rglob(name)); assert len(xs)==1,(name,len(xs)); return xs[0]
+          old_acc=pd.read_csv(one(B,'TREB_1170_MATERIALITY_ACCEPTED.csv'),low_memory=False)
+          old_res=pd.read_csv(one(B,'TREB_POST_MATERIALITY_BLOCKER_MANIFEST.csv'),low_memory=False)
+          new_acc=pd.read_csv(one(N,'TREB_2015_SINGLE_KEY_MATERIALITY_ACCEPTED.csv'),low_memory=False)
+          audit=pd.read_csv(one(N,'TREB_2015_SINGLE_KEY_MATERIALITY_AUDIT.csv'),low_memory=False)
+          def norm(df):
+              x=df.copy(); x['season']=x.season.astype(str); x['team_id']=pd.to_numeric(x.team_id).astype('int64').astype(str); x['player_id']=x.player_id.astype(str).str.replace(r'\.0$','',regex=True); return x
+          old_acc=norm(old_acc); old_res=norm(old_res); new_acc=norm(new_acc); audit=norm(audit)
+          assert len(old_acc)==1,len(old_acc)
+          assert len(new_acc)==3,len(new_acc)
+          nk=set(zip(new_acc.season,new_acc.team_id,new_acc.player_id))
+          ak=set(zip(audit.loc[audit.status.eq('ACCEPT_IMMATERIAL'),'season'],audit.loc[audit.status.eq('ACCEPT_IMMATERIAL'),'team_id'],audit.loc[audit.status.eq('ACCEPT_IMMATERIAL'),'player_id']))
+          assert nk==ak,(nk,ak)
+          oldk=set(zip(old_acc.season,old_acc.team_id,old_acc.player_id)); assert not (oldk & nk)
+          rk=set(zip(old_res.season,old_res.team_id,old_res.player_id)); assert nk <= rk
+          acc=pd.concat([old_acc,new_acc],ignore_index=True,sort=False).drop_duplicates(['season','team_id','player_id'],keep='last')
+          mask=[k not in nk for k in zip(old_res.season,old_res.team_id,old_res.player_id)]
+          res=old_res.loc[mask].copy()
+          assert len(acc)==4,len(acc)
+          assert len(res)==1166,len(res)
+          assert 8477+len(acc)+len(res)==9647
+          acc.to_csv(O/'TREB_MATERIALITY_ACCEPTED_CUMULATIVE.csv',index=False)
+          res.to_csv(O/'TREB_AUTHORITATIVE_RESIDUAL_BLOCKER_MANIFEST.csv',index=False)
+          audit.to_csv(O/'TREB_2015_SINGLE_KEY_MATERIALITY_AUDIT.csv',index=False)
+          qa={
+            'status':'PASS','full_core_exact':8477,'materiality_accepted':len(acc),
+            'production_resolved':8477+len(acc),'residual':len(res),'canonical_full_core_keys':9647,
+            'new_2015_materiality_promotions':3,'threshold_pp':0.01,'minutes_gate_seconds':60,
+            'integrity':{'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False},
+            'source_artifacts':{'prior_materiality_gate':9262341403,'2015_single_key_materiality':9267705324}
+          }
+          (O/'TREB_AUTHORITATIVE_PRODUCTION_STATE_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - name: Upload authoritative merged state
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-authoritative-8477-exact-4-materiality-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
