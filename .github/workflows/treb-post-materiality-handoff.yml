@@ -1,0 +1,204 @@
+name: TREB post-materiality authoritative handoff
+
+on:
+  workflow_run:
+    workflows: ["TREB 1170 residual fail-closed materiality gate"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Materiality gate run ID
+        required: false
+        default: '31937733572'
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-post-materiality-authoritative-handoff
+  cancel-in-progress: false
+
+jobs:
+  handoff:
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        (github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'agent/treb-final-exact-assembly')
+      }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      CURRENT_EXACT_ARTIFACT_ID: '9260774395'
+      CURRENT_EXACT_FULL_CORE: '8477'
+      CURRENT_RESIDUAL: '1170'
+      FULL_CORE_TARGET: '9647'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+
+      - name: Resolve source run
+        id: src
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ '${{ github.event_name }}' = 'workflow_run' ]; then
+            rid='${{ github.event.workflow_run.id }}'
+          else
+            rid='${{ inputs.source_run_id }}'
+          fi
+          test -n "$rid"
+          echo "run_id=$rid" >> "$GITHUB_OUTPUT"
+          echo "SOURCE_RUN_ID=$rid" >> "$GITHUB_ENV"
+
+      - name: Download authoritative current exact state and consolidated materiality gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/materiality /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_EXACT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+          gh run download "$SOURCE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "TREB-residual-materiality-consolidated-${SOURCE_RUN_ID}" \
+            --dir /tmp/materiality
+          find /tmp/current -maxdepth 3 -type f -print
+          find /tmp/materiality -maxdepth 4 -type f -print
+
+      - name: Build fail-closed authoritative post-materiality state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv, json, pathlib, shutil
+
+          CUR=pathlib.Path('/tmp/current')
+          MAT=pathlib.Path('/tmp/materiality')
+          OUT=pathlib.Path('/tmp/out')
+          OUT.mkdir(parents=True,exist_ok=True)
+
+          CURRENT_EXACT=8477
+          CURRENT_RESIDUAL=1170
+          FULL_TARGET=9647
+
+          def one(root,name):
+              xs=list(root.rglob(name))
+              if len(xs)!=1:
+                  raise SystemExit(f'EXPECTED_ONE {name} got={len(xs)} paths={[str(x) for x in xs]}')
+              return xs[0]
+
+          def rows(path):
+              with open(path,newline='',encoding='utf-8-sig') as f:
+                  return list(csv.DictReader(f))
+
+          def norm_pid(v):
+              s=str(v).strip()
+              return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def norm_tid(v): return str(int(float(str(v).strip())))
+          def key(r): return (str(r['season']).strip(),norm_tid(r['team_id']),norm_pid(r['player_id']))
+
+          gate=json.loads(one(MAT,'RESIDUAL_MATERIALITY_GATE.json').read_text())
+          assert gate['status']=='PASS',gate
+          assert int(gate['starting_full_core_exact'])==CURRENT_EXACT,gate
+          assert int(gate['starting_residual'])==CURRENT_RESIDUAL,gate
+          assert abs(float(gate['threshold_pp'])-0.01)<1e-12,gate
+          assert abs(float(gate['minutes_gate_seconds'])-60.0)<1e-12,gate
+          integ=gate.get('integrity',{})
+          for k in ['empirical_model_used','rounded_percentage_backsolve_used','opponent_rebound_inference_used','partial_tenure_whole_team_subtraction_used']:
+              assert integ.get(k) is False,(k,integ)
+          for k in ['fail_closed_on_source_gap','fail_closed_on_enumeration_cap','fail_closed_without_exact_tenure_identity']:
+              assert integ.get(k) is True,(k,integ)
+
+          original=rows(one(CUR,'AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          accepted=rows(one(MAT,'MATERIALITY_ACCEPTED.csv')) if list(MAT.rglob('MATERIALITY_ACCEPTED.csv')) else []
+          remaining=rows(one(MAT,'MATERIALITY_REMAINING.csv'))
+          audit=rows(one(MAT,'RESIDUAL_MATERIALITY_KEYS.csv'))
+
+          assert len(original)==CURRENT_RESIDUAL,len(original)
+          ok={key(r) for r in original}
+          ak={key(r) for r in accepted}
+          rk={key(r) for r in remaining}
+          qk={key(r) for r in audit}
+          assert len(ok)==len(original),'duplicate original blocker keys'
+          assert len(ak)==len(accepted),'duplicate accepted keys'
+          assert len(rk)==len(remaining),'duplicate remaining keys'
+          assert len(qk)==len(audit)==CURRENT_RESIDUAL,(len(qk),len(audit))
+          assert not (ak & rk),'accepted/remaining overlap'
+          assert ak | rk == ok,(len(ak),len(rk),len(ok),len((ak|rk)^ok))
+          assert qk==ok,(len(qk),len(ok),len(qk^ok))
+
+          gate_accepted=int(gate['accepted_immaterial_keys'])
+          gate_remaining=int(gate['ending_residual'])
+          assert len(accepted)==gate_accepted,(len(accepted),gate_accepted)
+          assert len(remaining)==gate_remaining,(len(remaining),gate_remaining)
+          assert len(accepted)+len(remaining)==CURRENT_RESIDUAL
+
+          # Preserve every current exact-state file unchanged except its obsolete blocker manifest.
+          exact_dir=OUT/'CURRENT_EXACT_STATE'
+          exact_dir.mkdir()
+          for p in CUR.rglob('*'):
+              if not p.is_file() or p.name=='AUTONOMOUS_BLOCKER_MANIFEST.csv':
+                  continue
+              dest=exact_dir/p.name
+              if dest.exists():
+                  raise SystemExit(f'DUPLICATE_CURRENT_STATE_BASENAME {p.name}')
+              shutil.copy2(p,dest)
+
+          # Preserve materiality evidence as first-class production provenance.
+          shutil.copy2(one(MAT,'RESIDUAL_MATERIALITY_GATE.json'),OUT/'RESIDUAL_MATERIALITY_GATE.json')
+          shutil.copy2(one(MAT,'RESIDUAL_MATERIALITY_KEYS.csv'),OUT/'RESIDUAL_MATERIALITY_KEYS.csv')
+          if accepted:
+              shutil.copy2(one(MAT,'MATERIALITY_ACCEPTED.csv'),OUT/'TREB_MATERIALITY_ACCEPTED.csv')
+          else:
+              (OUT/'TREB_MATERIALITY_ACCEPTED.csv').write_text('season,team_id,player_id,metric,on,off_corrected,on_minus_off_corrected\n')
+          shutil.copy2(one(MAT,'MATERIALITY_REMAINING.csv'),OUT/'AUTONOMOUS_BLOCKER_MANIFEST.csv')
+
+          full_core_resolved=CURRENT_EXACT+len(accepted)
+          assert full_core_resolved+len(remaining)==FULL_TARGET,(full_core_resolved,len(remaining),FULL_TARGET)
+          qa={
+            'status':'PASS',
+            'source_materiality_run_id':int('${{ steps.src.outputs.run_id }}'),
+            'source_current_exact_artifact_id':9260774395,
+            'full_core_target':FULL_TARGET,
+            'exact_full_core_keys':CURRENT_EXACT,
+            'materiality_accepted_keys':len(accepted),
+            'resolved_full_core_keys':full_core_resolved,
+            'ending_unresolved_keys':len(remaining),
+            'complete_accounting':full_core_resolved+len(remaining)==FULL_TARGET,
+            'ready_for_final_assembly':len(remaining)==0,
+            'threshold_pp':0.01,
+            'minutes_gate_seconds':60.0,
+            'row_classes':{
+              'EXACT':CURRENT_EXACT,
+              'MATERIALITY_ACCEPTED':len(accepted),
+              'UNRESOLVED_FAIL_CLOSED':len(remaining)
+            },
+            'integrity':{
+              'exact_and_materiality_rows_kept_separate':True,
+              'accepted_remaining_disjoint':True,
+              'accepted_plus_remaining_equals_original_1170':True,
+              'all_original_residual_keys_audited':True,
+              'empirical_model_used':False,
+              'rounded_percentage_backsolve_used':False,
+              'opponent_rebound_inference_used':False,
+              'partial_tenure_whole_team_subtraction_used':False
+            },
+            'next':'FINAL_90_METRIC_ASSEMBLY' if len(remaining)==0 else 'RESOLVE_ONLY_ENDING_FAIL_CLOSED_RESIDUAL'
+          }
+          (OUT/'TREB_POST_MATERIALITY_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(qa,indent=2,sort_keys=True))
+          PY
+
+      - name: Upload authoritative post-materiality state
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-post-materiality-state-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
