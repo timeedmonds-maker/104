@@ -1,0 +1,95 @@
+name: TREB 2015 targeted materiality retry
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-2015-materiality-targeted-retry.yml
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-2015-targeted-materiality-retry
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9260774395'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+
+jobs:
+  retry-2015:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download retained authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current tenure consensus pbp recovered_old recovered_mid recovered_new; do mkdir -p "/tmp/$d"; done
+          for spec in "current:$CURRENT_ARTIFACT_ID" "tenure:$TENURE_ARTIFACT_ID" "consensus:$CONSENSUS_ARTIFACT_ID" "pbp:$PBP_ARTIFACT_ID" "recovered_old:$RECOVERED_OLD_ARTIFACT_ID" "recovered_mid:$RECOVERED_MID_ARTIFACT_ID" "recovered_new:$RECOVERED_NEW_ARTIFACT_ID"; do
+            d="${spec%%:*}"; a="${spec##*:}"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" > "/tmp/${d}.zip"
+            unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"
+          done
+      - name: Download 2015 retained full-season feeds
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/src /tmp/out
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' > /tmp/urls.tsv
+          vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              print(p,vals[f'{p}_2015'],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 -o "/tmp/src/${p}_2015.tar.xz" "$url"
+            tar -xJf "/tmp/src/${p}_2015.tar.xz" -C /tmp/src
+            test -s "/tmp/src/${p}_2015.csv"
+          done < /tmp/urls.tsv
+      - name: Retry exact coherent scenario materiality audit
+        timeout-minutes: 35
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/audit_current_residual_materiality.py \
+            --year 2015 \
+            --current-dir /tmp/current --tenure-dir /tmp/tenure --consensus-dir /tmp/consensus --pbp-dir /tmp/pbp \
+            --recovered-old-dir /tmp/recovered_old --recovered-mid-dir /tmp/recovered_mid --recovered-new-dir /tmp/recovered_new \
+            --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz \
+            --nba /tmp/src/nbastats_2015.csv --v3 /tmp/src/nbastatsv3_2015.csv --pbp /tmp/src/pbpstats_2015.csv \
+            --threshold-pp 0.01 --minutes-gate-seconds 60 \
+            --max-enumeration-nodes 10000 --max-game-variants 5000 --max-key-states 200000 \
+            --output-dir /tmp/out
+      - name: Upload retained 2015 retry result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-2015-materiality-targeted-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
