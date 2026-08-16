@@ -1,5 +1,4 @@
-# trigger: full-season tenure identity audit
-name: TREB 949 full-season tenure identity
+name: TREB full-season identity exact closure
 
 on:
   workflow_dispatch:
@@ -13,36 +12,38 @@ permissions:
   actions: read
 
 env:
-  RECLOSURE_ARTIFACT_ID: '9258703567'
+  STATE_ARTIFACT_ID: '9255627136'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_ARTIFACT_ID: '9258644772'
+  IDENTITY_ARTIFACT_ID: '9259356469'
 
 jobs:
-  audit:
+  close:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
           fetch-depth: 1
-      - name: Download current residual diagnostics
+      - name: Download authoritative retained inputs
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/reclosure /tmp/out
-          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/${RECLOSURE_ARTIFACT_ID}/zip > /tmp/reclosure.zip
-          unzip -q /tmp/reclosure.zip -d /tmp/reclosure
-      - name: Prove exact full-season tenure identities
+          for pair in state:$STATE_ARTIFACT_ID consensus:$CONSENSUS_ARTIFACT_ID pbp:$PBP_ARTIFACT_ID recovered:$RECOVERED_ARTIFACT_ID identity:$IDENTITY_ARTIFACT_ID; do
+            d=${pair%%:*}; a=${pair##*:}; mkdir -p "/tmp/$d"; gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip > "/tmp/$d.zip"; unzip -q "/tmp/$d.zip" -d "/tmp/$d"
+          done
+          mkdir -p /tmp/out
+      - name: Reclose with exact full-season tenure identities
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           import csv,gzip,json,pathlib,collections
-          R=pathlib.Path('/tmp/reclosure'); O=pathlib.Path('/tmp/out')
-          diag=next(R.rglob('TREB_RECLOSURE_DIAGNOSTICS.csv'))
-          blocked=[r for r in csv.DictReader(open(diag,newline='')) if r.get('status')=='NO_EXACT_TENURE_IDENTITY']
-          assert len(blocked)==949,len(blocked)
+          O=pathlib.Path('/tmp/out')
           def pid(x): return str(x).strip().removesuffix('.0')
           def tid(x): return str(int(float(x)))
           def gid(x):
@@ -50,45 +51,109 @@ jobs:
               try:return str(int(float(s))).zfill(10)
               except:return s.zfill(10)
           def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
-          B={key(r):r for r in blocked}
+          residual=list(csv.DictReader(open(next(pathlib.Path('/tmp/state').rglob('TREB_ZERO_SECOND_RESIDUAL.csv')),newline='')))
+          assert len(residual)==1250,len(residual)
+          current={key(r):r for r in residual}
+          reqp={'seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+          reqt={'team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+          facts=collections.defaultdict(dict)
+          cp=next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'))
+          with open(cp,newline='') as f:
+              for r in csv.DictReader(f): facts[(gid(r['game_id']),tid(r['team_id']),pid(r.get('player_id','')))][r['field']]=float(r['value'])
+          rp=next(pathlib.Path('/tmp/recovered').rglob('RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz'))
+          recovered_rows=0
+          with gzip.open(rp,'rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id'])); old=facts.get(k,{})
+                  for z in reqp:
+                      v=float(r[z])
+                      if z in old and abs(old[z]-v)>1e-9: raise SystemExit(f'CONFLICTING_PLAYER_FACT {k} {z}')
+                      facts[k][z]=v
+                  recovered_rows+=1
+          assert recovered_rows==92,recovered_rows
+          team_overrides={}
+          pp=next(pathlib.Path('/tmp/pbp').rglob('TREB_143_V2_PBP_EXACT_AUDIT.csv'))
+          with open(pp,newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')!='PASS_EXACT' or str(r.get('validation_pass')).lower() not in {'true','1'}: continue
+                  k=(gid(r['game_id']),tid(r['team_id'])); v={z:float(r[z]) for z in reqt}
+                  if k in team_overrides and any(abs(team_overrides[k][z]-v[z])>1e-9 for z in reqt): raise SystemExit(f'CONFLICT_TEAM {k}')
+                  team_overrides[k]=v
+          assert len(team_overrides)==95,len(team_overrides)
           targets={}
-          target_path=pathlib.Path('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz')
-          with gzip.open(target_path,'rt',encoding='utf-8') as f:
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
               for line in f:
-                  if not line.strip(): continue
-                  r=json.loads(line); k=key(r)
-                  if k in B: targets[k]=r
-          assert len(targets)==949,len(targets)
-          sched=collections.defaultdict(list)
-          schedule_path=pathlib.Path('team_trb_all_players/impact_database/roster_tenure/regular_season_games.jsonl.gz')
-          with gzip.open(schedule_path,'rt',encoding='utf-8') as f:
-              for line in f:
-                  if not line.strip(): continue
-                  g=json.loads(line); season=str(g.get('season')); game=gid(g.get('game_id'))
-                  for t in (g.get('home_team_id'),g.get('away_team_id')):
-                      try:sched[(season,tid(t))].append(game)
-                      except:pass
-          rows=[]; exact=0; ambiguous=0
-          for k in sorted(B):
-              t=targets[k]
-              expected=int(float(t.get('team_games_in_tenure') or 0))
-              games=sorted(set(sched.get((k[0],k[1]),[])))
-              season_total=len(games)
-              if expected>0 and expected==season_total:
-                  status='EXACT_FULL_SEASON_TENURE_IDENTITY'; exact+=1; ids='|'.join(games)
+                  if line.strip():
+                      r=json.loads(line); k=key(r)
+                      if k in current: targets[k]=r
+          assert len(targets)==1250,len(targets)
+          ledger_games=collections.defaultdict(set); ledger_seconds={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz','rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:k=key(r)
+                  except:continue
+                  if k not in current: continue
+                  g=gid(r['game_id']); ledger_games[k].add(g); ledger_seconds[(k,g)]=float(r.get('seconds_game') or 0)
+          full_identity={}
+          ip=next(pathlib.Path('/tmp/identity').rglob('TREB_949_FULL_SEASON_TENURE_IDENTITY.csv'))
+          with open(ip,newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')=='EXACT_FULL_SEASON_TENURE_IDENTITY': full_identity[key(r)]={g for g in r['exact_game_ids'].split('|') if g}
+          assert len(full_identity)==949,len(full_identity)
+          def team_fact(g,t):
+              cv=facts.get((g,t,''),{})
+              if reqt.issubset(cv): return {z:cv[z] for z in reqt}
+              return team_overrides.get((g,t))
+          promoted=[]; diagnostics=[]; source_counts=collections.Counter()
+          for k in sorted(current):
+              t=targets[k]; expected=int(float(t.get('team_games_in_tenure',0) or 0))
+              if k in full_identity:
+                  games=set(full_identity[k]); identity_source='FULL_SEASON_SCHEDULE'
               else:
-                  status='AMBIGUOUS_PARTIAL_TENURE'; ambiguous+=1; ids=''
-              rows.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':status,'expected_team_games':expected,'team_regular_season_games':season_total,'exact_game_ids':ids})
-          with open(O/'TREB_949_FULL_SEASON_TENURE_IDENTITY.csv','w',newline='') as f:
-              w=csv.DictWriter(f,fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
-          qa={'status':'PASS','target_keys':949,'exact_full_season_tenure_identity':exact,'ambiguous_partial_tenure':ambiguous,'integrity':{'exact_schedule_only':True,'expected_games_equals_complete_team_schedule_required':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'promotion_performed':False},'next':'inject only exact full-season game lists into closure; leave partial-tenure rows blocked'}
-          (O/'TREB_949_FULL_SEASON_TENURE_IDENTITY_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
-          print(json.dumps(qa,indent=2,sort_keys=True),flush=True)
-          assert exact+ambiguous==949
+                  games=set(ledger_games.get(k,set())); identity_source='EXACT_LEDGER' if games and len(games)==expected else 'NONE'
+              if not games or len(games)!=expected:
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'NO_EXACT_TENURE_IDENTITY','identity_source':identity_source,'expected_games':expected,'identity_games':len(games),'missing_team_count':0,'missing_player_count':0,'bad_count':0,'minutes_delta_seconds':''}); continue
+              agg=collections.Counter(); mt=[]; mp=[]; bad=[]; zero=0
+              for g in sorted(games):
+                  tv=team_fact(g,k[1])
+                  if tv is None: mt.append(g); continue
+                  pv=facts.get((g,k[1],k[2]),{})
+                  if not reqp.issubset(pv):
+                      sec=ledger_seconds.get((k,g))
+                      if sec is not None and abs(sec)<=1e-9:
+                          pv={z:0.0 for z in reqp}; zero+=1
+                      else:
+                          mp.append(g); continue
+                  comps=[tv['team_oreb']-pv['team_oreb_on'],tv['team_dreb']-pv['team_dreb_on'],tv['opponent_oreb']-pv['opponent_oreb_on'],tv['opponent_dreb']-pv['opponent_dreb_on']]
+                  if min(comps)<-1e-9: bad.append(g); continue
+                  for z in reqp: agg[z]+=pv[z]
+                  for z in reqt: agg[z]+=tv[z]
+              delta=abs(agg['seconds_on']-float(t.get('seconds_on') or 0))
+              if mt or mp or bad or delta>60:
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'BLOCKED','identity_source':identity_source,'expected_games':expected,'identity_games':len(games),'missing_team_count':len(mt),'missing_player_count':len(mp),'bad_count':len(bad),'minutes_delta_seconds':delta,'missing_team_game_ids':'|'.join(mt),'missing_player_game_ids':'|'.join(mp),'bad_game_ids':'|'.join(bad)}); continue
+              tr_on=agg['team_oreb_on']+agg['team_dreb_on']; op_on=agg['opponent_oreb_on']+agg['opponent_dreb_on']; tr=agg['team_oreb']+agg['team_dreb']; op=agg['opponent_oreb']+agg['opponent_dreb']; tr_off=tr-tr_on; op_off=op-op_on
+              if min(tr_on,op_on,tr_off,op_off)<-1e-9 or tr_on+op_on<=0 or tr_off+op_off<=0:
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'INVALID_COUNTS','identity_source':identity_source,'expected_games':expected,'identity_games':len(games),'missing_team_count':0,'missing_player_count':0,'bad_count':0,'minutes_delta_seconds':delta}); continue
+              on=100*tr_on/(tr_on+op_on); off=100*tr_off/(tr_off+op_off)
+              promoted.append({'season':k[0],'team_id':k[1],'player_id':k[2],'metric':'TotalReboundPct','on':on,'off_corrected':off,'on_minus_off_corrected':on-off,'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(games),'tenure_identity_source':identity_source,'provenance':'exact retained raw counts + exact canonical full-season schedule or exact ledger identity'})
+              source_counts[identity_source]+=1
+          pkeys={key(r) for r in promoted}; remain=[r for r in residual if key(r) not in pkeys]
+          assert len(promoted)+len(remain)==1250
+          if promoted:
+              with open(O/'TREB_CUMULATIVE_EXACT_PROMOTED.csv','w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=list(promoted[0])); w.writeheader(); w.writerows(promoted)
+          with open(O/'TREB_RESIDUAL_AFTER_FULL_SEASON_IDENTITY.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=list(residual[0])); w.writeheader(); w.writerows(remain)
+          fields=sorted({z for r in diagnostics for z in r})
+          with open(O/'TREB_FULL_SEASON_RECLOSURE_DIAGNOSTICS.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(diagnostics)
+          qa={'status':'PASS','starting_residual':1250,'full_season_identities_injected':949,'prior_exact_promotions':29,'cumulative_exact_promotions':len(promoted),'new_exact_promotions':max(0,len(promoted)-29),'ending_residual':len(remain),'resolved_full_core_if_merged':8397+len(promoted),'promotion_identity_sources':dict(source_counts),'diagnostic_status_counts':dict(collections.Counter(r['status'] for r in diagnostics)),'unique_missing_team_games':len({g for r in diagnostics for g in r.get('missing_team_game_ids','').split('|') if g}),'unique_missing_player_games':len({g for r in diagnostics for g in r.get('missing_player_game_ids','').split('|') if g}),'integrity':{'exact_raw_counts_only':True,'full_season_identity_requires_expected_games_equal_complete_canonical_schedule':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'unsafe_global_event_order_used':False},'next':'merge cumulative exact promotions and target only remaining exact missing game facts'}
+          (O/'TREB_FULL_SEASON_RECLOSURE_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n'); print(json.dumps(qa,indent=2,sort_keys=True),flush=True)
+          assert len(promoted)>=29
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: TREB-949-full-season-tenure-identity-${{ github.run_id }}
+          name: TREB-full-season-identity-reclosure-${{ github.run_id }}
           path: /tmp/out
           retention-days: 90
           compression-level: 1
