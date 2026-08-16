@@ -6,86 +6,87 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
-  actions: read
 jobs:
   audit:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - uses: actions/download-artifact@v4
-        with:
-          name: TREB-prepared-canonical-layers-31844978593
-          path: /tmp/prep
-          github-token: ${{ github.token }}
-          repository: timeedmonds-maker/104
-          run-id: '31844978593'
-      - name: Audit exact sources against tenure-segment grain
+      - name: Isolate corrected acceptance holes
         run: |
-          python -m pip install --disable-pip-version-check -q pandas pyarrow
           python - <<'PY'
-          import pandas as pd, pathlib, gzip,json,csv,collections
-          root=pathlib.Path('team_trb_all_players/impact_database')
-          exact=pd.read_parquet('/tmp/prep/exact_partial_4877.parquet')
-          # canonical tenure segments from corrected 89 source
-          rr=[]
-          with gzip.open(root/'corrected_off/tenure_segment_on_off.jsonl.gz','rt',encoding='utf-8') as f:
+          import pathlib,gzip,json,collections,math
+          R=pathlib.Path('team_trb_all_players/impact_database'); C=R/'corrected_off/cache'; CORE=R/'core_checkpoints'
+          def n(x):
+            try:
+              v=float(x);return v if math.isfinite(v) else None
+            except:return None
+          def cid(x):
+            s=str(x or '');return s[:-2] if s.endswith('.0') else s
+          rows=[]
+          with gzip.open(R/'corrected_off/tenure_segment_on_off.jsonl.gz','rt',encoding='utf-8') as f:
             for line in f:
-              if line.strip(): rr.append(json.loads(line))
-          t=pd.DataFrame(rr)
-          segcols=['season','team_id','player_id','query_start_date','query_end_date']
-          seg=t[segcols+['player','minutes_on','minutes_off']].drop_duplicates(segcols).copy()
-          pts=seg[['season','team_id','player_id']].drop_duplicates()
-          # retained WoWY exact window caches
-          wrows=[]
-          for p in (root/'corrected_off_wowy/cache').glob('*.json.gz'):
-            try:
-              with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
-              wrows.append({k:o.get(k) for k in ['season','team_id','player_id','query_start_date','query_end_date','complete','minutes_on','minutes_off']})
-            except: pass
-          w=pd.DataFrame(wrows)
-          # exact game-level reconstruction source
-          gp=root/'final14_exact_reconstruction/player_game_treb_on.csv.gz'
-          g=pd.read_csv(gp,dtype={'player_id':str,'game_id':str}) if gp.exists() else pd.DataFrame()
-          # search game-level files with broad additive fields
-          broad=[]
-          for p in root.rglob('*.csv.gz'):
-            try:
-              with gzip.open(p,'rt',encoding='utf-8',errors='replace',newline='') as f:
-                r=csv.reader(f); h=next(r,[])
-              low={str(x).lower() for x in h}
-              if {'game_id','player_id'}<=low and len(low & {'points','offposs','defposs','offrebounds','defrebounds','opponentpoints'})>=3:
-                broad.append({'path':str(p),'columns':h,'size':p.stat().st_size})
-            except: pass
-          out={
-            'tenure_metric_rows':len(t),'tenure_segments':len(seg),'player_team_season_keys':len(pts),
-            'tenure_seasons':sorted(seg.season.astype(str).unique().tolist()),
-            'exact_partial_rows':len(exact),'exact_partial_columns':list(exact.columns),'exact_partial_sample':exact.head(3).to_dict('records'),
-            'exact_partial_has_segment_boundaries':all(c in exact.columns for c in ['query_start_date','query_end_date']),
-            'wowy_cache_windows':len(w),'wowy_complete_windows':int(w.complete.fillna(False).astype(bool).sum()) if len(w) else 0,
-            'game_exact_exists':gp.exists(),'game_exact_rows':len(g),'game_exact_columns':list(g.columns),
-            'game_exact_seasons':sorted(g.game_date.astype(str).str[:4].unique().tolist()) if len(g) and 'game_date' in g else [],
-            'game_exact_player_team_pairs':int(g[['team_id','player_id']].drop_duplicates().shape[0]) if len(g) else 0,
-            'broad_game_files':broad,
-          }
-          # acceptance-period segment counts and raw game coverage by boundaries
-          sel=seg[seg.season.astype(str).isin(['2021-22','2022-23','2023-24','2024-25','2025-26'])].copy()
-          out['acceptance_period_segments']=len(sel); out['acceptance_period_pts_keys']=len(sel[['season','team_id','player_id']].drop_duplicates())
-          if len(g):
-            g['game_date']=pd.to_datetime(g.game_date,errors='coerce'); g['player_id']=g.player_id.astype(str); g['team_id']=pd.to_numeric(g.team_id,errors='coerce')
-            covered=0; game_rows=0
-            for r in sel.itertuples(index=False):
-              q=g[(g.player_id==str(r.player_id))&(g.team_id==int(r.team_id))&(g.game_date>=pd.to_datetime(r.query_start_date))&(g.game_date<=pd.to_datetime(r.query_end_date))]
-              if len(q): covered+=1; game_rows+=len(q)
-            out['acceptance_segments_with_game_exact_rows']=covered; out['acceptance_game_exact_rows_joined']=game_rows
-          pathlib.Path('native89_segment_sufficient_stat_coverage.json').write_text(json.dumps(out,indent=2,default=str)+'\n')
-          print(json.dumps(out,indent=2,default=str)[:120000])
+              if line.strip():rows.append(json.loads(line))
+          byten={}
+          for r in rows:
+            k=(str(r['season']),cid(r['team_id']),cid(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')));byten.setdefault(k,[]).append(r)
+          byg=collections.defaultdict(list)
+          for k,rs in byten.items():byg[k[:3]].append((k,rs))
+          selected={'2021-22','2022-23','2023-24','2024-25','2025-26'};mins=collections.Counter();names={}
+          for g,frags in byg.items():
+            if g[0] in selected:
+              m=n(frags[0][1][0].get('minutes_on')) or 0;mins[g[2]]+=m;names[g[2]]=frags[0][1][0].get('player')
+          q={p for p,m in mins.items() if m>=2000}
+          # core team OffRebounds ON by name->pid
+          rebound={}
+          for p in CORE.glob('*/*.json.gz'):
+            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+            season=str(o.get('season') or p.parent.name);team=cid(o.get('team_id') or p.stem.split('.')[0]);mp={}
+            for x in o.get('player_totals') or []:
+              if isinstance(x,dict):
+                pid=cid(x.get('EntityId') or x.get('RowId') or x.get('player_id') or x.get('PlayerId'));nm=str(x.get('Name') or x.get('ShortName') or '')
+                if pid and nm:mp[nm]=pid
+            for x in (o.get('rebound_stat_results') or {}).get('OffRebounds') or []:
+              pid=mp.get(str(x.get('Name') or ''))
+              if pid:rebound[(season,team,pid)]=n(x.get('On'))
+          holes=[]
+          for g,frags in sorted(byg.items()):
+            if g[0] not in selected or g[2] not in q:continue
+            rs=frags[0][1];base=rs[0];mon=n(base.get('minutes_on')) or 0
+            if mon<=0:continue
+            mm={str(r['metric']):r for r in rs}; missing=[]
+            if len(frags)>1:
+              raw=[]
+              for k,_ in frags:
+                p=C/f'{g[0]}__{g[1]}__{g[2]}__{k[3]}__{k[4]}.json.gz'
+                if p.exists():
+                  with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+                  mr=o.get('minute_source_row') or {};raw.append(n(mr.get('On')))
+                else:raw.append(None)
+              ore=raw[0] if raw and all(x==raw[0] and x is not None for x in raw) else None;source='multi_cache';detail=raw
+            else:
+              ore=rebound.get(g);source='core_rebound';detail=ore
+            if ore is None:missing.append('team_oreb_on')
+            obr=mm.get('OReb%');opct=n(obr.get('on')) if obr else None
+            if opct is None or opct<=0:missing.append('oreb_pct_native_on')
+            for metric in ('Pts per 100 Possessions','Pts per 100 Possessions - Defense','Seconds Per Possession - Offense','Seconds Per Possession - Defense'):
+              r=mm.get(metric)
+              if not r:missing.append(metric+':row')
+              else:
+                for fld in ('on','off_corrected'):
+                  if n(r.get(fld)) is None:missing.append(metric+':'+fld)
+            if missing:holes.append({'player_id':g[2],'player':names[g[2]],'group':g,'fragment_count':len(frags),'minutes_on':mon,'missing':missing,'oreb_source':source,'oreb_detail':detail,'native_oreb_on':opct,'windows':[k[3:] for k,_ in frags]})
+          byp=collections.defaultdict(list)
+          for h in holes:byp[h['player_id']].append(h)
+          print('QUALIFIERS',len(q),'HOLE_PLAYERS',len(byp),'HOLE_PROFILES',len(holes))
+          print(json.dumps([{'player_id':p,'player':names[p],'total_minutes':mins[p],'holes':hs} for p,hs in byp.items()],indent=2))
+          pathlib.Path('final_two_holes.json').write_text(json.dumps([{'player_id':p,'player':names[p],'total_minutes':mins[p],'holes':hs} for p,hs in byp.items()],indent=2),encoding='utf-8')
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: native89-segment-sufficient-stat-coverage-${{ github.run_id }}
-          path: native89_segment_sufficient_stat_coverage.json
-          retention-days: 30
+          name: native89-final-two-holes-${{ github.run_id }}
+          path: final_two_holes.json
           if-no-files-found: error
