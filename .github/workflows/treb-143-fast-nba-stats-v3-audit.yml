@@ -1,0 +1,191 @@
+name: TREB 143 fast NBA Stats V3 exact-count audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-143-fast-nba-stats-v3-audit.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Install requests
+        run: python -m pip install --disable-pip-version-check requests
+      - name: Download authoritative residual diagnostics
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/state /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9255627136/zip > /tmp/state.zip
+          unzip -q /tmp/state.zip -d /tmp/state
+      - name: Audit official NBA Stats V3 direct integer rebound counts
+        run: |
+          python - <<'PY'
+          import csv, json, pathlib, time, requests, concurrent.futures, collections
+
+          STATE=pathlib.Path('/tmp/state')
+          OUT=pathlib.Path('/tmp/out')
+          diag=next(STATE.rglob('TREB_ZERO_SECOND_DIAGNOSTICS.csv'))
+          targets={}
+          keysets=collections.defaultdict(set)
+          all_keys=set()
+          with open(diag,newline='') as f:
+            for r in csv.DictReader(f):
+              if r.get('source')!='v3_roster_ledger':
+                continue
+              try:
+                e=json.loads(r.get('error') or '{}')
+              except Exception:
+                continue
+              season=str(r['season'])
+              tid=str(int(float(r['team_id'])))
+              pid=str(r['player_id']).removesuffix('.0')
+              player_key=(season,tid,pid)
+              all_keys.add(player_key)
+              for rawgid in e.get('missing_team',[]):
+                gid=str(int(float(rawgid)))
+                k=(season,tid,gid)
+                targets[k]={'season':season,'team_id':tid,'game_id':gid}
+                keysets[k].add(player_key)
+          assert len(targets)==143, len(targets)
+          for k,v in targets.items():
+            v['affected_player_keys']=len(keysets[k])
+
+          H={
+            'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36',
+            'Referer':'https://www.nba.com/',
+            'Origin':'https://www.nba.com',
+            'Accept':'application/json,text/plain,*/*',
+            'Accept-Language':'en-US,en;q=0.9',
+            'Connection':'keep-alive'
+          }
+
+          def geti(d,names):
+            if not isinstance(d,dict):
+              return None
+            low={str(k).lower():v for k,v in d.items()}
+            for n in names:
+              if n.lower() in low:
+                try:
+                  x=float(low[n.lower()])
+                  if x.is_integer() and x >= 0:
+                    return int(x)
+                except Exception:
+                  pass
+            return None
+
+          def parse_v3(j):
+            if not isinstance(j,dict):
+              return {}
+            root=j.get('boxScoreTraditional') or j.get('boxscoreTraditional') or j.get('game') or {}
+            out={}
+            for side in ('homeTeam','awayTeam'):
+              t=root.get(side) or {}
+              tid=str(t.get('teamId') or '')
+              s=t.get('statistics') or t.get('teamStats') or {}
+              o=geti(s,['reboundsOffensive','offensiveRebounds','oreb'])
+              d=geti(s,['reboundsDefensive','defensiveRebounds','dreb'])
+              if tid and o is not None and d is not None:
+                out[tid]=(o,d)
+            return out
+
+          def one(item):
+            (season,tid,gid),meta=item
+            game=f'{int(gid):010d}'
+            url=(
+              'https://stats.nba.com/stats/boxscoretraditionalv3'
+              f'?GameID={game}&StartPeriod=0&EndPeriod=0&StartRange=0&EndRange=0&RangeType=0'
+            )
+            last='NOT_ATTEMPTED'
+            elapsed=None
+            for attempt in range(2):
+              t0=time.monotonic()
+              try:
+                r=requests.get(url,headers=H,timeout=(3.5,7.0))
+                elapsed=round(time.monotonic()-t0,3)
+                last=f'HTTP_{r.status_code}'
+                if r.ok:
+                  teams=parse_v3(r.json())
+                  if len(teams)>=2 and tid in teams:
+                    opp=[x for x in teams if x!=tid]
+                    if len(opp)==1:
+                      oid=opp[0]
+                      vals=(teams[tid][0],teams[tid][1],teams[oid][0],teams[oid][1])
+                      return {
+                        **meta,'canonical_game_id':game,'status':'PASS','attempts':attempt+1,
+                        'elapsed_seconds':elapsed,'opponent_team_id':oid,
+                        'team_oreb':vals[0],'team_dreb':vals[1],
+                        'opponent_oreb':vals[2],'opponent_dreb':vals[3],
+                        'provenance':'NBA_STATS_V3_DIRECT_INTEGER_TEAM_BOXSCORE'
+                      }
+                  last='PARSE_OR_TARGET_TEAM_MISSING'
+              except Exception as e:
+                elapsed=round(time.monotonic()-t0,3)
+                last=f'{type(e).__name__}:{e}'[:220]
+              time.sleep(0.12*(attempt+1))
+            return {
+              **meta,'canonical_game_id':game,'status':'FAIL','attempts':2,
+              'elapsed_seconds':elapsed if elapsed is not None else '',
+              'opponent_team_id':'','team_oreb':'','team_dreb':'',
+              'opponent_oreb':'','opponent_dreb':'','provenance':last
+            }
+
+          rows=[]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=16) as ex:
+            futs=[ex.submit(one,x) for x in sorted(targets.items())]
+            for i,f in enumerate(concurrent.futures.as_completed(futs),1):
+              rows.append(f.result())
+              if i%20==0 or i==len(futs):
+                print('PROGRESS',i,'OF',len(futs),flush=True)
+          rows.sort(key=lambda r:(r['season'],int(r['game_id']),int(r['team_id'])))
+          fields=list(rows[0])
+          with open(OUT/'TREB_143_FAST_NBA_STATS_V3_AUDIT.csv','w',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+
+          passed=[r for r in rows if r['status']=='PASS']
+          recoverable_keys=set()
+          for r in passed:
+            recoverable_keys.update(keysets[(r['season'],r['team_id'],r['game_id'])])
+          errors=collections.Counter(r['provenance'].split(':',1)[0] for r in rows if r['status']!='PASS')
+          qa={
+            'status':'PASS',
+            'authoritative_treb_universe':9647,
+            'authoritative_exact_before_audit':8397,
+            'authoritative_residual_before_audit':1250,
+            'target_team_games':len(rows),
+            'v3_exact_direct_count_games':len(passed),
+            'v3_failed_games':len(rows)-len(passed),
+            'unique_residual_player_keys_linked_to_target_games':len(all_keys),
+            'unique_player_keys_linked_to_v3_exact_games':len(recoverable_keys),
+            'failure_classes':dict(sorted(errors.items())),
+            'promotion_performed':False,
+            'authoritative_exact_after_audit':8397,
+            'authoritative_residual_after_audit':1250,
+            'integrity':{
+              'official_nba_stats_v3_endpoint_only':True,
+              'integer_rebound_counts_only':True,
+              'rounded_rate_backsolve':False,
+              'opponent_rebound_inference':False,
+              'model':False,
+              'native89_mutated':False
+            }
+          }
+          (OUT/'TREB_143_FAST_NBA_STATS_V3_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2),flush=True)
+          assert len(rows)==143
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-143-fast-nba-stats-v3-audit-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
