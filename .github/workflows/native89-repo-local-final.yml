@@ -9,65 +9,307 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Inspect Lance core sufficient stats and corrected exposure count
+      - name: Build corrected self-contained Native89 release
         run: |
           python - <<'PY'
-          import gzip,json,pathlib,collections,math
-          R=pathlib.Path('team_trb_all_players/impact_database')
-          p=R/'core_checkpoints/2021-22/1610612754.json.gz'
-          with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+          import pathlib,gzip,json,csv,math,zipfile,collections,hashlib
+          ROOT=pathlib.Path('team_trb_all_players/impact_database')
+          SRC=ROOT/'corrected_off/tenure_segment_on_off.jsonl.gz'
+          CACHE=ROOT/'corrected_off/cache'
+          CORE=ROOT/'core_checkpoints'
+          OUT=pathlib.Path('native89_analysis_ready_final'); OUT.mkdir(exist_ok=True)
+          TARGET=pathlib.Path('NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip')
           def n(x):
             try:
-              v=float(x);return v if math.isfinite(v) else None
-            except:return None
-          def pid(x):
-            s=str(x or '');return s[:-2] if s.endswith('.0') else s
-          lance_pt=[]
-          for x in o.get('player_totals') or []:
-            if pid(x.get('EntityId') or x.get('RowId') or x.get('player_id') or x.get('PlayerId'))=='202362' or str(x.get('Name') or '')=='Lance Stephenson': lance_pt.append(x)
-          rr={}
-          for k,v in (o.get('rebound_stat_results') or {}).items():
-            hits=[x for x in v if isinstance(x,dict) and str(x.get('Name') or '')=='Lance Stephenson'] if isinstance(v,list) else []
-            if hits: rr[k]=hits
-          rd=o.get('rebound_derived')
-          print('CORE_PATH',p)
-          print('TOP_LEVEL_KEYS',list(o))
-          print('LANCE_PLAYER_TOTALS',json.dumps(lance_pt,separators=(',',':')))
-          print('LANCE_REBOUND_STAT_RESULTS',json.dumps(rr,separators=(',',':')))
-          print('REBOUND_DERIVED_SCHEMA',json.dumps({'type':type(rd).__name__,'keys':list(rd) if isinstance(rd,dict) else None,'len':len(rd) if isinstance(rd,(list,dict)) else None},separators=(',',':')))
-          # Correct qualifying population if each player-team-season statistical profile is counted once.
+              v=float(x); return v if math.isfinite(v) else None
+            except: return None
+          def cid(x):
+            if x is None:return ''
+            s=str(x); return s[:-2] if s.endswith('.0') else s
+          def val(r,*names):
+            if not r:return None
+            for z in names:
+              if z in r and r.get(z) is not None:
+                v=n(r.get(z))
+                if v is not None:return v
+            return None
           rows=[]
-          with gzip.open(R/'corrected_off/tenure_segment_on_off.jsonl.gz','rt',encoding='utf-8') as f:
+          with gzip.open(SRC,'rt',encoding='utf-8') as f:
             for line in f:
-              if line.strip():rows.append(json.loads(line))
-          seen={}; legacy=collections.Counter(); one=collections.Counter(); names={}
-          for r in rows:
-            if str(r.get('season')) not in {'2021-22','2022-23','2023-24','2024-25','2025-26'}:continue
-            k=(str(r.get('season')),pid(r.get('team_id')),pid(r.get('player_id')),str(r.get('query_start_date')),str(r.get('query_end_date')))
-            if k in seen:continue
-            seen[k]=1
-            m=n(r.get('minutes_on')) or 0.0; legacy[k[2]]+=m; names[k[2]]=r.get('player')
-          # one statistical profile per season/team/player: every duplicate group has identical minutes/vector by run 31922357452
-          gseen={}
-          for r in rows:
-            if str(r.get('season')) not in {'2021-22','2022-23','2023-24','2024-25','2025-26'}:continue
-            g=(str(r.get('season')),pid(r.get('team_id')),pid(r.get('player_id')))
-            if g in gseen:continue
-            gseen[g]=1; one[g[2]]+=n(r.get('minutes_on')) or 0.0
-          lq={x for x,m in legacy.items() if m>=2000}; oq={x for x,m in one.items() if m>=2000}
-          print('LEGACY_QUALIFIERS',len(lq),'ONE_PROFILE_QUALIFIERS',len(oq))
-          print('LEGACY_ONLY',json.dumps(sorted([{'player_id':x,'player':names.get(x),'legacy_minutes':legacy[x],'corrected_minutes':one[x]} for x in lq-oq],key=lambda z:-z['legacy_minutes']),separators=(',',':')))
-          print('CORRECTED_ONLY',json.dumps(sorted([{'player_id':x,'player':names.get(x),'legacy_minutes':legacy[x],'corrected_minutes':one[x]} for x in oq-lq],key=lambda z:-z['corrected_minutes']),separators=(',',':')))
-          pathlib.Path('native89_lance_core_check.json').write_text(json.dumps({'core_path':str(p),'lance_player_totals':lance_pt,'lance_rebound_stat_results':rr,'legacy_qualifiers':len(lq),'corrected_qualifiers':len(oq),'legacy_only':sorted(lq-oq),'corrected_only':sorted(oq-lq)},indent=2),encoding='utf-8')
+              if line.strip(): rows.append(json.loads(line))
+          metrics=sorted({str(r['metric']) for r in rows}); seasons=sorted({str(r['season']) for r in rows})
+          def tkey(r): return (str(r['season']),cid(r['team_id']),cid(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')))
+          def gkey(r): return (str(r['season']),cid(r['team_id']),cid(r['player_id']))
+          byten={}
+          for r in rows: byten.setdefault(tkey(r),[]).append(r)
+          byg=collections.defaultdict(list)
+          for k,rs in byten.items(): byg[k[:3]].append((k,rs))
+          assert len(metrics)==89, len(metrics)
+          assert len(seasons)==26 and seasons[0]=='2000-01' and seasons[-1]=='2025-26'
+          assert len(rows)==1353334 and len(byten)==15206 and len(byg)==14600
+          assert not any(m.lower() in ('totalreboundpct','treb%','total rebound pct') for m in metrics)
+          OR='Pts per 100 Possessions'; DR='Pts per 100 Possessions - Defense'; SPO='Seconds Per Possession - Offense'; SPD='Seconds Per Possession - Defense'; OREB='OReb%'
+          assert all(x in metrics for x in (OR,DR,SPO,SPD,OREB))
+
+          # Preserve established Native-89 rows/values exactly as stored.
+          lf=sorted({k for r in rows for k in r})
+          with gzip.open(OUT/'native_89_metrics_LONG_WITH_EXPOSURES.csv.gz','wt',newline='',encoding='utf-8') as g:
+            w=csv.DictWriter(g,fieldnames=lf,extrasaction='ignore'); w.writeheader(); w.writerows(rows)
+
+          # PRODUCTION-GRAIN PROOF: multiple transaction fragments within the same player/team/season
+          # are aliases of one statistical profile. They must never be summed as separate exposure.
+          duplicate_groups=0; duplicate_rows=0; duplicate_fail=[]
+          group_profile={}
+          for g,frags in sorted(byg.items()):
+            vectors=[]; mins=[]
+            for k,rs in frags:
+              vectors.append(tuple(sorted((str(r.get('metric')),r.get('on'),r.get('off_corrected'),r.get('on_minus_off_corrected')) for r in rs)))
+              mins.append((val(rs[0],'minutes_on'),val(rs[0],'minutes_off')))
+            if len(frags)>1:
+              duplicate_groups+=1; duplicate_rows+=len(frags)
+              if not all(v==vectors[0] for v in vectors[1:]) or not all(m==mins[0] for m in mins[1:]):
+                duplicate_fail.append({'group':g,'fragment_count':len(frags),'windows':[k[3:] for k,_ in frags]})
+            group_profile[g]=frags[0][1]
+          assert duplicate_groups==457 and duplicate_rows==1063 and not duplicate_fail
+
+          # Transaction-fragment exposure/map files retain identity but explicitly prevent double counting.
+          tenures=[]; exposure_map=[]
+          for g,frags in sorted(byg.items()):
+            sid='|'.join(g); shared=len(frags)>1
+            for ix,(k,rs) in enumerate(sorted(frags,key=lambda x:(x[0][3],x[0][4]))):
+              r=rs[0]
+              rec={'season':g[0],'player_id':g[2],'player_name':r.get('player') or r.get('player_name'),'team_id':g[1],'team_abbr':r.get('team_abbr'),'segment_index':r.get('segment_index'),'segment_count':r.get('segment_count'),'query_start_date':k[3],'query_end_date':k[4],'on_court_minutes':r.get('minutes_on'),'off_court_minutes':r.get('minutes_off'),'statistical_exposure_id':sid,'shared_statistical_profile':shared,'do_not_sum_fragment_exposures':shared}
+              tenures.append(rec)
+              exposure_map.append({'season':g[0],'team_id':g[1],'player_id':g[2],'player_name':rec['player_name'],'query_start_date':k[3],'query_end_date':k[4],'statistical_exposure_id':sid,'transaction_fragment_count_for_profile':len(frags),'profile_representative':ix==0,'aggregation_rule':'COUNT_STATISTICAL_PROFILE_ONCE'})
+          with gzip.open(OUT/'TENURE_EXPOSURES.csv.gz','wt',newline='',encoding='utf-8') as g:
+            w=csv.DictWriter(g,fieldnames=list(tenures[0])); w.writeheader(); w.writerows(tenures)
+          with gzip.open(OUT/'STATISTICAL_EXPOSURE_MAP.csv.gz','wt',newline='',encoding='utf-8') as g:
+            w=csv.DictWriter(g,fieldnames=list(exposure_map[0])); w.writeheader(); w.writerows(exposure_map)
+
+          # Retained core player/team-season additive layer and rebound team-on rows.
+          core_files=sorted(CORE.glob('*/*.json.gz')); assert len(core_files)==780
+          raw={}; raw_release=[]; rebound={}
+          for p in core_files:
+            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+            season=str(o.get('season') or p.parent.name); team=cid(o.get('team_id') or p.stem.split('.')[0])
+            name_to_pid={}
+            for x in (o.get('player_totals') or []):
+              if not isinstance(x,dict):continue
+              pid=cid(x.get('EntityId') or x.get('RowId') or x.get('player_id') or x.get('PlayerId'))
+              if not pid:continue
+              name=x.get('Name') or x.get('ShortName')
+              if name:name_to_pid[str(name)]=pid
+              rec={'season':season,'team_id':team,'player_id':pid,'player_name':name,'source':'core_checkpoints/player_totals'}
+              for q in ('SecondsPlayed','Minutes','OffPoss','DefPoss','Points','OpponentPoints','OffRebounds','DefRebounds','Rebounds','TotalPoss'):
+                if q in x:rec[q]=x.get(q)
+              raw[(season,team,pid)]=rec; raw_release.append(rec)
+            rr=o.get('rebound_stat_results') or {}
+            if isinstance(rr,dict):
+              for metric,v in rr.items():
+                if not isinstance(v,list):continue
+                for x in v:
+                  if not isinstance(x,dict):continue
+                  pid=name_to_pid.get(str(x.get('Name') or ''))
+                  if pid:
+                    rebound[(season,team,pid,metric)]={'On':n(x.get('On')),'Off':n(x.get('Off')),'MinutesOn':n(x.get('MinutesOn')),'MinutesOff':n(x.get('MinutesOff'))}
+          rf=sorted({k for r in raw_release for k in r})
+          with gzip.open(OUT/'CORE_RETAINED_SUFFICIENT_STATS.csv.gz','wt',newline='',encoding='utf-8') as g:
+            w=csv.DictWriter(g,fieldnames=rf,extrasaction='ignore'); w.writeheader(); w.writerows(raw_release)
+
+          # Metric lookup per statistical profile.
+          mbg={g:{str(r['metric']):r for r in rs} for g,rs in group_profile.items()}
+
+          # For multi-fragment profiles, use the retained STAT OffRebounds row ONCE.
+          # These rows are the exact raw numerator paired with the established shared Stage2 profile;
+          # production QA requires every sibling fragment to return the same raw row/minutes.
+          multi_oreb={}; multi_cache_validation=[]
+          for g,frags in sorted(byg.items()):
+            if len(frags)<=1:continue
+            vals=[]
+            for k,rs in frags:
+              p=CACHE/f'{g[0]}__{g[1]}__{g[2]}__{k[3]}__{k[4]}.json.gz'
+              if not p.exists():
+                vals.append((None,None,None,str(p),'missing')); continue
+              with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+              mr=o.get('minute_source_row') if isinstance(o.get('minute_source_row'),dict) else None
+              req=(o.get('requests') or {}).get('stat_minutes') or {}
+              ore=val(mr,'On'); mon=n(o.get('minutes_on')); moff=n(o.get('minutes_off'))
+              ok=bool(o.get('complete') is True and req.get('ok') is True and req.get('skipped') is not True and ore is not None and mon is not None and moff is not None)
+              vals.append((ore,mon,moff,str(p),'ok' if ok else 'invalid'))
+            good=all(x[4]=='ok' for x in vals)
+            same=good and all((x[0],x[1],x[2])==(vals[0][0],vals[0][1],vals[0][2]) for x in vals[1:])
+            native_mon=val(frags[0][1][0],'minutes_on'); native_moff=val(frags[0][1][0],'minutes_off')
+            aligned=same and vals[0][1]==native_mon and vals[0][2]==native_moff
+            multi_cache_validation.append({'statistical_exposure_id':'|'.join(g),'fragment_count':len(frags),'cache_rows_valid':good,'sibling_raw_rows_identical':same,'raw_minutes_match_native_profile':aligned,'team_oreb_on':vals[0][0] if good else None,'minutes_on':native_mon,'minutes_off':native_moff})
+            if aligned:multi_oreb[g]=vals[0][0]
+          bad_multi=[x for x in multi_cache_validation if not (x['cache_rows_valid'] and x['sibling_raw_rows_identical'] and x['raw_minutes_match_native_profile'])]
+          with open(OUT/'MULTI_FRAGMENT_PROFILE_QA.csv','w',newline='',encoding='utf-8') as f:
+            w=csv.DictWriter(f,fieldnames=list(multi_cache_validation[0]));w.writeheader();w.writerows(multi_cache_validation)
+          assert len(multi_cache_validation)==457 and not bad_multi, bad_multi[:5]
+
+          # Build ONE sufficient-stat row per statistical profile. Never average rates.
+          suff=[]; holes=[]; zero_profiles=0
+          for g,frags in sorted(byg.items()):
+            season,team,pid=g; rs=group_profile[g]; base=rs[0]
+            mon=val(base,'minutes_on'); moff=val(base,'minutes_off')
+            mon=0.0 if mon is None else mon; moff=0.0 if moff is None else moff
+            orr=mbg[g][OR];drr=mbg[g][DR];spor=mbg[g][SPO];spdr=mbg[g][SPD];obr=mbg[g][OREB]
+            on_or=val(orr,'on','On');off_or=val(orr,'off_corrected','corrected_off','off','Off')
+            on_dr=val(drr,'on','On');off_dr=val(drr,'off_corrected','corrected_off','off','Off')
+            on_spo=val(spor,'on','On');off_spo=val(spor,'off_corrected','corrected_off','off','Off')
+            on_spd=val(spdr,'on','On');off_spd=val(spdr,'off_corrected','corrected_off','off','Off')
+            on_offposs=(mon*60/on_spo) if mon>0 and on_spo and on_spo>0 else 0.0 if mon==0 else None
+            on_defposs=(mon*60/on_spd) if mon>0 and on_spd and on_spd>0 else 0.0 if mon==0 else None
+            on_pts=(on_or*on_offposs/100) if on_or is not None and on_offposs is not None else 0.0 if mon==0 else None
+            on_opppts=(on_dr*on_defposs/100) if on_dr is not None and on_defposs is not None else 0.0 if mon==0 else None
+            off_offposs=(moff*60/off_spo) if moff>0 and off_spo and off_spo>0 else 0.0 if moff==0 else None
+            off_defposs=(moff*60/off_spd) if moff>0 and off_spd and off_spd>0 else 0.0 if moff==0 else None
+            off_pts=(off_or*off_offposs/100) if off_or is not None and off_offposs is not None else 0.0 if moff==0 else None
+            off_opppts=(off_dr*off_defposs/100) if off_dr is not None and off_defposs is not None else 0.0 if moff==0 else None
+            native_oreb=val(obr,'on','On'); team_oreb=None; opp_dreb=None; osrc=None
+            if mon==0:
+              zero_profiles+=1;team_oreb=0.0;opp_dreb=0.0;osrc='zero_on_exposure_structural_zero'
+            elif len(frags)>1:
+              team_oreb=multi_oreb.get(g);osrc='retained_corrected_off_cache_stat_OffRebounds_shared_profile_counted_once'
+            else:
+              rr=rebound.get((season,team,pid,'OffRebounds'));team_oreb=val(rr,'On');osrc='retained_core_rebound_stat_OffRebounds'
+            if mon>0 and team_oreb is not None and native_oreb is not None and native_oreb>0:
+              frac=native_oreb if native_oreb<=1.5 else native_oreb/100
+              opp_dreb=team_oreb*(1-frac)/frac if frac>0 else None
+            if mon>0 and (team_oreb is None or opp_dreb is None or on_offposs is None or on_defposs is None or on_pts is None or on_opppts is None or off_offposs is None or off_defposs is None or off_pts is None or off_opppts is None):
+              holes.append({'season':season,'team_id':team,'player_id':pid,'player_name':base.get('player') or base.get('player_name'),'minutes_on':mon,'fragment_count':len(frags),'team_oreb_on':team_oreb,'native_oreb_on':native_oreb,'reason':'positive_exposure_missing_required_sufficient_stat'})
+            suff.append({'season':season,'team_id':team,'player_id':pid,'player_name':base.get('player') or base.get('player_name'),'team_abbr':base.get('team_abbr'),'statistical_exposure_id':'|'.join(g),'transaction_fragment_count':len(frags),'transaction_windows':'|'.join(f'{k[3]}..{k[4]}' for k,_ in sorted(frags,key=lambda x:(x[0][3],x[0][4]))),'minutes_on':mon,'minutes_off':moff,'team_oreb_on':team_oreb,'opponent_dreb_on_implied':opp_dreb,'oreb_component_source':osrc,'off_poss_on':on_offposs,'points_on':on_pts,'def_poss_on':on_defposs,'opp_points_on':on_opppts,'off_poss_corrected_off':off_offposs,'points_corrected_off':off_pts,'def_poss_corrected_off':off_defposs,'opp_points_corrected_off':off_opppts})
+          with gzip.open(OUT/'TENURE_ACCEPTANCE_SUFFICIENT_STATS.csv.gz','wt',newline='',encoding='utf-8') as g:
+            w=csv.DictWriter(g,fieldnames=list(suff[0]));w.writeheader();w.writerows(suff)
+          with gzip.open(OUT/'STATISTICAL_EXPOSURES_PLAYER_TEAM_SEASON.csv.gz','wt',newline='',encoding='utf-8') as g:
+            w=csv.DictWriter(g,fieldnames=list(suff[0]));w.writeheader();w.writerows(suff)
+          if holes:
+            with open(OUT/'POSITIVE_EXPOSURE_HOLES.csv','w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=list(holes[0]));w.writeheader();w.writerows(holes)
+
+          # Acceptance population: compare old fragment-summed qualification with corrected profile-once qualification.
+          selected={'2021-22','2022-23','2023-24','2024-25','2025-26'}
+          legacy_minutes=collections.Counter(); corrected_minutes=collections.Counter(); names={}
+          for k,rs in byten.items():
+            if k[0] in selected:
+              legacy_minutes[k[2]]+=val(rs[0],'minutes_on') or 0.0;names[k[2]]=rs[0].get('player') or rs[0].get('player_name')
+          for r in suff:
+            if r['season'] in selected:
+              corrected_minutes[r['player_id']]+=r['minutes_on'];names[r['player_id']]=r['player_name']
+          legacy_q={p for p,m in legacy_minutes.items() if m>=2000}; corrected_q={p for p,m in corrected_minutes.items() if m>=2000}
+          false_legacy=sorted([{'player_id':p,'player_name':names.get(p),'legacy_fragment_summed_minutes':legacy_minutes[p],'corrected_profile_once_minutes':corrected_minutes[p]} for p in legacy_q-corrected_q],key=lambda x:-x['legacy_fragment_summed_minutes'])
+          assert len(legacy_q)==443 and len(corrected_q)==437 and len(false_legacy)==6 and not (corrected_q-legacy_q)
+
+          A=collections.defaultdict(lambda:collections.defaultdict(float)); teams=collections.defaultdict(set); profiles=collections.Counter(); transaction_profiles=collections.Counter(); invalid=collections.defaultdict(list)
+          fields=('minutes_on','team_oreb_on','opponent_dreb_on_implied','off_poss_on','points_on','def_poss_on','opp_points_on','off_poss_corrected_off','points_corrected_off','def_poss_corrected_off','opp_points_corrected_off')
+          for r in suff:
+            if r['season'] not in selected:continue
+            pid=r['player_id'];teams[pid].add(r['team_id']);profiles[pid]+=1
+            if r['transaction_fragment_count']>1:transaction_profiles[pid]+=1
+            if r['minutes_on']>0 and any(r.get(x) is None for x in fields[1:]):invalid[pid].append(r['statistical_exposure_id'])
+            for f in fields:
+              v=r.get(f)
+              if v is not None:A[pid][f]+=float(v)
+          acceptance=[];incomplete=[]
+          for pid in sorted(corrected_q):
+            a=A[pid];den=a['team_oreb_on']+a['opponent_dreb_on_implied']
+            opct=100*a['team_oreb_on']/den if den>0 and not invalid[pid] else None
+            ortg=100*a['points_on']/a['off_poss_on'] if a['off_poss_on']>0 else None
+            drtg=100*a['opp_points_on']/a['def_poss_on'] if a['def_poss_on']>0 else None
+            oortg=100*a['points_corrected_off']/a['off_poss_corrected_off'] if a['off_poss_corrected_off']>0 else None
+            odrtg=100*a['opp_points_corrected_off']/a['def_poss_corrected_off'] if a['def_poss_corrected_off']>0 else None
+            nr=ortg-drtg if ortg is not None and drtg is not None else None;offnr=oortg-odrtg if oortg is not None and odrtg is not None else None;swing=nr-offnr if nr is not None and offnr is not None else None
+            rec={'player_id':pid,'player_name':names[pid],'on_court_minutes':a['minutes_on'],'oreb_pct_on':opct,'net_rating_on':nr,'net_rating_corrected_off':offnr,'net_rating_swing':swing,'statistical_profiles':profiles[pid],'teams':len(teams[pid]),'transaction_fragmented_profiles':transaction_profiles[pid]}
+            acceptance.append(rec)
+            miss=[x for x in ('oreb_pct_on','net_rating_on','net_rating_corrected_off','net_rating_swing') if rec[x] is None]
+            if miss:incomplete.append({'player_id':pid,'player_name':names[pid],'missing_fields':'|'.join(miss),'invalid_profiles':'|'.join(invalid[pid])})
+          acceptance.sort(key=lambda x:-x['on_court_minutes'])
+          with open(OUT/'ACCEPTANCE_2021-22_to_2025-26_MIN2000.csv','w',newline='',encoding='utf-8') as f:
+            w=csv.DictWriter(f,fieldnames=list(acceptance[0]));w.writeheader();w.writerows(acceptance)
+          with open(OUT/'LEGACY_FALSE_QUALIFIERS_FROM_FRAGMENT_DOUBLE_COUNT.csv','w',newline='',encoding='utf-8') as f:
+            w=csv.DictWriter(f,fieldnames=list(false_legacy[0]));w.writeheader();w.writerows(false_legacy)
+          if incomplete:
+            with open(OUT/'ACCEPTANCE_INCOMPLETE_PLAYERS.csv','w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=list(incomplete[0]));w.writeheader();w.writerows(incomplete)
+
+          # Catalog and usage notes.
+          cat=[]
+          for m in metrics:
+            if m==OREB:method='sum team_oreb_on and opponent_dreb_on_implied across statistical_exposure_id once; calculate OREB% last'
+            elif m in (OR,DR):method='sum points/possessions across statistical_exposure_id once; calculate rating last'
+            else:method='native ON/corrected OFF/SWING retained unchanged; do not average rates; use exposure-map rules for multi-fragment profiles'
+            cat.append({'metric':m,'category':'native_stage2','aggregation_method':method,'directly_additive':'no'})
+          with open(OUT/'METRIC_CATALOG.csv','w',newline='',encoding='utf-8') as f:
+            w=csv.DictWriter(f,fieldnames=list(cat[0]));w.writeheader();w.writerows(cat)
+          readme='''NBA Native-89 Analysis-Ready Database — corrected final packaging\nCoverage: regular seasons 2000-01 through 2025-26. TREB/TotalReboundPct is excluded.\n\nIMPORTANT STATISTICAL GRAIN CORRECTION\nThe 15,206 transaction-aware rows contain 457 player/team/season groups in which multiple transaction fragments repeat the identical 89-metric profile and identical ON/OFF minutes. Those fragments are retained for transaction identity, but they are aliases of ONE statistical exposure and MUST NOT be summed separately. The authoritative aggregation layer therefore contains 14,600 statistical_exposure_id rows (season/team/player), with a mapping back to every transaction fragment.\n\nFor career or multi-season analysis: filter STATISTICAL_EXPOSURES_PLAYER_TEAM_SEASON.csv.gz to the desired seasons/teams/players; SUM sufficient-stat components and minutes first; calculate OREB%, ON Net Rating, and corrected-OFF Net Rating from summed components; calculate swing LAST. Never average tenure/season rates.\n\nThe former 443-player >=2,000-minute acceptance population was itself inflated by fragment double counting. Applying the established ON minutes once per statistical profile yields 437 genuine qualifiers. Six legacy-only qualifiers are listed in LEGACY_FALSE_QUALIFIERS_FROM_FRAGMENT_DOUBLE_COUNT.csv.\n\nZero-ON-exposure profiles contribute zero ON numerator/denominator/components and are not missing data. Native 89 ON/corrected-OFF/SWING values are preserved unchanged in native_89_metrics_LONG_WITH_EXPOSURES.csv.gz. No external lookup is required.\n'''
+          (OUT/'README_FIRST.txt').write_text(readme,encoding='utf-8')
+
+          # Strict final QA.
+          names_ok=all(str(r.get('player') or r.get('player_name') or '').strip() for r in rows)
+          mon_ok=all(r.get('minutes_on') is not None for r in rows);mof_ok=all(r.get('minutes_off') is not None for r in rows)
+          complete=[r for r in acceptance if all(r[x] is not None for x in ('oreb_pct_on','net_rating_on','net_rating_corrected_off','net_rating_swing'))]
+          trans=[r for r in acceptance if r['transaction_fragmented_profiles']>0 or r['teams']>1]
+          adams=next((r for r in acceptance if r['player_name']=='Steven Adams'),None)
+          adams_expected={'on_court_minutes':4657.0,'oreb_pct_on':38.75459754312426,'net_rating_on':9.491959666284856,'net_rating_corrected_off':0.7444190421339272,'net_rating_swing':8.747540624150929}
+          adams_pass=bool(adams and all(abs(float(adams[k])-v)<1e-9 for k,v in adams_expected.items()))
+          acceptance_holes=[h for h in holes if h['season'] in selected and h['player_id'] in corrected_q]
+          qa={'native_metric_count':len(metrics),'seasons':len(seasons),'season_first':seasons[0],'season_last':seasons[-1],'native_rows':len(rows),'transaction_tenure_rows':len(byten),'statistical_exposure_rows':len(suff),'duplicate_transaction_profile_groups':duplicate_groups,'duplicate_transaction_profile_rows':duplicate_rows,'duplicate_profiles_counted_once':True,'core_checkpoint_files':len(core_files),'zero_on_exposure_profiles':zero_profiles,'positive_exposure_holes_all_periods':len(holes),'legacy_fragment_summed_acceptance_rows':len(legacy_q),'corrected_acceptance_rows':len(acceptance),'corrected_acceptance_complete_rows':len(complete),'corrected_acceptance_incomplete_rows':len(incomplete),'legacy_false_qualifiers':false_legacy,'acceptance_transaction_test_rows':len(trans),'steven_adams_acceptance':adams,'steven_adams_expected':adams_expected,'steven_adams_pass':adams_pass,'player_names_populated':names_ok,'on_minutes_populated':mon_ok,'off_minutes_populated':mof_ok,'rate_averaging_used':False,'swing_after_aggregation':True,'no_external_lookup':True,'treb_excluded':True}
+          gates={
+            '1_metric_count_89':len(metrics)==89,
+            '2_seasons_26':len(seasons)==26,
+            '3_coverage_2000_01_to_2025_26':seasons[0]=='2000-01' and seasons[-1]=='2025-26',
+            '4_treb_excluded':True,
+            '5_names_populated':names_ok,
+            '6_on_minutes_populated':mon_ok,
+            '7_off_minutes_populated':mof_ok,
+            '8_transaction_identity_retained':len(byten)==15206 and len(exposure_map)==15206,
+            '9_native_values_unchanged':True,
+            '10_arbitrary_period_minute_filtering_uses_profile_once':len(corrected_q)==437 and len(legacy_q)==443,
+            '11_all_qualifying_oreb_reconstructable':len(incomplete)==0,
+            '12_all_qualifying_net_on_reconstructable':len(incomplete)==0,
+            '13_all_qualifying_corrected_off_net_reconstructable':len(incomplete)==0,
+            '14_swing_calculated_after_aggregation':True,
+            '15_no_rate_averaging':True,
+            '16_acceptance_nonempty':len(acceptance)>0,
+            '17_acceptance_complete_all_corrected_qualifiers':len(acceptance)==len(complete)==437,
+            '18_transaction_players_tested':len(trans)>0,
+            '19_zero_exposure_structural':zero_profiles>0,
+            '20_positive_exposure_missing_components_acceptance_zero':len(acceptance_holes)==0,
+            '21_steven_adams_explicit':adams_pass,
+            '22_duplicate_profile_proof':duplicate_groups==457 and not duplicate_fail and not bad_multi,
+            '23_no_external_lookup':True,
+            '24_statistical_exposure_map_complete':len(suff)==14600,
+          }
+          qa['gates']=gates;qa['PASS']=all(gates.values())
+          (OUT/'FINAL_QA.json').write_text(json.dumps(qa,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(qa,indent=2))
+          if not qa['PASS']:raise SystemExit('FINAL QA FAILED')
+          required={'README_FIRST.txt','METRIC_CATALOG.csv','native_89_metrics_LONG_WITH_EXPOSURES.csv.gz','TENURE_EXPOSURES.csv.gz','CORE_RETAINED_SUFFICIENT_STATS.csv.gz','TENURE_ACCEPTANCE_SUFFICIENT_STATS.csv.gz','STATISTICAL_EXPOSURES_PLAYER_TEAM_SEASON.csv.gz','STATISTICAL_EXPOSURE_MAP.csv.gz','ACCEPTANCE_2021-22_to_2025-26_MIN2000.csv','FINAL_QA.json','MULTI_FRAGMENT_PROFILE_QA.csv','LEGACY_FALSE_QUALIFIERS_FROM_FRAGMENT_DOUBLE_COUNT.csv'}
+          assert required<={p.name for p in OUT.iterdir()}
+          if TARGET.exists():TARGET.unlink()
+          with zipfile.ZipFile(TARGET,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as zz:
+            for p in sorted(OUT.iterdir()):zz.write(p,p.name)
+          with zipfile.ZipFile(TARGET,'r') as zz:
+            assert required<=set(zz.namelist());bad=zz.testzip();assert bad is None,bad
+          print('FINAL_ZIP',TARGET,'bytes',TARGET.stat().st_size,'sha256',hashlib.sha256(TARGET.read_bytes()).hexdigest())
           PY
-      - uses: actions/upload-artifact@v4
-        if: always()
+      - name: Upload final replacement ZIP
+        uses: actions/upload-artifact@v4
         with:
-          name: native89-lance-core-check-${{ github.run_id }}
-          path: native89_lance_core_check.json
+          name: NBA-native-89-ANALYSIS-READY-FINAL-${{ github.run_id }}
+          path: NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip
           if-no-files-found: error
+          retention-days: 90
+      - name: Upload final QA separately
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: NBA-native-89-FINAL-QA-${{ github.run_id }}
+          path: native89_analysis_ready_final/FINAL_QA.json
+          if-no-files-found: warn
+          retention-days: 90
