@@ -1,0 +1,76 @@
+name: TREB 143 consolidate-only exact audit
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-143-consolidate-only.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  consolidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Install pandas
+        run: python -m pip install --disable-pip-version-check pandas
+      - name: Download retained successful season artifacts from run 31926089082
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/parts /tmp/final
+          gh api --paginate repos/${GITHUB_REPOSITORY}/actions/runs/31926089082/artifacts \
+            --jq '.artifacts[] | select(.name|test("^TREB-143-v2-pbp-[0-9]{4}-31926089082$")) | [.id,.name] | @tsv' > /tmp/artifacts.tsv
+          test "$(wc -l < /tmp/artifacts.tsv)" -eq 14
+          while IFS=$'\t' read -r id name; do
+            mkdir -p "/tmp/parts/$name"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > /tmp/a.zip
+            unzip -q /tmp/a.zip -d "/tmp/parts/$name"
+          done < /tmp/artifacts.tsv
+      - name: Consolidate exact team-game results
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,pathlib
+          import pandas as pd
+          p=pathlib.Path('/tmp/parts'); out=pathlib.Path('/tmp/final')
+          files=sorted(p.rglob('TREB_143_V2_PBP_EXACT_*.csv'))
+          assert len(files)==14, len(files)
+          d=pd.concat([pd.read_csv(x,low_memory=False) for x in files],ignore_index=True)
+          d=d.sort_values(['season','game_id','team_id'],kind='stable')
+          qas=[]
+          for q in sorted(p.rglob('TREB_143_V2_PBP_QA_*.json')):
+              qas.append(json.loads(q.read_text()))
+          pass_exact=int(d.status.astype(str).eq('PASS_EXACT').sum())
+          review=int(len(d)-pass_exact)
+          qa={
+            'status':'PASS' if len(d)==143 and pass_exact==143 else 'INCOMPLETE',
+            'source_run_id':31926089082,
+            'required_team_games':143,
+            'returned_team_games':int(len(d)),
+            'pass_exact_games':pass_exact,
+            'review_games':review,
+            'season_jobs_returned':len(files),
+            'season_qas':qas,
+            'integrity':{
+              'direct_integer_rebound_facts_only':True,
+              'rounded_rate_backsolve':False,
+              'model':False,
+              'promotion_performed':False
+            }
+          }
+          d.to_csv(out/'TREB_143_V2_PBP_EXACT_AUDIT.csv',index=False)
+          (out/'TREB_143_V2_PBP_EXACT_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps({k:qa[k] for k in ['status','required_team_games','returned_team_games','pass_exact_games','review_games','season_jobs_returned']},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-143-v2-pbp-consolidated-only-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
