@@ -14,48 +14,89 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Trace Lance cache retained source links
+      - name: Validate retained tenure OffRebounds rows
         run: |
           python - <<'PY'
-          import gzip,json,pathlib,re
-          p=pathlib.Path('team_trb_all_players/impact_database/corrected_off/cache/2021-22__1610612754__202362__2022-01-02__2022-01-10.json.gz')
-          with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
-          def shape(x):
-            if isinstance(x,dict): return {'type':'object','keys':list(x)}
-            if isinstance(x,list): return {'type':'array','length':len(x),'first_item':shape(x[0]) if x else None}
-            return {'type':type(x).__name__}
-          metrics=o.get('metrics')
-          wanted=('OReb%','OffRebounds','Pts per 100 Possessions','Pts per 100 Possessions - Defense','Seconds Per Possession - Offense','Seconds Per Possession - Defense')
-          selected={}
-          if isinstance(metrics,dict):
-            for k,v in metrics.items():
-              if any(w.lower() in str(k).lower() for w in wanted): selected[k]=v
-          elif isinstance(metrics,list):
-            for i,v in enumerate(metrics):
-              s=json.dumps(v,separators=(',',':'))
-              if any(w.lower() in s.lower() for w in wanted): selected[str(i)]=v
-          linkrx=re.compile(r'source|path|file|cache|request|url|endpoint|response',re.I)
-          links=[]
-          def walk(x,path='',depth=0):
-            if depth>8:return
-            if isinstance(x,dict):
-              for k,v in x.items():
-                q=f'{path}.{k}' if path else str(k)
-                if linkrx.search(str(k)):
-                  if isinstance(v,(str,int,float,bool)) or v is None: links.append({'path':q,'value':v})
-                  else: links.append({'path':q,'shape':shape(v)})
-                if isinstance(v,(dict,list)):walk(v,q,depth+1)
-            elif isinstance(x,list):
-              for i,v in enumerate(x[:100]):
-                if isinstance(v,(dict,list)):walk(v,f'{path}[{i}]',depth+1)
-          walk(o)
-          r={'file_path':str(p),'metrics_schema':shape(metrics),'selected_metrics':selected,'minute_source_row':o.get('minute_source_row'),'requests_schema':shape(o.get('requests')),'source_links':links}
-          print(json.dumps(r,indent=2))
-          pathlib.Path('lance_cache_source_trace.json').write_text(json.dumps(r,indent=2),encoding='utf-8')
+          import gzip,json,pathlib,collections,math
+          root=pathlib.Path('team_trb_all_players/impact_database')
+          cache=root/'corrected_off/cache'
+          files=sorted(cache.glob('*.json.gz'))
+          counts=collections.Counter(); unsafe=[]; samples=[]
+          bykey={}
+          for p in files:
+            with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
+            r=o.get('minute_source_row') if isinstance(o.get('minute_source_row'),dict) else None
+            req=(o.get('requests') or {}).get('stat_minutes') or {}
+            key=(str(o.get('season')),str(o.get('team_id')),str(o.get('player_id')),str(o.get('query_start_date')),str(o.get('query_end_date')))
+            mon=float(o.get('minutes_on') or 0)
+            counts['files']+=1
+            if mon>0: counts['positive_minutes']+=1
+            if req.get('ok') is True: counts['stat_req_ok']+=1
+            if req.get('skipped') is True: counts['stat_req_skipped']+=1
+            if r: counts['minute_row_present']+=1
+            exact_stat = bool(r and req.get('ok') is True and req.get('skipped') is not True and r.get('On') is not None)
+            if exact_stat:
+              try:
+                ore=float(r['On']); assert math.isfinite(ore) and ore>=0
+              except Exception:
+                exact_stat=False
+            if exact_stat: counts['exact_offreb_row']+=1
+            if mon>0 and exact_stat: counts['positive_exact_offreb']+=1
+            if mon>0 and not exact_stat:
+              unsafe.append({'key':key,'minutes_on':mon,'requests_stat_minutes':req,'minute_source_row':r})
+            bykey[key]={'exact':exact_stat,'oreb':float(r['On']) if exact_stat else None,'minutes_on':mon,'player':o.get('player')}
+            if str(o.get('player_id'))=='202362' and str(o.get('season'))=='2021-22' and str(o.get('team_id'))=='1610612754':
+              samples.append({'path':str(p),'key':key,'minutes_on':mon,'exact':exact_stat,'team_orebounds_on':float(r['On']) if exact_stat else None,'minute_source_row':r,'stat_request':req})
+          # Determine whether every positive-exposure tenure used by 2021-22..2025-26 / min-2000 acceptance has exact OREB row.
+          src=root/'corrected_off/tenure_segment_on_off.jsonl.gz'
+          tenures={}; oreb_rates={}
+          with gzip.open(src,'rt',encoding='utf-8') as f:
+            for line in f:
+              if not line.strip(): continue
+              o=json.loads(line)
+              k=(str(o.get('season')),str(o.get('team_id')),str(o.get('player_id')),str(o.get('query_start_date')),str(o.get('query_end_date')))
+              tenures.setdefault(k,{'season':str(o.get('season')),'pid':str(o.get('player_id')),'player':o.get('player'),'minutes_on':float(o.get('minutes_on') or 0)})
+              if o.get('metric')=='OReb%': oreb_rates[k]=o.get('on')
+          selected={'2021-22','2022-23','2023-24','2024-25','2025-26'}
+          mins=collections.Counter()
+          for t in tenures.values():
+            if t['season'] in selected: mins[t['pid']]+=t['minutes_on']
+          qualifiers={p for p,m in mins.items() if m>=2000}
+          qpos=[(k,t) for k,t in tenures.items() if t['season'] in selected and t['pid'] in qualifiers and t['minutes_on']>0]
+          qmissing=[]
+          for k,t in qpos:
+            c=bykey.get(k)
+            if not c or not c['exact']:
+              qmissing.append({'key':k,**t,'cache':c,'oreb_rate':oreb_rates.get(k)})
+          # Cross-check exact stat-row OREB against retained full player-team-season totals whenever there is exactly one tenure key.
+          key3count=collections.Counter((k[0],k[1],k[2]) for k in tenures)
+          full={}
+          import csv
+          for season in sorted(selected):
+            p=root/'outputs'/season/'player_team_totals.csv.gz'
+            if not p.exists(): continue
+            with gzip.open(p,'rt',newline='') as f:
+              for r in csv.DictReader(f):
+                pid=str(r.get('player_id') or r.get('PlayerId') or r.get('playerId') or '').replace('.0','')
+                tid=str(r.get('team_id') or r.get('TeamId') or r.get('teamId') or '').replace('.0','')
+                try: val=float(r.get('OffRebounds'))
+                except Exception: continue
+                full[(season,tid,pid)]=val
+          checks=[]; mismatches=[]
+          for k,c in bykey.items():
+            k3=k[:3]
+            if k[0] not in selected or key3count[k3]!=1 or not c['exact'] or k3 not in full: continue
+            d=c['oreb']-full[k3]
+            rec={'key':k,'tenure_offreb':c['oreb'],'full_offreb':full[k3],'diff':d}
+            checks.append(rec)
+            if abs(d)>1e-9:mismatches.append(rec)
+          report={'counts':dict(counts),'lance_samples':samples,'acceptance_qualifiers':len(qualifiers),'acceptance_positive_tenures':len(qpos),'acceptance_positive_missing_exact_offreb':len(qmissing),'acceptance_missing_examples':qmissing[:50],'unique_tenure_crosschecks':len(checks),'unique_tenure_crosscheck_mismatches':len(mismatches),'crosscheck_mismatch_examples':mismatches[:20],'all_positive_unsafe_count':len(unsafe),'all_positive_unsafe_examples':unsafe[:20]}
+          pathlib.Path('native89_offreb_retention_validation.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+          print(json.dumps(report,indent=2))
           PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native89-lance-cache-source-trace-${{ github.run_id }}
-          path: lance_cache_source_trace.json
+          name: native89-offreb-retention-validation-${{ github.run_id }}
+          path: native89_offreb_retention_validation.json
           if-no-files-found: error
