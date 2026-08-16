@@ -19,76 +19,119 @@ jobs:
         with:
           ref: agent/treb-final-exact-assembly
           fetch-depth: 1
-      - name: Download authoritative 8,396 state diagnostics
+      - name: Download targeted retained-source inventory
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          mkdir -p /tmp/closure /tmp/out
-          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9253878073/zip > /tmp/closure.zip
-          unzip -q /tmp/closure.zip -d /tmp/closure
-      - name: Inventory retained repo evidence for exact missing games
+          mkdir -p /tmp/inventory /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9254446960/zip > /tmp/inventory.zip
+          unzip -q /tmp/inventory.zip -d /tmp/inventory
+      - name: Classify hit-bearing schemas for exact TREB primitives
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import csv,json,pathlib,gzip,re,collections
+          import csv,json,pathlib,gzip,collections,re
+          root=pathlib.Path('.')
+          inv=pathlib.Path('/tmp/inventory')
           out=pathlib.Path('/tmp/out')
-          diag=next(pathlib.Path('/tmp/closure').rglob('TREB_AUTONOMOUS_DIAGNOSTICS.csv'))
-          rows=list(csv.DictReader(open(diag,newline='')))
-          miss=collections.defaultdict(set)
-          no_identity=[]
-          for r in rows:
-              raw=r.get('error') or ''
-              try:e=json.loads(raw)
-              except:
-                  if 'no exact tenure identity set' in raw: no_identity.append(r)
-                  continue
-              for gid in e.get('missing',[]) or []:
-                  miss[str(gid)].add((r['season'],str(int(float(r['team_id']))),str(r['player_id']).removesuffix('.0')))
-          with open(out/'MISSING_GAME_KEYS.csv','w',newline='') as f:
-              w=csv.writer(f);w.writerow(['game_id','season','team_id','player_id'])
-              for gid in sorted(miss):
-                  for k in sorted(miss[gid]): w.writerow([gid,*k])
-          gids=set(miss)
-          tokens=('retained','fact','game','box','pbp','v3','forensic','source','roster','cache','rebound')
-          candidates=[]
-          for p in pathlib.Path('team_trb_all_players').rglob('*'):
-              if not p.is_file(): continue
-              n=p.name.lower(); s=str(p.parent).lower()
-              if not n.endswith(('.csv','.csv.gz','.json','.json.gz','.jsonl','.jsonl.gz')): continue
-              if not any(t in n or t in s for t in tokens): continue
-              try:size=p.stat().st_size
-              except:continue
-              if size<=250_000_000: candidates.append((p,size))
-          gid_re=re.compile('|'.join(re.escape(x) for x in sorted(gids,key=len,reverse=True))) if gids else None
-          hits=[]; scanned=[]
-          for p,size in candidates:
-              scanned.append((str(p),size))
+          hits=list(csv.DictReader(open(inv/'RETAINED_SOURCE_GAME_HITS.csv',newline='')))
+          missing=set(r['game_id'] for r in csv.DictReader(open(inv/'MISSING_GAME_KEYS.csv',newline='')))
+          files=sorted(set(r['source_file'] for r in hits if r.get('source_file')))
+          game_alias={'game_id','gameid','gameId','GAME_ID','Game_ID'}
+          player_alias={'player_id','playerid','playerId','PLAYER_ID','personId','person_id'}
+          team_alias={'team_id','teamid','teamId','TEAM_ID'}
+          # Exact TREB reconstruction needs rebound/opportunity sufficient-stat primitives, not percentages.
+          primitive_tokens=('oreb','dreb','reb','rebound','miss','fgm','fga','poss','opportun','seconds','minutes','duration')
+          percentage_tokens=('pct','percentage','rate')
+          def op(p): return gzip.open(p,'rt',encoding='utf-8',errors='ignore') if str(p).endswith('.gz') else open(p,'rt',encoding='utf-8',errors='ignore')
+          def flatten_keys(obj,prefix=''):
+              ks=set()
+              if isinstance(obj,dict):
+                  for k,v in obj.items():
+                      kk=f'{prefix}.{k}' if prefix else str(k); ks.add(kk)
+                      if isinstance(v,dict): ks |= flatten_keys(v,kk)
+              return ks
+          def sample_schema(p):
+              name=p.name.lower(); rows=[]; keys=set(); err=''
               try:
-                  opener=gzip.open if p.name.endswith('.gz') else open
-                  with opener(p,'rt',encoding='utf-8',errors='ignore') as f:
-                      for ln,line in enumerate(f,1):
-                          if not gid_re: break
-                          m=gid_re.search(line)
-                          if m: hits.append({'game_id':m.group(0),'source_file':str(p),'line':ln,'snippet':line[:1600].replace('\n',' ')})
-              except Exception as e:
-                  hits.append({'game_id':'','source_file':str(p),'line':0,'snippet':'SCAN_ERROR '+repr(e)})
-          with open(out/'RETAINED_SOURCE_GAME_HITS.csv','w',newline='') as f:
-              w=csv.DictWriter(f,fieldnames=['game_id','source_file','line','snippet']);w.writeheader();w.writerows(hits)
-          with open(out/'SCANNED_SOURCE_FILES.csv','w',newline='') as f:
-              w=csv.writer(f);w.writerow(['source_file','bytes']);w.writerows(scanned)
-          if no_identity:
-              with open(out/'NO_TENURE_IDENTITY_KEYS.csv','w',newline='') as f:
-                  w=csv.DictWriter(f,fieldnames=no_identity[0].keys());w.writeheader();w.writerows(no_identity)
-          by=collections.Counter(h['game_id'] for h in hits if h['game_id'])
-          qa={'status':'PASS','authoritative_residual':1251,'resolved_total':8396,'diagnostic_rows':len(rows),'missing_game_ids':len(gids),'missing_key_game_pairs':sum(len(v) for v in miss.values()),'no_exact_tenure_identity_rows':len(no_identity),'candidate_files_scanned':len(scanned),'source_hit_rows':sum(by.values()),'missing_games_with_retained_repo_hits':len(by),'missing_games_without_retained_repo_hits':len(gids-set(by)),'strategy_ledger':{'prior':'exact retained consensus + deterministic tenure identity','prior_result':'0 promotions from 1251 residuals','current':'targeted retained repo source inventory for exact missing games','state':'COMPLETED','next':'Parse only hit-bearing source schemas and add exact missing primitives; separately attack no-tenure-identity keys from retained boundary/roster evidence.'},'integrity':{'materiality_threshold_pp':0.01,'minutes_spread_seconds':60,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'unsafe_global_event_order_used':False}}
-          (out/'RETAINED_SOURCE_INVENTORY_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+                  if '.csv' in name:
+                      with op(p) as f:
+                          r=csv.DictReader(f); keys=set(r.fieldnames or [])
+                          for i,x in enumerate(r):
+                              rows.append(x)
+                              if i>=49: break
+                  elif '.jsonl' in name:
+                      with op(p) as f:
+                          for line in f:
+                              line=line.strip()
+                              if not line: continue
+                              try:x=json.loads(line)
+                              except:continue
+                              if isinstance(x,dict): keys |= flatten_keys(x); rows.append(x)
+                              if len(rows)>=50: break
+                  elif '.json' in name:
+                      with op(p) as f: obj=json.load(f)
+                      seq=obj if isinstance(obj,list) else ([obj] if isinstance(obj,dict) else [])
+                      if isinstance(obj,dict):
+                          # Include likely row arrays nested one level down.
+                          for v in obj.values():
+                              if isinstance(v,list) and v and isinstance(v[0],dict): seq += v[:50]
+                      for x in seq[:50]:
+                          if isinstance(x,dict): keys |= flatten_keys(x); rows.append(x)
+              except Exception as e: err=repr(e)
+              return sorted(keys),rows,err
+          def lower_tail(k): return k.split('.')[-1].lower()
+          rows=[]; candidates=[]
+          hitcounts=collections.Counter(r['source_file'] for r in hits)
+          gamecounts=collections.defaultdict(set)
+          for r in hits:
+              if r.get('game_id'): gamecounts[r['source_file']].add(r['game_id'])
+          for sf in files:
+              p=root/sf
+              keys,samples,err=sample_schema(p)
+              tails={lower_tail(k) for k in keys}
+              has_game=any(x.lower() in tails for x in game_alias)
+              has_player=any(x.lower() in tails for x in player_alias)
+              has_team=any(x.lower() in tails for x in team_alias)
+              prim=[k for k in keys if any(t in lower_tail(k) for t in primitive_tokens) and not any(t in lower_tail(k) for t in percentage_tokens)]
+              pct=[k for k in keys if any(t in lower_tail(k) for t in percentage_tokens) and ('reb' in lower_tail(k) or 'rebound' in lower_tail(k))]
+              # Source is potentially exact only if game identity plus non-percentage rebound/opportunity fields are present.
+              exact_candidate=bool(has_game and prim)
+              rec={'source_file':sf,'bytes':p.stat().st_size if p.exists() else -1,'hit_rows':hitcounts[sf],'missing_games_hit':len(gamecounts[sf]),'has_game_id_field':has_game,'has_player_id_field':has_player,'has_team_id_field':has_team,'primitive_field_count':len(prim),'primitive_fields':'|'.join(prim[:80]),'percentage_fields':'|'.join(pct[:40]),'exact_primitive_candidate':exact_candidate,'schema_error':err,'schema_fields':'|'.join(keys[:250])}
+              rows.append(rec)
+              if exact_candidate: candidates.append(rec)
+          fields=list(rows[0]) if rows else []
+          with open(out/'TREB_RETAINED_SCHEMA_CLASSIFICATION.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          with open(out/'TREB_EXACT_PRIMITIVE_SOURCE_CANDIDATES.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(candidates)
+          # Also retain the exact missing-game/key scope so subsequent repair can consume this artifact directly.
+          for fn in ('MISSING_GAME_KEYS.csv','RETAINED_SOURCE_GAME_HITS.csv'):
+              (out/fn).write_bytes((inv/fn).read_bytes())
+          covered=set()
+          for r in candidates: covered |= gamecounts[r['source_file']]
+          qa={'status':'PASS','authoritative_resolved':8396,'authoritative_residual':1251,'missing_game_ids':len(missing),'hit_bearing_files':len(files),'schema_classified_files':len(rows),'schema_errors':sum(bool(r['schema_error']) for r in rows),'exact_primitive_candidate_files':len(candidates),'missing_games_hit_by_exact_candidate_files':len(covered & missing),'missing_games_not_hit_by_exact_candidate_files':len(missing-covered),'next':'Parse candidate source records for exact player-game/team-game sufficient-stat bundles, union them with retained consensus, and rerun strict tenure-complement promotion.','integrity':{'percentage_backsolve_used':False,'model_used':False,'count_only_tenure_proof_used':False,'whole_season_off_complement_used':False}}
+          (out/'TREB_RETAINED_SCHEMA_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
           print(json.dumps(qa,indent=2))
+          print('TOP CANDIDATES')
+          for r in sorted(candidates,key=lambda x:(-x['missing_games_hit'],-x['primitive_field_count']))[:30]:
+              print(r['missing_games_hit'],r['source_file'],r['primitive_fields'][:400])
+          PY
+      - name: Require usable retained primitive candidates
+        run: |
+          python - <<'PY'
+          import json
+          q=json.load(open('/tmp/out/TREB_RETAINED_SCHEMA_QA.json'))
+          assert q['status']=='PASS'
+          assert q['schema_classified_files']>0
+          assert q['exact_primitive_candidate_files']>0, q
           PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: TREB-autonomous-retained-source-inventory-${{ github.run_id }}
+          name: TREB-retained-schema-classification-${{ github.run_id }}
           path: /tmp/out
           retention-days: 90
           compression-level: 1
