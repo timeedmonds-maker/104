@@ -1,0 +1,204 @@
+name: TREB current 60-gap high-cap exact recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-current-60-gap-highcap.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-current-60-gap-highcap
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9263563808'
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 17
+      matrix:
+        year: [2000,2001,2003,2004,2005,2009,2010,2012,2015,2017,2018,2019,2020,2021,2022,2023,2024]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download current residual
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/src /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Scope unresolved games
+        id: scope
+        run: |
+          python - '${{ matrix.year }}' <<'PY'
+          import csv,pathlib,sys
+          y=int(sys.argv[1]); prefix=f'002{str(y)[-2:]}'
+          games=set()
+          for fn in ['MISSING_PLAYER_GAME_PRIMITIVES.csv','MISSING_TEAM_GAME_FACTS.csv']:
+              p=next(pathlib.Path('/tmp/current').rglob(fn))
+              for r in csv.DictReader(open(p,newline='')):
+                  g=str(r['game_id']).strip().removesuffix('.0').zfill(10)
+                  if g.startswith(prefix): games.add(g)
+          pathlib.Path('/tmp/games.txt').write_text('\n'.join(sorted(games))+'\n' if games else '')
+          print(f'year={y} games={len(games)}')
+          PY
+          echo "games=$(grep -c . /tmp/games.txt || true)" >> "$GITHUB_OUTPUT"
+      - name: Download retained full-season source trio
+        if: steps.scope.outputs.games != '0'
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_{y}'
+              if k not in vals: raise SystemExit(f'MISSING_SOURCE_URL {k}')
+              print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 -o "/tmp/src/${p}.tar.xz" "$url"
+            tar -xJf "/tmp/src/${p}.tar.xz" -C /tmp/src
+            test -s "/tmp/src/${p}_${y}.csv"
+          done < /tmp/urls.tsv
+      - name: High-cap exact recovery on current gaps only
+        run: |
+          set -euo pipefail
+          python -u - '${{ matrix.year }}' <<'PY'
+          import csv,json,pathlib,sys,collections
+          import pandas as pd
+          sys.path.insert(0,'team_trb_all_players')
+          import audit_ambiguous_starter_materiality as mat
+          y=int(sys.argv[1]); season=f'{y}-{(y+1)%100:02d}'; out=pathlib.Path('/tmp/out'); out.mkdir(parents=True,exist_ok=True)
+          REQP=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'); REQT=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          def pid(x):
+              s=str(x).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def tid(x): return str(int(float(x)))
+          def gid(x): return str(int(float(str(x).strip().removesuffix('.0')))).zfill(10)
+          games={x.strip() for x in pathlib.Path('/tmp/games.txt').read_text().splitlines() if x.strip()}
+          needt=collections.defaultdict(set); needp=collections.defaultdict(set)
+          for fn,kind in [('MISSING_TEAM_GAME_FACTS.csv','t'),('MISSING_PLAYER_GAME_PRIMITIVES.csv','p')]:
+              pth=next(pathlib.Path('/tmp/current').rglob(fn))
+              for r in csv.DictReader(open(pth,newline='')):
+                  g=gid(r['game_id'])
+                  if g not in games: continue
+                  if kind=='t': needt[g].add(tid(r['team_id']))
+                  else: needp[g].add((tid(r['team_id']),pid(r['player_id'])))
+          if not games:
+              (out/f'QA_{y}.json').write_text(json.dumps({'season':season,'games':0,'status':'PASS_EMPTY'},indent=2)+'\n'); raise SystemExit(0)
+          nba=mat.io.normalize_nba(pd.read_csv(f'/tmp/src/nbastats_{y}.csv',low_memory=False)); v3=mat.lineup_engine.normalize_v3(pd.read_csv(f'/tmp/src/nbastatsv3_{y}.csv',low_memory=False)); pbp=mat.io.normalize_pbp(pd.read_csv(f'/tmp/src/pbpstats_{y}.csv',low_memory=False))
+          ng={gid(g):f.copy() for g,f in nba.groupby('GAME_ID',sort=False)}; vg={gid(g):f.copy() for g,f in v3.groupby('gameId',sort=False)}; pg={gid(g):f.copy() for g,f in pbp.groupby('GAMEID',sort=False)}
+          tr=[]; pr=[]; audit=[]
+          for i,g in enumerate(sorted(games),1):
+              present={'nba':g in ng,'v3':g in vg,'pbp':g in pg}
+              if not all(present.values()):
+                  audit.append({'season':season,'game_id':g,'status':'SOURCE_SET_GAP',**present}); print(json.dumps({'event':'SOURCE_GAP','season':season,'game':g,**present}),flush=True); continue
+              try: variants,meta=mat.enumerate_game_variants(int(g),ng[g],vg[g],pg[g],100000,20000)
+              except Exception as e:
+                  audit.append({'season':season,'game_id':g,'status':'ENUMERATION_ERROR','error':repr(e),**present}); continue
+              if not variants or meta.get('capped'):
+                  audit.append({'season':season,'game_id':g,'status':'UNRESOLVED_CAPPED_OR_EMPTY','variants':len(variants),**meta,**present}); print(json.dumps({'event':'UNRESOLVED','season':season,'game':g,'variants':len(variants),'capped':bool(meta.get('capped'))}),flush=True); continue
+              tp=pp=0
+              for t in sorted(needt.get(g,set())):
+                  vals=[]; ok=True
+                  for v in variants:
+                      rows=[r for r in v['team_rows'] if tid(r['team_id'])==t]
+                      if len(rows)!=1: ok=False; break
+                      vals.append(tuple(float(rows[0][z]) for z in REQT))
+                  if ok and len(set(vals))==1:
+                      x=vals[0]; tr.append({'season':season,'game_id':g,'team_id':t,**{REQT[j]:x[j] for j in range(4)},'provenance':'all_coherent_retained_source_variants_exact_consensus_highcap'}); tp+=1
+              for t,p in sorted(needp.get(g,set())):
+                  vals=[]; ok=True
+                  for v in variants:
+                      same=[r for r in v['player_rows'] if pid(r['player_id'])==p and tid(r['team_id'])==t]; other=[r for r in v['player_rows'] if pid(r['player_id'])==p and tid(r['team_id'])!=t]
+                      if other or len(same)>1: ok=False; break
+                      vals.append(tuple(float(same[0][z]) for z in REQP) if same else (0.,0.,0.,0.,0.))
+                  if ok and len(set(vals))==1:
+                      x=vals[0]; pr.append({'season':season,'game_id':g,'team_id':t,'player_id':p,**{REQP[j]:x[j] for j in range(5)},'provenance':'all_coherent_retained_source_variants_exact_consensus_highcap'}); pp+=1
+              audit.append({'season':season,'game_id':g,'status':'ENUMERATED','variants':len(variants),'team_targets':len(needt.get(g,set())),'team_promoted':tp,'player_targets':len(needp.get(g,set())),'player_promoted':pp,**meta,**present})
+              print(json.dumps({'event':'GAME_DONE','season':season,'i':i,'n':len(games),'game':g,'variants':len(variants),'team_promoted':tp,'player_promoted':pp,'ambiguity_points':meta.get('ambiguity_points')}),flush=True)
+          def write(name,rows,cols):
+              with open(out/name,'w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(rows)
+          write(f'EXACT_TEAM_{y}.csv',tr,['season','game_id','team_id',*REQT,'provenance']); write(f'EXACT_PLAYER_{y}.csv',pr,['season','game_id','team_id','player_id',*REQP,'provenance'])
+          ac=sorted(set().union(*(r.keys() for r in audit))) if audit else ['season','game_id','status']; write(f'AUDIT_{y}.csv',audit,ac)
+          qa={'season':season,'games':len(games),'exact_team_promoted':len(tr),'exact_player_promoted':len(pr),'status':'PASS'}; (out/f'QA_{y}.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa),flush=True)
+          PY
+      - name: Upload season checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-60-highcap-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          if-no-files-found: warn
+
+  consolidate:
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-current-60-highcap-*-${{ github.run_id }}
+          path: /tmp/all
+          merge-multiple: true
+      - name: Consolidate and conflict-check
+        run: |
+          python - <<'PY'
+          import csv,json,pathlib
+          root=pathlib.Path('/tmp/all'); out=pathlib.Path('/tmp/final'); out.mkdir(parents=True,exist_ok=True)
+          REQP=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'); REQT=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          team={}; player={}; qas=[]; audits=[]
+          def tid(x): return str(int(float(x)))
+          def pid(x): return str(x).strip().removesuffix('.0')
+          def gid(x): return str(int(float(str(x).strip().removesuffix('.0')))).zfill(10)
+          for p in root.glob('QA_*.json'):
+              try: qas.append(json.loads(p.read_text()))
+              except: pass
+          for p in root.glob('AUDIT_*.csv'): audits += list(csv.DictReader(open(p,newline='')))
+          for p in root.glob('EXACT_TEAM_*.csv'):
+              for r in csv.DictReader(open(p,newline='')):
+                  k=(gid(r['game_id']),tid(r['team_id'])); v=tuple(float(r[z]) for z in REQT)
+                  if k in team and team[k]!=v: raise SystemExit(f'TEAM_CONFLICT {k}')
+                  team[k]=v
+          for p in root.glob('EXACT_PLAYER_*.csv'):
+              for r in csv.DictReader(open(p,newline='')):
+                  k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id'])); v=tuple(float(r[z]) for z in REQP)
+                  if k in player and player[k]!=v: raise SystemExit(f'PLAYER_CONFLICT {k}')
+                  player[k]=v
+          with open(out/'RECOVERED_60_HIGHCAP_EXACT_TEAM_GAME_FACTS.csv','w',newline='') as f:
+              w=csv.writer(f); w.writerow(['game_id','team_id',*REQT]); [w.writerow([g,t,*v]) for (g,t),v in sorted(team.items())]
+          with open(out/'RECOVERED_60_HIGHCAP_EXACT_PLAYER_GAME_PRIMITIVES.csv','w',newline='') as f:
+              w=csv.writer(f); w.writerow(['game_id','team_id','player_id',*REQP]); [w.writerow([g,t,p,*v]) for (g,t,p),v in sorted(player.items())]
+          if audits:
+              cols=sorted(set().union(*(r.keys() for r in audits)))
+              with open(out/'TREB_60_HIGHCAP_GAME_AUDIT.csv','w',newline='') as f: w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(audits)
+          qa={'status':'PASS','season_qas':len(qas),'games_scoped':sum(int(q.get('games',0)) for q in qas),'exact_team_facts':len(team),'exact_player_primitives':len(player),'source_gaps':sum(1 for r in audits if r.get('status')=='SOURCE_SET_GAP'),'capped_or_empty':sum(1 for r in audits if r.get('status')=='UNRESOLVED_CAPPED_OR_EMPTY'),'enumeration_errors':sum(1 for r in audits if r.get('status')=='ENUMERATION_ERROR')}
+          (out/'TREB_60_HIGHCAP_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-60-highcap-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
