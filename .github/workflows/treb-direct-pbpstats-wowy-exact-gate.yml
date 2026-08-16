@@ -1,0 +1,384 @@
+name: TREB direct PBPStats WOWY exact gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-direct-pbpstats-wowy-exact-gate.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: treb-direct-pbpstats-wowy-exact-gate
+  cancel-in-progress: false
+
+env:
+  EXACT_ARTIFACT_ID: '9260774395'
+  CURRENT_ARTIFACT_ID: '9268264223'
+  MINUTES_GATE_SECONDS: '60'
+  CONTROL_TOL_PP: '0.0000001'
+
+jobs:
+  control:
+    name: control shard ${{ matrix.shard }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [0,1,2,3,4,5,6,7]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q requests
+      - name: Download retained exact control state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/exact /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${EXACT_ARTIFACT_ID}/zip" > /tmp/exact.zip
+          unzip -q /tmp/exact.zip -d /tmp/exact
+      - name: Query direct WOWY controls
+        env:
+          SHARD: '${{ matrix.shard }}'
+          SHARDS: '8'
+          MODE: control
+        shell: bash
+        run: |
+          python -u - <<'PY'
+          import csv,gzip,json,math,os,pathlib,random,time
+          from concurrent.futures import ThreadPoolExecutor,as_completed
+          import requests
+
+          shard=int(os.environ['SHARD']); shards=int(os.environ['SHARDS'])
+          gate=float(os.environ['MINUTES_GATE_SECONDS']); tol=float(os.environ['CONTROL_TOL_PP'])
+          base=pathlib.Path('team_trb_all_players/impact_database')
+          targets_path=base/'roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          controls=list(csv.DictReader(open('/tmp/exact/TREB_CUMULATIVE_EXACT_PROMOTED.csv',newline='')))
+          def pid(x):
+              s=str(x).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def tid(x): return str(int(float(x)))
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          ck={key(r):r for r in controls}
+          wanted={k for i,k in enumerate(sorted(ck)) if i%shards==shard}
+          targets={}
+          with gzip.open(targets_path,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line)
+                  try:k=key(r)
+                  except:continue
+                  if k in wanted:
+                      if k in targets: raise RuntimeError(f'duplicate target {k}')
+                      targets[k]=r
+          if set(targets)!=wanted: raise RuntimeError(f'missing targets {sorted(wanted-set(targets))[:5]}')
+          url='https://api.pbpstats.com/get-wowy-stats/nba'; transient={429,500,502,503,504}
+          def num(x):
+              try:
+                  v=float(x); return v if math.isfinite(v) else None
+              except:return None
+          def mins(row):
+              v=num(row.get('Minutes'))
+              if v is not None:return v
+              v=num(row.get('SecondsPlayed')); return None if v is None else v/60.0
+          def fetch(meta,typ,state):
+              p={'Season':str(meta['season']),'SeasonType':'Regular Season','TeamId':tid(meta['team_id']),
+                 'FromDate':str(meta.get('query_start_date') or meta.get('start_date')),
+                 'ToDate':str(meta.get('query_end_date') or meta.get('end_date')),'Type':typ,
+                 ('0Exactly1OnFloor' if state=='on' else '0Exactly1OffFloor'):pid(meta['player_id'])}
+              if p['FromDate'] in {'None',''} or p['ToDate'] in {'None',''}: raise RuntimeError(f'no canonical dates {key(meta)}')
+              hist=[]
+              for a in range(1,5):
+                  if a>1: time.sleep(min(8,2**(a-1))+random.random())
+                  try:
+                      rr=requests.get(url,params=p,timeout=35); hist.append(rr.status_code)
+                      if rr.status_code==200:
+                          row=rr.json().get('single_row_table_data') or {}
+                          if isinstance(row,dict) and row:return row
+                      if rr.status_code not in transient:break
+                  except Exception as e:hist.append(type(e).__name__)
+              raise RuntimeError(f'{typ}/{state} failed {hist}')
+          def calc(rows):
+              out=[]
+              for state in ('on','off'):
+                  t=rows['team_'+state]; o=rows['opponent_'+state]
+                  vals=[num(t.get('OffRebounds')),num(t.get('DefRebounds')),num(o.get('OffRebounds')),num(o.get('DefRebounds'))]
+                  if any(v is None or v<0 or abs(v-round(v))>1e-9 for v in vals): raise RuntimeError(f'nonexact rebound counts {state} {vals}')
+                  tr=vals[0]+vals[1]; ore=vals[2]+vals[3]
+                  if tr+ore<=0: raise RuntimeError(f'zero denominator {state}')
+                  out.append(100.0*tr/(tr+ore))
+              return out[0],out[1],out[0]-out[1]
+          results=[]
+          for n,k in enumerate(sorted(wanted),1):
+              meta=targets[k]; ref=ck[k]; rec={'season':k[0],'team_id':k[1],'player_id':k[2]}
+              try:
+                  req=[('Team','on'),('Team','off'),('Opponent','on'),('Opponent','off')]; rows={}
+                  with ThreadPoolExecutor(max_workers=4) as ex:
+                      fs={ex.submit(fetch,meta,*q):q for q in req}
+                      for fut in as_completed(fs):
+                          typ,state=fs[fut]; rows[typ.lower()+'_'+state]=fut.result()
+                  raw_on=mins(rows['team_on']); raw_off=mins(rows['team_off'])
+                  target_sec=num(meta.get('seconds_on'))
+                  if target_sec is None:
+                      tm=num(meta.get('minutes_on')); target_sec=None if tm is None else tm*60
+                  if raw_on is None or target_sec is None: raise RuntimeError('missing minutes evidence')
+                  delta=raw_on*60-target_sec
+                  if abs(delta)>gate+1e-9: raise RuntimeError(f'minutes gate {delta}')
+                  on,off,sw=calc(rows)
+                  diffs=[abs(on-float(ref['on'])),abs(off-float(ref['off_corrected'])),abs(sw-float(ref['on_minus_off_corrected']))]
+                  rec.update(status='PASS' if max(diffs)<=tol else 'MISMATCH',raw_on=on,raw_off=off,raw_swing=sw,
+                             ref_on=float(ref['on']),ref_off=float(ref['off_corrected']),ref_swing=float(ref['on_minus_off_corrected']),
+                             max_abs_diff_pp=max(diffs),minutes_delta_seconds=delta,raw_minutes_off=raw_off)
+              except Exception as e:rec.update(status='ERROR',error=repr(e))
+              results.append(rec); print(json.dumps({'progress':f'{n}/{len(wanted)}',**rec}),flush=True)
+          out=pathlib.Path('/tmp/out'); out.mkdir(exist_ok=True)
+          cols=sorted({c for r in results for c in r})
+          with open(out/f'CONTROL_{shard}.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(results)
+          pathlib.Path(out/f'CONTROL_{shard}_QA.json').write_text(json.dumps({'shard':shard,'rows':len(results),'pass':sum(r['status']=='PASS' for r in results),'mismatch':sum(r['status']=='MISMATCH' for r in results),'errors':sum(r['status']=='ERROR' for r in results)},indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-direct-WOWY-control-${{ matrix.shard }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 1
+
+  control_gate:
+    name: hard control equivalence gate
+    needs: control
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    outputs:
+      passed: ${{ steps.gate.outputs.passed }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-direct-WOWY-control-*-${{ github.run_id }}
+          path: /tmp/controls
+          merge-multiple: true
+      - id: gate
+        name: Require broad zero-mismatch equivalence
+        run: |
+          python - <<'PY'
+          import csv,glob,json,pathlib,os
+          rows=[]
+          for p in glob.glob('/tmp/controls/CONTROL_*.csv'):
+              if p.endswith('_QA.csv'): continue
+              rows.extend(csv.DictReader(open(p,newline='')))
+          passed=[r for r in rows if r['status']=='PASS']; mm=[r for r in rows if r['status']=='MISMATCH']; err=[r for r in rows if r['status']=='ERROR']
+          seasons={r['season'] for r in passed}
+          maxdiff=max([float(r['max_abs_diff_pp']) for r in passed if r.get('max_abs_diff_pp')] or [0])
+          qa={'status':'PASS' if len(passed)>=50 and len(seasons)>=10 and not mm else 'FAIL','controls_total':len(rows),'controls_pass':len(passed),'control_mismatches':len(mm),'control_errors':len(err),'seasons_passed':len(seasons),'max_pass_diff_pp':maxdiff,'required_min_pass':50,'required_min_seasons':10,'zero_mismatches_required':True}
+          pathlib.Path('/tmp/CONTROL_GATE.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
+          ok=qa['status']=='PASS'
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write('passed='+('true' if ok else 'false')+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-direct-WOWY-control-gate-${{ github.run_id }}
+          path: |
+            /tmp/CONTROL_GATE.json
+            /tmp/controls
+          retention-days: 90
+          compression-level: 1
+
+  residual:
+    name: residual shard ${{ matrix.shard }}
+    needs: control_gate
+    if: needs.control_gate.outputs.passed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        shard: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q requests
+      - name: Download current authoritative residual
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Query residual exact WOWY rows
+        env:
+          SHARD: '${{ matrix.shard }}'
+          SHARDS: '32'
+        shell: bash
+        run: |
+          python -u - <<'PY'
+          import csv,gzip,json,math,os,pathlib,random,time
+          from concurrent.futures import ThreadPoolExecutor,as_completed
+          import requests
+          shard=int(os.environ['SHARD']); shards=int(os.environ['SHARDS']); gate=float(os.environ['MINUTES_GATE_SECONDS'])
+          base=pathlib.Path('team_trb_all_players/impact_database'); targets_path=base/'roster_tenure_v2/player_team_season_targets.jsonl.gz'
+          manifest=list(csv.DictReader(open('/tmp/current/TREB_AUTHORITATIVE_RESIDUAL_BLOCKER_MANIFEST.csv',newline='')))
+          def pid(x):
+              s=str(x).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def tid(x): return str(int(float(x)))
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          allkeys=sorted({key(r) for r in manifest}); wanted={k for i,k in enumerate(allkeys) if i%shards==shard}
+          targets={}
+          with gzip.open(targets_path,'rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip():continue
+                  r=json.loads(line)
+                  try:k=key(r)
+                  except:continue
+                  if k in wanted:
+                      if k in targets: raise RuntimeError(f'duplicate target {k}')
+                      targets[k]=r
+          if set(targets)!=wanted: raise RuntimeError(f'missing targets {sorted(wanted-set(targets))[:5]}')
+          url='https://api.pbpstats.com/get-wowy-stats/nba'; transient={429,500,502,503,504}
+          def num(x):
+              try:
+                  v=float(x); return v if math.isfinite(v) else None
+              except:return None
+          def mins(row):
+              v=num(row.get('Minutes'))
+              if v is not None:return v
+              v=num(row.get('SecondsPlayed')); return None if v is None else v/60
+          def fetch(meta,typ,state):
+              p={'Season':str(meta['season']),'SeasonType':'Regular Season','TeamId':tid(meta['team_id']),
+                 'FromDate':str(meta.get('query_start_date') or meta.get('start_date')),
+                 'ToDate':str(meta.get('query_end_date') or meta.get('end_date')),'Type':typ,
+                 ('0Exactly1OnFloor' if state=='on' else '0Exactly1OffFloor'):pid(meta['player_id'])}
+              if p['FromDate'] in {'None',''} or p['ToDate'] in {'None',''}: raise RuntimeError('no canonical dates')
+              hist=[]
+              for a in range(1,5):
+                  if a>1:time.sleep(min(8,2**(a-1))+random.random())
+                  try:
+                      rr=requests.get(url,params=p,timeout=35); hist.append(rr.status_code)
+                      if rr.status_code==200:
+                          row=rr.json().get('single_row_table_data') or {}
+                          if isinstance(row,dict) and row:return row
+                      if rr.status_code not in transient:break
+                  except Exception as e:hist.append(type(e).__name__)
+              raise RuntimeError(f'{typ}/{state} failed {hist}')
+          def metric(rows):
+              ans=[]
+              for state in ('on','off'):
+                  t=rows['team_'+state]; o=rows['opponent_'+state]
+                  vals=[num(t.get('OffRebounds')),num(t.get('DefRebounds')),num(o.get('OffRebounds')),num(o.get('DefRebounds'))]
+                  if any(v is None or v<0 or abs(v-round(v))>1e-9 for v in vals): raise RuntimeError(f'nonexact rebound counts {state} {vals}')
+                  tr=vals[0]+vals[1]; ore=vals[2]+vals[3]
+                  if tr+ore<=0:raise RuntimeError('zero denominator')
+                  ans.append(100*tr/(tr+ore))
+              return ans[0],ans[1],ans[0]-ans[1]
+          results=[]; accepted=[]
+          for n,k in enumerate(sorted(wanted),1):
+              meta=targets[k]; rec={'season':k[0],'team_id':k[1],'player_id':k[2]}
+              try:
+                  req=[('Team','on'),('Team','off'),('Opponent','on'),('Opponent','off')]; rows={}
+                  with ThreadPoolExecutor(max_workers=4) as ex:
+                      fs={ex.submit(fetch,meta,*q):q for q in req}
+                      for fut in as_completed(fs):
+                          typ,state=fs[fut]; rows[typ.lower()+'_'+state]=fut.result()
+                  raw_on=mins(rows['team_on']); target_sec=num(meta.get('seconds_on'))
+                  if target_sec is None:
+                      tm=num(meta.get('minutes_on')); target_sec=None if tm is None else tm*60
+                  if raw_on is None or target_sec is None: raise RuntimeError('missing minutes evidence')
+                  delta=raw_on*60-target_sec
+                  if abs(delta)>gate+1e-9:raise RuntimeError(f'minutes gate {delta}')
+                  on,off,sw=metric(rows)
+                  rec.update(status='ACCEPT_EXACT',metric='TotalReboundPct',on=on,off_corrected=off,on_minus_off_corrected=sw,seconds_on=target_sec,minutes_delta_seconds=delta,provenance='PBP Stats direct WOWY exact raw rebound counts at canonical player-team-season tenure window; Team/Opponent ON/OFF rows; control-gated against retained exact TREB')
+                  accepted.append(dict(rec))
+              except Exception as e:rec.update(status='UNRESOLVED',error=repr(e))
+              results.append(rec); print(json.dumps({'progress':f'{n}/{len(wanted)}',**rec}),flush=True)
+          out=pathlib.Path('/tmp/out'); cols=sorted({c for r in results for c in r})
+          with open(out/f'RESIDUAL_AUDIT_{shard}.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=cols);w.writeheader();w.writerows(results)
+          if accepted:
+              cols2=sorted({c for r in accepted for c in r})
+              with open(out/f'RESIDUAL_ACCEPTED_{shard}.csv','w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=cols2);w.writeheader();w.writerows(accepted)
+          pathlib.Path(out/f'RESIDUAL_QA_{shard}.json').write_text(json.dumps({'shard':shard,'keys':len(results),'accepted':len(accepted),'unresolved':len(results)-len(accepted)},indent=2)+'\n')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-direct-WOWY-residual-${{ matrix.shard }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 1
+
+  consolidate:
+    name: consolidate direct WOWY exact recovery
+    needs: [control_gate,residual]
+    if: always() && needs.control_gate.outputs.passed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-direct-WOWY-residual-*-${{ github.run_id }}
+          path: /tmp/shards
+          merge-multiple: true
+      - name: Download current residual and consolidate fail-closed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/final
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+          python - <<'PY'
+          import csv,glob,json,pathlib
+          def pid(x):
+              s=str(x).strip(); return s[:-2] if s.endswith('.0') and s[:-2].isdigit() else s
+          def tid(x):return str(int(float(x)))
+          def key(r):return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          cur=list(csv.DictReader(open('/tmp/current/TREB_AUTHORITATIVE_RESIDUAL_BLOCKER_MANIFEST.csv',newline=''))); curk={key(r) for r in cur}
+          acc=[]; audits=[]
+          for p in glob.glob('/tmp/shards/RESIDUAL_ACCEPTED_*.csv'):acc.extend(csv.DictReader(open(p,newline='')))
+          for p in glob.glob('/tmp/shards/RESIDUAL_AUDIT_*.csv'):audits.extend(csv.DictReader(open(p,newline='')))
+          by={key(r):r for r in acc}; audited={key(r) for r in audits}
+          assert len(cur)==1166 and len(curk)==1166
+          assert audited==curk,(len(audited),len(curk),list(curk-audited)[:5])
+          assert set(by)<=curk
+          remain=[r for r in cur if key(r) not in by]
+          out=pathlib.Path('/tmp/final')
+          if acc:
+              cols=sorted({c for r in acc for c in r})
+              with open(out/'TREB_DIRECT_WOWY_EXACT_ACCEPTED.csv','w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=cols);w.writeheader();w.writerows(sorted(acc,key=key))
+          with open(out/'TREB_POST_DIRECT_WOWY_RESIDUAL.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=cur[0].keys());w.writeheader();w.writerows(remain)
+          qa={'status':'PASS','starting_production_resolved':8481,'starting_residual':1166,'direct_wowy_exact_accepted':len(by),'ending_production_resolved':8481+len(by),'ending_residual':len(remain),'canonical_full_core_keys':9647,'accounting_pass':8481+len(by)+len(remain)==9647,'control_gate_required':True,'minutes_gate_seconds':60,'integrity':{'raw_integer_rebound_counts_only':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'custom_event_ordering_used':False}}
+          assert qa['accounting_pass']
+          (out/'TREB_DIRECT_WOWY_RECOVERY_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-direct-WOWY-exact-recovery-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 1
