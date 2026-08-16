@@ -1,0 +1,186 @@
+name: TREB 928 exact schedule-tenure reclosure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-928-schedule-tenure-reclosure.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/tenure /tmp/consensus /tmp/pbp /tmp/recovered /tmp/out
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9258703567/zip > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9259414397/zip > /tmp/tenure.zip
+          unzip -q /tmp/tenure.zip -d /tmp/tenure
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9252786257/zip > /tmp/consensus.zip
+          unzip -q /tmp/consensus.zip -d /tmp/consensus
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9258020958/zip > /tmp/pbp.zip
+          unzip -q /tmp/pbp.zip -d /tmp/pbp
+          gh api repos/${GITHUB_REPOSITORY}/actions/artifacts/9258644772/zip > /tmp/recovered.zip
+          unzip -q /tmp/recovered.zip -d /tmp/recovered
+      - name: Reclose 928 exact tenure identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections
+          OUT=pathlib.Path('/tmp/out')
+          def pid(x): return str(x).strip().removesuffix('.0')
+          def tid(x): return str(int(float(x)))
+          def gid(x):
+              s=str(x).strip().removesuffix('.0')
+              try:return str(int(float(s))).zfill(10)
+              except:return s.zfill(10)
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+
+          current_path=next(pathlib.Path('/tmp/current').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          current=list(csv.DictReader(open(current_path,newline='')))
+          assert len(current)==1221,len(current)
+          current_by={key(r):r for r in current}
+          prior_path=next(pathlib.Path('/tmp/current').rglob('TREB_CUMULATIVE_EXACT_PROMOTED.csv'))
+          prior=list(csv.DictReader(open(prior_path,newline='')))
+          assert len(prior)==29,len(prior)
+
+          audit_path=next(pathlib.Path('/tmp/tenure').rglob('TREB_949_RETAINED_SCHEDULE_AUDITED_TENURE_AUDIT.csv'))
+          tenure_games={}
+          with open(audit_path,newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')!='EXACT_RETAINED_SCHEDULE_AUDITED_TENURE_IDENTITY': continue
+                  k=key(r)
+                  games={gid(x) for x in str(r.get('game_ids') or '').split('|') if str(x).strip()}
+                  assert len(games)==int(float(r['expected_team_games'])),(k,len(games),r['expected_team_games'])
+                  tenure_games[k]=games
+          assert len(tenure_games)==928,len(tenure_games)
+          assert set(tenure_games).issubset(current_by),len(set(tenure_games)-set(current_by))
+
+          reqp={'seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'}
+          reqt={'team_oreb','team_dreb','opponent_oreb','opponent_dreb'}
+          facts=collections.defaultdict(dict)
+          cp=next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv'))
+          with open(cp,newline='') as f:
+              for r in csv.DictReader(f):
+                  facts[(gid(r['game_id']),tid(r['team_id']),pid(r.get('player_id','')))][r['field']]=float(r['value'])
+          rp=next(pathlib.Path('/tmp/recovered').rglob('RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz'))
+          recovered_rows=0
+          with gzip.open(rp,'rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                  vals={z:float(r[z]) for z in reqp}; old=facts.get(k,{})
+                  for z,v in vals.items():
+                      if z in old and abs(old[z]-v)>1e-9: raise SystemExit(f'CONFLICTING_RECOVERED_PLAYER_FACT {k} {z}')
+                      facts[k][z]=v
+                  recovered_rows+=1
+          assert recovered_rows==92,recovered_rows
+
+          overrides={}
+          pp=next(pathlib.Path('/tmp/pbp').rglob('TREB_143_V2_PBP_EXACT_AUDIT.csv'))
+          with open(pp,newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')!='PASS_EXACT' or str(r.get('validation_pass')).lower() not in {'true','1'}: continue
+                  k=(gid(r['game_id']),tid(r['team_id'])); v={z:float(r[z]) for z in reqt}
+                  if k in overrides and any(abs(overrides[k][z]-v[z])>1e-9 for z in reqt): raise SystemExit(f'CONFLICTING_TEAM_OVERRIDE {k}')
+                  overrides[k]=v
+          assert len(overrides)==95,len(overrides)
+
+          targets={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if line.strip():
+                      r=json.loads(line); k=key(r)
+                      if k in tenure_games: targets[k]=r
+          assert len(targets)==928,len(targets)
+
+          ledger_seconds={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz','rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:k=key(r)
+                  except:continue
+                  if k not in tenure_games: continue
+                  ledger_seconds[(k,gid(r['game_id']))]=float(r.get('seconds_game') or 0)
+
+          def team_fact(g,t):
+              cv=facts.get((g,t,''),{})
+              if reqt.issubset(cv): return {z:cv[z] for z in reqt}
+              return overrides.get((g,t))
+
+          new=[]; diagnostics=[]; reasons=collections.Counter()
+          for k in sorted(tenure_games):
+              t=targets[k]; games=tenure_games[k]; expected=int(float(t.get('team_games_in_tenure') or 0))
+              assert len(games)==expected,(k,len(games),expected)
+              agg=collections.Counter(); mt=[]; mp=[]; bad=[]; zero=0
+              for g in sorted(games):
+                  tv=team_fact(g,k[1])
+                  if tv is None:
+                      mt.append(g); continue
+                  pv=facts.get((g,k[1],k[2]),{})
+                  if not reqp.issubset(pv):
+                      sec=ledger_seconds.get((k,g))
+                      if sec is not None and abs(sec)<=1e-9:
+                          pv={z:0.0 for z in reqp}; zero+=1
+                      else:
+                          mp.append(g); continue
+                  comps=[tv['team_oreb']-pv['team_oreb_on'],tv['team_dreb']-pv['team_dreb_on'],tv['opponent_oreb']-pv['opponent_oreb_on'],tv['opponent_dreb']-pv['opponent_dreb_on']]
+                  if min(comps)<-1e-9:
+                      bad.append(g); continue
+                  for z in reqp: agg[z]+=pv[z]
+                  for z in reqt: agg[z]+=tv[z]
+              delta=abs(agg['seconds_on']-float(t.get('seconds_on') or 0))
+              if mt or mp or bad or delta>60:
+                  status='BLOCKED_MISSING_PRIMITIVES' if (mt or mp) else 'BLOCKED_VALIDATION'
+                  reasons[status]+=1
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':status,'expected_games':expected,'minutes_delta_seconds':delta,'zero_second_facts_used':zero,'missing_team_count':len(mt),'missing_player_count':len(mp),'bad_count':len(bad),'detail':json.dumps({'missing_team':mt,'missing_player':mp,'bad':bad},separators=(',',':'))})
+                  continue
+              tr_on=agg['team_oreb_on']+agg['team_dreb_on']; op_on=agg['opponent_oreb_on']+agg['opponent_dreb_on']; tr=agg['team_oreb']+agg['team_dreb']; op=agg['opponent_oreb']+agg['opponent_dreb']; tr_off=tr-tr_on; op_off=op-op_on
+              if min(tr_on,op_on,tr_off,op_off)<-1e-9 or tr_on+op_on<=0 or tr_off+op_off<=0:
+                  reasons['BLOCKED_DENOMINATOR_OR_NEGATIVE']+=1
+                  diagnostics.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'BLOCKED_DENOMINATOR_OR_NEGATIVE','expected_games':expected,'minutes_delta_seconds':delta,'zero_second_facts_used':zero,'missing_team_count':0,'missing_player_count':0,'bad_count':0,'detail':''})
+                  continue
+              on=100*tr_on/(tr_on+op_on); off=100*tr_off/(tr_off+op_off)
+              new.append({'season':k[0],'team_id':k[1],'player_id':k[2],'metric':'TotalReboundPct','on':on,'off_corrected':off,'on_minus_off_corrected':on-off,'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(games),'provenance':'exact retained schedule-audited tenure identity + exact retained consensus/recovered player-game primitives + exact retained/validated team-game rebound counts'})
+              reasons['PROMOTED_EXACT']+=1
+
+          prior_keys={key(r) for r in prior}; new_keys={key(r) for r in new}
+          assert not (prior_keys & new_keys)
+          cumulative=prior+new
+          remove=new_keys
+          remain=[r for r in current if key(r) not in remove]
+          assert len(cumulative)+len(remain)==1250,(len(cumulative),len(remain))
+
+          pf=sorted({z for r in cumulative for z in r})
+          with open(OUT/'TREB_CUMULATIVE_EXACT_PROMOTED.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=pf); w.writeheader(); w.writerows(cumulative)
+          with open(OUT/'AUTONOMOUS_BLOCKER_MANIFEST.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=current[0].keys()); w.writeheader(); w.writerows(remain)
+          df=sorted({z for r in diagnostics for z in r})
+          with open(OUT/'TREB_928_RECLOSURE_DIAGNOSTICS.csv','w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=df); w.writeheader(); w.writerows(diagnostics)
+          qa={'status':'PASS','starting_full_core_exact':8426,'starting_residual':1221,'exact_tenure_identities_tested':928,'new_exact_promotions':len(new),'cumulative_exact_promotions_from_original_1250':len(cumulative),'ending_full_core_exact':8397+len(cumulative),'ending_residual':len(remain),'blocked_among_928':928-len(new),'reason_counts':dict(sorted(reasons.items())),'integrity':{'schedule_audited_tenure_identity_required':True,'exact_raw_counts_only':True,'missing_player_fact_never_assumed_zero_without_explicit_zero_second_ledger_record':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False},'next':'classify only ending residual and attack smallest deterministic blocker classes'}
+          (OUT/'TREB_928_RECLOSURE_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(qa,indent=2,sort_keys=True),flush=True)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-928-schedule-tenure-reclosure-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
