@@ -9,196 +9,60 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-      - name: Build self-contained Native89 analysis-ready release
+      - name: Diagnose Steven Adams OREB gap exactly
         run: |
           python - <<'PY'
-          import pathlib,gzip,json,csv,math,zipfile,collections
+          import pathlib,gzip,json,collections
           ROOT=pathlib.Path('team_trb_all_players/impact_database')
-          SRC=ROOT/'corrected_off/tenure_segment_on_off.jsonl.gz'
-          CORE=ROOT/'core_checkpoints'
-          OUT=pathlib.Path('native89_analysis_ready_final'); OUT.mkdir(exist_ok=True)
           rows=[]
-          with gzip.open(SRC,'rt',encoding='utf-8') as f:
+          with gzip.open(ROOT/'corrected_off/tenure_segment_on_off.jsonl.gz','rt',encoding='utf-8') as f:
             for line in f:
               if line.strip(): rows.append(json.loads(line))
-          metrics=sorted({str(r['metric']) for r in rows}); seasons=sorted({str(r['season']) for r in rows})
-          def tkey(r): return (str(r['season']),str(r['team_id']),str(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')))
+          # Resolve Adams by name from canonical rows, then print all 2021-22+ tenure keys and OReb% rows.
+          adams=[r for r in rows if (r.get('player') or r.get('player_name'))=='Steven Adams' and r['season']>='2021-22']
+          pids=sorted({str(r['player_id']) for r in adams}); print('ADAMS_PIDS',pids)
           byten={}
-          for r in rows: byten.setdefault(tkey(r),[]).append(r)
-          assert len(metrics)==89 and len(seasons)==26 and len(byten)==15206
-          assert seasons[0]=='2000-01' and seasons[-1]=='2025-26'
-          assert not any(m.lower() in ('totalreboundpct','treb%','total rebound pct') for m in metrics)
-          def n(x):
-            try:
-              v=float(x); return v if math.isfinite(v) else None
-            except: return None
-
-          # Preserve native tenure metric values verbatim.
-          lf=sorted({k for r in rows for k in r})
-          with gzip.open(OUT/'native_89_metrics_LONG_WITH_EXPOSURES.csv.gz','wt',newline='',encoding='utf-8') as g:
-            w=csv.DictWriter(g,fieldnames=lf,extrasaction='ignore'); w.writeheader(); w.writerows(rows)
-
-          # Canonical tenure exposures.
-          tenures=[]
-          for k,rs in sorted(byten.items()):
-            r=rs[0]
-            tenures.append({'season':r.get('season'),'player_id':r.get('player_id'),'player_name':r.get('player') or r.get('player_name'),'team_id':r.get('team_id'),'team_abbr':r.get('team_abbr'),'segment_index':r.get('segment_index'),'segment_count':r.get('segment_count'),'query_start_date':r.get('query_start_date'),'query_end_date':r.get('query_end_date'),'on_court_minutes':r.get('minutes_on'),'off_court_minutes':r.get('minutes_off')})
-          ef=list(tenures[0])
-          with gzip.open(OUT/'TENURE_EXPOSURES.csv.gz','wt',newline='',encoding='utf-8') as g:
-            w=csv.DictWriter(g,fieldnames=ef); w.writeheader(); w.writerows(tenures)
-
-          # Full retained core player/team-season additive layer. Confirmed schema: player_totals is a list and EntityId is player id.
-          core_files=sorted(CORE.glob('*/*.json.gz')); assert len(core_files)==780
-          raw={}; raw_release=[]; rebound_by_name={}; derived={}
-          for p in core_files:
+          for r in adams:
+            k=(str(r['season']),str(r['team_id']),str(r['player_id']),str(r.get('query_start_date')),str(r.get('query_end_date')))
+            byten.setdefault(k,[]).append(r)
+          pts=collections.Counter((k[0],k[1],k[2]) for k in byten)
+          print('ADAMS_TENURES',len(byten))
+          # Build core maps exactly as production build.
+          rebound={}; raw={}; derived={}
+          for p in sorted((ROOT/'core_checkpoints').glob('*/*.json.gz')):
             with gzip.open(p,'rt',encoding='utf-8') as f:o=json.load(f)
             season=str(o.get('season') or p.parent.name); team=str(o.get('team_id') or p.stem.split('.')[0])
             name_to_pid={}
-            pt=o.get('player_totals') or []
-            if isinstance(pt,list):
-              for x in pt:
-                if not isinstance(x,dict): continue
+            for x in (o.get('player_totals') or []):
+              if isinstance(x,dict):
                 pid=x.get('EntityId') or x.get('RowId') or x.get('player_id') or x.get('PlayerId')
-                if pid is None: continue
-                pid=str(pid); name=x.get('Name') or x.get('ShortName')
-                if name: name_to_pid[name]=pid
-                rec={'season':season,'team_id':team,'player_id':pid,'player_name':name,'source':'core_checkpoints/player_totals'}
-                for q in ('SecondsPlayed','Minutes','OffPoss','DefPoss','Points','OpponentPoints','OffRebounds','DefRebounds','Rebounds','TotalPoss'):
-                  if q in x: rec[q]=x.get(q)
-                raw[(season,team,pid)]=rec; raw_release.append(rec)
+                if pid is not None:
+                  pid=str(pid); name=x.get('Name') or x.get('ShortName');
+                  if name:name_to_pid[name]=pid
+                  raw[(season,team,pid)]=x
             rr=o.get('rebound_stat_results') or {}
             if isinstance(rr,dict):
               for metric,v in rr.items():
-                if not isinstance(v,list): continue
-                for x in v:
-                  if not isinstance(x,dict): continue
-                  name=x.get('Name'); pid=name_to_pid.get(name)
-                  if pid is None: continue
-                  rebound_by_name[(season,team,pid,metric)]={'On':n(x.get('On')),'Off':n(x.get('Off')),'MinutesOn':n(x.get('MinutesOn')),'MinutesOff':n(x.get('MinutesOff'))}
-            rd=o.get('rebound_derived') or []
-            if isinstance(rd,list):
-              for x in rd:
-                if not isinstance(x,dict) or x.get('player_id') is None: continue
+                if isinstance(v,list):
+                  for x in v:
+                    if isinstance(x,dict) and x.get('Name') in name_to_pid:
+                      rebound[(season,team,name_to_pid[x['Name']],metric)]=x
+            for x in (o.get('rebound_derived') or []):
+              if isinstance(x,dict) and x.get('player_id') is not None:
                 derived[(season,team,str(x['player_id']))]=x
-          rf=sorted({k for r in raw_release for k in r})
-          with gzip.open(OUT/'CORE_RETAINED_SUFFICIENT_STATS.csv.gz','wt',newline='',encoding='utf-8') as g:
-            w=csv.DictWriter(g,fieldnames=rf,extrasaction='ignore'); w.writeheader(); w.writerows(raw_release)
-
-          # Metric lookup and unique player/team-season tenure cardinality.
-          mbt={k:{str(r['metric']):r for r in rs} for k,rs in byten.items()}
-          pts_keys=collections.Counter((k[0],k[1],k[2]) for k in byten)
-          def val(r,*names):
-            if not r:return None
-            for z in names:
-              if z in r and r.get(z) is not None:
-                v=n(r.get(z))
-                if v is not None:return v
-            return None
-          OR='Pts per 100 Possessions'; DR='Pts per 100 Possessions - Defense'; SPO='Seconds Per Possession - Offense'; SPD='Seconds Per Possession - Defense'; OREB='OReb%'
-          assert all(x in metrics for x in (OR,DR,SPO,SPD,OREB))
-
-          # Tenure support. Exact native/corrected rate values + additive exposure reconstruction for ratings.
-          # Team OREB numerator comes from retained rebound_stat_results; only attach player/team-season raw once when that key has one canonical tenure.
-          suff=[]; raw_match=0; oreb_match=0; multi_same_team=0
           for k,rs in sorted(byten.items()):
-            season,team,pid,qs,qe=k; base=rs[0]; key3=(season,team,pid)
-            mon=val(base,'minutes_on'); moff=val(base,'minutes_off')
-            orr=mbt[k][OR]; drr=mbt[k][DR]; spor=mbt[k][SPO]; spdr=mbt[k][SPD]; obr=mbt[k][OREB]
-            on_or=val(orr,'on','On'); off_or=val(orr,'off_corrected','corrected_off','off','Off')
-            on_dr=val(drr,'on','On'); off_dr=val(drr,'off_corrected','corrected_off','off','Off')
-            on_spo=val(spor,'on','On'); off_spo=val(spor,'off_corrected','corrected_off','off','Off')
-            on_spd=val(spdr,'on','On'); off_spd=val(spdr,'off_corrected','corrected_off','off','Off')
-            on_offposs=(mon*60/on_spo) if mon is not None and on_spo and on_spo>0 else None
-            off_offposs=(moff*60/off_spo) if moff is not None and off_spo and off_spo>0 else None
-            on_defposs=(mon*60/on_spd) if mon is not None and on_spd and on_spd>0 else None
-            off_defposs=(moff*60/off_spd) if moff is not None and off_spd and off_spd>0 else None
-            on_pts=on_or*on_offposs/100 if on_or is not None and on_offposs is not None else None
-            off_pts=off_or*off_offposs/100 if off_or is not None and off_offposs is not None else None
-            on_opppts=on_dr*on_defposs/100 if on_dr is not None and on_defposs is not None else None
-            off_opppts=off_dr*off_defposs/100 if off_dr is not None and off_defposs is not None else None
-            unique=(pts_keys[key3]==1)
-            if not unique: multi_same_team+=1
-            rr=rebound_by_name.get((season,team,pid,'OffRebounds')) if unique else None
-            team_oreb=val(rr,'On')
-            if key3 in raw: raw_match+=1
-            if team_oreb is not None: oreb_match+=1
-            native_oreb=val(obr,'on','On')
-            opp_dreb=None; osrc=None
-            # Production retains exact team OREB count but not always an exact opponent-DREB scalar. Preserve the implied opportunity explicitly and verify rate round-trip.
-            if team_oreb is not None and native_oreb is not None and native_oreb>0:
-              frac=native_oreb if native_oreb<=1.5 else native_oreb/100
-              opp_dreb=team_oreb*(1-frac)/frac if frac>0 else None
-              osrc='retained_team_oreb_plus_native_oreb_pct_implied_opponent_dreb'
-            suff.append({'season':season,'team_id':team,'player_id':pid,'player_name':base.get('player') or base.get('player_name'),'query_start_date':qs,'query_end_date':qe,'minutes_on':mon,'minutes_off':moff,'player_team_season_unique_tenure':unique,'team_oreb_on':team_oreb,'opponent_dreb_on_implied':opp_dreb,'oreb_component_source':osrc,'off_poss_on':on_offposs,'points_on':on_pts,'def_poss_on':on_defposs,'opp_points_on':on_opppts,'off_poss_corrected_off':off_offposs,'points_corrected_off':off_pts,'def_poss_corrected_off':off_defposs,'opp_points_corrected_off':off_opppts})
-          sf=list(suff[0])
-          with gzip.open(OUT/'TENURE_ACCEPTANCE_SUFFICIENT_STATS.csv.gz','wt',newline='',encoding='utf-8') as g:
-            w=csv.DictWriter(g,fieldnames=sf); w.writeheader(); w.writerows(suff)
-
-          # Acceptance: sum components first and calculate rates/swing last. Missing OREB components make that player's OREB result incomplete.
-          A=collections.defaultdict(lambda:collections.defaultdict(float)); seen=collections.defaultdict(lambda:collections.defaultdict(int)); names={}; teams=collections.defaultdict(set); segs=collections.Counter(); bad_oreb=collections.Counter()
-          fields=('minutes_on','team_oreb_on','opponent_dreb_on_implied','off_poss_on','points_on','def_poss_on','opp_points_on','off_poss_corrected_off','points_corrected_off','def_poss_corrected_off','opp_points_corrected_off')
-          for r in suff:
-            if not ('2021-22'<=r['season']<='2025-26'): continue
-            pid=r['player_id']; names[pid]=r['player_name']; teams[pid].add(r['team_id']); segs[pid]+=1
-            if r['team_oreb_on'] is None or r['opponent_dreb_on_implied'] is None: bad_oreb[pid]+=1
-            for f in fields:
-              if r.get(f) is not None: A[pid][f]+=float(r[f]); seen[pid][f]+=1
-          acceptance=[]
-          for pid,a in A.items():
-            if a['minutes_on']<2000: continue
-            denom=a['team_oreb_on']+a['opponent_dreb_on_implied']; opct=(100*a['team_oreb_on']/denom if denom>0 and bad_oreb[pid]==0 else None)
-            ortg=100*a['points_on']/a['off_poss_on'] if a['off_poss_on']>0 else None; drtg=100*a['opp_points_on']/a['def_poss_on'] if a['def_poss_on']>0 else None
-            oortg=100*a['points_corrected_off']/a['off_poss_corrected_off'] if a['off_poss_corrected_off']>0 else None; odrtg=100*a['opp_points_corrected_off']/a['def_poss_corrected_off'] if a['def_poss_corrected_off']>0 else None
-            nr=ortg-drtg if ortg is not None and drtg is not None else None; onr=oortg-odrtg if oortg is not None and odrtg is not None else None; swing=nr-onr if nr is not None and onr is not None else None
-            acceptance.append({'player_id':pid,'player_name':names[pid],'on_court_minutes':a['minutes_on'],'oreb_pct_on':opct,'net_rating_on':nr,'net_rating_corrected_off':onr,'net_rating_swing':swing,'tenure_segments':segs[pid],'teams':len(teams[pid])})
-          acceptance.sort(key=lambda x:-x['on_court_minutes'])
-          af=list(acceptance[0])
-          with open(OUT/'ACCEPTANCE_2021-22_to_2025-26_MIN2000.csv','w',newline='',encoding='utf-8') as f:
-            w=csv.DictWriter(f,fieldnames=af); w.writeheader(); w.writerows(acceptance)
-
-          cat=[]
-          for m in metrics:
-            if m==OREB: method='sum retained team OREB numerator and corresponding opponent-DREB opportunity; calculate rate last'
-            elif m==OR: method='sum points and offensive possessions; rate last'
-            elif m==DR: method='sum opponent points and defensive possessions; rate last'
-            else: method='native values retained; additive raw fields exposed in CORE_RETAINED_SUFFICIENT_STATS where present'
-            cat.append({'metric':m,'category':'native_stage2','aggregation_method':method,'sufficient_stat_fields':'see TENURE_ACCEPTANCE_SUFFICIENT_STATS / CORE_RETAINED_SUFFICIENT_STATS','directly_additive':'no'})
-          with open(OUT/'METRIC_CATALOG.csv','w',newline='',encoding='utf-8') as f:
-            w=csv.DictWriter(f,fieldnames=list(cat[0])); w.writeheader(); w.writerows(cat)
-          (OUT/'README_FIRST.txt').write_text('''NBA Native-89 Analysis-Ready Database\nCoverage: 2000-01 through 2025-26 regular seasons. TREB/TotalReboundPct excluded.\nNative ON/corrected OFF/SWING values are preserved unchanged at canonical transaction-aware tenure grain.\nNever average rates. Sum sufficient-stat components/exposures first, calculate aggregate ON and corrected OFF rates, then calculate swing last.\nNet Rating is derived after aggregation from offensive and defensive points/possessions.\nAcceptance file covers 2021-22 through 2025-26 with >=2000 aggregate ON minutes.\n''')
-
-          names_ok=all(t['player_name'] for t in tenures); mon_ok=all(n(t['on_court_minutes']) is not None for t in tenures); mof_ok=all(n(t['off_court_minutes']) is not None for t in tenures)
-          complete=[r for r in acceptance if all(r[x] is not None for x in ('oreb_pct_on','net_rating_on','net_rating_corrected_off','net_rating_swing'))]
-          trans=[r for r in complete if r['teams']>1 or r['tenure_segments']>5]
-          qa={'native_metric_count':len(metrics),'seasons':len(seasons),'season_first':seasons[0],'season_last':seasons[-1],'native_rows':len(rows),'canonical_tenures':len(byten),'core_checkpoint_files':len(core_files),'raw_player_team_keys':len(raw),'raw_key_matches':raw_match,'oreb_tenure_matches':oreb_match,'multi_same_team_tenure_rows':multi_same_team,'acceptance_rows':len(acceptance),'acceptance_complete_rows':len(complete),'acceptance_transaction_test_rows':len(trans),'player_names_populated':names_ok,'on_minutes_populated':mon_ok,'off_minutes_populated':mof_ok,'rate_averaging_used':False,'swing_after_aggregation':True}
-          gates={'1_metric_count_89':len(metrics)==89,'2_seasons_26':len(seasons)==26,'3_coverage':seasons[0]=='2000-01' and seasons[-1]=='2025-26','4_treb_excluded':True,'5_names':names_ok,'6_on_minutes':mon_ok,'7_off_minutes':mof_ok,'8_transaction_identity':True,'9_native_values_unchanged':True,'10_minute_qualification':len(acceptance)>0,'11_oreb_reconstructable':len(complete)>0,'12_net_on_reconstructable':len(complete)>0,'13_net_off_reconstructable':len(complete)>0,'14_swing_last':True,'15_no_rate_averaging':True,'16_acceptance_nonempty':len(complete)>0,'17_transaction_players_tested':len(trans)>0,'18_files_inside_zip':True,'19_no_external_lookup':True,'20_direct_zip':True}
-          qa['gates']=gates; qa['PASS']=all(gates.values())
-          (OUT/'FINAL_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2))
-          if not qa['PASS']: raise SystemExit('FINAL QA FAILED')
-          z=pathlib.Path('NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip')
-          with zipfile.ZipFile(z,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as zz:
-            for p in sorted(OUT.iterdir()): zz.write(p,p.name)
-          print('FINAL_ZIP',z,'BYTES',z.stat().st_size)
+            season,team,pid,qs,qe=k
+            oreb=next((r for r in rs if r.get('metric')=='OReb%'),None)
+            print('\nTENURE',k,'COUNT_SAME_TEAM_SEASON',pts[(season,team,pid)])
+            print('MIN_ON',rs[0].get('minutes_on'),'MIN_OFF',rs[0].get('minutes_off'))
+            print('NATIVE_OREB',oreb)
+            print('RAW_PLAYER_TOTALS', {q:raw.get((season,team,pid),{}).get(q) for q in ['Name','Minutes','SecondsPlayed','OffRebounds','DefRebounds','OffPoss','DefPoss','Points','OpponentPoints']})
+            print('REBOUND_OFFREB',rebound.get((season,team,pid,'OffRebounds')))
+            print('REBOUND_OFFPCT',rebound.get((season,team,pid,'OffReboundPct')))
+            print('DERIVED',derived.get((season,team,pid)))
           PY
-      - name: Upload final package
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: NBA-native-89-ANALYSIS-READY-FINAL-${{ github.run_id }}
-          path: NBA_native_89_metrics_ANALYSIS_READY_FINAL_2000-01_to_2025-26.zip
-          retention-days: 30
-          if-no-files-found: error
-          compression-level: 0
-      - name: Upload failed QA diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: NBA-native-89-ANALYSIS-READY-FAILED-${{ github.run_id }}
-          path: native89_analysis_ready_final/
-          retention-days: 30
-          if-no-files-found: warn
