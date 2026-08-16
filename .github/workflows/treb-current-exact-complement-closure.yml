@@ -1,0 +1,175 @@
+name: TREB current exact five-player complement closure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-current-exact-complement-closure.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-current-exact-complement-closure
+  cancel-in-progress: false
+
+jobs:
+  complement:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Download authoritative state and exact fact sources
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for d in current consensus pbp old mid newer game currentcons out; do mkdir -p "/tmp/$d"; done
+          get(){ gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/$2/zip" > "/tmp/$1.zip"; unzip -q "/tmp/$1.zip" -d "/tmp/$1"; }
+          get current 9263563808
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+      - name: Iterative exact five-player complement closure
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib,collections
+          C=pathlib.Path('/tmp/current'); O=pathlib.Path('/tmp/out')
+          REQP=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on')
+          REQT=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          def pid(x): return str(x).strip().removesuffix('.0')
+          def tid(x): return str(int(float(x)))
+          def gid(x):
+              s=str(x).strip().removesuffix('.0')
+              try:return str(int(float(s))).zfill(10)
+              except:return s.zfill(10)
+          facts=collections.defaultdict(dict); team={}
+          def putp(k,z,v,src):
+              v=float(v); old=facts[k].get(z)
+              if old is not None and abs(old-v)>1e-9: raise SystemExit(f'PLAYER_CONFLICT {k} {z} {old} {v} {src}')
+              facts[k][z]=v
+          def putt(k,v,src):
+              v={z:float(v[z]) for z in REQT}
+              if k in team and any(abs(team[k][z]-v[z])>1e-9 for z in REQT): raise SystemExit(f'TEAM_CONFLICT {k} {team[k]} {v} {src}')
+              team[k]=v
+          with open(next(pathlib.Path('/tmp/consensus').rglob('PROMOTABLE_RETAINED_FACT_CONSENSUS.csv')),newline='') as f:
+              for r in csv.DictReader(f):
+                  k=(gid(r['game_id']),tid(r['team_id']),pid(r.get('player_id','')))
+                  if r['field'] in REQP: putp(k,r['field'],r['value'],'consensus')
+                  elif not k[2] and r['field'] in REQT:
+                      cur=team.setdefault((k[0],k[1]),{}) ; cur[r['field']]=float(r['value'])
+          team={k:v for k,v in team.items() if all(z in v for z in REQT)}
+          def inject_gz(root,pattern):
+              with gzip.open(next(pathlib.Path(root).rglob(pattern)),'rt',encoding='utf-8',newline='') as f:
+                  for r in csv.DictReader(f):
+                      k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                      for z in REQP: putp(k,z,r[z],pattern)
+          inject_gz('/tmp/old','RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          inject_gz('/tmp/mid','RECOVERED_927_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          inject_gz('/tmp/newer','RECOVERED_2012_2022_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          for root,pattern in [('/tmp/game','RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv'),('/tmp/currentcons','RECOVERED_CURRENT_EXACT_PLAYER_GAME_PRIMITIVES.csv')]:
+              with open(next(pathlib.Path(root).rglob(pattern)),newline='') as f:
+                  for r in csv.DictReader(f):
+                      k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                      for z in REQP: putp(k,z,r[z],pattern)
+          with open(next(pathlib.Path('/tmp/pbp').rglob('TREB_143_V2_PBP_EXACT_AUDIT.csv')),newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')=='PASS_EXACT' and str(r.get('validation_pass')).lower() in {'true','1'}:
+                      putt((gid(r['game_id']),tid(r['team_id'])),r,'pbp_exact')
+          with open(next(pathlib.Path('/tmp/game').rglob('RECOVERED_EXACT_TEAM_GAME_FACTS.csv')),newline='') as f:
+              for r in csv.DictReader(f): putt((gid(r['game_id']),tid(r['team_id'])),r,'game_exact')
+          # Exact roster/game membership and zero-minute evidence.
+          roster=collections.defaultdict(set); seconds={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz','rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                  except: continue
+                  roster[(k[0],k[1])].add(k[2]); seconds[k]=float(r.get('seconds_game') or 0)
+          needp=set(); needt=set()
+          with open(next(C.rglob('MISSING_PLAYER_GAME_PRIMITIVES.csv')),newline='') as f:
+              for r in csv.DictReader(f): needp.add((gid(r['game_id']),tid(r['team_id']),pid(r['player_id'])))
+          with open(next(C.rglob('MISSING_TEAM_GAME_FACTS.csv')),newline='') as f:
+              for r in csv.DictReader(f): needt.add((gid(r['game_id']),tid(r['team_id'])))
+          recovered_p={}; recovered_t={}; audit=[]
+          def fullp(k):
+              if all(z in facts.get(k,{}) for z in REQP): return {z:facts[k][z] for z in REQP}
+              if k in seconds and abs(seconds[k])<=1e-9: return {z:0.0 for z in REQP}
+              return None
+          changed=True; rounds=0
+          while changed and rounds<10:
+              changed=False; rounds+=1
+              groups=set((g,t) for g,t,p in needp)|needt
+              for gt in sorted(groups):
+                  players=sorted(roster.get(gt,set()))
+                  if not players: continue
+                  # Team total from complete exact player coverage: each rebound is credited to exactly five on-court players.
+                  if gt in needt and gt not in team:
+                      vals=[]; ok=True
+                      for p in players:
+                          v=fullp((gt[0],gt[1],p))
+                          if v is None: ok=False; break
+                          vals.append(v)
+                      if ok:
+                          sums={z:sum(v[z] for v in vals) for z in REQP[1:]}
+                          nums=(sums['team_oreb_on'],sums['team_dreb_on'],sums['opponent_oreb_on'],sums['opponent_dreb_on'])
+                          if all(abs(x/5-round(x/5))<=1e-9 for x in nums):
+                              v=dict(zip(REQT,[x/5 for x in nums])); putt(gt,v,'five_player_conservation')
+                              recovered_t[gt]=v; changed=True
+                  # Missing player from exact team total + all other exact roster players.
+                  if gt in team:
+                      targets=[k for k in needp if k[:2]==gt and fullp(k) is None]
+                      for k in targets:
+                          others=[]; ok=True
+                          for p in players:
+                              kk=(gt[0],gt[1],p)
+                              if kk==k: continue
+                              v=fullp(kk)
+                              if v is None: ok=False; break
+                              others.append(v)
+                          if not ok: continue
+                          # Game length is exact from all other player seconds only if target ledger seconds is exact; use ledger for seconds target.
+                          if k not in seconds: continue
+                          v={'seconds_on':seconds[k]}
+                          mapping=(('team_oreb_on','team_oreb'),('team_dreb_on','team_dreb'),('opponent_oreb_on','opponent_oreb'),('opponent_dreb_on','opponent_dreb'))
+                          valid=True
+                          for pz,tz in mapping:
+                              x=5*team[gt][tz]-sum(o[pz] for o in others)
+                              if x < -1e-9 or abs(x-round(x))>1e-9: valid=False; break
+                              v[pz]=float(round(x))
+                          if valid:
+                              for z in REQP: putp(k,z,v[z],'five_player_conservation')
+                              recovered_p[k]=v; changed=True
+              if not changed: break
+          # Verify every recovered primitive against conservation identities.
+          for k,v in recovered_p.items():
+              gt=k[:2]; players=roster[gt]
+              assert gt in team and players
+              for pz,tz in (('team_oreb_on','team_oreb'),('team_dreb_on','team_dreb'),('opponent_oreb_on','opponent_oreb'),('opponent_dreb_on','opponent_dreb')):
+                  s=sum(fullp((gt[0],gt[1],p))[pz] for p in players)
+                  assert abs(s-5*team[gt][tz])<=1e-9,(k,pz,s,team[gt][tz])
+          def write(path,rows,cols):
+              with open(path,'w',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=cols); w.writeheader(); w.writerows(rows)
+          write(O/'RECOVERED_COMPLEMENT_EXACT_PLAYER_GAME_PRIMITIVES.csv',[
+              {'game_id':g,'team_id':t,'player_id':p,**v,'provenance':'exact five-player conservation complement using exact team totals, exact roster ledger, and exact other-player primitives'} for (g,t,p),v in sorted(recovered_p.items())],['game_id','team_id','player_id',*REQP,'provenance'])
+          write(O/'RECOVERED_COMPLEMENT_EXACT_TEAM_GAME_FACTS.csv',[
+              {'game_id':g,'team_id':t,**v,'provenance':'exact five-player conservation from complete exact roster-player on-court primitives'} for (g,t),v in sorted(recovered_t.items())],['game_id','team_id',*REQT,'provenance'])
+          qa={'status':'PASS','rounds':rounds,'starting_missing_player':len(needp),'starting_missing_team':len(needt),'recovered_exact_player_primitives':len(recovered_p),'recovered_exact_team_facts':len(recovered_t),'remaining_missing_player':sum(fullp(k) is None for k in needp),'remaining_missing_team':sum(k not in team for k in needt),'integrity':{'five_player_conservation_only':True,'exact_roster_ledger_only':True,'model_used':False,'rounded_rate_backsolve_used':False,'opponent_inference_used':False,'event_ordering_used':False}}
+          (O/'TREB_COMPLEMENT_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n'); print(json.dumps(qa,indent=2,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-exact-complement-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
