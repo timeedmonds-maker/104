@@ -1,0 +1,299 @@
+name: TREB residual shared-game autonomous supervisor
+
+on:
+  workflow_dispatch:
+    inputs:
+      current_artifact_id:
+        description: Authoritative current TREB state artifact ID
+        required: false
+        default: '9260774395'
+      cycle:
+        description: Autonomous shared-game recovery cycle
+        required: false
+        default: '1'
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-residual-shared-game-supervisor.yml
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: treb-residual-shared-game-autonomous-supervisor
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: ${{ inputs.current_artifact_id || '9260774395' }}
+  CYCLE: ${{ inputs.cycle || '1' }}
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  MATERIALITY_ARTIFACT_ID: '9262341403'
+  MATERIALITY_2015_ARTIFACT_ID: '9267705324'
+
+jobs:
+  recover:
+    name: shared-game recovery ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 17
+      matrix:
+        year: [2000,2003,2004,2005,2009,2010,2012,2015,2017,2018,2019,2020,2021,2022,2023,2024,2025]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact reconstruction dependencies
+        run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download current state and materiality acceptances
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current materiality materiality2015 out; do mkdir -p "/tmp/$d"; done
+          for spec in \
+            "current:$CURRENT_ARTIFACT_ID" \
+            "materiality:$MATERIALITY_ARTIFACT_ID" \
+            "materiality2015:$MATERIALITY_2015_ARTIFACT_ID"; do
+            d="${spec%%:*}"; a="${spec##*:}"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" > "/tmp/${d}.zip"
+            unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"
+          done
+      - name: Check whether this season still has shared-game targets
+        id: targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=team_trb_all_players python - <<'PY'
+          import os, pathlib
+          import recover_residual_shared_games as r
+          y=int('${{ matrix.year }}'); season=f"{y}-{(y+1)%100:02d}"
+          accepted=r.load_accepted(pathlib.Path('/tmp/materiality'),pathlib.Path('/tmp/materiality2015'))
+          games,tt,pt,keys=r.load_required(pathlib.Path('/tmp/current'),accepted,season)
+          print(f"TARGET_CHECK season={season} games={len(games)} team_targets={sum(map(len,tt.values()))} player_targets={sum(map(len,pt.values()))} keys={len(keys)}")
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write(f"has_targets={'true' if games else 'false'}\n")
+              f.write(f"game_count={len(games)}\n")
+          PY
+      - name: Download retained full-season source feeds
+        if: steps.targets.outputs.has_targets == 'true'
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          mkdir -p /tmp/src
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+            -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' > /tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; vals={}
+          for line in open('/tmp/list_data.txt',encoding='utf-8'):
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k.strip()]=v.strip()
+          for p in ('nbastats','nbastatsv3','pbpstats'):
+              k=f'{p}_{y}'
+              if k not in vals: raise SystemExit(f'MISSING_SOURCE_URL {k}')
+              print(p,vals[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do
+            curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 \
+              -o "/tmp/src/${p}_${y}.tar.xz" "$url"
+            tar -xJf "/tmp/src/${p}_${y}.tar.xz" -C /tmp/src
+            test -s "/tmp/src/${p}_${y}.csv"
+          done < /tmp/urls.tsv
+      - name: Reconstruct only currently missing shared games
+        if: steps.targets.outputs.has_targets == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          y='${{ matrix.year }}'
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/recover_residual_shared_games.py \
+            --year "$y" \
+            --current-dir /tmp/current \
+            --materiality-dir /tmp/materiality \
+            --materiality-2015-dir /tmp/materiality2015 \
+            --nba "/tmp/src/nbastats_${y}.csv" \
+            --v3 "/tmp/src/nbastatsv3_${y}.csv" \
+            --pbp "/tmp/src/pbpstats_${y}.csv" \
+            --per-game-timeout-seconds 120 \
+            --output-dir /tmp/out
+      - name: Upload season shared-game checkpoint
+        if: always() && steps.targets.outputs.has_targets == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-residual-shared-game-${{ matrix.year }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: warn
+
+  reclose:
+    name: authoritative shared-game reclosure
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download retained authoritative inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current current_aug tenure consensus pbp recovered_old recovered_mid recovered_new materiality materiality2015 shared out; do mkdir -p "/tmp/$d"; done
+          for spec in \
+            "current:$CURRENT_ARTIFACT_ID" \
+            "tenure:$TENURE_ARTIFACT_ID" \
+            "consensus:$CONSENSUS_ARTIFACT_ID" \
+            "pbp:$PBP_ARTIFACT_ID" \
+            "recovered_old:$RECOVERED_OLD_ARTIFACT_ID" \
+            "recovered_mid:$RECOVERED_MID_ARTIFACT_ID" \
+            "recovered_new:$RECOVERED_NEW_ARTIFACT_ID" \
+            "materiality:$MATERIALITY_ARTIFACT_ID" \
+            "materiality2015:$MATERIALITY_2015_ARTIFACT_ID"; do
+            d="${spec%%:*}"; a="${spec##*:}"
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" > "/tmp/${d}.zip"
+            unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"
+          done
+      - name: Download this cycle shared-game facts
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: TREB-residual-shared-game-*-${{ github.run_id }}
+          path: /tmp/shared/current_cycle
+          merge-multiple: false
+      - name: Carry forward earlier shared-game facts and materiality keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a /tmp/current/. /tmp/current_aug/
+          mkdir -p /tmp/shared/prior
+          find /tmp/current -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/prior/ \; || true
+          python - <<'PY'
+          import csv,pathlib,shutil
+          C=pathlib.Path('/tmp/current_aug'); roots=[pathlib.Path('/tmp/materiality'),pathlib.Path('/tmp/materiality2015')]
+          p=next(C.rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          rows=list(csv.DictReader(open(p,newline=''))); fields=rows[0].keys() if rows else ['season','team_id','player_id']
+          def norm(r): return (str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).strip().removesuffix('.0'))
+          seen={norm(r) for r in rows}
+          for root in roots:
+              for q in root.rglob('*MATERIALITY_ACCEPTED*.csv'):
+                  try:
+                      for r in csv.DictReader(open(q,newline='')):
+                          if not r.get('season') or not r.get('team_id') or not r.get('player_id'): continue
+                          k=norm(r)
+                          if k not in seen:
+                              rows.append({'season':k[0],'team_id':k[1],'player_id':k[2]}); seen.add(k)
+                  except Exception: pass
+          with open(p,'w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows)
+          print(f'AUGMENTED_CURRENT_BLOCKERS={len(rows)}')
+          PY
+      - name: Reclose every currently resolvable key
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/reclose_residual_shared_games.py \
+            --current-dir /tmp/current_aug \
+            --tenure-dir /tmp/tenure \
+            --consensus-dir /tmp/consensus \
+            --pbp-dir /tmp/pbp \
+            --recovered-old-dir /tmp/recovered_old \
+            --recovered-mid-dir /tmp/recovered_mid \
+            --recovered-new-dir /tmp/recovered_new \
+            --shared-dir /tmp/shared \
+            --materiality-dir /tmp/materiality \
+            --materiality-2015-dir /tmp/materiality2015 \
+            --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz \
+            --minutes-gate-seconds 60 \
+            --output-dir /tmp/out
+      - name: Persist cumulative shared-game exact facts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,pathlib
+          S=pathlib.Path('/tmp/shared'); O=pathlib.Path('/tmp/out')
+          specs=[
+            ('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz',['game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb']),
+            ('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz',['game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'])]
+          for name,keycols,valcols in specs:
+              rows={}; fields=None
+              for p in S.rglob(name):
+                  with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
+                      rd=csv.DictReader(f); fields=fields or rd.fieldnames
+                      for r in rd:
+                          k=tuple(str(r[z]).strip().removesuffix('.0') for z in keycols)
+                          vals=tuple(float(r[z]) for z in valcols)
+                          if k in rows and tuple(float(rows[k][z]) for z in valcols)!=vals:
+                              raise SystemExit(f'CONFLICT_CUMULATIVE_SHARED {name} {k}')
+                          rows[k]=r
+              if fields is None:
+                  fields=['season',*keycols,*valcols,'provenance']
+              with gzip.open(O/name,'wt',encoding='utf-8',newline='') as f:
+                  w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(rows[k] for k in sorted(rows))
+              print(name,len(rows))
+          PY
+      - name: Upload authoritative post-cycle state
+        id: upload_state
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-residual-shared-game-state-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+      - name: Continue autonomously on the smaller shared-game set
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEXT_ARTIFACT_ID: ${{ steps.upload_state.outputs.artifact-id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          qa=/tmp/out/TREB_SHARED_GAME_RECLOSURE_QA.json
+          cycle="$CYCLE"
+          next=$(python -c "import json; print(json.load(open('$qa'))['next_shared_games'])")
+          promoted=$(python -c "import json; print(json.load(open('$qa'))['new_exact_promotions'])")
+          teamfacts=$(python -c "import json; print(json.load(open('$qa'))['shared_team_facts_injected'])")
+          playerfacts=$(python -c "import json; print(json.load(open('$qa'))['shared_player_facts_injected'])")
+          ready=$(python -c "import json; print(str(json.load(open('$qa'))['ready_for_final_assembly']).lower())")
+          resolved=$(python -c "import json; print(json.load(open('$qa'))['ending_production_resolved_full_core'])")
+          residual=$(python -c "import json; print(json.load(open('$qa'))['ending_residual'])")
+          echo "AUTONOMOUS_CYCLE_RESULT cycle=$cycle resolved=$resolved residual=$residual promoted=$promoted next_shared_games=$next exact_facts=$((teamfacts+playerfacts)) ready=$ready"
+          if [ "$ready" = "true" ]; then
+            echo 'READY_FOR_FINAL_ASSEMBLY=true' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$next" -gt 0 ] && [ $((teamfacts+playerfacts)) -gt 0 ] && [ "$cycle" -lt 4 ]; then
+            newcycle=$((cycle+1))
+            payload=$(python - <<PY
+          import json
+          print(json.dumps({'ref':'agent/treb-final-exact-assembly','inputs':{'current_artifact_id':'${NEXT_ARTIFACT_ID}','cycle':'${newcycle}'}}))
+          PY
+          )
+            echo "$payload" | gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/workflows/treb-residual-shared-game-supervisor.yml/dispatches" --input -
+            echo "DISPATCHED_NEXT_CYCLE=$newcycle CURRENT_ARTIFACT_ID=${NEXT_ARTIFACT_ID}" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "SHARED_GAME_LOOP_STOP cycle=$cycle next=$next facts=$((teamfacts+playerfacts))" >> "$GITHUB_STEP_SUMMARY"
+          fi
