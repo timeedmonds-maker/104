@@ -1,0 +1,220 @@
+name: TREB ESPN team fact exact gate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-espn-team-fact-exact-gate.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  CURRENT_ARTIFACT_ID: '9275527991'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  MATERIALITY_ARTIFACT_ID: '9262341403'
+  MATERIALITY_2015_ARTIFACT_ID: '9267705324'
+
+jobs:
+  gate-and-reclose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -q pandas requests
+      - name: Download authoritative inputs
+        env: {GH_TOKEN: '${{ github.token }}'}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current current_aug tenure consensus pbp recovered_old recovered_mid recovered_new materiality materiality2015 shared/base shared/gated shared/merged out; do mkdir -p /tmp/$d; done
+          for spec in current:$CURRENT_ARTIFACT_ID tenure:$TENURE_ARTIFACT_ID consensus:$CONSENSUS_ARTIFACT_ID pbp:$PBP_ARTIFACT_ID recovered_old:$RECOVERED_OLD_ARTIFACT_ID recovered_mid:$RECOVERED_MID_ARTIFACT_ID recovered_new:$RECOVERED_NEW_ARTIFACT_ID materiality:$MATERIALITY_ARTIFACT_ID materiality2015:$MATERIALITY_2015_ARTIFACT_ID; do
+            d=${spec%%:*}; a=${spec##*:}; gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" >/tmp/$d.zip; unzip -q /tmp/$d.zip -d /tmp/$d
+          done
+          cp -a /tmp/current/. /tmp/current_aug/
+          find /tmp/current -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/base/ \;
+      - name: ESPN independent team-total control gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv, gzip, json, pathlib, re, time
+          from collections import defaultdict
+          import requests
+
+          CUR=pathlib.Path('/tmp/current')
+          OUT=pathlib.Path('/tmp/shared/gated'); OUT.mkdir(parents=True,exist_ok=True)
+          QA=pathlib.Path('/tmp/out/ESPN_TEAM_FACT_GATE_QA.json')
+          session=requests.Session(); session.headers.update({'User-Agent':'Mozilla/5.0 TREB exact validation'})
+
+          def gid(x): return str(x).strip().removesuffix('.0').zfill(10)
+          def tid(x): return str(x).strip().removesuffix('.0')
+          def pick(root,name):
+            p=list(root.rglob(name))
+            if not p: raise SystemExit('missing '+name)
+            return p[0]
+          def rows_gz(path):
+            with gzip.open(path,'rt',encoding='utf-8',newline='') as f: return list(csv.DictReader(f))
+
+          exact=rows_gz(pick(CUR,'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz'))
+          reg=list(csv.DictReader(open(pick(CUR,'NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv'),newline='')))
+          targets=[]
+          for r in reg:
+            if int(float(r.get('team_target_count') or 0))<=0: continue
+            for t in str(r.get('team_ids') or '').split('|'):
+              if t.strip(): targets.append({'season':r['season'],'game_id':gid(r['game_id']),'team_id':tid(t)})
+          target_keys={(r['season'],r['game_id'],r['team_id']) for r in targets}
+
+          aliases={
+          '1610612737':{'ATL'},'1610612738':{'BOS'},'1610612739':{'CLE'},'1610612740':{'NOP','NOH','NOK'},'1610612741':{'CHI'},'1610612742':{'DAL'},'1610612743':{'DEN'},'1610612744':{'GS','GSW'},'1610612745':{'HOU'},'1610612746':{'LAC'},'1610612747':{'LAL'},'1610612748':{'MIA'},'1610612749':{'MIL'},'1610612750':{'MIN'},'1610612751':{'BKN','NJ','NJN'},'1610612752':{'NY','NYK'},'1610612753':{'ORL'},'1610612754':{'IND'},'1610612755':{'PHI'},'1610612756':{'PHX'},'1610612757':{'POR'},'1610612758':{'SAC'},'1610612759':{'SA','SAS'},'1610612760':{'OKC','SEA'},'1610612761':{'TOR'},'1610612762':{'UTAH','UTA'},'1610612763':{'MEM','VAN'},'1610612764':{'WSH','WAS'},'1610612765':{'DET'},'1610612766':{'CHA','CHO','CHH'} }
+
+          season_cache={}
+          def walk(o):
+            if isinstance(o,dict):
+              yield o
+              for v in o.values(): yield from walk(v)
+            elif isinstance(o,list):
+              for v in o: yield from walk(v)
+          def get_games(season):
+            if season in season_cache:return season_cache[season]
+            u='https://api.pbpstats.com/get-games/nba'
+            rr=session.get(u,params={'Season':season,'SeasonType':'Regular Season'},timeout=30); rr.raise_for_status(); data=rr.json()
+            out={}
+            for d in walk(data):
+              kg=next((k for k in d if k.lower().replace('_','') in ('gameid','idgame')),None)
+              if not kg: continue
+              g=gid(d.get(kg,''))
+              if not re.fullmatch(r'00[12]\d{7}',g): continue
+              kd=next((k for k in d if k.lower().replace('_','') in ('date','gamedate','gamedateest','dateest')),None)
+              kh=next((k for k in d if k.lower().replace('_','') in ('hometeamid','teamidhome')),None)
+              ka=next((k for k in d if k.lower().replace('_','') in ('awayteamid','visitorteamid','teamidaway')),None)
+              if kd and kh and ka:
+                ds=str(d[kd]); m=re.search(r'(20\d\d)[-/]?(\d\d)[-/]?(\d\d)',ds)
+                if m: out[g]=(m.group(1)+m.group(2)+m.group(3),tid(d[kh]),tid(d[ka]))
+            season_cache[season]=out; print('META',season,len(out)); return out
+
+          espn_cache={}
+          def statdict(teamrow):
+            z={}
+            for s in teamrow.get('statistics') or []:
+              n=str(s.get('name') or s.get('abbreviation') or '').lower().replace(' ','')
+              val=s.get('value',s.get('displayValue'))
+              try: val=int(round(float(str(val).replace('%',''))))
+              except: continue
+              z[n]=val
+            return z
+          def pull_game(season,g):
+            key=(season,g)
+            if key in espn_cache:return espn_cache[key]
+            meta=get_games(season).get(g)
+            if not meta: raise RuntimeError('NO_METADATA')
+            date,home,away=meta
+            sc=session.get('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard',params={'dates':date},timeout=30); sc.raise_for_status(); evs=sc.json().get('events') or []
+            cand=[]
+            want_h=aliases.get(home,set()); want_a=aliases.get(away,set())
+            for e in evs:
+              cs=(e.get('competitions') or [{}])[0].get('competitors') or []
+              have={str(c.get('team',{}).get('abbreviation') or '').upper() for c in cs}
+              if have & want_h and have & want_a: cand.append(e)
+            if len(cand)!=1: raise RuntimeError('ESPN_EVENT_MATCH_'+str(len(cand)))
+            eid=cand[0]['id']
+            sm=session.get('https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary',params={'event':eid},timeout=30); sm.raise_for_status(); js=sm.json()
+            teams=(js.get('boxscore') or {}).get('teams') or []
+            vals={}
+            for tr in teams:
+              ab=str((tr.get('team') or {}).get('abbreviation') or '').upper(); sd=statdict(tr)
+              def one(names):
+                for n in names:
+                  nn=n.lower().replace(' ','')
+                  if nn in sd:return sd[nn]
+                return None
+              o=one(['offensiveRebounds','offRebounds','OREB','OR']); d=one(['defensiveRebounds','defRebounds','DREB','DR'])
+              if o is not None and d is not None: vals[ab]=(o,d)
+            def teamval(t):
+              hits=[v for a,v in vals.items() if a in aliases.get(t,set())]
+              if len(hits)!=1: raise RuntimeError('ESPN_TEAM_STATS_'+t+'_'+str(vals))
+              return hits[0]
+            ho,hd=teamval(home); ao,ad=teamval(away)
+            ans={home:(ho,hd,ao,ad),away:(ao,ad,ho,hd)}
+            espn_cache[key]=ans; time.sleep(.08); return ans
+
+          controls=[]; mism=[]; errors=[]; seasons=set()
+          # Deterministic broad controls: up to 8 distinct games per season, both team rows where retained.
+          by=defaultdict(list)
+          for r in exact: by[r['season']].append(r)
+          for season in sorted(by):
+            seen=set(); chosen=[]
+            for r in sorted(by[season],key=lambda x:(gid(x['game_id']),tid(x['team_id']))):
+              g=gid(r['game_id'])
+              if g not in seen and len(seen)>=8: continue
+              seen.add(g); chosen.append(r)
+            for r in chosen:
+              g=gid(r['game_id']); t=tid(r['team_id'])
+              try:
+                got=pull_game(season,g).get(t)
+                if got is None: raise RuntimeError('TEAM_NOT_IN_GAME')
+                exp=tuple(int(round(float(r[k]))) for k in ['team_oreb','team_dreb','opponent_oreb','opponent_dreb'])
+                rec={'season':season,'game_id':g,'team_id':t,'expected':exp,'espn':got}
+                controls.append(rec); seasons.add(season)
+                if got!=exp: mism.append(rec)
+              except Exception as e: errors.append({'season':season,'game_id':g,'team_id':t,'error':repr(e)})
+
+          gate=len(controls)>=50 and len(seasons)>=10 and not mism
+          promoted=[]; target_errors=[]
+          if gate:
+            for r in targets:
+              try:
+                got=pull_game(r['season'],r['game_id']).get(r['team_id'])
+                if got is None: raise RuntimeError('TEAM_NOT_IN_GAME')
+                promoted.append({'season':r['season'],'game_id':r['game_id'],'team_id':r['team_id'],'team_oreb':got[0],'team_dreb':got[1],'opponent_oreb':got[2],'opponent_dreb':got[3],'provenance':'exact ESPN team boxscore totals; zero-mismatch retained-control gate'})
+              except Exception as e: target_errors.append({**r,'error':repr(e)})
+          fields=['season','game_id','team_id','team_oreb','team_dreb','opponent_oreb','opponent_dreb','provenance']
+          op=OUT/'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz'
+          with gzip.open(op,'wt',encoding='utf-8',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(promoted)
+          qa={'status':'PASS' if gate else 'FAIL_CLOSED','gate_pass':gate,'controls_evaluated':len(controls),'control_seasons':len(seasons),'control_mismatches':len(mism),'control_errors':len(errors),'target_team_facts_requested':len(targets),'target_team_facts_promoted':len(promoted),'target_errors':len(target_errors),'mismatch_examples':mism[:10],'error_examples':errors[:10],'target_error_examples':target_errors[:10],'integrity':{'zero_control_mismatches_required':True,'minimum_controls':50,'minimum_control_seasons':10,'modeling_used':False,'opponent_inference_used':False,'rounded_backsolve_used':False}}
+          QA.write_text(json.dumps(qa,indent=2)); print(json.dumps(qa,indent=2))
+          if gate and promoted: pathlib.Path('/tmp/shared/gated/PASS_GATE').write_text(str(len(promoted)))
+          PY
+      - name: Conflict-check, union, and authoritative reclosure when gate passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/shared/gated/PASS_GATE ]; then echo 'Gate failed closed or no new facts; no production mutation.'; exit 0; fi
+          python - <<'PY'
+          import csv,gzip,pathlib
+          O=pathlib.Path('/tmp/shared/merged')
+          specs=[('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz',['game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb'],[pathlib.Path('/tmp/shared/base'),pathlib.Path('/tmp/shared/gated')]),('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz',['game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'],[pathlib.Path('/tmp/shared/base')])]
+          for name,ks,vs,roots in specs:
+            rows={};fields=None
+            for root in roots:
+              for p in root.rglob(name):
+                with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
+                  rd=csv.DictReader(f); fields=fields or rd.fieldnames
+                  for r in rd:
+                    q=tuple(str(r[z]).strip().removesuffix('.0') for z in ks); vals=tuple(float(r[z]) for z in vs)
+                    if q in rows and tuple(float(rows[q][z]) for z in vs)!=vals: raise SystemExit(f'CONFLICT {name} {q}')
+                    rows[q]=r
+            if fields is None: raise SystemExit('NO_INPUT '+name)
+            with gzip.open(O/name,'wt',encoding='utf-8',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows[q] for q in sorted(rows))
+            print('UNION',name,len(rows))
+          PY
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/reclose_residual_shared_games.py --current-dir /tmp/current_aug --tenure-dir /tmp/tenure --consensus-dir /tmp/consensus --pbp-dir /tmp/pbp --recovered-old-dir /tmp/recovered_old --recovered-mid-dir /tmp/recovered_mid --recovered-new-dir /tmp/recovered_new --shared-dir /tmp/shared/merged --materiality-dir /tmp/materiality --materiality-2015-dir /tmp/materiality2015 --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz --minutes-gate-seconds 60 --output-dir /tmp/out/reclosed
+          cp /tmp/shared/merged/RECOVERED_RESIDUAL_SHARED_*_GAME_PRIMITIVES.csv.gz /tmp/out/reclosed/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 'TREB-espn-team-fact-gate-${{ github.run_id }}'
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
