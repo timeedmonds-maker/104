@@ -62,6 +62,25 @@ def _strict_unique_repairs(game_id,lineups,pbp_game):
         raise ValueError(f'adjudication accounting mismatch repairs={len(repairs)} unmatched={audit.get("unmatched_rebound_bearing_rows")}')
     return repairs,evidence
 
+def _expected_team_player_seconds(duration,team_id,player_team,lineups):
+    """Expected player-seconds after explicit locked source-gap repairs.
+
+    The production lineup engine can remove source-proven unrecorded clock gaps.
+    Those seconds are intentionally absent from every affected player's exposure,
+    so the conservation target must remove the same locked gap rather than
+    comparing against nominal wall-clock duration. This is not a tolerance: only
+    explicit period_start_clock_gap_repair records produced by the locked engine
+    are recognized.
+    """
+    expected=int(duration)*5
+    for repair in lineups.repairs:
+        if str(repair.get('type'))!='period_start_clock_gap_repair':
+            continue
+        gap=int(repair.get('seconds_removed') or 0)
+        players=[int(p) for p in repair.get('players',[])]
+        expected-=gap*sum(1 for p in players if int(player_team.get(p,-1))==int(team_id))
+    return expected
+
 def build_game(game_id,nba_game,pbp_game):
     lineups=v2.reconstruct_game_lineups(nba_game)
     repairs,evidence=_strict_unique_repairs(game_id,lineups,pbp_game)
@@ -97,7 +116,8 @@ def build_game(game_id,nba_game,pbp_game):
         t=int(t); on=joined.LINEUP.map(lambda lu:p in lu); offense,defense=masks[t]
         player_rows.append({'game_id':int(game_id),'team_id':t,'team_abbr':team_abbr[t],'player_id':p,'player':names.get(p,''),'seconds_on':sec,'team_oreb_on':base._count(on&offense&oreb),'team_dreb_on':base._count(on&defense&real&~oreb),'opponent_oreb_on':base._count(on&defense&oreb),'opponent_dreb_on':base._count(on&offense&real&~oreb)})
     for t in teams:
-        observed=sum(r['seconds_on'] for r in player_rows if r['team_id']==t); expected=duration*5
+        observed=sum(r['seconds_on'] for r in player_rows if r['team_id']==t)
+        expected=_expected_team_player_seconds(duration,t,player_team,lineups)
         if observed!=expected:raise ValueError(f'team player-seconds mismatch team={t} {observed}!={expected}')
     return team_rows,player_rows,evidence
 
@@ -131,6 +151,6 @@ def main():
         evout.extend(evidence);st='PASS_EXACT' if at==len(rt) and apc==len(rp) else 'PARTIAL_EXACT';counts[st]+=1;diag.append({'season':season,'game_id':g,'status':st,'required_team':len(rt),'recovered_team':at,'required_player':len(rp),'recovered_player':apc,'adjudicated_rows':len(evidence),'error':''})
     tm={(r['game_id'],r['team_id']):r for r in to};pm={(r['game_id'],r['team_id'],r['player_id']):r for r in po};to=[tm[k] for k in sorted(tm)];po=[pm[k] for k in sorted(pm)]
     write_gz(args.output_dir/'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz',to,['season','game_id','team_id',*REQT,'provenance']);write_gz(args.output_dir/'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz',po,['season','game_id','team_id','player_id',*REQP,'exact_zero_proof','provenance']);pd.DataFrame(diag).to_csv(args.output_dir/'UNIQUE_REBOUND_ADJUDICATION_DIAGNOSTICS.csv',index=False);pd.DataFrame(evout).to_csv(args.output_dir/'UNIQUE_REBOUND_ADJUDICATION_EVIDENCE.csv',index=False)
-    qa={'status':'PASS','season':season,'target_games':len(games),'affected_keys':len(affected),'recovered_team_targets':len(to),'recovered_player_targets':len(po),'adjudicated_rows':len(evout),'game_status_counts':dict(counts),'integrity':{'unique_real_rebound_same_period_narrow_clock_only':True,'complete_team_player_seconds_validation':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'global_event_ordering_used':False}}
+    qa={'status':'PASS','season':season,'target_games':len(games),'affected_keys':len(affected),'recovered_team_targets':len(to),'recovered_player_targets':len(po),'adjudicated_rows':len(evout),'game_status_counts':dict(counts),'integrity':{'unique_real_rebound_same_period_narrow_clock_only':True,'complete_team_player_seconds_validation':True,'locked_period_start_gap_repairs_honored_in_seconds_conservation':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'global_event_ordering_used':False}}
     (args.output_dir/'UNIQUE_REBOUND_ADJUDICATION_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2),flush=True)
 if __name__=='__main__':main()
