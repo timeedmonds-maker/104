@@ -1,0 +1,40 @@
+name: TREB static pbpstats blocker schema probe
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-static-pbpstats-schema-probe.yml'
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    env:
+      CURRENT_ARTIFACT_ID: 9275527991
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download authoritative checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Probe static pbpstats blocker schema
+        run: python -u team_trb_all_players/treb_static_pbpstats_schema_probe.py --current-dir /tmp/current --out-dir /tmp/out
+      - name: Upload durable probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-static-pbpstats-schema-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
