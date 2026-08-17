@@ -1,5 +1,6 @@
 name: TREB period-local unique exact recovery
 
+# Candidate lane: promotion remains fail-closed until broad retained exact controls pass.
 on:
   push:
     branches:
@@ -110,8 +111,6 @@ jobs:
           source_failures=sum(1 for x in q if x.get('status')=='SOURCE_FAILURE')
           repairs=sum(int(x.get('period_unique_repairs',0)) for x in q)
           target_games=sum(int(x.get('target_games_reconstructed',0)) for x in q)
-          # This is a candidate-promotion gate, not a production promotion. Require broad retained exact
-          # comparisons across multiple affected eras, zero wrong controls, and zero duplicate conflicts.
           promotion_ready=(source_failures==0 and mismatches==0 and not conflicts and controls>=100 and control_games>=8 and control_seasons>=3)
           if not promotion_ready:
               ps=ps.iloc[0:0] if len(ps) else ps; ts=ts.iloc[0:0] if len(ts) else ts
