@@ -29,21 +29,7 @@ jobs:
           mkdir -p /tmp/current /tmp/out
           gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
           unzip -q /tmp/current.zip -d /tmp/current
-      - name: Pin proven upstream archive snapshot
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('team_trb_all_players/treb_static_pbpstats_lineup_feasibility.py')
-          s=p.read_text()
-          old='https://github.com/shufinskiy/nba_data/raw/main/datasets'
-          new='https://github.com/shufinskiy/nba_data/raw/e829d4678be1e075f99e5d41a1c5f97089be446b/datasets'
-          if old not in s:
-              raise SystemExit('expected main-branch archive route not found')
-          p.write_text(s.replace(old,new))
-          print('archive route pinned to previously proven upstream snapshot e829d4678be1e075f99e5d41a1c5f97089be446b')
-          PY
-      - name: Probe exact lineup reconstruction feasibility
+      - name: Probe exact lineup reconstruction feasibility from historical Git blobs
         run: python -u team_trb_all_players/treb_static_pbpstats_lineup_feasibility.py --current-dir /tmp/current --out-dir /tmp/out
       - name: Upload durable diagnostic
         uses: actions/upload-artifact@v4
