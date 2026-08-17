@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-import argparse,csv,gzip,json,pathlib,re,time
+import argparse,csv,gzip,json,pathlib,time
 from collections import defaultdict
 import requests
-
 
 def gid(x): return str(x).strip().removesuffix('.0').zfill(10)
 def sid(x): return str(x).strip().removesuffix('.0')
@@ -12,150 +11,114 @@ def pick(root,name):
     z=list(pathlib.Path(root).rglob(name))
     if not z: raise SystemExit('missing '+name)
     return z[0]
-def walk(o):
-    if isinstance(o,dict):
-        yield o
-        for v in o.values(): yield from walk(v)
-    elif isinstance(o,list):
-        for v in o: yield from walk(v)
-def normkey(k): return re.sub(r'[^a-z0-9]','',str(k).lower())
-def val(d,names):
-    m={normkey(k):v for k,v in d.items()}
-    for n in names:
-        if normkey(n) in m:
-            try:return int(round(float(str(m[normkey(n)]).replace('%',''))))
-            except: pass
-    return None
+def iv(x): return int(round(float(x)))
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--current-dir',required=True);ap.add_argument('--out-dir',required=True);a=ap.parse_args()
-    cur=pathlib.Path(a.current_dir); out=pathlib.Path(a.out_dir);out.mkdir(parents=True,exist_ok=True)
+    cur=pathlib.Path(a.current_dir);out=pathlib.Path(a.out_dir);out.mkdir(parents=True,exist_ok=True)
     team_exact=read_gz(pick(cur,'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz'))
-    player_exact=read_gz(pick(cur,'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz'))
     reg=list(csv.DictReader(open(pick(cur,'NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv'),newline='')))
-    team_targets=[]; player_targets=[]
+    targets=[]
     for r in reg:
-        season=r['season']; game=gid(r['game_id'])
-        teams=[sid(x) for x in str(r.get('team_ids') or '').split('|') if x.strip()]
-        if int(float(r.get('team_target_count') or 0))>0:
-            for t in teams:team_targets.append((season,game,t))
-    # Exact player targets are explicitly present when registry has target_player_ids; otherwise infer from current residual blocker file if present.
-    for r in reg:
-        season=r['season'];game=gid(r['game_id'])
-        for p in str(r.get('target_player_ids') or r.get('player_ids') or '').split('|'):
-            if p.strip(): player_targets.append((season,game,sid(p)))
-    sess=requests.Session();sess.headers.update({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36','Accept':'application/json, text/plain, */*','Origin':'https://www.nba.com','Referer':'https://www.nba.com/'})
-    qa={'status':'PASS_NO_PROGRESS','lanes':{},'team_targets':len(team_targets),'player_targets_discovered':len(player_targets)}
-    promoted_team=[]; promoted_player=[]
-
-    # LANE 1: official NBA Stats team game totals. This is independent of BRef/ESPN and is accepted only after zero-mismatch controls.
-    cache={}
-    def nba_team(game):
-        if game in cache:return cache[game]
-        params={'GameID':game,'StartPeriod':0,'EndPeriod':14,'StartRange':0,'EndRange':0,'RangeType':0}
-        urls=['https://stats.nba.com/stats/boxscoretraditionalv2','https://stats.nba.com/stats/boxscoretraditionalv3']
-        last=None
-        for u in urls:
-            try:
-                rr=sess.get(u,params=params,timeout=18);rr.raise_for_status();js=rr.json(); rows={}
-                if 'resultSets' in js:
-                    sets=js['resultSets'] if isinstance(js['resultSets'],list) else [js['resultSets']]
-                    for rs in sets:
-                        headers=rs.get('headers') or []; data=rs.get('rowSet') or []
-                        h=[normkey(x) for x in headers]
-                        if 'teamid' not in h:continue
-                        for row in data:
-                            d=dict(zip(headers,row));t=sid(d.get(headers[h.index('teamid')]))
-                            o=val(d,['OREB','offensiveRebounds']);de=val(d,['DREB','defensiveRebounds'])
-                            if o is not None and de is not None:rows[t]=(o,de)
-                else:
-                    for d in walk(js):
-                        t=val(d,['teamId','TEAM_ID']); o=val(d,['reboundsOffensive','OREB','offensiveRebounds']);de=val(d,['reboundsDefensive','DREB','defensiveRebounds'])
-                        if t is not None and o is not None and de is not None:rows[sid(t)]=(o,de)
-                if len(rows)>=2:
-                    tids=list(rows)
-                    ans={t:(rows[t][0],rows[t][1],rows[[q for q in tids if q!=t][0]][0],rows[[q for q in tids if q!=t][0]][1]) for t in tids if len([q for q in tids if q!=t])==1}
-                    cache[game]=ans; time.sleep(.08);return ans
-            except Exception as e:last=repr(e)
-        raise RuntimeError(last or 'NBA_TEAM_NO_ROWS')
-    controls=[];mism=[];errors=[];seasons=set()
+        if int(float(r.get('team_target_count') or 0))<=0: continue
+        for t in str(r.get('team_ids') or '').split('|'):
+            if t.strip(): targets.append((r['season'],gid(r['game_id']),sid(t)))
+    targets=sorted(set(targets))
+    sess=requests.Session();sess.headers.update({'User-Agent':'Mozilla/5.0','Accept':'application/json,text/plain,*/*'})
     by=defaultdict(list)
-    for r in team_exact:by[r['season']].append(r)
+    for r in team_exact: by[r['season']].append(r)
+    controls=[]
     for season in sorted(by):
         games=[]
         for r in sorted(by[season],key=lambda z:(gid(z['game_id']),sid(z['team_id']))):
-            if gid(r['game_id']) not in games:games.append(gid(r['game_id']))
-            if len(games)>=6:break
+            g=gid(r['game_id'])
+            if g not in games: games.append(g)
+            if len(games)>=5: break
         for r in by[season]:
-            if gid(r['game_id']) not in games:continue
-            try:
-                got=nba_team(gid(r['game_id'])).get(sid(r['team_id']))
-                exp=tuple(int(round(float(r[k]))) for k in ['team_oreb','team_dreb','opponent_oreb','opponent_dreb'])
-                controls.append(1);seasons.add(season)
-                if got!=exp:mism.append({'season':season,'game_id':gid(r['game_id']),'team_id':sid(r['team_id']),'expected':exp,'got':got})
-            except Exception as e:errors.append({'season':season,'game_id':gid(r['game_id']),'error':repr(e)})
-    gate=len(controls)>=50 and len(seasons)>=10 and not mism
-    terr=[]
-    if gate:
-        for season,game,t in team_targets:
-            try:
-                got=nba_team(game).get(t)
-                if got is None:raise RuntimeError('team absent')
-                promoted_team.append({'season':season,'game_id':game,'team_id':t,'team_oreb':got[0],'team_dreb':got[1],'opponent_oreb':got[2],'opponent_dreb':got[3],'provenance':'NBA Stats official team boxscore; zero-mismatch retained exact control gate'})
-            except Exception as e:terr.append({'season':season,'game_id':game,'team_id':t,'error':repr(e)})
-    qa['lanes']['nba_official_team_boxscore']={'gate':gate,'controls':len(controls),'seasons':len(seasons),'mismatches':len(mism),'errors':len(errors),'promoted':len(promoted_team),'target_errors':len(terr),'mismatch_examples':mism[:8],'error_examples':errors[:8],'target_error_examples':terr[:8]}
+            if gid(r['game_id']) in games: controls.append(r)
+    qa={'status':'PASS_NO_PROGRESS','team_targets':len(targets),'lanes':{}}
+    lane_candidates=[]
 
-    # LANE 2: PBP Stats per-game Player rows. Promote only if the API exposes team/opponent rebound-on-floor fields and reproduces retained exact player-game primitives with zero mismatches.
-    pcache={}
-    aliases={
-      'seconds_on':['Seconds','SecondsPlayed','SecondsOn','seconds_on'],
-      'team_oreb_on':['TeamOffRebounds','TeamOREB','TeamOffensiveRebounds','team_oreb_on'],
-      'team_dreb_on':['TeamDefRebounds','TeamDREB','TeamDefensiveRebounds','team_dreb_on'],
-      'opponent_oreb_on':['OpponentOffRebounds','OpponentOREB','OpponentOffensiveRebounds','opponent_oreb_on'],
-      'opponent_dreb_on':['OpponentDefRebounds','OpponentDREB','OpponentDefensiveRebounds','opponent_dreb_on']}
-    def pbp_player(game):
-        if game in pcache:return pcache[game]
-        rr=sess.get('https://api.pbpstats.com/get-game-stats',params={'GameId':game,'Type':'Player'},timeout=25);rr.raise_for_status();js=rr.json();ans={}
-        for d in walk(js):
-            pid=None
-            for k,v in d.items():
-                if normkey(k) in ('playerid','entityid') and re.fullmatch(r'\d+',sid(v)):pid=sid(v);break
-            if not pid:continue
-            z={name:val(d,names) for name,names in aliases.items()}
-            if all(v is not None for v in z.values()):ans[pid]=z
-        pcache[game]=ans;time.sleep(.05);return ans
-    pctrl=[];pmism=[];perr=[];pseasons=set();schema_samples=[]
-    for r in sorted(player_exact,key=lambda z:(z['season'],gid(z['game_id']),sid(z['player_id'])))[:350]:
-        try:
-            rows=pbp_player(gid(r['game_id']))
-            got=rows.get(sid(r['player_id']))
-            if not rows and len(schema_samples)<3:schema_samples.append({'game_id':gid(r['game_id']),'note':'no exact field-set discovered'})
-            if got is None:raise RuntimeError('NO_EXACT_FIELD_SET_OR_PLAYER')
-            exp={k:int(round(float(r[k]))) for k in ['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on']}
-            pctrl.append(1);pseasons.add(r['season'])
-            if any(got[k]!=exp[k] for k in exp):pmism.append({'season':r['season'],'game_id':gid(r['game_id']),'player_id':sid(r['player_id']),'expected':exp,'got':got})
-        except Exception as e:perr.append({'season':r['season'],'game_id':gid(r['game_id']),'player_id':sid(r['player_id']),'error':repr(e)})
-    pgate=len(pctrl)>=100 and len(pseasons)>=10 and not pmism
-    qa['lanes']['pbpstats_direct_game_player_exact_fields']={'gate':pgate,'controls':len(pctrl),'seasons':len(pseasons),'mismatches':len(pmism),'errors':len(perr),'promoted':0,'schema_samples':schema_samples,'mismatch_examples':pmism[:8],'error_examples':perr[:8]}
-    # Targets are only promotable when explicit ids exist in the registry; otherwise this lane remains diagnostic and fail closed.
-    if pgate and player_targets:
-        for season,game,p in player_targets:
+    def run_lane(name,fetcher,provenance):
+        c=0; seasons=set();mism=[];errs=[]
+        for r in controls:
             try:
-                got=pbp_player(game).get(p)
-                if got is None:continue
-                promoted_player.append({'season':season,'game_id':game,'team_id':'','player_id':p,**got,'provenance':'PBP Stats direct game-player exact fields; zero-mismatch retained exact control gate'})
-            except:pass
-        qa['lanes']['pbpstats_direct_game_player_exact_fields']['promoted']=len(promoted_player)
+                got=fetcher(gid(r['game_id'])).get(sid(r['team_id']))
+                if got is None: raise RuntimeError('TEAM_NOT_PRESENT')
+                exp=tuple(iv(r[k]) for k in ['team_oreb','team_dreb','opponent_oreb','opponent_dreb'])
+                c+=1;seasons.add(r['season'])
+                if got!=exp:mism.append({'season':r['season'],'game_id':gid(r['game_id']),'team_id':sid(r['team_id']),'expected':exp,'got':got})
+            except Exception as e: errs.append({'season':r['season'],'game_id':gid(r['game_id']),'error':repr(e)})
+        gate=c>=50 and len(seasons)>=10 and not mism
+        promoted=[];terr=[]
+        if gate:
+            for season,g,t in targets:
+                try:
+                    got=fetcher(g).get(t)
+                    if got is None: raise RuntimeError('TEAM_NOT_PRESENT')
+                    promoted.append({'season':season,'game_id':g,'team_id':t,'team_oreb':got[0],'team_dreb':got[1],'opponent_oreb':got[2],'opponent_dreb':got[3],'provenance':provenance})
+                except Exception as e:terr.append({'season':season,'game_id':g,'team_id':t,'error':repr(e)})
+        qa['lanes'][name]={'gate':gate,'controls':c,'seasons':len(seasons),'mismatches':len(mism),'errors':len(errs),'promoted':len(promoted),'target_errors':len(terr),'mismatch_examples':mism[:6],'error_examples':errs[:8],'target_error_examples':terr[:8]}
+        lane_candidates.extend((name,r) for r in promoted)
 
+    # Independent official NBA static live-data boxscore. No stats.nba.com endpoint or lineup reconstruction.
+    cdn_cache={}
+    def cdn(g):
+        if g in cdn_cache:return cdn_cache[g]
+        u=f'https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{g}.json'
+        rr=sess.get(u,timeout=15);rr.raise_for_status();js=rr.json();game=js.get('game') or {}
+        rows={}
+        for side in ('homeTeam','awayTeam'):
+            d=game.get(side) or {}; st=d.get('statistics') or {};t=sid(d.get('teamId'))
+            o=st.get('reboundsOffensive');de=st.get('reboundsDefensive')
+            if t and o is not None and de is not None:rows[t]=(iv(o),iv(de))
+        if len(rows)!=2:raise RuntimeError('CDN_TWO_TEAM_ROWS_NOT_FOUND')
+        ts=list(rows);ans={ts[0]:(*rows[ts[0]],*rows[ts[1]]),ts[1]:(*rows[ts[1]],*rows[ts[0]])};cdn_cache[g]=ans;time.sleep(.03);return ans
+    run_lane('nba_cdn_liveData_team_boxscore',cdn,'NBA CDN liveData team boxscore; >=50 controls, >=10 seasons, zero mismatches')
+
+    # Independent legacy NBA static mobile game-detail feed. Kept separate from CDN gate.
+    legacy_cache={}
+    def legacy(g):
+        if g in legacy_cache:return legacy_cache[g]
+        # season stem is encoded in game id only indirectly; try retained target/control season years via broad endpoint variants.
+        last=None
+        for stem in range(2000,2027):
+            u=f'https://data.nba.net/data/10s/v2015/json/mobile_teams/nba/{stem}/scores/gamedetail/{g}_gamedetail.json'
+            try:
+                rr=sess.get(u,timeout=8)
+                if rr.status_code!=200:continue
+                js=rr.json();game=js.get('g') or js.get('game') or js
+                rows={}
+                for key in ('hls','vls','homeTeam','awayTeam'):
+                    d=game.get(key) if isinstance(game,dict) else None
+                    if not isinstance(d,dict):continue
+                    t=sid(d.get('tid') or d.get('teamId') or '')
+                    st=d.get('tstsg') or d.get('statistics') or d
+                    o=st.get('oreb') if isinstance(st,dict) else None;de=st.get('dreb') if isinstance(st,dict) else None
+                    if o is None and isinstance(st,dict):o=st.get('reboundsOffensive')
+                    if de is None and isinstance(st,dict):de=st.get('reboundsDefensive')
+                    if t and o is not None and de is not None:rows[t]=(iv(o),iv(de))
+                if len(rows)==2:
+                    ts=list(rows);ans={ts[0]:(*rows[ts[0]],*rows[ts[1]]),ts[1]:(*rows[ts[1]],*rows[ts[0]])};legacy_cache[g]=ans;return ans
+            except Exception as e:last=repr(e)
+        raise RuntimeError(last or 'LEGACY_STATIC_GAME_NOT_FOUND')
+    run_lane('nba_legacy_static_mobile_gamedetail',legacy,'NBA legacy static mobile game detail; >=50 controls, >=10 seasons, zero mismatches')
+
+    # Union only conflict-free independently gated candidates.
+    merged={};sources=defaultdict(list)
+    for name,r in lane_candidates:
+        k=(r['game_id'],r['team_id']);v=tuple(iv(r[x]) for x in ['team_oreb','team_dreb','opponent_oreb','opponent_dreb'])
+        if k in merged and merged[k][0]!=v: raise SystemExit(f'EXACT SOURCE CONFLICT {k}: {merged[k][0]} != {v}')
+        merged[k]=(v,r);sources[k].append(name)
+    promoted=[]
+    for k,(v,r) in sorted(merged.items()):
+        q=dict(r);q['provenance']=q['provenance']+'; gated_sources='+','.join(sorted(sources[k]));promoted.append(q)
     tf=['season','game_id','team_id','team_oreb','team_dreb','opponent_oreb','opponent_dreb','provenance']
     with gzip.open(out/'CANDIDATE_TEAM_GAME_PRIMITIVES.csv.gz','wt',encoding='utf-8',newline='') as f:
-        w=csv.DictWriter(f,fieldnames=tf);w.writeheader();w.writerows(promoted_team)
+        w=csv.DictWriter(f,fieldnames=tf);w.writeheader();w.writerows(promoted)
     pf=['season','game_id','team_id','player_id','seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on','provenance']
-    with gzip.open(out/'CANDIDATE_PLAYER_GAME_PRIMITIVES.csv.gz','wt',encoding='utf-8',newline='') as f:
-        w=csv.DictWriter(f,fieldnames=pf);w.writeheader();w.writerows(promoted_player)
-    qa['new_team_facts']=len(promoted_team);qa['new_player_facts']=len(promoted_player)
-    if promoted_team or promoted_player:qa['status']='PASS_PROGRESS'
-    (out/'SUPERVISOR_SOURCE_QA.json').write_text(json.dumps(qa,indent=2))
-    print(json.dumps(qa,indent=2))
-
+    with gzip.open(out/'CANDIDATE_PLAYER_GAME_PRIMITIVES.csv.gz','wt',encoding='utf-8',newline='') as f:csv.DictWriter(f,fieldnames=pf).writeheader()
+    qa['new_team_facts']=len(promoted);qa['new_player_facts']=0
+    if promoted:qa['status']='PASS_PROGRESS'
+    (out/'SUPERVISOR_SOURCE_QA.json').write_text(json.dumps(qa,indent=2));print(json.dumps(qa,indent=2))
 if __name__=='__main__':main()
