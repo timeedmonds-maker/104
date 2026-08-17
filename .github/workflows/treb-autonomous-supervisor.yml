@@ -1,0 +1,158 @@
+name: TREB autonomous supervisor to validated completion
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-autonomous-supervisor.yml'
+      - 'team_trb_all_players/treb_autonomous_supervisor_next.py'
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-autonomous-supervisor-production
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9275527991'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  MATERIALITY_ARTIFACT_ID: '9262341403'
+  MATERIALITY_2015_ARTIFACT_ID: '9267705324'
+
+jobs:
+  exact-source-and-reclose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -q pandas requests
+      - name: Download authoritative checkpoint and reclosure inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for d in current tenure consensus pbp recovered_old recovered_mid recovered_new materiality materiality2015; do mkdir -p /tmp/$d; done
+          for spec in current:$CURRENT_ARTIFACT_ID tenure:$TENURE_ARTIFACT_ID consensus:$CONSENSUS_ARTIFACT_ID pbp:$PBP_ARTIFACT_ID recovered_old:$RECOVERED_OLD_ARTIFACT_ID recovered_mid:$RECOVERED_MID_ARTIFACT_ID recovered_new:$RECOVERED_NEW_ARTIFACT_ID materiality:$MATERIALITY_ARTIFACT_ID materiality2015:$MATERIALITY_2015_ARTIFACT_ID; do
+            d=${spec%%:*}; a=${spec##*:}
+            gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" > /tmp/$d.zip
+            unzip -q /tmp/$d.zip -d /tmp/$d
+          done
+          mkdir -p /tmp/source /tmp/shared/base /tmp/shared/merged /tmp/reclosed /tmp/final_out
+          find /tmp/current -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/base/ \;
+      - name: Run unexhausted exact-source lanes
+        run: |
+          python -u team_trb_all_players/treb_autonomous_supervisor_next.py --current-dir /tmp/current --out-dir /tmp/source
+      - name: Conflict-check candidates and union cumulative exact facts
+        id: merge
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import csv,gzip,json,pathlib
+          B=pathlib.Path('/tmp/shared/base');S=pathlib.Path('/tmp/source');O=pathlib.Path('/tmp/shared/merged');O.mkdir(parents=True,exist_ok=True)
+          specs=[
+            ('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz','CANDIDATE_TEAM_GAME_PRIMITIVES.csv.gz',['game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb']),
+            ('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz','CANDIDATE_PLAYER_GAME_PRIMITIVES.csv.gz',['game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'])]
+          added=0
+          for base_name,cand_name,ks,vs in specs:
+            bp=next(B.rglob(base_name)); cp=S/cand_name
+            rows={};fields=None
+            with gzip.open(bp,'rt',encoding='utf-8',newline='') as f:
+              rd=csv.DictReader(f);fields=rd.fieldnames
+              for r in rd: rows[tuple(str(r[k]).strip().removesuffix('.0') for k in ks)]=r
+            with gzip.open(cp,'rt',encoding='utf-8',newline='') as f:
+              rd=csv.DictReader(f)
+              for r in rd:
+                q=tuple(str(r[k]).strip().removesuffix('.0') for k in ks)
+                if not all(q): continue
+                if q in rows:
+                  old=tuple(float(rows[q][v]) for v in vs);new=tuple(float(r[v]) for v in vs)
+                  if old!=new: raise SystemExit(f'EXACT CONFLICT {base_name} {q}: {old} != {new}')
+                else:
+                  rows[q]={k:r.get(k,'') for k in fields};added+=1
+            with gzip.open(O/base_name,'wt',encoding='utf-8',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows[q] for q in sorted(rows))
+          pathlib.Path('/tmp/source/MERGE_QA.json').write_text(json.dumps({'status':'PASS','new_conflict_free_exact_facts':added},indent=2))
+          print('NEW_FACTS',added)
+          pathlib.Path('/tmp/source/NEW_FACTS_COUNT').write_text(str(added))
+          PY
+          n=$(cat /tmp/source/NEW_FACTS_COUNT)
+          echo "new_facts=$n" >> "$GITHUB_OUTPUT"
+      - name: Authoritative reclosure when exact facts were recovered
+        if: steps.merge.outputs.new_facts != '0'
+        run: |
+          set -euo pipefail
+          cp -a /tmp/current/. /tmp/reclosed/
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/reclose_residual_shared_games.py \
+            --current-dir /tmp/reclosed \
+            --tenure-dir /tmp/tenure \
+            --consensus-dir /tmp/consensus \
+            --pbp-dir /tmp/pbp \
+            --recovered-old-dir /tmp/recovered_old \
+            --recovered-mid-dir /tmp/recovered_mid \
+            --recovered-new-dir /tmp/recovered_new \
+            --shared-dir /tmp/shared/merged \
+            --materiality-dir /tmp/materiality \
+            --materiality-2015-dir /tmp/materiality2015 \
+            --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz \
+            --minutes-gate-seconds 60 \
+            --output-dir /tmp/final_out/reclosed
+          cp /tmp/shared/merged/RECOVERED_RESIDUAL_SHARED_*_GAME_PRIMITIVES.csv.gz /tmp/final_out/reclosed/
+      - name: Preserve no-progress checkpoint
+        if: steps.merge.outputs.new_facts == '0'
+        run: |
+          mkdir -p /tmp/final_out/no_progress
+          cp /tmp/source/*.json /tmp/final_out/no_progress/ || true
+          cp /tmp/source/*.csv.gz /tmp/final_out/no_progress/ || true
+          printf '%s\n' 'FAIL_CLOSED_NO_NEW_EXACT_FACTS' > /tmp/final_out/no_progress/STATUS.txt
+      - name: Supervisor accounting and next-blocker snapshot
+        run: |
+          python - <<'PY'
+          import json,pathlib,re
+          root=pathlib.Path('/tmp/final_out')
+          vals=[]
+          for p in root.rglob('*.json'):
+            try:
+              o=json.loads(p.read_text())
+              vals.append({'file':str(p.relative_to(root)),'json':o})
+            except:pass
+          # Never infer completion from filename. Completion is marked only if a retained QA field explicitly proves 9647 resolved and zero residual.
+          def scan(o):
+            if isinstance(o,dict):
+              yield o
+              for v in o.values():yield from scan(v)
+            elif isinstance(o,list):
+              for v in o:yield from scan(v)
+          proof=[]
+          for x in vals:
+            for d in scan(x['json']):
+              resolved=next((d[k] for k in d if str(k).lower() in ('production_resolved','production_resolved_count','resolved_count')),None)
+              residual=next((d[k] for k in d if str(k).lower() in ('production_residual','residual_count','residual')),None)
+              try:
+                if int(resolved)==9647 and int(residual)==0:proof.append(x['file'])
+              except:pass
+          qa={'status':'COMPLETE_CORE' if proof else 'CONTINUE','explicit_9647_zero_residual_proof_files':sorted(set(proof)),'source_qa':json.loads(pathlib.Path('/tmp/source/SUPERVISOR_SOURCE_QA.json').read_text()),'merge_qa':json.loads(pathlib.Path('/tmp/source/MERGE_QA.json').read_text())}
+          (root/'AUTONOMOUS_SUPERVISOR_QA.json').write_text(json.dumps(qa,indent=2))
+          print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-autonomous-supervisor-${{ github.run_id }}
+          path: /tmp/final_out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
