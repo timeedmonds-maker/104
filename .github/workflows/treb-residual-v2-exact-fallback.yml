@@ -1,0 +1,156 @@
+name: TREB residual V2-only exact fallback
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-residual-v2-exact-fallback.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-residual-v2-exact-fallback
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9274085367'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  MATERIALITY_ARTIFACT_ID: '9262341403'
+  MATERIALITY_2015_ARTIFACT_ID: '9267705324'
+
+jobs:
+  recover:
+    name: V2 exact fallback ${{ matrix.year }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 15
+      matrix:
+        year: [2000,2003,2004,2005,2009,2012,2015,2017,2018,2019,2020,2021,2022,2023,2024]
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download current/materiality state
+        env: {GH_TOKEN: '${{ github.token }}'}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current materiality materiality2015 out; do mkdir -p /tmp/$d; done
+          for spec in current:$CURRENT_ARTIFACT_ID materiality:$MATERIALITY_ARTIFACT_ID materiality2015:$MATERIALITY_2015_ARTIFACT_ID; do
+            d=${spec%%:*}; a=${spec##*:}; gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" >/tmp/$d.zip; unzip -q /tmp/$d.zip -d /tmp/$d
+          done
+      - name: Check targets
+        id: targets
+        shell: bash
+        run: |
+          PYTHONPATH=team_trb_all_players python - <<'PY'
+          import os,pathlib,recover_residual_shared_games as r
+          y=int('${{ matrix.year }}'); s=f"{y}-{(y+1)%100:02d}"; a=r.load_accepted(pathlib.Path('/tmp/materiality'),pathlib.Path('/tmp/materiality2015'))
+          g,tt,pt,k=r.load_required(pathlib.Path('/tmp/current'),a,s); print('V2_TARGETS',s,len(g),sum(map(len,tt.values())),sum(map(len,pt.values())),len(k))
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write(f"has={'true' if g else 'false'}\n")
+          PY
+      - name: Download NBA V2 + PBP retained feeds
+        if: steps.targets.outputs.has == 'true'
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set -euo pipefail; y='${{ matrix.year }}'; mkdir -p /tmp/src
+          curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - "$y" <<'PY' >/tmp/urls.tsv
+          import sys
+          y=sys.argv[1]; v={}
+          for line in open('/tmp/list_data.txt'):
+            if '=' in line:k,x=line.split('=',1);v[k.strip()]=x.strip()
+          for p in ('nbastats','pbpstats'):
+            k=f'{p}_{y}'; print(p,v[k],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do curl --fail --location --retry 5 --retry-all-errors --connect-timeout 15 -o /tmp/src/${p}_${y}.tar.xz "$url"; tar -xJf /tmp/src/${p}_${y}.tar.xz -C /tmp/src; done </tmp/urls.tsv
+      - name: Recover with validated V2-only engine
+        if: steps.targets.outputs.has == 'true'
+        shell: bash
+        run: |
+          y='${{ matrix.year }}'
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/recover_residual_shared_games_v2.py --year "$y" --current-dir /tmp/current --materiality-dir /tmp/materiality --materiality-2015-dir /tmp/materiality2015 --nba /tmp/src/nbastats_${y}.csv --pbp /tmp/src/pbpstats_${y}.csv --per-game-timeout-seconds 150 --output-dir /tmp/out
+      - name: Upload V2 checkpoint
+        if: always() && steps.targets.outputs.has == 'true'
+        uses: actions/upload-artifact@v4
+        with: {name: 'TREB-residual-v2-${{ matrix.year }}-${{ github.run_id }}', path: /tmp/out, retention-days: 90, compression-level: 1, if-no-files-found: warn}
+
+  reclose:
+    name: authoritative V2 fallback reclosure
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Download authoritative inputs
+        env: {GH_TOKEN: '${{ github.token }}'}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current current_aug tenure consensus pbp recovered_old recovered_mid recovered_new materiality materiality2015 shared out; do mkdir -p /tmp/$d; done
+          for spec in current:$CURRENT_ARTIFACT_ID tenure:$TENURE_ARTIFACT_ID consensus:$CONSENSUS_ARTIFACT_ID pbp:$PBP_ARTIFACT_ID recovered_old:$RECOVERED_OLD_ARTIFACT_ID recovered_mid:$RECOVERED_MID_ARTIFACT_ID recovered_new:$RECOVERED_NEW_ARTIFACT_ID materiality:$MATERIALITY_ARTIFACT_ID materiality2015:$MATERIALITY_2015_ARTIFACT_ID; do
+            d=${spec%%:*}; a=${spec##*:}; gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" >/tmp/$d.zip; unzip -q /tmp/$d.zip -d /tmp/$d
+          done
+          cp -a /tmp/current/. /tmp/current_aug/
+          find /tmp/current -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/ \;
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: {pattern: 'TREB-residual-v2-*-${{ github.run_id }}', path: /tmp/shared/v2, merge-multiple: false}
+      - name: Restore materiality keys for closed accounting
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,pathlib
+          C=pathlib.Path('/tmp/current_aug'); p=next(C.rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv')); rows=list(csv.DictReader(open(p))); fields=list(rows[0])
+          def k(r):return(str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).strip().removesuffix('.0'))
+          seen={k(r) for r in rows}
+          for root in [pathlib.Path('/tmp/materiality'),pathlib.Path('/tmp/materiality2015')]:
+            for q in root.rglob('*MATERIALITY_ACCEPTED*.csv'):
+              try:
+                for r in csv.DictReader(open(q)):
+                  if r.get('season') and r.get('team_id') and r.get('player_id') and k(r) not in seen:
+                    x=k(r);rows.append({'season':x[0],'team_id':x[1],'player_id':x[2]});seen.add(x)
+              except:pass
+          with open(p,'w',newline='') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          print('ACCOUNTING_BLOCKERS',len(rows))
+          PY
+      - name: Exact reclosure
+        shell: bash
+        run: |
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/reclose_residual_shared_games.py --current-dir /tmp/current_aug --tenure-dir /tmp/tenure --consensus-dir /tmp/consensus --pbp-dir /tmp/pbp --recovered-old-dir /tmp/recovered_old --recovered-mid-dir /tmp/recovered_mid --recovered-new-dir /tmp/recovered_new --shared-dir /tmp/shared --materiality-dir /tmp/materiality --materiality-2015-dir /tmp/materiality2015 --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz --minutes-gate-seconds 60 --output-dir /tmp/out
+      - name: Persist cumulative shared facts
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,gzip,pathlib
+          S=pathlib.Path('/tmp/shared');O=pathlib.Path('/tmp/out')
+          for name,ks,vs in [('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz',['game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb']),('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz',['game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'])]:
+            rows={};fields=None
+            for p in S.rglob(name):
+              with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
+                rd=csv.DictReader(f);fields=fields or rd.fieldnames
+                for r in rd:
+                  q=tuple(str(r[z]).strip().removesuffix('.0') for z in ks);vals=tuple(float(r[z]) for z in vs)
+                  if q in rows and tuple(float(rows[q][z]) for z in vs)!=vals:raise SystemExit(f'CONFLICT {name} {q}')
+                  rows[q]=r
+            with gzip.open(O/name,'wt',encoding='utf-8',newline='') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows[q] for q in sorted(rows))
+            print(name,len(rows))
+          PY
+      - uses: actions/upload-artifact@v4
+        with: {name: 'TREB-residual-v2-state-${{ github.run_id }}', path: /tmp/out, retention-days: 90, compression-level: 1, if-no-files-found: error}
