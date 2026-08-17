@@ -1,0 +1,111 @@
+name: TREB pinned static exact three-feed recovery
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - 'team_trb_all_players/treb_static_exact_threefeed_recovery.py'
+      - '.github/workflows/treb-static-exact-threefeed-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 11
+      matrix:
+        season: ['2004-05','2009-10','2015-16','2017-18','2018-19','2019-20','2020-21','2021-22','2022-23','2023-24','2024-25']
+    runs-on: ubuntu-24.04
+    env:
+      CURRENT_ARTIFACT_ID: 9275527991
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact reconstruction dependencies
+        run: python -m pip install --disable-pip-version-check -q pandas numpy rapidfuzz
+      - name: Download authoritative checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Reconstruct only current blocker games with proven three-feed engine
+        run: |
+          python -u team_trb_all_players/treb_static_exact_threefeed_recovery.py \
+            --current-dir /tmp/current --out-dir /tmp/out --season '${{ matrix.season }}'
+      - name: Upload season checkpoint
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-static-exact-threefeed-${{ matrix.season }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-static-exact-threefeed-*-${{ github.run_id }}
+          path: /tmp/all
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q pandas
+      - name: Consolidate conflict-free exact candidates
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json,pathlib,pandas as pd
+          root=pathlib.Path('/tmp/all');out=pathlib.Path('/tmp/final')
+          q=[]
+          for f in root.rglob('QA.json'):
+              try:q.append(json.loads(f.read_text()))
+              except Exception:pass
+          pfiles=list(root.rglob('PLAYER_CANDIDATES.csv.gz'));tfiles=list(root.rglob('TEAM_CANDIDATES.csv.gz'))
+          ps=pd.concat([pd.read_csv(f,low_memory=False) for f in pfiles],ignore_index=True) if pfiles else pd.DataFrame()
+          ts=pd.concat([pd.read_csv(f,low_memory=False) for f in tfiles],ignore_index=True) if tfiles else pd.DataFrame()
+          conflicts=[]
+          def check(df,keys,vals,kind):
+              if not len(df):return df
+              x=df.copy()
+              for k in keys:x[k]=x[k].astype(str).str.replace(r'\.0$','',regex=True)
+              for key,g in x.groupby(keys,dropna=False):
+                  if len(g)>1:
+                      sig={tuple(float(r[v]) for v in vals) for _,r in g.iterrows()}
+                      if len(sig)>1:conflicts.append({'kind':kind,'key':list(key if isinstance(key,tuple) else (key,))})
+              return x.drop_duplicates(keys,keep='first')
+          ps=check(ps,['season','game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'],'player')
+          ts=check(ts,['season','game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb'],'team')
+          mismatch=sum(int(x.get('control_mismatches',0)) for x in q)
+          controls=sum(int(x.get('controls_checked',0)) for x in q)
+          if conflicts or mismatch:
+              ps=ps.iloc[0:0] if len(ps) else ps;ts=ts.iloc[0:0] if len(ts) else ts
+          if len(ps):ps.to_csv(out/'CANDIDATE_PLAYER_GAME_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          if len(ts):ts.to_csv(out/'CANDIDATE_TEAM_GAME_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          qa={'status':'PASS' if not conflicts and mismatch==0 else 'FAIL_CLOSED','season_jobs':len(q),'controls_checked':controls,'control_mismatches':mismatch,'duplicate_conflicts':conflicts,'candidate_player_primitives':int(len(ps)),'candidate_team_primitives':int(len(ts)),'season_qa':q,'next':'union candidates with authoritative cumulative exact primitives, exact reclose, then rerun <=0.01pp materiality gate','integrity':{'promotion_performed':False,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_team_subtraction_used':False}}
+          (out/'THREEFEED_CONSOLIDATED_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in qa.items() if k!='season_qa'},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-static-exact-threefeed-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
