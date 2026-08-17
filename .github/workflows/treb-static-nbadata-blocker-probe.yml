@@ -1,0 +1,116 @@
+name: TREB static nba_data blocker probe
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-static-nbadata-blocker-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      max-parallel: 11
+      matrix:
+        include:
+          - year: 2004
+            season: '2004-05'
+            games: '0020400335'
+          - year: 2009
+            season: '2009-10'
+            games: '0020900212'
+          - year: 2015
+            season: '2015-16'
+            games: '0021500916'
+          - year: 2017
+            season: '2017-18'
+            games: '0021700022,0021700075,0021700077,0021700174,0021700231,0021700494'
+          - year: 2018
+            season: '2018-19'
+            games: '0021800689'
+          - year: 2019
+            season: '2019-20'
+            games: '0021901316,0021901317,0021901318'
+          - year: 2020
+            season: '2020-21'
+            games: '0022000853'
+          - year: 2021
+            season: '2021-22'
+            games: '0022100976,0022101023'
+          - year: 2022
+            season: '2022-23'
+            games: '0022200234,0022200322,0022200331,0022200733,0022200812,0022201018,0022201076,0022201168,0022201171,0022201187,0022201218'
+          - year: 2023
+            season: '2023-24'
+            games: '0022301177,0022301195'
+          - year: 2024
+            season: '2024-25'
+            games: '0022400072'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Probe exact static archives
+        env:
+          YEAR: ${{ matrix.year }}
+          SEASON: ${{ matrix.season }}
+          GAMES: ${{ matrix.games }}
+        run: |
+          set -euo pipefail
+          mkdir -p out data
+          python - <<'PY'
+          import csv, io, json, lzma, os, pathlib, tarfile, urllib.request
+          year=os.environ['YEAR']; season=os.environ['SEASON']; targets={g.strip() for g in os.environ['GAMES'].split(',') if g.strip()}
+          root=pathlib.Path('data'); out=pathlib.Path('out'); out.mkdir(exist_ok=True)
+          report={'year':year,'season':season,'targets':sorted(targets),'sources':{}}
+          for src in ('nbastats','pbpstats'):
+              url=f'https://github.com/shufinskiy/nba_data/raw/main/datasets/{src}_{year}.tar.xz'
+              arc=root/f'{src}_{year}.tar.xz'
+              try:
+                  req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+                  with urllib.request.urlopen(req,timeout=180) as r, arc.open('wb') as f:
+                      while True:
+                          b=r.read(1024*1024)
+                          if not b: break
+                          f.write(b)
+                  with tarfile.open(arc,'r:xz') as tf:
+                      names=tf.getnames(); csvname=next((n for n in names if n.lower().endswith('.csv')),None)
+                      if not csvname: raise RuntimeError(f'no csv in archive: {names[:20]}')
+                      fh=tf.extractfile(csvname)
+                      text=io.TextIOWrapper(fh,encoding='utf-8-sig',errors='replace',newline='')
+                      rd=csv.DictReader(text)
+                      fields=rd.fieldnames or []
+                      game_col=next((c for c in fields if c.upper().replace('_','') in ('GAMEID',)),None)
+                      counts={g:0 for g in targets}; samples={g:[] for g in targets}
+                      if game_col:
+                          for row in rd:
+                              gid=str(row.get(game_col,'')).strip()
+                              if gid.isdigit(): gid=gid.zfill(10)
+                              if gid in targets:
+                                  counts[gid]+=1
+                                  if len(samples[gid])<2: samples[gid].append({k:row.get(k) for k in fields[:40]})
+                      report['sources'][src]={'status':'PASS','url':url,'bytes':arc.stat().st_size,'csv':csvname,'field_count':len(fields),'fields':fields,'game_col':game_col,'target_row_counts':counts,'samples':samples}
+              except Exception as e:
+                  report['sources'][src]={'status':'ERROR','url':url,'error':repr(e)}
+          (out/f'probe_{year}.json').write_text(json.dumps(report,indent=2))
+          ok=True
+          for src in ('nbastats','pbpstats'):
+              x=report['sources'].get(src,{})
+              if x.get('status')!='PASS': ok=False
+          print(json.dumps(report,indent=2)[:30000])
+          if not ok: raise SystemExit(2)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-static-nbadata-probe-${{ matrix.year }}
+          path: out/**
+          retention-days: 30
+          if-no-files-found: error
