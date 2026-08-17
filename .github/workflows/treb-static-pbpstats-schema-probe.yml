@@ -1,5 +1,5 @@
 name: TREB static pbpstats blocker schema probe
-# Deep payload pass: inspect nested EVENTS structure before any exact promotion.
+# Pair-feasibility pass: inspect static nbastats + pbpstats blocker payloads before any exact promotion.
 on:
   push:
     branches: [agent/treb-final-exact-assembly]
@@ -29,12 +29,12 @@ jobs:
           mkdir -p /tmp/current /tmp/out
           gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
           unzip -q /tmp/current.zip -d /tmp/current
-      - name: Probe static pbpstats blocker schema
+      - name: Probe static NBA/PBP blocker pair feasibility
         run: python -u team_trb_all_players/treb_static_pbpstats_schema_probe.py --current-dir /tmp/current --out-dir /tmp/out
       - name: Upload durable probe
         uses: actions/upload-artifact@v4
         with:
-          name: TREB-static-pbpstats-schema-${{ github.run_id }}
+          name: TREB-static-pair-feasibility-${{ github.run_id }}
           path: /tmp/out
           retention-days: 90
           compression-level: 1
