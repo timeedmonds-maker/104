@@ -1,0 +1,121 @@
+name: TREB target-player exact interval recovery
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - 'team_trb_all_players/treb_target_player_interval_recovery.py'
+      - '.github/workflows/treb-target-player-interval-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        season: ['2004-05','2009-10','2015-16','2017-18','2018-19','2019-20','2020-21','2021-22','2022-23','2023-24','2024-25']
+    runs-on: ubuntu-24.04
+    env:
+      CURRENT_ARTIFACT_ID: 9275527991
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact recovery dependencies
+        run: python -m pip install --disable-pip-version-check -q pandas numpy rapidfuzz
+      - name: Download authoritative checkpoint with retry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            rm -f /tmp/current.zip
+            if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip && unzip -tq /tmp/current.zip >/dev/null 2>&1; then ok=1; break; fi
+            sleep $((attempt * 8))
+          done
+          test "$ok" -eq 1
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Recover target-player exact intervals
+        run: |
+          python -u team_trb_all_players/treb_target_player_interval_recovery.py \
+            --current-dir /tmp/current --out-dir /tmp/out --season '${{ matrix.season }}'
+      - name: Upload season evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-target-interval-${{ matrix.season }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    needs: recover
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-target-interval-*-${{ github.run_id }}
+          path: /tmp/all
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q pandas
+      - name: Apply global exact-control and conflict gate
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json,pathlib,pandas as pd
+          root=pathlib.Path('/tmp/all');out=pathlib.Path('/tmp/final')
+          q=[]
+          for f in root.rglob('QA.json'):
+              try:q.append(json.loads(f.read_text()))
+              except:pass
+          pfs=list(root.rglob('PLAYER_CANDIDATES.csv.gz'));tfs=list(root.rglob('TEAM_CANDIDATES.csv.gz'))
+          ps=pd.concat([pd.read_csv(f,low_memory=False) for f in pfs],ignore_index=True) if pfs else pd.DataFrame()
+          ts=pd.concat([pd.read_csv(f,low_memory=False) for f in tfs],ignore_index=True) if tfs else pd.DataFrame()
+          conflicts=[]
+          def dedup(df,keys,vals,kind):
+              if not len(df):return df
+              x=df.copy()
+              for k in keys:x[k]=x[k].astype(str).str.replace(r'\.0$','',regex=True)
+              for key,g in x.groupby(keys,dropna=False):
+                  sig={tuple(float(r[v]) for v in vals) for _,r in g.iterrows()}
+                  if len(sig)>1:conflicts.append({'kind':kind,'key':list(key if isinstance(key,tuple) else (key,))})
+              return x.drop_duplicates(keys,keep='first')
+          ps=dedup(ps,['season','game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'],'player')
+          ts=dedup(ts,['season','game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb'],'team')
+          mismatches=sum(int(x.get('control_mismatches',0)) for x in q)
+          controls=sum(int(x.get('controls_checked',0)) for x in q)
+          cgames=sum(int(x.get('control_games_reconstructed',0)) for x in q)
+          cseasons=sum(1 for x in q if int(x.get('controls_checked',0))>0)
+          source_failures=sum(1 for x in q if x.get('status')=='SOURCE_FAILURE')
+          gate=source_failures==0 and mismatches==0 and not conflicts and controls>=100 and cgames>=8 and cseasons>=3
+          raw_p=len(ps);raw_t=len(ts)
+          if not gate:
+              ps=ps.iloc[0:0] if len(ps) else ps;ts=ts.iloc[0:0] if len(ts) else ts
+          if len(ps):ps.to_csv(out/'CANDIDATE_PLAYER_GAME_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          if len(ts):ts.to_csv(out/'CANDIDATE_TEAM_GAME_PRIMITIVES.csv.gz',index=False,compression='gzip')
+          qa={'status':'PASS_PROMOTION_READY' if gate else 'FAIL_CLOSED','season_jobs':len(q),'source_failures':source_failures,'controls_checked':controls,'control_games_reconstructed':cgames,'control_seasons':cseasons,'control_mismatches':mismatches,'duplicate_conflicts':conflicts,'raw_candidate_player_primitives':raw_p,'raw_candidate_team_primitives':raw_t,'candidate_player_primitives':len(ps),'candidate_team_primitives':len(ts),'promotion_performed':False,'next':'conflict-check union with authoritative cumulative primitives, exact reclose, then materiality rerun if PASS_PROMOTION_READY','integrity':{'player_interval_period_local':True,'full_lineup_reconstruction_required':False,'exact_rebound_identity_or_unique_period_assignment_only':True,'event_reuse_forbidden':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_team_subtraction_used':False}}
+          (out/'TARGET_INTERVAL_CONSOLIDATED_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
+          print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-target-interval-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
