@@ -1,0 +1,40 @@
+name: TREB static CDN/data.nba blocker feasibility
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_static_cdn_datanba_feasibility.py'
+      - '.github/workflows/treb-static-cdn-datanba-feasibility.yml'
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+    env:
+      CURRENT_ARTIFACT_ID: '9275527991'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q pandas
+      - name: Download authoritative checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/current /tmp/out
+          gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Probe pinned static CDN and data.nba archives
+        run: python -u team_trb_all_players/treb_static_cdn_datanba_feasibility.py --current-dir /tmp/current --out-dir /tmp/out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-static-cdn-datanba-feasibility-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
