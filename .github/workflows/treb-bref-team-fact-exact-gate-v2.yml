@@ -59,9 +59,16 @@ jobs:
           for line in txt.splitlines():
               if '=' in line:
                   k,v=line.split('=',1); urls[k.strip()]=v.strip()
+          def parse_game_date(x):
+              s=str(x).strip()
+              if s.endswith('.0'): s=s[:-2]
+              digits=re.sub(r'\D','',s)
+              if len(digits)==8:
+                  d=pd.to_datetime(digits,format='%Y%m%d',errors='coerce')
+                  if not pd.isna(d): return d
+              return pd.to_datetime(s,errors='coerce')
           meta={}
           for y in years:
-              # shotdetail supplies canonical game date + home/away abbreviations
               su=urls.get(f'shotdetail_{y}'); nu=urls.get(f'nbastats_{y}')
               if not su or not nu: continue
               sr=sess.get(su,timeout=90); sr.raise_for_status()
@@ -73,7 +80,7 @@ jobs:
               shot['GAME_ID']=pd.to_numeric(shot.GAME_ID).astype('int64'); nba['GAME_ID']=pd.to_numeric(nba.GAME_ID).astype('int64')
               sg=shot[['GAME_ID','GAME_DATE','HTM','VTM']].drop_duplicates('GAME_ID')
               for r in sg.itertuples(index=False):
-                  date=pd.to_datetime(r.GAME_DATE,errors='coerce')
+                  date=parse_game_date(r.GAME_DATE)
                   if pd.isna(date): continue
                   g=int(r.GAME_ID); gm=nba[nba.GAME_ID==g]
                   pairs=[]
@@ -94,7 +101,7 @@ jobs:
                   ht=str(r.HTM).upper(); vt=str(r.VTM).upper(); hid=mode_id(ht); vid=mode_id(vt)
                   if hid and vid and hid!=vid:
                       meta[g]={'date':date.strftime('%Y%m%d'),'home_abb':ht,'away_abb':vt,'teams':[(hid,ht),(vid,vt)]}
-          BREF={'BKN':'BRK','BRK':'BRK','PHX':'PHO','PHO':'PHO','CHA':'CHO','CHO':'CHO'}
+          BREF={'BKN':'BRK','BRK':'BRK','PHX':'PHO','PHO':'PHO','CHA':'CHO','CHO':'CHO','NJN':'NJN','NOH':'NOH','NOK':'NOK','SEA':'SEA','VAN':'VAN'}
           def bref(a): return BREF.get(a,a)
           cache={}
           def fetch_game(g):
