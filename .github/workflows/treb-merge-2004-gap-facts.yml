@@ -1,0 +1,86 @@
+name: TREB merge locked 2004 gap facts
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-merge-2004-gap-facts.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  CURRENT_ARTIFACT_ID: '9275404348'
+  SPECIAL_ARTIFACT_ID: '9275463278'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  MATERIALITY_ARTIFACT_ID: '9262341403'
+  MATERIALITY_2015_ARTIFACT_ID: '9267705324'
+
+jobs:
+  merge:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Download all inputs
+        env: {GH_TOKEN: '${{ github.token }}'}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current current_aug special tenure consensus pbp recovered_old recovered_mid recovered_new materiality materiality2015 shared/base shared/special shared/merged out; do mkdir -p /tmp/$d; done
+          for spec in current:$CURRENT_ARTIFACT_ID special:$SPECIAL_ARTIFACT_ID tenure:$TENURE_ARTIFACT_ID consensus:$CONSENSUS_ARTIFACT_ID pbp:$PBP_ARTIFACT_ID recovered_old:$RECOVERED_OLD_ARTIFACT_ID recovered_mid:$RECOVERED_MID_ARTIFACT_ID recovered_new:$RECOVERED_NEW_ARTIFACT_ID materiality:$MATERIALITY_ARTIFACT_ID materiality2015:$MATERIALITY_2015_ARTIFACT_ID; do d=${spec%%:*};a=${spec##*:};gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" >/tmp/$d.zip;unzip -q /tmp/$d.zip -d /tmp/$d;done
+          cp -a /tmp/current/. /tmp/current_aug/
+          find /tmp/current -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/base/ \;
+          find /tmp/special -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/special/ \;
+      - name: Union cumulative and special facts conflict-free
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,gzip,pathlib
+          roots=[pathlib.Path('/tmp/shared/base'),pathlib.Path('/tmp/shared/special')];O=pathlib.Path('/tmp/shared/merged')
+          for name,ks,vs in [('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz',['game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb']),('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz',['game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'])]:
+            rows={};fields=None
+            for root in roots:
+              for p in root.rglob(name):
+                with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
+                  rd=csv.DictReader(f);fields=fields or rd.fieldnames
+                  for r in rd:
+                    q=tuple(str(r[z]).strip().removesuffix('.0') for z in ks);vals=tuple(float(r[z]) for z in vs)
+                    if q in rows and tuple(float(rows[q][z]) for z in vs)!=vals:raise SystemExit(f'CONFLICT {name} {q}')
+                    rows[q]=r
+            with gzip.open(O/name,'wt',encoding='utf-8',newline='') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows[q] for q in sorted(rows))
+            print('UNION',name,len(rows))
+          PY
+      - name: Restore materiality accounting keys
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,pathlib
+          p=next(pathlib.Path('/tmp/current_aug').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'));rows=list(csv.DictReader(open(p)));fields=list(rows[0])
+          def k(r):return(str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).strip().removesuffix('.0'))
+          seen={k(r) for r in rows}
+          for root in [pathlib.Path('/tmp/materiality'),pathlib.Path('/tmp/materiality2015')]:
+            for q in root.rglob('*MATERIALITY_ACCEPTED*.csv'):
+              try:
+                for r in csv.DictReader(open(q)):
+                  if r.get('season') and r.get('team_id') and r.get('player_id') and k(r) not in seen:
+                    x=k(r);rows.append({'season':x[0],'team_id':x[1],'player_id':x[2]});seen.add(x)
+              except:pass
+          with open(p,'w',newline='') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          PY
+      - name: Authoritative exact reclosure
+        shell: bash
+        run: |
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/reclose_residual_shared_games.py --current-dir /tmp/current_aug --tenure-dir /tmp/tenure --consensus-dir /tmp/consensus --pbp-dir /tmp/pbp --recovered-old-dir /tmp/recovered_old --recovered-mid-dir /tmp/recovered_mid --recovered-new-dir /tmp/recovered_new --shared-dir /tmp/shared/merged --materiality-dir /tmp/materiality --materiality-2015-dir /tmp/materiality2015 --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz --minutes-gate-seconds 60 --output-dir /tmp/out
+          cp /tmp/shared/merged/RECOVERED_RESIDUAL_SHARED_*_GAME_PRIMITIVES.csv.gz /tmp/out/
+      - uses: actions/upload-artifact@v4
+        with: {name: 'TREB-post-2004-gap-union-state-${{ github.run_id }}', path: /tmp/out, retention-days: 90, compression-level: 1, if-no-files-found: error}
