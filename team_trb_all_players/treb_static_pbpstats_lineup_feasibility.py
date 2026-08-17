@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse,base64,csv,io,json,pathlib,tarfile,urllib.request,re
+import argparse,csv,io,json,pathlib,tarfile,urllib.request,re
 from collections import defaultdict,Counter
 
 PBP_BLOBS={
@@ -25,11 +25,14 @@ def download(year):
     sha=PBP_BLOBS.get(year)
     if not sha: raise RuntimeError(f'no pinned PBPStats blob for {year}')
     url=f'https://api.github.com/repos/shufinskiy/nba_data/git/blobs/{sha}'
-    req=urllib.request.Request(url,headers={'Accept':'application/vnd.github+json','User-Agent':'TREB-exact-recovery'})
-    with urllib.request.urlopen(req,timeout=240) as r: obj=json.load(r)
-    if obj.get('encoding')!='base64' or not obj.get('content'):
-        raise RuntimeError(f'unexpected blob response encoding for {year}: {obj.get("encoding")}')
-    b=base64.b64decode(obj['content'])
+    req=urllib.request.Request(url,headers={
+        'Accept':'application/vnd.github.raw+json',
+        'User-Agent':'TREB-exact-recovery',
+        'X-GitHub-Api-Version':'2026-03-10',
+    })
+    with urllib.request.urlopen(req,timeout=240) as r: b=r.read()
+    if not b:
+        raise RuntimeError(f'empty raw blob response for {year}')
     with tarfile.open(fileobj=io.BytesIO(b),mode='r:xz') as tf:
         names=[n for n in tf.getnames() if n.lower().endswith('.csv')]
         if not names: raise RuntimeError('no csv')
