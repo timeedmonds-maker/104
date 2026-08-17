@@ -7,6 +7,7 @@ individual paired PBP/NBA rebound rows that can affect the mismatched primitive 
 subsequent rule may be derived only from explicit source semantics and then globally
 zero-mismatch validated.
 """
+# Traceable automation trigger 2026-08-18; no reconstruction semantics changed.
 from __future__ import annotations
 import argparse,json,pathlib,tempfile,re
 import pandas as pd
