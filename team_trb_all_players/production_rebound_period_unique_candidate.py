@@ -29,7 +29,12 @@ def _pbp_rebounds(pbp_game: pd.DataFrame) -> pd.DataFrame:
 
 
 def _unique_order_assignment(rows: pd.DataFrame, nba: pd.DataFrame, used: set[int], alpha: int = 5):
-    """Return unique mapping {pbp_index:nba_index}, or None if 0/>1 mappings."""
+    """Return unique mapping {pbp_index:nba_index}, or None if 0/>1 mappings.
+
+    Uses iterative dynamic programming so uniqueness is evaluated exactly without
+    Python recursion-depth dependence. Counts are capped at 2 because only
+    zero/one/multiple solutions matter.
+    """
     if rows.empty:
         return {}
     rr = rows.sort_values(["START_ELAPSED", "END_ELAPSED"], kind="stable")
@@ -45,33 +50,34 @@ def _unique_order_assignment(rows: pd.DataFrame, nba: pd.DataFrame, used: set[in
         lo = min(int(r.START_ELAPSED), int(r.END_ELAPSED)) - alpha
         hi = max(int(r.START_ELAPSED), int(r.END_ELAPSED)) + alpha
         allowed.append([lo < elapsed < hi for _, elapsed in elist])
-    from functools import lru_cache
-    @lru_cache(None)
-    def solve(i: int, j: int):
-        if i == n:
-            return 1, ()
-        if j == m or (m - j) < (n - i):
-            return 0, ()
-        total = 0; unique_path = ()
-        c1, p1 = solve(i, j + 1)
-        if c1:
-            total = min(2, total + c1)
-            if total == 1 and c1 == 1:
-                unique_path = p1
-            else:
-                unique_path = ()
-        if allowed[i][j]:
-            c2, p2 = solve(i + 1, j + 1)
-            if c2:
-                prev = total
-                total = min(2, total + c2)
-                if prev == 0 and c2 == 1 and total == 1:
-                    unique_path = (j,) + p2
-                else:
-                    unique_path = ()
-        return total, unique_path
-    count, path = solve(0, 0)
-    if count != 1 or len(path) != n:
+    dp = [bytearray(m + 1) for _ in range(n + 1)]
+    for j in range(m + 1):
+        dp[n][j] = 1
+    for i in range(n - 1, -1, -1):
+        for j in range(m - 1, -1, -1):
+            if (m - j) < (n - i):
+                dp[i][j] = 0
+                continue
+            total = int(dp[i][j + 1])
+            if allowed[i][j]:
+                total += int(dp[i + 1][j + 1])
+            dp[i][j] = 2 if total >= 2 else total
+    if int(dp[0][0]) != 1:
+        return None
+    path = []
+    i = j = 0
+    while i < n:
+        if j >= m:
+            return None
+        skip = int(dp[i][j + 1])
+        match = int(dp[i + 1][j + 1]) if allowed[i][j] else 0
+        if match and not skip:
+            path.append(j); i += 1; j += 1
+        elif skip and not match:
+            j += 1
+        else:
+            return None
+    if len(path) != n:
         return None
     return {int(rlist[k][0]): int(elist[path[k]][0]) for k in range(n)}
 
