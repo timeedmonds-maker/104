@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
-import argparse,json,pathlib,subprocess,tarfile,tempfile
+import argparse,json,pathlib,subprocess,tarfile,tempfile,time
 from collections import defaultdict
 import pandas as pd
 import build_exact_game_fact_layer as exact
@@ -21,11 +21,33 @@ def pick(root,name):
 def prep(root):
     subprocess.run(['git','init','-q',str(root)],check=True)
     subprocess.run(['git','-C',str(root),'remote','add','origin',UPSTREAM],check=True)
-    subprocess.run(['git','-C',str(root),'-c','http.version=HTTP/1.1','fetch','--depth=1','--no-tags','origin',UPSTREAM_COMMIT],check=True,timeout=600)
-    return root
+    errs=[]
+    for attempt in range(1,5):
+        try:
+            # Blobless fetch obtains only the pinned commit/tree initially. The three
+            # requested season archives are then fetched lazily by git show, avoiding
+            # a multi-season large-blob transfer during repository setup.
+            subprocess.run(['git','-C',str(root),'-c','http.version=HTTP/1.1','fetch','--filter=blob:none','--depth=1','--no-tags','origin',UPSTREAM_COMMIT],check=True,timeout=240)
+            return root
+        except Exception as e:
+            errs.append(f'attempt {attempt}: {type(e).__name__}: {e}')
+            time.sleep(attempt*8)
+    raise RuntimeError('pinned upstream blobless fetch failed after retries: '+' | '.join(errs))
 def archive_df(repo,tmp,kind,year,wanted):
     a=tmp/f'{kind}_{year}.tar.xz'; spec=f'{UPSTREAM_COMMIT}:datasets/{kind}_{year}.tar.xz'
-    with a.open('wb') as f: subprocess.run(['git','-C',str(repo),'show',spec],stdout=f,check=True,timeout=600)
+    errs=[]
+    for attempt in range(1,4):
+        try:
+            with a.open('wb') as f:
+                subprocess.run(['git','-C',str(repo),'-c','http.version=HTTP/1.1','show',spec],stdout=f,check=True,timeout=300)
+            if a.stat().st_size <= 0: raise RuntimeError('empty archive')
+            break
+        except Exception as e:
+            errs.append(f'attempt {attempt}: {type(e).__name__}: {e}')
+            a.unlink(missing_ok=True)
+            time.sleep(attempt*6)
+    else:
+        raise RuntimeError(f'failed to materialize {spec}: '+' | '.join(errs))
     with tarfile.open(a,'r:xz') as tf:
         ms=[m for m in tf.getmembers() if m.isfile() and m.name.lower().endswith('.csv')]
         if not ms: raise RuntimeError(f'no csv in {kind}_{year}')
