@@ -1,0 +1,111 @@
+name: TREB rebound semantic exact-control audit
+
+on:
+  push:
+    branches:
+      - agent/treb-final-exact-assembly
+    paths:
+      - 'team_trb_all_players/treb_rebound_semantic_audit.py'
+      - '.github/workflows/treb-rebound-semantic-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        season: ['2004-05','2009-10','2015-16','2017-18','2018-19','2019-20','2020-21','2021-22','2022-23','2023-24','2024-25']
+    runs-on: ubuntu-24.04
+    env:
+      CURRENT_ARTIFACT_ID: 9275527991
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -q pandas numpy rapidfuzz
+      - name: Download authoritative checkpoint with retry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            rm -f /tmp/current.zip
+            if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip && unzip -tq /tmp/current.zip >/dev/null 2>&1; then ok=1; break; fi
+            sleep $((attempt * 8))
+          done
+          test "$ok" -eq 1
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Audit individual rebound semantics on exact controls
+        run: |
+          python -u team_trb_all_players/treb_rebound_semantic_audit.py \
+            --current-dir /tmp/current --out-dir /tmp/out --season '${{ matrix.season }}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-rebound-semantic-${{ matrix.season }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+  consolidate:
+    needs: audit
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-rebound-semantic-*-${{ github.run_id }}
+          path: /tmp/all
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q pandas
+      - name: Consolidate semantic evidence without promotion
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/final
+          python - <<'PY'
+          import json,pathlib,pandas as pd
+          root=pathlib.Path('/tmp/all');out=pathlib.Path('/tmp/final')
+          qs=[]
+          for f in root.rglob('QA.json'):
+              try:qs.append(json.loads(f.read_text()))
+              except:pass
+          mf=list(root.rglob('MISMATCHES.csv.gz'));ef=list(root.rglob('MISMATCH_COMPONENT_EVENTS.csv.gz'))
+          m=pd.concat([pd.read_csv(f,low_memory=False) for f in mf],ignore_index=True) if mf else pd.DataFrame()
+          e=pd.concat([pd.read_csv(f,low_memory=False) for f in ef],ignore_index=True) if ef else pd.DataFrame()
+          if len(m):m.to_csv(out/'ALL_MISMATCHES.csv.gz',index=False,compression='gzip')
+          if len(e):
+              e.to_csv(out/'ALL_MISMATCH_COMPONENT_EVENTS.csv.gz',index=False,compression='gzip')
+              cols=['component','generic_team_rebound','contains_counter','is_real_rebound','nba_is_real_rebound']
+              s=e.groupby(cols,dropna=False).size().reset_index(name='event_rows').sort_values('event_rows',ascending=False)
+              s.to_csv(out/'SEMANTIC_FEATURE_COUNTS.csv',index=False)
+          qa={'status':'PASS_DIAGNOSTIC' if qs and not any(int(q.get('source_failures',0)) for q in qs) else 'PARTIAL_DIAGNOSTIC',
+              'season_jobs':len(qs),'source_failures':sum(int(q.get('source_failures',0)) for q in qs),
+              'control_games_reconstructed':sum(int(q.get('control_games_reconstructed',0)) for q in qs),
+              'controls_checked':sum(int(q.get('controls_checked',0)) for q in qs),
+              'control_mismatches':sum(int(q.get('control_mismatches',0)) for q in qs),
+              'mismatch_games':sum(int(q.get('mismatch_games',0)) for q in qs),
+              'mismatch_records':len(m),'mismatch_component_event_rows':len(e),'promotion_performed':False,
+              'next':'derive only explicit source-semantic candidate predicates from these exact-control mismatch events; require zero mismatch on a broad retained exact-control validation set before any blocker application',
+              'integrity':{'diagnostic_only':True,'exact_controls_only':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_team_subtraction_used':False}}
+          (out/'SEMANTIC_AUDIT_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-rebound-semantic-consolidated-${{ github.run_id }}
+          path: /tmp/final
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
