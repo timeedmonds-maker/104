@@ -1,0 +1,99 @@
+name: TREB current 2004 locked-gap closure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-current-2004-gap-repair.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  CURRENT_ARTIFACT_ID: '9275404348'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  MATERIALITY_ARTIFACT_ID: '9262341403'
+  MATERIALITY_2015_ARTIFACT_ID: '9267705324'
+
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install --disable-pip-version-check pandas numpy rapidfuzz
+      - name: Download state and evidence
+        env: {GH_TOKEN: '${{ github.token }}'}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current current_aug tenure consensus pbp recovered_old recovered_mid recovered_new materiality materiality2015 shared recovery out src; do mkdir -p /tmp/$d; done
+          for spec in current:$CURRENT_ARTIFACT_ID tenure:$TENURE_ARTIFACT_ID consensus:$CONSENSUS_ARTIFACT_ID pbp:$PBP_ARTIFACT_ID recovered_old:$RECOVERED_OLD_ARTIFACT_ID recovered_mid:$RECOVERED_MID_ARTIFACT_ID recovered_new:$RECOVERED_NEW_ARTIFACT_ID materiality:$MATERIALITY_ARTIFACT_ID materiality2015:$MATERIALITY_2015_ARTIFACT_ID; do
+            d=${spec%%:*};a=${spec##*:};gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" >/tmp/$d.zip;unzip -q /tmp/$d.zip -d /tmp/$d
+          done
+          cp -a /tmp/current/. /tmp/current_aug/
+          find /tmp/current -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/ \;
+      - name: Download 2004 NBA V2 and PBP
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --retry-all-errors -o /tmp/list_data.txt https://raw.githubusercontent.com/shufinskiy/nba_data/main/list_data.txt
+          python - <<'PY' >/tmp/urls.tsv
+          v={}
+          for line in open('/tmp/list_data.txt'):
+            if '=' in line:k,x=line.split('=',1);v[k.strip()]=x.strip()
+          for p in ('nbastats','pbpstats'):print(p,v[f'{p}_2004'],sep='\t')
+          PY
+          while IFS=$'\t' read -r p url; do curl --fail --location --retry 5 --retry-all-errors -o /tmp/src/${p}_2004.tar.xz "$url";tar -xJf /tmp/src/${p}_2004.tar.xz -C /tmp/src;done </tmp/urls.tsv
+      - name: Recover current 2004 targets with locked gap conservation
+        shell: bash
+        run: |
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/recover_residual_v2_unique_rebound_adjudication.py --year 2004 --current-dir /tmp/current --materiality-dir /tmp/materiality --materiality-2015-dir /tmp/materiality2015 --nba /tmp/src/nbastats_2004.csv --pbp /tmp/src/pbpstats_2004.csv --timeout-seconds 180 --output-dir /tmp/recovery
+      - name: Exact reclosure
+        shell: bash
+        run: |
+          cp /tmp/recovery/RECOVERED_RESIDUAL_SHARED_*_GAME_PRIMITIVES.csv.gz /tmp/shared/
+          python - <<'PY'
+          import csv,pathlib
+          C=pathlib.Path('/tmp/current_aug');p=next(C.rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'));rows=list(csv.DictReader(open(p)));fields=list(rows[0])
+          def k(r):return(str(r['season']),str(int(float(r['team_id']))),str(r['player_id']).strip().removesuffix('.0'))
+          seen={k(r) for r in rows}
+          for root in [pathlib.Path('/tmp/materiality'),pathlib.Path('/tmp/materiality2015')]:
+            for q in root.rglob('*MATERIALITY_ACCEPTED*.csv'):
+              try:
+                for r in csv.DictReader(open(q)):
+                  if r.get('season') and r.get('team_id') and r.get('player_id') and k(r) not in seen:
+                    x=k(r);rows.append({'season':x[0],'team_id':x[1],'player_id':x[2]});seen.add(x)
+              except:pass
+          with open(p,'w',newline='') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows)
+          PY
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/reclose_residual_shared_games.py --current-dir /tmp/current_aug --tenure-dir /tmp/tenure --consensus-dir /tmp/consensus --pbp-dir /tmp/pbp --recovered-old-dir /tmp/recovered_old --recovered-mid-dir /tmp/recovered_mid --recovered-new-dir /tmp/recovered_new --shared-dir /tmp/shared --materiality-dir /tmp/materiality --materiality-2015-dir /tmp/materiality2015 --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz --minutes-gate-seconds 60 --output-dir /tmp/out
+      - name: Persist cumulative facts
+        shell: bash
+        run: |
+          python - <<'PY'
+          import csv,gzip,pathlib
+          S=pathlib.Path('/tmp/shared');O=pathlib.Path('/tmp/out')
+          for name,ks,vs in [('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz',['game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb']),('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz',['game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'])]:
+            rows={};fields=None
+            for p in S.rglob(name):
+              with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
+                rd=csv.DictReader(f);fields=fields or rd.fieldnames
+                for r in rd:
+                  q=tuple(str(r[z]).strip().removesuffix('.0') for z in ks);vals=tuple(float(r[z]) for z in vs)
+                  if q in rows and tuple(float(rows[q][z]) for z in vs)!=vals:raise SystemExit(f'CONFLICT {name} {q}')
+                  rows[q]=r
+            with gzip.open(O/name,'wt',encoding='utf-8',newline='') as f:w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows[q] for q in sorted(rows))
+          PY
+      - uses: actions/upload-artifact@v4
+        with: {name: 'TREB-current-2004-gap-state-${{ github.run_id }}', path: /tmp/out, retention-days: 90, compression-level: 1, if-no-files-found: error}
