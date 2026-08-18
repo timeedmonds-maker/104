@@ -37,11 +37,12 @@ jobs:
           # First use the exact authoritative artifact proven by the semantic lane.
           ok=0
           for attempt in 1 2 3 4 5; do
-            rm -f /tmp/current.zip
+            rm -rf auth /tmp/current.zip
+            mkdir -p auth
             if gh api "repos/${GH_REPO}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip 2>/dev/null \
                && test -s /tmp/current.zip \
                && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
-              unzip -q /tmp/current.zip -d auth
+              unzip -oq /tmp/current.zip -d auth
               hit=$(find auth -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
               if [ -n "$hit" ]; then
                 echo "authoritative_artifact_id=${CURRENT_ARTIFACT_ID}"
@@ -85,7 +86,7 @@ jobs:
               if gh api "repos/${GH_REPO}/actions/artifacts/${aid}/zip" > /tmp/candidate.zip 2>/dev/null \
                  && test -s /tmp/candidate.zip \
                  && unzip -tq /tmp/candidate.zip >/dev/null 2>&1; then
-                unzip -q /tmp/candidate.zip -d /tmp/candidate
+                unzip -oq /tmp/candidate.zip -d /tmp/candidate
                 hit=$(find /tmp/candidate -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
                 if [ -n "$hit" ]; then
                   cp -a /tmp/candidate/. auth/
