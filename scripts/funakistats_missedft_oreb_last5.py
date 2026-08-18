@@ -1,3 +1,4 @@
+# deterministic @funakistats render
 import os, math, requests
 import pandas as pd, numpy as np
 import matplotlib.pyplot as plt
