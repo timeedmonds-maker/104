@@ -1,0 +1,57 @@
+name: TREB current tail exact analysis
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_current_tail_exact_analysis.py'
+      - '.github/workflows/treb-current-tail-exact-analysis.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  CURRENT_ARTIFACT_ID: '9275527991'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download controlling authoritative checkpoint with retry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            rm -f /tmp/current.zip
+            if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
+              ok=1; break
+            fi
+            sleep $((attempt * 8))
+          done
+          test "$ok" -eq 1
+          unzip -q /tmp/current.zip -d /tmp/current
+      - name: Prove current validation and tenure tail from exact retained ledger
+        run: |
+          python -u team_trb_all_players/treb_current_tail_exact_analysis.py \
+            --current-dir /tmp/current --repo-root . --out-dir /tmp/out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-tail-exact-analysis-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
