@@ -25,7 +25,7 @@ for _,r in df.iterrows():
 fig=plt.figure(figsize=(12,12),dpi=300,facecolor='white')
 ax=fig.add_axes([0.115,0.15,0.82,0.69],facecolor='white')
 x=df.team_oreb_swing_pp.values; y=df.team_oreb_on_pct.values
-xmin=math.floor(x.min()-.8); xmax=math.ceil(x.max()+.8); ymin=math.floor(y.min()-.9); ymax=math.ceil(y.max()+.8); ymid=np.median(y)
+xmin=math.floor(x.min()-.8); xmax=math.ceil(x.max()+.8); ymin=math.floor(y.min()-1.1); ymax=math.ceil(y.max()+.8); ymid=np.median(y)
 ax.set_xlim(xmin,xmax); ax.set_ylim(ymin,ymax)
 ax.axvspan(xmin,0,ymin=(ymid-ymin)/(ymax-ymin),ymax=1,color='#f4dfbf',alpha=.55,zorder=0)
 ax.axvspan(0,xmax,ymin=(ymid-ymin)/(ymax-ymin),ymax=1,color='#dfeede',alpha=.65,zorder=0)
@@ -35,65 +35,67 @@ ax.grid(True,color='#9ba0a6',linewidth=.6,alpha=.25,zorder=1)
 ax.axvline(0,color='#6f747a',lw=1,alpha=.55,zorder=2); ax.axhline(ymid,color='#6f747a',lw=.9,alpha=.35,zorder=2)
 ax.scatter(x,y,s=10,color='#333',zorder=3)
 
-# Professional headshot packing: force-separated display-space rectangles with spring-back.
-fig.canvas.draw(); trans=ax.transData; inv=ax.transData.inverted()
+# Greedy deterministic portrait packing in rendered pixel space.
+fig.canvas.draw(); trans=ax.transData; inv=ax.transData.inverted(); axbox=ax.get_window_extent()
 anchors=np.array([trans.transform((xx,yy)) for xx,yy in zip(x,y)],dtype=float)
-pos=anchors.copy()
-# High OREB% / high-impact players resist displacement more strongly.
-importance=0.70*((y-y.min())/(y.max()-y.min())) + 0.30*(np.abs(x)/max(np.abs(x).max(),1))
-move_weight=1.25-0.75*importance
-# Conservative portrait collision box in rendered pixels (wider than actual face crop).
-box_w,box_h=74.0,80.0
-axbox=ax.get_window_extent(); margin_x,margin_y=42.0,46.0
-for _ in range(1200):
-    force=np.zeros_like(pos)
-    overlaps=0
-    for i in range(len(pos)):
-        for j in range(i+1,len(pos)):
-            dx=pos[j,0]-pos[i,0]; dy=pos[j,1]-pos[i,1]
-            ox=box_w-abs(dx); oy=box_h-abs(dy)
-            if ox>0 and oy>0:
-                overlaps+=1
-                # Resolve along the smaller-overlap dimension for compact local movement.
-                if ox < oy:
-                    s=1 if dx>=0 else -1
-                    push=np.array([s*(ox+2.0)*0.52,0.0])
-                else:
-                    s=1 if dy>=0 else -1
-                    push=np.array([0.0,s*(oy+2.0)*0.52])
-                wi=move_weight[i]/(move_weight[i]+move_weight[j]); wj=1-wi
-                force[i]-=push*wi; force[j]+=push*wj
-    # weak spring to exact statistical coordinates
-    force += (anchors-pos)*0.018
-    pos += force*0.82
-    # Keep portraits fully inside plotting area.
-    pos[:,0]=np.clip(pos[:,0],axbox.x0+margin_x,axbox.x1-margin_x)
-    pos[:,1]=np.clip(pos[:,1],axbox.y0+margin_y,axbox.y1-margin_y)
-    if overlaps==0 and np.max(np.linalg.norm(force,axis=1))<0.30:
-        break
+importance=0.72*((y-y.min())/(y.max()-y.min())) + 0.28*(np.abs(x)/max(np.abs(x).max(),1))
+priority=np.argsort(-importance)
+box_w,box_h=76.0,88.0
+angles=np.deg2rad([90,270,0,180,45,135,315,225,30,60,120,150,210,240,300,330])
+rings=[0,48,72,96,120,144,168,192,216,240]
+placed={}
 
-positions=np.array([inv.transform(p) for p in pos])
-# Connector from true coordinate only when movement is visible; shortest straight arm.
+def collides(c,p):
+    return abs(c[0]-p[0]) < box_w and abs(c[1]-p[1]) < box_h
+
+for idx in priority:
+    a=anchors[idx]; best=None; bestscore=1e30
+    for rad in rings:
+        cand=[a] if rad==0 else [a+rad*np.array([np.cos(t),np.sin(t)]) for t in angles]
+        for c in cand:
+            if c[0] < axbox.x0+42 or c[0] > axbox.x1-42 or c[1] < axbox.y0+48 or c[1] > axbox.y1-48:
+                continue
+            overlaps=sum(collides(c,p) for p in placed.values())
+            if overlaps==0:
+                d=c-a
+                # Prefer vertical movement over horizontal to preserve x ordering.
+                score=d[1]**2 + 1.55*d[0]**2
+                if score<bestscore:
+                    bestscore=score; best=c
+        if best is not None:
+            break
+    if best is None:
+        # Very unlikely fallback: choose lowest-overlap candidate from widest ring set.
+        for rad in rings:
+            for t in angles:
+                c=a+rad*np.array([np.cos(t),np.sin(t)])
+                if c[0] < axbox.x0+42 or c[0] > axbox.x1-42 or c[1] < axbox.y0+48 or c[1] > axbox.y1-48:
+                    continue
+                overlaps=sum(collides(c,p) for p in placed.values())
+                d=c-a; score=overlaps*1e7+d[1]**2+1.55*d[0]**2
+                if score<bestscore: bestscore=score; best=c
+    placed[idx]=best
+
+pos=np.array([placed[i] for i in range(len(df))]); positions=np.array([inv.transform(p) for p in pos])
+
+# shortest direct connectors from exact data point to displaced portrait centre
 for i,r in df.iterrows():
-    d=np.linalg.norm(pos[i]-anchors[i])
-    if d>9:
-        ax.plot([r.team_oreb_swing_pp,positions[i,0]],[r.team_oreb_on_pct,positions[i,1]],color='#555b61',lw=.55,alpha=.55,zorder=3.6)
+    if np.linalg.norm(pos[i]-anchors[i])>10:
+        ax.plot([r.team_oreb_swing_pp,positions[i,0]],[r.team_oreb_on_pct,positions[i,1]],color='#555b61',lw=.55,alpha=.52,zorder=3.6)
 
 for i,r in df.iterrows():
     arr=mpimg.imread(f'headshots/{int(r.player_id)}.png')
-    oi=OffsetImage(arr,zoom=0.080)
+    oi=OffsetImage(arr,zoom=0.075)
     ax.add_artist(AnnotationBbox(oi,positions[i],frameon=False,pad=0,box_alignment=(0.5,0.5),zorder=5))
 
-# Labels outside portrait boxes. Choose a side away from the true-point connector where possible.
-lasts=df.player.str.split().str[-1]; counts=lasts.value_counts()
+# sensible last names, accounting for suffixes
+suffixes={'Jr.','Jr','II','III','IV'}
+def short_name(name):
+    parts=name.split(); return parts[-2] if parts[-1] in suffixes and len(parts)>=2 else parts[-1]
+shorts=[short_name(n) for n in df.player]; counts=pd.Series(shorts).value_counts()
 for i,r in df.iterrows():
-    surname=r.player.split()[-1]; label=r.player if counts[surname]>1 else surname
-    delta=pos[i]-anchors[i]
-    if abs(delta[0])>abs(delta[1]) and abs(delta[0])>8:
-        off=(18 if delta[0]>0 else -18,0); ha='left' if delta[0]>0 else 'right'; va='center'
-    else:
-        off=(0,-24); ha='center'; va='top'
-    ax.annotate(label,positions[i],xytext=off,textcoords='offset points',ha=ha,va=va,fontsize=5.7,fontweight='bold',zorder=6,bbox=dict(boxstyle='round,pad=.08',fc='white',ec='none',alpha=.82))
+    s=short_name(r.player); label=r.player if counts[s]>1 else s
+    ax.annotate(label,positions[i],xytext=(0,-22),textcoords='offset points',ha='center',va='top',fontsize=5.6,fontweight='bold',zorder=6,bbox=dict(boxstyle='round,pad=.08',fc='white',ec='none',alpha=.86))
 
 xt=np.arange(math.ceil(xmin/2)*2,xmax+.001,2); yt=np.arange(math.ceil(ymin),ymax+.001,1)
 ax.set_xticks(xt); ax.set_yticks(yt)
