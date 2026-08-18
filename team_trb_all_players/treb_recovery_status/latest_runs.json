@@ -51,19 +51,48 @@
     }
   },
   {
+    "workflow": "treb-rebound-semantic-context-audit.yml",
+    "ok": true,
+    "stderr": "",
+    "runs": [
+      {
+        "conclusion": "failure",
+        "createdAt": "2026-08-18T16:50:55Z",
+        "databaseId": 32162477231,
+        "event": "push",
+        "headSha": "c3fda430c8bedffbf77ee8be49a65cfa25b44403",
+        "name": "TREB rebound semantic neighbouring-event audit",
+        "status": "completed",
+        "updatedAt": "2026-08-18T16:52:30Z",
+        "url": "https://github.com/timeedmonds-maker/104/actions/runs/32162477231"
+      }
+    ],
+    "latest": {
+      "conclusion": "failure",
+      "createdAt": "2026-08-18T16:50:55Z",
+      "databaseId": 32162477231,
+      "event": "push",
+      "headSha": "c3fda430c8bedffbf77ee8be49a65cfa25b44403",
+      "name": "TREB rebound semantic neighbouring-event audit",
+      "status": "completed",
+      "updatedAt": "2026-08-18T16:52:30Z",
+      "url": "https://github.com/timeedmonds-maker/104/actions/runs/32162477231"
+    }
+  },
+  {
     "workflow": "treb-tail-evidence-triage.yml",
     "ok": true,
     "stderr": "",
     "runs": [
       {
-        "conclusion": "",
+        "conclusion": "failure",
         "createdAt": "2026-08-18T18:00:43Z",
         "databaseId": 32168667563,
         "event": "push",
         "headSha": "1f443f344eb1fc110acac4c47c6cd0ec6fd0c079",
         "name": "TREB tail exact-evidence triage",
-        "status": "in_progress",
-        "updatedAt": "2026-08-18T18:00:48Z",
+        "status": "completed",
+        "updatedAt": "2026-08-18T18:01:06Z",
         "url": "https://github.com/timeedmonds-maker/104/actions/runs/32168667563"
       },
       {
@@ -101,14 +130,14 @@
       }
     ],
     "latest": {
-      "conclusion": "",
+      "conclusion": "failure",
       "createdAt": "2026-08-18T18:00:43Z",
       "databaseId": 32168667563,
       "event": "push",
       "headSha": "1f443f344eb1fc110acac4c47c6cd0ec6fd0c079",
       "name": "TREB tail exact-evidence triage",
-      "status": "in_progress",
-      "updatedAt": "2026-08-18T18:00:48Z",
+      "status": "completed",
+      "updatedAt": "2026-08-18T18:01:06Z",
       "url": "https://github.com/timeedmonds-maker/104/actions/runs/32168667563"
     }
   }
