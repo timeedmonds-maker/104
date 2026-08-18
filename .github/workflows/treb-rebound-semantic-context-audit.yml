@@ -21,6 +21,8 @@ jobs:
         season: ['2004-05','2019-20','2021-22','2022-23']
     runs-on: ubuntu-24.04
     timeout-minutes: 25
+    env:
+      CURRENT_ARTIFACT_ID: 9275527991
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,30 +38,61 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          rm -rf /tmp/current /tmp/candidate /tmp/current.zip
+          rm -rf /tmp/current /tmp/candidate /tmp/current.zip /tmp/candidate.zip
           mkdir -p /tmp/current
-          gh api "repos/${GH_REPO}/actions/artifacts?per_page=100" > /tmp/artifacts.json
-          python - <<'PY' > /tmp/artifact_ids.txt
-          import json
-          arts=[a for a in json.load(open('/tmp/artifacts.json')).get('artifacts',[]) if not a.get('expired')]
-          pref=[]; rest=[]
-          for a in arts:
-              rec=(a.get('created_at') or '',a.get('id'),a.get('name') or '')
-              name=(a.get('name') or '').lower()
-              (pref if any(k in name for k in ('materiality','authoritative','consolidated','reclosure','production')) else rest).append(rec)
-          for _,aid,_ in sorted(pref,reverse=True)+sorted(rest,reverse=True): print(aid)
-          PY
           found=0
-          while read -r aid; do
-            rm -rf /tmp/candidate /tmp/candidate.zip
-            mkdir -p /tmp/candidate
-            if gh api "repos/${GH_REPO}/actions/artifacts/${aid}/zip" > /tmp/candidate.zip 2>/dev/null \
-              && test -s /tmp/candidate.zip && unzip -tq /tmp/candidate.zip >/dev/null 2>&1; then
-              unzip -q /tmp/candidate.zip -d /tmp/candidate
-              hit=$(find /tmp/candidate -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
-              if [ -n "$hit" ]; then cp -a /tmp/candidate/. /tmp/current/; echo "authoritative_artifact_id=$aid"; found=1; break; fi
+
+          # Fast path: exact authoritative checkpoint already proven by the semantic audit.
+          for attempt in 1 2 3 4 5; do
+            rm -rf /tmp/current /tmp/current.zip
+            mkdir -p /tmp/current
+            if gh api "repos/${GH_REPO}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip 2>/dev/null \
+              && test -s /tmp/current.zip && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
+              unzip -oq /tmp/current.zip -d /tmp/current
+              hit=$(find /tmp/current -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
+              if [ -n "$hit" ]; then echo "authoritative_artifact_id=${CURRENT_ARTIFACT_ID}"; found=1; break; fi
             fi
-          done < /tmp/artifact_ids.txt
+            sleep $((attempt * 8))
+          done
+
+          # Fallback: fully paginate retained artifacts and inspect newest first.
+          if [ "$found" -ne 1 ]; then
+            : > /tmp/artifact_ids.txt
+            page=1
+            while :; do
+              gh api "repos/${GH_REPO}/actions/artifacts?per_page=100&page=${page}" > "/tmp/arts_${page}.json"
+              python - "$page" <<'PY' >> /tmp/artifact_ids.txt
+          import json,sys
+          obj=json.load(open(f'/tmp/arts_{sys.argv[1]}.json'))
+          arts=[a for a in obj.get('artifacts',[]) if not a.get('expired')]
+          arts.sort(key=lambda a:a.get('created_at') or '', reverse=True)
+          for a in arts: print(a.get('id'))
+          PY
+              count=$(python - "$page" <<'PY'
+          import json,sys
+          print(len(json.load(open(f'/tmp/arts_{sys.argv[1]}.json')).get('artifacts',[])))
+          PY
+              )
+              [ "$count" -ge 100 ] || break
+              page=$((page+1))
+              [ "$page" -le 10 ] || break
+            done
+
+            while read -r aid; do
+              [ -n "$aid" ] || continue
+              rm -rf /tmp/candidate /tmp/candidate.zip
+              mkdir -p /tmp/candidate
+              if gh api "repos/${GH_REPO}/actions/artifacts/${aid}/zip" > /tmp/candidate.zip 2>/dev/null \
+                && test -s /tmp/candidate.zip && unzip -tq /tmp/candidate.zip >/dev/null 2>&1; then
+                unzip -oq /tmp/candidate.zip -d /tmp/candidate
+                hit=$(find /tmp/candidate -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
+                if [ -n "$hit" ]; then
+                  rm -rf /tmp/current; mkdir -p /tmp/current; cp -a /tmp/candidate/. /tmp/current/
+                  echo "authoritative_artifact_id=$aid"; found=1; break
+                fi
+              fi
+            done < /tmp/artifact_ids.txt
+          fi
           test "$found" -eq 1
       - name: Audit neighbouring event semantics on exact controls
         run: |
