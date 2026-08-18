@@ -1,0 +1,22 @@
+name: Funakistats headshot chart PR
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas numpy matplotlib pillow requests
+      - run: python scripts/funakistats_headshot_chart.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: funakistats-team-3pt-headshot-chart
+          path: |
+            funakistats_team_3pt_headshots_last5_top30_EMBEDDED.png
+            funakistats_team_3pt_headshots_last5_top30.csv
+          retention-days: 7
