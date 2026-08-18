@@ -12,6 +12,8 @@ on:
       - agent/treb-final-exact-assembly
     paths:
       - '.github/workflows/treb-fast-result-harvester.yml'
+      - '.github/workflows/treb-rebound-semantic-audit.yml'
+      - '.github/workflows/treb-tail-evidence-triage.yml'
 
 permissions:
   actions: read
