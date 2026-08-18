@@ -86,3 +86,5 @@ def main():
     if events:pd.DataFrame(events).to_csv(out/'MISMATCH_COMPONENT_EVENTS.csv.gz',index=False,compression='gzip')
     (out/'QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2));return 0
 if __name__=='__main__':raise SystemExit(main())
+
+# Current automation trigger: execute the enriched raw-semantic field set above on the persisted 23 exact-control mismatches.
