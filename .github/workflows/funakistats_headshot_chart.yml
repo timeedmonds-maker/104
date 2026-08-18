@@ -1,0 +1,30 @@
+name: Funakistats headshot chart
+on:
+  push:
+    branches:
+      - agent/funakistats-headshot-chart
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas numpy matplotlib pillow requests
+      - name: Build chart
+        run: python scripts/funakistats_missedft_oreb_last5.py
+      - name: Commit rendered outputs
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          mkdir -p outputs/funakistats
+          cp funakistats_oreb_missedft_last5_top30_HEADSHOTS.png outputs/funakistats/
+          cp funakistats_oreb_missedft_last5_top30.csv outputs/funakistats/
+          git add outputs/funakistats
+          git commit -m 'Render last-5 missed-FT OREB top 30' || exit 0
+          git push

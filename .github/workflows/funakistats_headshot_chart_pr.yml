@@ -1,0 +1,22 @@
+name: Funakistats headshot chart PR
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas numpy matplotlib pillow requests
+      - run: python scripts/funakistats_missedft_oreb_last5.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: funakistats-oreb-missedft-last5-top30
+          path: |
+            funakistats_oreb_missedft_last5_top30_HEADSHOTS.png
+            funakistats_oreb_missedft_last5_top30.csv
+          retention-days: 7
