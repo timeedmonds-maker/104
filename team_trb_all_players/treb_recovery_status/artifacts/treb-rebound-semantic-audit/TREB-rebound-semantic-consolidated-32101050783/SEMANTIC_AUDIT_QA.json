@@ -1,0 +1,21 @@
+{
+  "status": "PASS_DIAGNOSTIC",
+  "season_jobs": 11,
+  "source_failures": 0,
+  "control_games_reconstructed": 37,
+  "controls_checked": 153,
+  "control_mismatches": 23,
+  "mismatch_games": 8,
+  "mismatch_records": 23,
+  "mismatch_component_event_rows": 543,
+  "promotion_performed": false,
+  "next": "derive only explicit source-semantic candidate predicates from these exact-control mismatch events; require zero mismatch on a broad retained exact-control validation set before any blocker application",
+  "integrity": {
+    "diagnostic_only": true,
+    "exact_controls_only": true,
+    "empirical_model_used": false,
+    "rounded_percentage_backsolve_used": false,
+    "opponent_rebound_inference_used": false,
+    "partial_tenure_team_subtraction_used": false
+  }
+}
