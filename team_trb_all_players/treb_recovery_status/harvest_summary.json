@@ -135,7 +135,24 @@
       "mismatch_games": 2
     },
     {
-      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2022-23-32191338476/QA.json",
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2004-05-32194393859/QA.json",
+      "type": "dict",
+      "season": "2004-05",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0,
+      "mismatch_games": 3,
+      "event_rows": 176
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-consolidated-32194393859/CONTEXT_AUDIT_QA.json",
+      "type": "dict",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0,
+      "mismatch_games": 8,
+      "event_rows": 543
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2022-23-32194393859/QA.json",
       "type": "dict",
       "season": "2022-23",
       "status": "PASS_DIAGNOSTIC",
@@ -144,24 +161,7 @@
       "event_rows": 183
     },
     {
-      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-consolidated-32191338476/CONTEXT_AUDIT_QA.json",
-      "type": "dict",
-      "status": "PASS_DIAGNOSTIC",
-      "source_failures": 0,
-      "mismatch_games": 8,
-      "event_rows": 543
-    },
-    {
-      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2019-20-32191338476/QA.json",
-      "type": "dict",
-      "season": "2019-20",
-      "status": "PASS_DIAGNOSTIC",
-      "source_failures": 0,
-      "mismatch_games": 1,
-      "event_rows": 114
-    },
-    {
-      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2021-22-32191338476/QA.json",
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2021-22-32194393859/QA.json",
       "type": "dict",
       "season": "2021-22",
       "status": "PASS_DIAGNOSTIC",
@@ -170,13 +170,23 @@
       "event_rows": 70
     },
     {
-      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2004-05-32191338476/QA.json",
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2019-20-32194393859/QA.json",
       "type": "dict",
-      "season": "2004-05",
+      "season": "2019-20",
       "status": "PASS_DIAGNOSTIC",
       "source_failures": 0,
-      "mismatch_games": 3,
-      "event_rows": 176
+      "mismatch_games": 1,
+      "event_rows": 114
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-schedule-audited-tail/TREB-current-schedule-audited-tail-32194579857/TREB_CURRENT_40_SCHEDULE_AUDITED_TENURE_QA.json",
+      "type": "dict",
+      "status": "PASS_DIAGNOSTIC",
+      "authoritative_validation_keys": 19,
+      "authoritative_no_identity_keys": 21,
+      "exact_current_no_identity_tenures": 0,
+      "exact_current_validation_tenures": 19,
+      "proven_total": 19
     }
   ],
   "csvs": [
@@ -268,6 +278,44 @@
         "is_real_rebound",
         "nba_is_real_rebound",
         "event_rows"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-schedule-audited-tail/TREB-current-schedule-audited-tail-32194579857/TREB_CURRENT_40_PROVEN_SCHEDULE_TENURES.csv",
+      "rows": 19,
+      "columns": [
+        "expected_team_games",
+        "extra_ledger_games",
+        "game_ids",
+        "ledger_games",
+        "matched_windows",
+        "player_id",
+        "prior_status",
+        "prior_tenure_identity_source",
+        "reconstructed_games",
+        "season",
+        "status",
+        "team_id",
+        "window_provenance"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-schedule-audited-tail/TREB-current-schedule-audited-tail-32194579857/TREB_CURRENT_40_SCHEDULE_AUDITED_TENURE_PROOF.csv",
+      "rows": 40,
+      "columns": [
+        "expected_team_games",
+        "extra_ledger_games",
+        "game_ids",
+        "ledger_games",
+        "matched_windows",
+        "player_id",
+        "prior_status",
+        "prior_tenure_identity_source",
+        "reconstructed_games",
+        "season",
+        "status",
+        "team_id",
+        "window_provenance"
       ]
     }
   ]

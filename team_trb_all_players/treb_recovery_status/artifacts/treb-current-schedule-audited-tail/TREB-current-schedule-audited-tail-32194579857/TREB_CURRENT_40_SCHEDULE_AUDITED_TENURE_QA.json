@@ -1,0 +1,27 @@
+{
+  "authoritative_no_identity_keys": 21,
+  "authoritative_validation_keys": 19,
+  "exact_current_no_identity_tenures": 0,
+  "exact_current_validation_tenures": 19,
+  "integrity": {
+    "ambiguity_fails_closed": true,
+    "dynamic_current_ids": true,
+    "empirical_model_used": false,
+    "exact_team_schedule_only": true,
+    "existing_ledger_subset_required": true,
+    "opponent_rebound_inference_used": false,
+    "partial_tenure_whole_team_subtraction_used": false,
+    "retained_schedule_audited_windows_only": true,
+    "rounded_percentage_backsolve_used": false,
+    "target_team_game_count_equality_required": true
+  },
+  "next": "Use only EXACT rows as current tenure proofs; validation rows then require exact minute-delta diagnosis before TREB reclosure.",
+  "promotion_performed": false,
+  "proven_total": 19,
+  "reason_counts": {
+    "BLOCKED_VALIDATION|EXACT_RETAINED_SCHEDULE_AUDITED_TENURE_IDENTITY": 19,
+    "NO_EXACT_TENURE_IDENTITY|REJECT": 7,
+    "NO_EXACT_TENURE_IDENTITY|TARGET_GAME_COUNT_MISMATCH": 14
+  },
+  "status": "PASS_DIAGNOSTIC"
+}
