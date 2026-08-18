@@ -1,0 +1,41 @@
+name: TREB semantic exact-event constraint solver
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_semantic_constraint_solver.py'
+      - '.github/workflows/treb-semantic-constraint-solver.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  solve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -q pandas
+      - name: Solve exact mismatch event constraints
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/out
+          M=$(find team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit -name ALL_MISMATCHES.csv.gz | sort | tail -1)
+          E=$(find team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit -name ALL_MISMATCH_COMPONENT_EVENTS.csv.gz | sort | tail -1)
+          test -n "$M" -a -n "$E"
+          python -u team_trb_all_players/treb_semantic_constraint_solver.py --mismatches "$M" --events "$E" --out-dir /tmp/out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-semantic-event-constraints-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          if-no-files-found: error
