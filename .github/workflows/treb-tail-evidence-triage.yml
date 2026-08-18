@@ -5,18 +5,16 @@ on:
   push:
     branches: [agent/treb-final-exact-assembly]
     paths:
+      - 'team_trb_all_players/treb_tail_evidence_triage.py'
       - '.github/workflows/treb-tail-evidence-triage.yml'
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   triage:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      CURRENT_ARTIFACT_ID: 9275527991
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,93 +23,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download current authoritative TREB checkpoint
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          rm -rf auth /tmp/current.zip /tmp/candidate /tmp/candidate.zip
-          mkdir -p auth
-
-          # First use the exact authoritative artifact proven by the semantic lane.
-          ok=0
-          for attempt in 1 2 3 4 5; do
-            rm -rf auth /tmp/current.zip
-            mkdir -p auth
-            if gh api "repos/${GH_REPO}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip 2>/dev/null \
-               && test -s /tmp/current.zip \
-               && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
-              unzip -oq /tmp/current.zip -d auth
-              hit=$(find auth -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
-              if [ -n "$hit" ]; then
-                echo "authoritative_artifact_id=${CURRENT_ARTIFACT_ID}"
-                ok=1
-                break
-              fi
-            fi
-            sleep $((attempt * 8))
-          done
-
-          # Fail-safe fallback: enumerate all non-expired artifacts with pagination and inspect newest first.
-          if [ "$ok" -ne 1 ]; then
-            rm -rf auth
-            mkdir -p auth
-            page=1
-            : > /tmp/artifact_ids.txt
-            while :; do
-              gh api "repos/${GH_REPO}/actions/artifacts?per_page=100&page=${page}" > "/tmp/arts_${page}.json"
-              n=$(python - "$page" <<'PY'
-          import json,sys
-          p=sys.argv[1]
-          obj=json.load(open(f'/tmp/arts_{p}.json'))
-          arts=[a for a in obj.get('artifacts',[]) if not a.get('expired')]
-          arts.sort(key=lambda a:a.get('created_at') or '', reverse=True)
-          for a in arts:
-              print(a.get('id'))
-          print('COUNT='+str(len(obj.get('artifacts',[]))), file=sys.stderr)
-          PY
-              2> /tmp/count.txt)
-              printf '%s\n' "$n" >> /tmp/artifact_ids.txt
-              count=$(sed -n 's/^COUNT=//p' /tmp/count.txt)
-              [ "${count:-0}" -ge 100 ] || break
-              page=$((page+1))
-              [ "$page" -le 10 ] || break
-            done
-
-            while read -r aid; do
-              [ -n "$aid" ] || continue
-              rm -rf /tmp/candidate /tmp/candidate.zip
-              mkdir -p /tmp/candidate
-              if gh api "repos/${GH_REPO}/actions/artifacts/${aid}/zip" > /tmp/candidate.zip 2>/dev/null \
-                 && test -s /tmp/candidate.zip \
-                 && unzip -tq /tmp/candidate.zip >/dev/null 2>&1; then
-                unzip -oq /tmp/candidate.zip -d /tmp/candidate
-                hit=$(find /tmp/candidate -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
-                if [ -n "$hit" ]; then
-                  cp -a /tmp/candidate/. auth/
-                  echo "authoritative_artifact_id=$aid"
-                  ok=1
-                  break
-                fi
-              fi
-            done < /tmp/artifact_ids.txt
-          fi
-
-          test "$ok" -eq 1
-          hit=$(find auth -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
-          test -n "$hit"
-          if [ "$hit" != "auth/TREB_UNRESOLVED_AFTER_MATERIALITY.csv" ]; then
-            cp "$hit" auth/TREB_UNRESOLVED_AFTER_MATERIALITY.csv
-          fi
-          python - <<'PY'
-          from pathlib import Path
-          p=Path('auth/TREB_UNRESOLVED_AFTER_MATERIALITY.csv')
-          print('authoritative residual manifest bytes', p.stat().st_size)
-          PY
       - name: Triage retained exact minutes and tenure evidence
-        run: |
-          python team_trb_all_players/treb_tail_evidence_triage.py . auth tail_evidence
+        run: python team_trb_all_players/treb_tail_evidence_triage.py . tail_evidence
       - name: Upload durable triage evidence
         uses: actions/upload-artifact@v4
         with:
