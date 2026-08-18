@@ -7,6 +7,7 @@ on:
       - TREB rebound semantic exact-control audit
       - TREB rebound semantic neighbouring-event audit
       - TREB tail exact-evidence triage
+      - TREB current tail exact analysis
     types: [completed]
   push:
     branches:
@@ -16,6 +17,7 @@ on:
       - '.github/workflows/treb-rebound-semantic-audit.yml'
       - '.github/workflows/treb-rebound-semantic-context-audit.yml'
       - '.github/workflows/treb-tail-evidence-triage.yml'
+      - '.github/workflows/treb-current-tail-exact-analysis.yml'
 
 permissions:
   actions: read
@@ -50,30 +52,25 @@ jobs:
           python - <<'PY'
           import json, os, subprocess
           from pathlib import Path
-
           repo = os.environ['GH_REPO']
           branch = 'agent/treb-final-exact-assembly'
           workflows = [
               'treb-rebound-semantic-audit.yml',
               'treb-rebound-semantic-context-audit.yml',
               'treb-tail-evidence-triage.yml',
+              'treb-current-tail-exact-analysis.yml',
           ]
           out = Path('team_trb_all_players/treb_recovery_status')
           records = []
           for wf in workflows:
-              cmd = [
-                  'gh','run','list','--repo',repo,'--workflow',wf,'--branch',branch,
-                  '--limit','5','--json','databaseId,status,conclusion,createdAt,updatedAt,headSha,event,url,name'
-              ]
+              cmd = ['gh','run','list','--repo',repo,'--workflow',wf,'--branch',branch,
+                     '--limit','5','--json','databaseId,status,conclusion,createdAt,updatedAt,headSha,event,url,name']
               p = subprocess.run(cmd, text=True, capture_output=True)
               rec = {'workflow': wf, 'ok': p.returncode == 0, 'stderr': p.stderr.strip()}
               if p.returncode == 0:
-                  runs = json.loads(p.stdout or '[]')
-                  rec['runs'] = runs
-                  rec['latest'] = runs[0] if runs else None
+                  runs = json.loads(p.stdout or '[]'); rec['runs'] = runs; rec['latest'] = runs[0] if runs else None
               else:
-                  rec['runs'] = []
-                  rec['latest'] = None
+                  rec['runs'] = []; rec['latest'] = None
               records.append(rec)
           (out/'latest_runs.json').write_text(json.dumps(records, indent=2), encoding='utf-8')
           PY
@@ -81,27 +78,14 @@ jobs:
           python - <<'PY'
           import json, os, subprocess
           from pathlib import Path
-
-          repo = os.environ['GH_REPO']
-          out = Path('team_trb_all_players/treb_recovery_status')
-          records = json.loads((out/'latest_runs.json').read_text())
-          downloaded = []
+          repo = os.environ['GH_REPO']; out = Path('team_trb_all_players/treb_recovery_status')
+          records = json.loads((out/'latest_runs.json').read_text()); downloaded = []
           for rec in records:
-              latest = rec.get('latest') or {}
-              run_id = latest.get('databaseId')
-              if not run_id or latest.get('status') != 'completed' or latest.get('conclusion') != 'success':
-                  continue
-              dest = out/'artifacts'/rec['workflow'].removesuffix('.yml')
-              dest.mkdir(parents=True, exist_ok=True)
-              p = subprocess.run(
-                  ['gh','run','download',str(run_id),'--repo',repo,'--dir',str(dest)],
-                  text=True, capture_output=True
-              )
-              downloaded.append({
-                  'workflow': rec['workflow'], 'run_id': run_id,
-                  'conclusion': latest.get('conclusion'), 'ok': p.returncode == 0,
-                  'stderr': p.stderr.strip(),
-              })
+              latest = rec.get('latest') or {}; run_id = latest.get('databaseId')
+              if not run_id or latest.get('status') != 'completed' or latest.get('conclusion') != 'success': continue
+              dest = out/'artifacts'/rec['workflow'].removesuffix('.yml'); dest.mkdir(parents=True, exist_ok=True)
+              p = subprocess.run(['gh','run','download',str(run_id),'--repo',repo,'--dir',str(dest)], text=True, capture_output=True)
+              downloaded.append({'workflow':rec['workflow'],'run_id':run_id,'conclusion':latest.get('conclusion'),'ok':p.returncode==0,'stderr':p.stderr.strip()})
           (out/'downloads.json').write_text(json.dumps(downloaded, indent=2), encoding='utf-8')
           PY
 
@@ -110,38 +94,27 @@ jobs:
           python - <<'PY'
           import csv, json
           from pathlib import Path
-
-          root = Path('team_trb_all_players/treb_recovery_status')
-          summary = {'reports': [], 'csvs': []}
+          root = Path('team_trb_all_players/treb_recovery_status'); summary={'reports':[],'csvs':[]}
           for path in root.rglob('*.json'):
-              if path.name in {'latest_runs.json','downloads.json'}:
-                  continue
-              try:
-                  obj = json.loads(path.read_text(encoding='utf-8'))
-              except Exception:
-                  continue
-              item = {'path': str(path), 'type': type(obj).__name__}
-              if isinstance(obj, dict):
-                  for key in (
-                      'season','status','pass','passed','gate_pass','promotion_gate_pass',
-                      'target_rows','validation_rows','tenure_rows','control_comparisons',
-                      'control_mismatches','target_games','control_games','source_failures',
-                      'candidate_rows','promotable_rows','mismatch_count','match_count',
-                      'controls_checked','mismatch_games','event_rows'
-                  ):
-                      if key in obj:
-                          item[key] = obj[key]
+              if path.name in {'latest_runs.json','downloads.json'}: continue
+              try: obj=json.loads(path.read_text(encoding='utf-8'))
+              except Exception: continue
+              item={'path':str(path),'type':type(obj).__name__}
+              if isinstance(obj,dict):
+                  for key in ('season','status','pass','passed','gate_pass','promotion_gate_pass','target_rows','validation_rows','tenure_rows',
+                              'control_comparisons','control_mismatches','target_games','control_games','source_failures','candidate_rows','promotable_rows',
+                              'mismatch_count','match_count','controls_checked','mismatch_games','event_rows','authoritative_validation_keys',
+                              'authoritative_tenure_keys','target_records_found','proven_unique_exact_ledger_tenures','proven_validation_keys',
+                              'proven_prior_no_tenure_keys'):
+                      if key in obj: item[key]=obj[key]
               summary['reports'].append(item)
           for path in root.rglob('*.csv'):
               try:
-                  with path.open(newline='', encoding='utf-8') as f:
-                      r = csv.reader(f)
-                      header = next(r, [])
-                      n = sum(1 for _ in r)
-                  summary['csvs'].append({'path': str(path), 'rows': n, 'columns': header})
-              except Exception:
-                  pass
-          (root/'harvest_summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
+                  with path.open(newline='',encoding='utf-8') as f:
+                      r=csv.reader(f); header=next(r,[]); n=sum(1 for _ in r)
+                  summary['csvs'].append({'path':str(path),'rows':n,'columns':header})
+              except Exception: pass
+          (root/'harvest_summary.json').write_text(json.dumps(summary,indent=2),encoding='utf-8')
           PY
 
       - name: Persist harvested evidence
@@ -151,16 +124,10 @@ jobs:
           git config user.name 'TREB automation'
           git config user.email 'actions@users.noreply.github.com'
           git add team_trb_all_players/treb_recovery_status
-          if git diff --cached --quiet; then
-            echo 'No harvested status change.'
-            exit 0
-          fi
+          if git diff --cached --quiet; then echo 'No harvested status change.'; exit 0; fi
           git commit -m 'Persist current TREB recovery run evidence'
           for attempt in 1 2 3; do
-            if git push origin HEAD:agent/treb-final-exact-assembly; then
-              exit 0
-            fi
-            sleep $((attempt * 5))
-            git pull --rebase origin agent/treb-final-exact-assembly
+            if git push origin HEAD:agent/treb-final-exact-assembly; then exit 0; fi
+            sleep $((attempt * 5)); git pull --rebase origin agent/treb-final-exact-assembly
           done
           exit 1
