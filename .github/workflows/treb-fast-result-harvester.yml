@@ -5,6 +5,7 @@ on:
   workflow_run:
     workflows:
       - TREB rebound semantic exact-control audit
+      - TREB rebound semantic neighbouring-event audit
       - TREB tail exact-evidence triage
     types: [completed]
   push:
@@ -13,6 +14,7 @@ on:
     paths:
       - '.github/workflows/treb-fast-result-harvester.yml'
       - '.github/workflows/treb-rebound-semantic-audit.yml'
+      - '.github/workflows/treb-rebound-semantic-context-audit.yml'
       - '.github/workflows/treb-tail-evidence-triage.yml'
 
 permissions:
@@ -53,6 +55,7 @@ jobs:
           branch = 'agent/treb-final-exact-assembly'
           workflows = [
               'treb-rebound-semantic-audit.yml',
+              'treb-rebound-semantic-context-audit.yml',
               'treb-tail-evidence-triage.yml',
           ]
           out = Path('team_trb_all_players/treb_recovery_status')
@@ -123,7 +126,8 @@ jobs:
                       'season','status','pass','passed','gate_pass','promotion_gate_pass',
                       'target_rows','validation_rows','tenure_rows','control_comparisons',
                       'control_mismatches','target_games','control_games','source_failures',
-                      'candidate_rows','promotable_rows','mismatch_count','match_count'
+                      'candidate_rows','promotable_rows','mismatch_count','match_count',
+                      'controls_checked','mismatch_games','event_rows'
                   ):
                       if key in obj:
                           item[key] = obj[key]
