@@ -12,11 +12,11 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install pandas numpy matplotlib pillow requests
-      - run: python scripts/funakistats_headshot_chart_v3.py
+      - run: python scripts/funakistats_missedft_oreb_last5.py
       - uses: actions/upload-artifact@v4
         with:
-          name: funakistats-oreb-net-last10-top30
+          name: funakistats-oreb-missedft-last5-top30
           path: |
-            funakistats_oreb_vs_oncourt_net_last10_top30_HEADSHOTS.png
-            funakistats_oreb_vs_oncourt_net_last10_top30.csv
+            funakistats_oreb_missedft_last5_top30_HEADSHOTS.png
+            funakistats_oreb_missedft_last5_top30.csv
           retention-days: 7
