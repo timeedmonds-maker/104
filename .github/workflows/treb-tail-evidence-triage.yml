@@ -15,6 +15,8 @@ jobs:
   triage:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      CURRENT_ARTIFACT_ID: 9275527991
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,52 +31,73 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          rm -rf auth auth.zip
+          rm -rf auth /tmp/current.zip /tmp/candidate /tmp/candidate.zip
           mkdir -p auth
 
-          python - <<'PY' > /tmp/artifact_ids.txt
-          import json, os, subprocess
-          repo=os.environ['GH_REPO']
-          p=subprocess.run(['gh','api',f'repos/{repo}/actions/artifacts?per_page=100'],text=True,capture_output=True,check=True)
-          arts=json.loads(p.stdout).get('artifacts',[])
-          arts=[a for a in arts if not a.get('expired')]
-          # Prefer names that clearly look like the current authoritative/materiality checkpoint.
-          preferred=[]; fallback=[]
-          for a in arts:
-              name=(a.get('name') or '').lower()
-              rec=(a.get('created_at') or '', a.get('id'), a.get('name') or '')
-              if any(k in name for k in ('materiality','authoritative','consolidated','reclosure','production')):
-                  preferred.append(rec)
-              else:
-                  fallback.append(rec)
-          ordered=sorted(preferred, reverse=True)+sorted(fallback, reverse=True)
-          seen=set()
-          for _, aid, name in ordered[:40]:
-              if aid in seen: continue
-              seen.add(aid)
-              print(aid)
-          PY
-
-          found=0
-          while read -r aid; do
-            [ -n "$aid" ] || continue
-            rm -rf /tmp/candidate /tmp/candidate.zip
-            mkdir -p /tmp/candidate
-            if gh api "repos/${GH_REPO}/actions/artifacts/${aid}/zip" > /tmp/candidate.zip 2>/dev/null \
-               && test -s /tmp/candidate.zip \
-               && unzip -tq /tmp/candidate.zip >/dev/null 2>&1; then
-              unzip -q /tmp/candidate.zip -d /tmp/candidate
-              hit=$(find /tmp/candidate -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
+          # First use the exact authoritative artifact proven by the semantic lane.
+          ok=0
+          for attempt in 1 2 3 4 5; do
+            rm -f /tmp/current.zip
+            if gh api "repos/${GH_REPO}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip 2>/dev/null \
+               && test -s /tmp/current.zip \
+               && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
+              unzip -q /tmp/current.zip -d auth
+              hit=$(find auth -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
               if [ -n "$hit" ]; then
-                cp -a /tmp/candidate/. auth/
-                echo "authoritative_artifact_id=$aid"
-                found=1
+                echo "authoritative_artifact_id=${CURRENT_ARTIFACT_ID}"
+                ok=1
                 break
               fi
             fi
-          done < /tmp/artifact_ids.txt
+            sleep $((attempt * 8))
+          done
 
-          test "$found" -eq 1
+          # Fail-safe fallback: enumerate all non-expired artifacts with pagination and inspect newest first.
+          if [ "$ok" -ne 1 ]; then
+            rm -rf auth
+            mkdir -p auth
+            page=1
+            : > /tmp/artifact_ids.txt
+            while :; do
+              gh api "repos/${GH_REPO}/actions/artifacts?per_page=100&page=${page}" > "/tmp/arts_${page}.json"
+              n=$(python - "$page" <<'PY'
+          import json,sys
+          p=sys.argv[1]
+          obj=json.load(open(f'/tmp/arts_{p}.json'))
+          arts=[a for a in obj.get('artifacts',[]) if not a.get('expired')]
+          arts.sort(key=lambda a:a.get('created_at') or '', reverse=True)
+          for a in arts:
+              print(a.get('id'))
+          print('COUNT='+str(len(obj.get('artifacts',[]))), file=sys.stderr)
+          PY
+              2> /tmp/count.txt)
+              printf '%s\n' "$n" >> /tmp/artifact_ids.txt
+              count=$(sed -n 's/^COUNT=//p' /tmp/count.txt)
+              [ "${count:-0}" -ge 100 ] || break
+              page=$((page+1))
+              [ "$page" -le 10 ] || break
+            done
+
+            while read -r aid; do
+              [ -n "$aid" ] || continue
+              rm -rf /tmp/candidate /tmp/candidate.zip
+              mkdir -p /tmp/candidate
+              if gh api "repos/${GH_REPO}/actions/artifacts/${aid}/zip" > /tmp/candidate.zip 2>/dev/null \
+                 && test -s /tmp/candidate.zip \
+                 && unzip -tq /tmp/candidate.zip >/dev/null 2>&1; then
+                unzip -q /tmp/candidate.zip -d /tmp/candidate
+                hit=$(find /tmp/candidate -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
+                if [ -n "$hit" ]; then
+                  cp -a /tmp/candidate/. auth/
+                  echo "authoritative_artifact_id=$aid"
+                  ok=1
+                  break
+                fi
+              fi
+            done < /tmp/artifact_ids.txt
+          fi
+
+          test "$ok" -eq 1
           hit=$(find auth -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
           test -n "$hit"
           if [ "$hit" != "auth/TREB_UNRESOLVED_AFTER_MATERIALITY.csv" ]; then
