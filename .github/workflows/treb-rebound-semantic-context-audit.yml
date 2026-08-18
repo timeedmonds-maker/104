@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   audit:
@@ -21,8 +20,6 @@ jobs:
         season: ['2004-05','2019-20','2021-22','2022-23']
     runs-on: ubuntu-24.04
     timeout-minutes: 25
-    env:
-      CURRENT_ARTIFACT_ID: 9275527991
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,73 +29,12 @@ jobs:
           python-version: '3.12'
       - name: Install dependencies
         run: python -m pip install --disable-pip-version-check -q pandas numpy rapidfuzz
-      - name: Download newest authoritative TREB checkpoint
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          rm -rf /tmp/current /tmp/candidate /tmp/current.zip /tmp/candidate.zip
-          mkdir -p /tmp/current
-          found=0
-
-          # Fast path: exact authoritative checkpoint already proven by the semantic audit.
-          for attempt in 1 2 3 4 5; do
-            rm -rf /tmp/current /tmp/current.zip
-            mkdir -p /tmp/current
-            if gh api "repos/${GH_REPO}/actions/artifacts/${CURRENT_ARTIFACT_ID}/zip" > /tmp/current.zip 2>/dev/null \
-              && test -s /tmp/current.zip && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
-              unzip -oq /tmp/current.zip -d /tmp/current
-              hit=$(find /tmp/current -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
-              if [ -n "$hit" ]; then echo "authoritative_artifact_id=${CURRENT_ARTIFACT_ID}"; found=1; break; fi
-            fi
-            sleep $((attempt * 8))
-          done
-
-          # Fallback: fully paginate retained artifacts and inspect newest first.
-          if [ "$found" -ne 1 ]; then
-            : > /tmp/artifact_ids.txt
-            page=1
-            while :; do
-              gh api "repos/${GH_REPO}/actions/artifacts?per_page=100&page=${page}" > "/tmp/arts_${page}.json"
-              python - "$page" <<'PY' >> /tmp/artifact_ids.txt
-          import json,sys
-          obj=json.load(open(f'/tmp/arts_{sys.argv[1]}.json'))
-          arts=[a for a in obj.get('artifacts',[]) if not a.get('expired')]
-          arts.sort(key=lambda a:a.get('created_at') or '', reverse=True)
-          for a in arts: print(a.get('id'))
-          PY
-              count=$(python - "$page" <<'PY'
-          import json,sys
-          print(len(json.load(open(f'/tmp/arts_{sys.argv[1]}.json')).get('artifacts',[])))
-          PY
-              )
-              [ "$count" -ge 100 ] || break
-              page=$((page+1))
-              [ "$page" -le 10 ] || break
-            done
-
-            while read -r aid; do
-              [ -n "$aid" ] || continue
-              rm -rf /tmp/candidate /tmp/candidate.zip
-              mkdir -p /tmp/candidate
-              if gh api "repos/${GH_REPO}/actions/artifacts/${aid}/zip" > /tmp/candidate.zip 2>/dev/null \
-                && test -s /tmp/candidate.zip && unzip -tq /tmp/candidate.zip >/dev/null 2>&1; then
-                unzip -oq /tmp/candidate.zip -d /tmp/candidate
-                hit=$(find /tmp/candidate -type f -name 'TREB_UNRESOLVED_AFTER_MATERIALITY.csv' -print -quit)
-                if [ -n "$hit" ]; then
-                  rm -rf /tmp/current; mkdir -p /tmp/current; cp -a /tmp/candidate/. /tmp/current/
-                  echo "authoritative_artifact_id=$aid"; found=1; break
-                fi
-              fi
-            done < /tmp/artifact_ids.txt
-          fi
-          test "$found" -eq 1
-      - name: Audit neighbouring event semantics on exact controls
+      - name: Audit neighbouring event semantics for persisted exact-control mismatches
         run: |
           mkdir -p /tmp/out
           python -u team_trb_all_players/treb_rebound_semantic_context_audit.py \
-            --current-dir /tmp/current --out-dir /tmp/out --season '${{ matrix.season }}'
+            --mismatch-path team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-audit/TREB-rebound-semantic-consolidated-32101050783/ALL_MISMATCHES.csv.gz \
+            --out-dir /tmp/out --season '${{ matrix.season }}'
       - uses: actions/upload-artifact@v4
         with:
           name: TREB-rebound-semantic-context-${{ matrix.season }}-${{ github.run_id }}
@@ -125,25 +61,16 @@ jobs:
           mkdir -p /tmp/final
           python - <<'PY'
           import json,pathlib,pandas as pd
-          root=pathlib.Path('/tmp/all');out=pathlib.Path('/tmp/final')
-          qs=[]
+          root=pathlib.Path('/tmp/all');out=pathlib.Path('/tmp/final');qs=[]
           for f in root.rglob('QA.json'):
               try: qs.append(json.loads(f.read_text()))
               except: pass
-          mf=list(root.rglob('MISMATCHES.csv.gz')); ef=list(root.rglob('MISMATCH_COMPONENT_EVENTS.csv.gz'))
-          m=pd.concat([pd.read_csv(f,low_memory=False) for f in mf],ignore_index=True) if mf else pd.DataFrame()
-          e=pd.concat([pd.read_csv(f,low_memory=False) for f in ef],ignore_index=True) if ef else pd.DataFrame()
-          if len(m): m.to_csv(out/'ALL_MISMATCHES.csv.gz',index=False,compression='gzip')
-          if len(e): e.to_csv(out/'ALL_MISMATCH_COMPONENT_EVENTS.csv.gz',index=False,compression='gzip')
-          qa={'status':'PASS_DIAGNOSTIC' if qs and not any(int(q.get('source_failures',0)) for q in qs) else 'PARTIAL_DIAGNOSTIC',
-              'season_jobs':len(qs),'source_failures':sum(int(q.get('source_failures',0)) for q in qs),
-              'controls_checked':sum(int(q.get('controls_checked',0)) for q in qs),
-              'control_mismatches':sum(int(q.get('control_mismatches',0)) for q in qs),
-              'mismatch_games':sum(int(q.get('mismatch_games',0)) for q in qs),
-              'event_rows':len(e),'promotion_performed':False,
-              'integrity':{'diagnostic_only':True,'reconstruction_semantics_unchanged':True}}
-          (out/'CONTEXT_AUDIT_QA.json').write_text(json.dumps(qa,indent=2)+'\n')
-          print(json.dumps(qa,indent=2))
+          mf=list(root.rglob('MISMATCHES.csv.gz'));ef=list(root.rglob('MISMATCH_COMPONENT_EVENTS.csv.gz'))
+          m=pd.concat([pd.read_csv(f,low_memory=False) for f in mf],ignore_index=True) if mf else pd.DataFrame();e=pd.concat([pd.read_csv(f,low_memory=False) for f in ef],ignore_index=True) if ef else pd.DataFrame()
+          if len(m):m.to_csv(out/'ALL_MISMATCHES.csv.gz',index=False,compression='gzip')
+          if len(e):e.to_csv(out/'ALL_MISMATCH_COMPONENT_EVENTS.csv.gz',index=False,compression='gzip')
+          qa={'status':'PASS_DIAGNOSTIC' if qs and not any(int(q.get('source_failures',0)) for q in qs) else 'PARTIAL_DIAGNOSTIC','season_jobs':len(qs),'source_failures':sum(int(q.get('source_failures',0)) for q in qs),'persisted_mismatches':sum(int(q.get('persisted_mismatches',0)) for q in qs),'mismatch_games':sum(int(q.get('mismatch_games',0)) for q in qs),'event_rows':len(e),'promotion_performed':False,'integrity':{'diagnostic_only':True,'uses_previously_proven_exact_control_mismatches':True,'fresh_zero_mismatch_gate_required_before_promotion':True}}
+          (out/'CONTEXT_AUDIT_QA.json').write_text(json.dumps(qa,indent=2)+'\n');print(json.dumps(qa,indent=2))
           PY
       - uses: actions/upload-artifact@v4
         with:
