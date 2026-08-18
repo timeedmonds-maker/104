@@ -17,7 +17,7 @@ for _,r in df.iterrows():
     im=Image.open(BytesIO(resp.content)).convert('RGBA')
     alpha=np.asarray(im.getchannel('A')); ys,xs=np.where(alpha>10)
     x0,x1,y0,y1=xs.min(),xs.max()+1,ys.min(),ys.max()+1
-    fg_h=y1-y0; cut_y1=int(y0+fg_h*0.60); cx=(x0+x1)//2
+    fg_h=y1-y0; cut_y1=int(y0+fg_h*0.70); cx=(x0+x1)//2
     crop_h=max(cut_y1-y0,1); crop_w=int(crop_h*0.95)
     cx0=max(0,cx-crop_w//2); cx1=min(im.width,cx0+crop_w)
     im.crop((cx0,y0,cx1,cut_y1)).save(f'headshots/{pid}.png')
