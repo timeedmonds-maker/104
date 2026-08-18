@@ -1,6 +1,10 @@
 {
   "reports": [
     {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-tail-evidence-triage/TREB-tail-exact-evidence-32173544430/TREB_TAIL_EVIDENCE_QA.json",
+      "type": "dict"
+    },
+    {
       "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-audit/TREB-rebound-semantic-2024-25-32101050783/QA.json",
       "type": "dict",
       "season": "2024-25",
@@ -121,6 +125,42 @@
     }
   ],
   "csvs": [
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-tail-evidence-triage/TREB-tail-exact-evidence-32173544430/TREB_TAIL_EVIDENCE_COVERAGE.csv",
+      "rows": 40,
+      "columns": [
+        "lane",
+        "season",
+        "team",
+        "player_id",
+        "pro_id",
+        "evidence_matches",
+        "evidence_files"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-tail-evidence-triage/TREB-tail-exact-evidence-32173544430/TREB_TAIL_EVIDENCE_MATCHES.csv",
+      "rows": 9451,
+      "columns": [
+        "lane",
+        "season",
+        "team",
+        "player_id",
+        "pro_id",
+        "path",
+        "line",
+        "token",
+        "evidence"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-tail-evidence-triage/TREB-tail-exact-evidence-32173544430/TREB_TAIL_SOURCE_INVENTORY.csv",
+      "rows": 177,
+      "columns": [
+        "bytes",
+        "path"
+      ]
+    },
     {
       "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-audit/TREB-rebound-semantic-consolidated-32101050783/SEMANTIC_FEATURE_COUNTS.csv",
       "rows": 10,
