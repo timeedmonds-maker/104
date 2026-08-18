@@ -12,11 +12,11 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install pandas numpy matplotlib pillow requests
-      - run: python scripts/funakistats_headshot_chart.py
+      - run: python scripts/funakistats_headshot_chart_v3.py
       - uses: actions/upload-artifact@v4
         with:
-          name: funakistats-team-oreb-headshot-chart
+          name: funakistats-team-oreb-headshot-chart-v3
           path: |
-            funakistats_team_oreb_headshots_last5_top30_COLLISION_V2.png
+            funakistats_team_oreb_headshots_last5_top30_COLLISION_V3.png
             funakistats_team_oreb_headshots_last5_top30.csv
           retention-days: 7
