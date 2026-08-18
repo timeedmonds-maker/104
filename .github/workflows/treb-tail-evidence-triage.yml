@@ -26,17 +26,36 @@ jobs:
       - name: Download current authoritative TREB checkpoint
         env:
           GH_TOKEN: ${{ github.token }}
+          AUTH_ARTIFACT_ID: '9275527991'
         run: |
           set -euo pipefail
+          rm -rf auth auth.zip
           mkdir -p auth
+          url="https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${AUTH_ARTIFACT_ID}/zip"
+          ok=0
           for n in 1 2 3 4; do
-            if gh api repos/${{ github.repository }}/actions/artifacts/9275527991/zip > auth.zip && unzip -tq auth.zip >/dev/null; then break; fi
             rm -f auth.zip
+            if curl --fail --silent --show-error --location \
+              --retry 2 --retry-all-errors --connect-timeout 20 --max-time 180 \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "$url" -o auth.zip \
+              && test -s auth.zip \
+              && unzip -tq auth.zip >/dev/null; then
+              ok=1
+              break
+            fi
             sleep $((n*8))
           done
-          test -s auth.zip
+          test "$ok" -eq 1
           unzip -q auth.zip -d auth
           test -f auth/TREB_UNRESOLVED_AFTER_MATERIALITY.csv
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('auth/TREB_UNRESOLVED_AFTER_MATERIALITY.csv')
+          print('authoritative residual manifest bytes', p.stat().st_size)
+          PY
       - name: Triage retained exact minutes and tenure evidence
         run: |
           python team_trb_all_players/treb_tail_evidence_triage.py . auth tail_evidence
