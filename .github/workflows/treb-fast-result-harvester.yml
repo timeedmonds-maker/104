@@ -2,6 +2,11 @@ name: TREB fast recovery result harvester
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - TREB rebound semantic exact-control audit
+      - TREB tail exact-evidence triage
+    types: [completed]
   push:
     branches:
       - agent/treb-final-exact-assembly
@@ -18,6 +23,7 @@ concurrency:
 
 jobs:
   harvest:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.head_branch == 'agent/treb-final-exact-assembly'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -78,7 +84,7 @@ jobs:
           for rec in records:
               latest = rec.get('latest') or {}
               run_id = latest.get('databaseId')
-              if not run_id or latest.get('status') != 'completed':
+              if not run_id or latest.get('status') != 'completed' or latest.get('conclusion') != 'success':
                   continue
               dest = out/'artifacts'/rec['workflow'].removesuffix('.yml')
               dest.mkdir(parents=True, exist_ok=True)
