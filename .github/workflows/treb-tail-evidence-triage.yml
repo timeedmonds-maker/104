@@ -1,0 +1,49 @@
+name: TREB tail exact-evidence triage
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-tail-evidence-triage.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download current authoritative TREB checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p auth
+          for n in 1 2 3 4; do
+            if gh api repos/${{ github.repository }}/actions/artifacts/9275527991/zip > auth.zip && unzip -tq auth.zip >/dev/null; then break; fi
+            rm -f auth.zip
+            sleep $((n*8))
+          done
+          test -s auth.zip
+          unzip -q auth.zip -d auth
+          test -f auth/TREB_UNRESOLVED_AFTER_MATERIALITY.csv
+      - name: Triage retained exact minutes and tenure evidence
+        run: |
+          python team_trb_all_players/treb_tail_evidence_triage.py . auth tail_evidence
+      - name: Upload durable triage evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-tail-exact-evidence-${{ github.run_id }}
+          path: tail_evidence/
+          if-no-files-found: error
+          retention-days: 30
