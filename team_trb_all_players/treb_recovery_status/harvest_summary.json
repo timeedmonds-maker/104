@@ -5,6 +5,17 @@
       "type": "dict"
     },
     {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-tail-exact-analysis/TREB-current-tail-exact-analysis-32194333494/TREB_CURRENT_40_EXACT_TAIL_QA.json",
+      "type": "dict",
+      "status": "PASS_DIAGNOSTIC",
+      "authoritative_validation_keys": 19,
+      "authoritative_tenure_keys": 21,
+      "target_records_found": 40,
+      "proven_unique_exact_ledger_tenures": 0,
+      "proven_validation_keys": 0,
+      "proven_prior_no_tenure_keys": 0
+    },
+    {
       "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-audit/TREB-rebound-semantic-2024-25-32101050783/QA.json",
       "type": "dict",
       "season": "2024-25",
@@ -122,6 +133,50 @@
       "source_failures": 0,
       "controls_checked": 16,
       "mismatch_games": 2
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2022-23-32191338476/QA.json",
+      "type": "dict",
+      "season": "2022-23",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0,
+      "mismatch_games": 2,
+      "event_rows": 183
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-consolidated-32191338476/CONTEXT_AUDIT_QA.json",
+      "type": "dict",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0,
+      "mismatch_games": 8,
+      "event_rows": 543
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2019-20-32191338476/QA.json",
+      "type": "dict",
+      "season": "2019-20",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0,
+      "mismatch_games": 1,
+      "event_rows": 114
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2021-22-32191338476/QA.json",
+      "type": "dict",
+      "season": "2021-22",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0,
+      "mismatch_games": 2,
+      "event_rows": 70
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-2004-05-32191338476/QA.json",
+      "type": "dict",
+      "season": "2004-05",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0,
+      "mismatch_games": 3,
+      "event_rows": 176
     }
   ],
   "csvs": [
@@ -159,6 +214,48 @@
       "columns": [
         "bytes",
         "path"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-tail-exact-analysis/TREB-current-tail-exact-analysis-32194333494/TREB_CURRENT_40_EXACT_TAIL_AUDIT.csv",
+      "rows": 40,
+      "columns": [
+        "expected_team_games",
+        "ledger_player_games",
+        "minute_compatible_contiguous_candidates",
+        "player_id",
+        "prior_minutes_delta_seconds",
+        "prior_status",
+        "prior_tenure_identity_source",
+        "reason",
+        "schedule_games",
+        "schedule_order_source",
+        "season",
+        "status",
+        "target_record_present",
+        "target_seconds",
+        "team_id"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-tail-exact-analysis/TREB-current-tail-exact-analysis-32194333494/TREB_CURRENT_40_PROVEN_TENURES.csv",
+      "rows": 0,
+      "columns": [
+        "expected_team_games",
+        "ledger_player_games",
+        "minute_compatible_contiguous_candidates",
+        "player_id",
+        "prior_minutes_delta_seconds",
+        "prior_status",
+        "prior_tenure_identity_source",
+        "reason",
+        "schedule_games",
+        "schedule_order_source",
+        "season",
+        "status",
+        "target_record_present",
+        "target_seconds",
+        "team_id"
       ]
     },
     {

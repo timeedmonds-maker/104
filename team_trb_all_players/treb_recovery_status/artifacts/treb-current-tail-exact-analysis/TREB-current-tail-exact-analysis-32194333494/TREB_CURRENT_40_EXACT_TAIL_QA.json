@@ -1,0 +1,28 @@
+{
+  "status": "PASS_DIAGNOSTIC",
+  "authoritative_validation_keys": 19,
+  "authoritative_tenure_keys": 21,
+  "target_records_found": 40,
+  "proven_unique_exact_ledger_tenures": 0,
+  "proven_validation_keys": 0,
+  "proven_prior_no_tenure_keys": 0,
+  "result_status_counts": {
+    "UNRESOLVED": 40
+  },
+  "prior_status_counts": {
+    "BLOCKED_VALIDATION": 19,
+    "NO_EXACT_TENURE_IDENTITY": 21
+  },
+  "minutes_gate_seconds": 60.0,
+  "promotion_performed": false,
+  "next": "Use only proven tenure/minutes rows as repair proofs; re-run current exact rebound reclosure before any promotion.",
+  "integrity": {
+    "current_authoritative_ids_dynamic": true,
+    "ambiguous_tenures_promoted": false,
+    "missing_ledger_games_treated_as_zero": false,
+    "empirical_model_used": false,
+    "rounded_percentage_backsolve_used": false,
+    "opponent_rebound_inference_used": false,
+    "partial_tenure_whole_team_subtraction_used": false
+  }
+}

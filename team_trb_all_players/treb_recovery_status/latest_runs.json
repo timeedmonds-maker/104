@@ -56,36 +56,47 @@
     "stderr": "",
     "runs": [
       {
-        "conclusion": "",
+        "conclusion": "success",
+        "createdAt": "2026-08-18T22:09:02Z",
+        "databaseId": 32191338476,
+        "event": "push",
+        "headSha": "25807d6053c3a2b1201c343624e6330129a7e7c3",
+        "name": "TREB rebound semantic neighbouring-event audit",
+        "status": "completed",
+        "updatedAt": "2026-08-18T22:10:09Z",
+        "url": "https://github.com/timeedmonds-maker/104/actions/runs/32191338476"
+      },
+      {
+        "conclusion": "success",
         "createdAt": "2026-08-18T18:54:20Z",
         "databaseId": 32173610333,
         "event": "push",
         "headSha": "c41de7409866484409fe922a38b6a817333396d4",
         "name": "TREB rebound semantic neighbouring-event audit",
-        "status": "queued",
-        "updatedAt": "2026-08-18T18:54:20Z",
+        "status": "completed",
+        "updatedAt": "2026-08-18T18:55:48Z",
         "url": "https://github.com/timeedmonds-maker/104/actions/runs/32173610333"
       },
       {
-        "conclusion": "",
+        "conclusion": "failure",
         "createdAt": "2026-08-18T18:54:01Z",
         "databaseId": 32173580117,
         "event": "push",
         "headSha": "f6e4613c52a5edf27ca49058dc05ce028d937581",
         "name": "TREB rebound semantic neighbouring-event audit",
-        "status": "in_progress",
-        "updatedAt": "2026-08-18T18:54:06Z",
+        "status": "completed",
+        "updatedAt": "2026-08-18T18:59:58Z",
         "url": "https://github.com/timeedmonds-maker/104/actions/runs/32173580117"
       },
       {
-        "conclusion": "",
+        "conclusion": "failure",
         "createdAt": "2026-08-18T18:47:20Z",
         "databaseId": 32172959562,
         "event": "push",
         "headSha": "ae8dd81554549d99a958e509f14144cea8bc42d4",
         "name": "TREB rebound semantic neighbouring-event audit",
-        "status": "in_progress",
-        "updatedAt": "2026-08-18T18:47:24Z",
+        "status": "completed",
+        "updatedAt": "2026-08-18T18:56:55Z",
         "url": "https://github.com/timeedmonds-maker/104/actions/runs/32172959562"
       },
       {
@@ -101,15 +112,15 @@
       }
     ],
     "latest": {
-      "conclusion": "",
-      "createdAt": "2026-08-18T18:54:20Z",
-      "databaseId": 32173610333,
+      "conclusion": "success",
+      "createdAt": "2026-08-18T22:09:02Z",
+      "databaseId": 32191338476,
       "event": "push",
-      "headSha": "c41de7409866484409fe922a38b6a817333396d4",
+      "headSha": "25807d6053c3a2b1201c343624e6330129a7e7c3",
       "name": "TREB rebound semantic neighbouring-event audit",
-      "status": "queued",
-      "updatedAt": "2026-08-18T18:54:20Z",
-      "url": "https://github.com/timeedmonds-maker/104/actions/runs/32173610333"
+      "status": "completed",
+      "updatedAt": "2026-08-18T22:10:09Z",
+      "url": "https://github.com/timeedmonds-maker/104/actions/runs/32191338476"
     }
   },
   {
@@ -183,6 +194,35 @@
       "status": "completed",
       "updatedAt": "2026-08-18T18:53:58Z",
       "url": "https://github.com/timeedmonds-maker/104/actions/runs/32173544430"
+    }
+  },
+  {
+    "workflow": "treb-current-tail-exact-analysis.yml",
+    "ok": true,
+    "stderr": "",
+    "runs": [
+      {
+        "conclusion": "success",
+        "createdAt": "2026-08-18T22:47:39Z",
+        "databaseId": 32194333494,
+        "event": "push",
+        "headSha": "18511b85b82cb72f5dc13b0f8f26ebf8749d06d5",
+        "name": "TREB current tail exact analysis",
+        "status": "completed",
+        "updatedAt": "2026-08-18T22:47:53Z",
+        "url": "https://github.com/timeedmonds-maker/104/actions/runs/32194333494"
+      }
+    ],
+    "latest": {
+      "conclusion": "success",
+      "createdAt": "2026-08-18T22:47:39Z",
+      "databaseId": 32194333494,
+      "event": "push",
+      "headSha": "18511b85b82cb72f5dc13b0f8f26ebf8749d06d5",
+      "name": "TREB current tail exact analysis",
+      "status": "completed",
+      "updatedAt": "2026-08-18T22:47:53Z",
+      "url": "https://github.com/timeedmonds-maker/104/actions/runs/32194333494"
     }
   }
 ]
