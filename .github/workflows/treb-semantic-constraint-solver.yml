@@ -39,3 +39,5 @@ jobs:
           path: /tmp/out
           retention-days: 90
           if-no-files-found: error
+
+# Retrigger exact solver against the latest persisted 8-game context audit.
