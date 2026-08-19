@@ -16,6 +16,6 @@ jobs:
       - run: python tmp/adams_horizontal_spacing/render.py
       - uses: actions/upload-artifact@v4
         with:
-          name: adams-horizontal-oreb-spaced
-          path: STEVEN_ADAMS_ROCKETS_OREB_HORIZONTAL_SPACED.png
+          name: adams-horizontal-oreb-fresh
+          path: STEVEN_ADAMS_ROCKETS_OREB_HORIZONTAL_FRESH.png
           if-no-files-found: error
