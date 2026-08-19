@@ -18,46 +18,40 @@ def logo(abbr):
  sc=88/max(im.size); im=im.resize((round(im.width*sc),round(im.height*sc)),Image.Resampling.LANCZOS)
  c=Image.new('RGBA',(96,96),(255,255,255,0)); c.alpha_composite(im,((96-im.width)//2,(96-im.height)//2)); return c
 LOGOS={a:logo(a) for a in DATA['2024-25']}
-# one old-logo set reused for both seasons
 h=Image.open(io.BytesIO(get('https://cdn.nba.com/headshots/nba/latest/1040x760/203500.png'))).convert('RGBA')
 bb=h.getchannel('A').getbbox(); h=h.crop(bb) if bb else h
-# tight face crop
 w,hh=h.size; h=h.crop((int(.16*w),0,int(.84*w),int(.72*hh)))
 
-fig,axs=plt.subplots(2,1,figsize=(18,10.5),dpi=300,sharex=True)
+fig,axs=plt.subplots(2,1,figsize=(18,11.5),dpi=300,sharex=True)
 fig.patch.set_facecolor('#FAFAF8')
 fig.suptitle("STEVEN ADAMS’ OFFENSIVE REBOUNDING IMPACT",fontsize=31,fontweight='black',y=.975,color='#111')
 fig.text(.5,.922,'Increase in team OREB Rate with Adams on court',ha='center',fontsize=17,fontweight='bold',color='#222')
 
 for ax,season in zip(axs,['2024-25','2025-26']):
- ax.set_facecolor('#FAFAF8'); ax.set_xlim(20,45.8); ax.set_ylim(-.46,.46); ax.set_yticks([])
+ ax.set_facecolor('#FAFAF8'); ax.set_xlim(20,45.8); ax.set_ylim(-.62,.62); ax.set_yticks([])
  ax.grid(axis='x',color='#E1E1DD',lw=.9); ax.axhline(0,color='#ECECE8',lw=1)
  for sp in ax.spines.values(): sp.set_visible(False)
  vals=sorted([(v,a) for a,v in DATA[season].items() if a!='HOU'])
- # deterministic greedy lane assignment; only move vertically when horizontal overlap would occur
- lanes=[0,.16,-.16,.32,-.32]
+ lanes=[0,.22,-.22,.44,-.44]
  placed=[]
  for v,a in vals:
   lane=0
   for li,y in enumerate(lanes):
-   # data spacing threshold corresponds to ~one 96px logo at this chart width
-   if all(not(abs(v-pv)<.78 and abs(y-py)<.12) for pv,py in placed): lane=li; break
+   if all(not(abs(v-pv)<.82 and abs(y-py)<.18) for pv,py in placed): lane=li; break
   y=lanes[lane]; placed.append((v,y))
-  ax.add_artist(AnnotationBbox(OffsetImage(LOGOS[a],zoom=.56),(v,y),frameon=False,zorder=3))
- # Houston full-season marker
+  ax.add_artist(AnnotationBbox(OffsetImage(LOGOS[a],zoom=.54),(v,y),frameon=False,zorder=3))
  hv=DATA[season]['HOU']
  ax.scatter([hv],[0],s=1750,facecolor='#FAFAF8',edgecolor='#111',linewidth=2.1,zorder=5)
  ax.add_artist(AnnotationBbox(OffsetImage(LOGOS['HOU'],zoom=.62),(hv,0),frameon=False,zorder=6))
- ax.text(hv,-.31,f'#1  HOU  {hv:.1f}%',ha='center',va='center',fontsize=13,fontweight='bold')
- # connector to Adams ON
+ ax.text(hv,-.43,f'#1  HOU  {hv:.1f}%',ha='center',va='center',fontsize=13,fontweight='bold')
  ax.plot([hv,ON[season]],[0,0],color='#111',lw=2.3,zorder=4)
  ax.scatter([ON[season]],[0],s=1850,facecolor='white',edgecolor='#111',linewidth=2.2,zorder=5)
  ax.add_artist(AnnotationBbox(OffsetImage(h,zoom=.075),(ON[season],0),frameon=False,zorder=6))
- ax.text(ON[season],.25,f"{ON[season]:.1f}% | +{SW[season]:.1f}",ha='center',va='center',fontsize=17,fontweight='bold')
+ ax.text(ON[season],.35,f"{ON[season]:.1f}% | +{SW[season]:.1f}",ha='center',va='center',fontsize=17,fontweight='bold')
  ax.text(19.85,0,season,ha='right',va='center',fontsize=19,fontweight='bold')
 
 axs[-1].set_xticks([20,25,30,35,40,45]); axs[-1].set_xticklabels([f'{x}%' for x in [20,25,30,35,40,45]],fontsize=14,color='#444')
 axs[-1].set_xlabel('TEAM OFFENSIVE REBOUND %',fontsize=16,fontweight='bold',color='#666',labelpad=18)
 fig.text(.93,.03,'@funakistats',ha='right',fontsize=12,fontweight='bold',color='#777')
-plt.subplots_adjust(left=.08,right=.965,top=.84,bottom=.11,hspace=.18)
+plt.subplots_adjust(left=.08,right=.965,top=.84,bottom=.11,hspace=.16)
 plt.savefig('STEVEN_ADAMS_ROCKETS_OREB_HORIZONTAL_SPACED.png',dpi=360,bbox_inches='tight',facecolor=fig.get_facecolor())
