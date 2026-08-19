@@ -19,9 +19,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy matplotlib pillow requests cairosvg
-      - run: python tmp/funakistats_m3/render_fixed.py
+      - run: python tmp/funakistats_m3/render_oreb_horizontal.py
       - uses: actions/upload-artifact@v4
         with:
-          name: funakistats-missed3-chart-fixed
-          path: STEVEN_ADAMS_OREB_MISSED_3S_STACKED_LOGOS_CDN_FIXED.png
+          name: funakistats-adams-rockets-oreb-horizontal
+          path: STEVEN_ADAMS_ROCKETS_OREB_HORIZONTAL.png
           if-no-files-found: error
