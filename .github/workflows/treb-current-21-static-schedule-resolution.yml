@@ -28,16 +28,60 @@ jobs:
           set -euo pipefail
           TARGETS='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-tenure-boundary/TREB-current-21-tenure-boundary-32211236671/TREB_CURRENT_21_TENURE_BOUNDARY_RESOLUTION.csv'
           test -f "$TARGETS"
+          set +e
           python team_trb_all_players/treb_current_21_static_schedule.py --targets "$TARGETS" --out-dir schedule_out
-          mkdir -p team_trb_all_players/impact_database/static_exact_schedules
-          cp schedule_out/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv team_trb_all_players/impact_database/static_exact_schedules/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv
+          RC=$?
+          set -e
+          echo "SCHEDULE_RC=$RC" >> "$GITHUB_ENV"
+          if [ -f schedule_out/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE_SUMMARY.json ]; then
+            cat schedule_out/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE_SUMMARY.json
+          fi
+          if [ "$RC" -eq 0 ] && [ -f schedule_out/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv ]; then
+            mkdir -p team_trb_all_players/impact_database/static_exact_schedules
+            cp schedule_out/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv team_trb_all_players/impact_database/static_exact_schedules/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv
+          fi
+          # Deliberately do not fail here: diagnostics must be persisted before the final fail-closed gate.
+          exit 0
       - name: Re-run exact transaction-state tenure resolution using new static schedule
+        if: env.SCHEDULE_RC == '0'
         run: |
           set -euo pipefail
           TARGETS='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-tenure-boundary/TREB-current-21-tenure-boundary-32211236671/TREB_CURRENT_21_TENURE_BOUNDARY_RESOLUTION.csv'
           python team_trb_all_players/treb_current_tenure_transaction_resolver.py --repo-root . --targets "$TARGETS" --out-dir resolution_out
-      - name: Fail closed unless schedule and transaction resolution are complete
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-current-21-static-schedule-resolution-${{ github.run_id }}
+          path: |
+            schedule_out/
+            resolution_out/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Persist schedule and resolution evidence before final gate
+        if: always()
         run: |
+          set -euo pipefail
+          DEST="team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-static-schedule-resolution/TREB-current-21-static-schedule-resolution-${GITHUB_RUN_ID}"
+          mkdir -p "$DEST"
+          if [ -d schedule_out ]; then cp -a schedule_out/. "$DEST/"; fi
+          if [ -d resolution_out ]; then cp -a resolution_out/. "$DEST/"; fi
+          printf '%s\n' "${SCHEDULE_RC:-unknown}" > "$DEST/SCHEDULE_EXIT_CODE.txt"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$DEST"
+          if [ -f team_trb_all_players/impact_database/static_exact_schedules/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv ]; then
+            git add team_trb_all_players/impact_database/static_exact_schedules/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv
+          fi
+          if ! git diff --cached --quiet; then
+            git commit -m "Persist TREB current 21 static schedule resolution ${GITHUB_RUN_ID}"
+            git pull --rebase origin agent/treb-final-exact-assembly
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
+      - name: Final fail-closed gate
+        if: always()
+        run: |
+          set -euo pipefail
+          test "${SCHEDULE_RC:-1}" = "0"
           python - <<'PY'
           import json
           s=json.load(open('schedule_out/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE_SUMMARY.json'))
@@ -47,23 +91,3 @@ jobs:
           assert s['targets']==21 and s['exact_target_schedules']==21
           # Transaction state may still be unresolved; this is evidence, not a forced promotion.
           PY
-      - uses: actions/upload-artifact@v4
-        with:
-          name: TREB-current-21-static-schedule-resolution-${{ github.run_id }}
-          path: |
-            schedule_out/
-            resolution_out/
-          retention-days: 30
-      - name: Persist exact schedule and resolution evidence
-        run: |
-          set -euo pipefail
-          DEST="team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-static-schedule-resolution/TREB-current-21-static-schedule-resolution-${GITHUB_RUN_ID}"
-          mkdir -p "$DEST"
-          cp -a schedule_out/. "$DEST/"
-          cp -a resolution_out/. "$DEST/"
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add team_trb_all_players/impact_database/static_exact_schedules/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv "$DEST"
-          git commit -m "Persist TREB current 21 static schedule resolution ${GITHUB_RUN_ID}"
-          git pull --rebase origin agent/treb-final-exact-assembly
-          git push origin HEAD:agent/treb-final-exact-assembly
