@@ -6,6 +6,7 @@ on:
     workflows:
       - TREB rebound semantic exact-control audit
       - TREB rebound semantic neighbouring-event audit
+      - TREB semantic exact-event constraint solver
       - TREB tail exact-evidence triage
       - TREB current tail exact analysis
       - TREB current schedule-audited tail proof
@@ -17,6 +18,7 @@ on:
       - '.github/workflows/treb-fast-result-harvester.yml'
       - '.github/workflows/treb-rebound-semantic-audit.yml'
       - '.github/workflows/treb-rebound-semantic-context-audit.yml'
+      - '.github/workflows/treb-semantic-constraint-solver.yml'
       - '.github/workflows/treb-tail-evidence-triage.yml'
       - '.github/workflows/treb-current-tail-exact-analysis.yml'
       - '.github/workflows/treb-current-schedule-audited-tail.yml'
@@ -59,6 +61,7 @@ jobs:
           workflows = [
               'treb-rebound-semantic-audit.yml',
               'treb-rebound-semantic-context-audit.yml',
+              'treb-semantic-constraint-solver.yml',
               'treb-tail-evidence-triage.yml',
               'treb-current-tail-exact-analysis.yml',
               'treb-current-schedule-audited-tail.yml',
@@ -109,7 +112,7 @@ jobs:
                               'mismatch_count','match_count','controls_checked','mismatch_games','event_rows','authoritative_validation_keys',
                               'authoritative_tenure_keys','target_records_found','proven_unique_exact_ledger_tenures','proven_validation_keys',
                               'proven_prior_no_tenure_keys','authoritative_no_identity_keys','exact_current_no_identity_tenures',
-                              'exact_current_validation_tenures','proven_total'):
+                              'exact_current_validation_tenures','proven_total','games_total','games_unique_solution','games_ambiguous'):
                       if key in obj: item[key]=obj[key]
               summary['reports'].append(item)
           for path in root.rglob('*.csv'):
