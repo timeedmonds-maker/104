@@ -1,0 +1,22 @@
+name: Adams horizontal OREB spacing
+on:
+  push:
+    branches: [agent/adams-horizontal-logo-spacing]
+    paths:
+      - 'tmp/adams_horizontal_spacing/**'
+      - '.github/workflows/adams_horizontal_spacing.yml'
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install matplotlib pillow requests
+      - run: python tmp/adams_horizontal_spacing/render.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adams-horizontal-oreb-spaced
+          path: STEVEN_ADAMS_ROCKETS_OREB_HORIZONTAL_SPACED.png
+          if-no-files-found: error
