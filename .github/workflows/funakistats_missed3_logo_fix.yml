@@ -1,0 +1,22 @@
+name: funakistats missed3 logo fix
+on:
+  push:
+    branches: [agent/funakistats-missed3-logo-fix]
+    paths:
+      - 'tmp/funakistats_m3/**'
+      - '.github/workflows/funakistats_missed3_logo_fix.yml'
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas numpy matplotlib pillow requests cairosvg
+      - run: python tmp/funakistats_m3/render.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: funakistats-missed3-chart
+          path: STEVEN_ADAMS_OREB_MISSED_3S_STACKED_LOGOS_CDN_FINAL.png
+          if-no-files-found: error
