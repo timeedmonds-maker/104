@@ -1,0 +1,112 @@
+name: TREB exact team-fact source race and reclosure
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-team-fact-source-race.yml
+      - scripts/treb_team_fact_source_race.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: treb-team-fact-source-race
+  cancel-in-progress: false
+
+env:
+  CURRENT_ARTIFACT_ID: '9275527991'
+  TENURE_ARTIFACT_ID: '9259414397'
+  CONSENSUS_ARTIFACT_ID: '9252786257'
+  PBP_ARTIFACT_ID: '9258020958'
+  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
+  RECOVERED_MID_ARTIFACT_ID: '9260106595'
+  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
+  MATERIALITY_ARTIFACT_ID: '9262341403'
+  MATERIALITY_2015_ARTIFACT_ID: '9267705324'
+
+jobs:
+  recover-reclose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -q requests beautifulsoup4
+      - name: Download authoritative 563-state inputs
+        env: {GH_TOKEN: '${{ github.token }}'}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current current_aug tenure consensus pbp recovered_old recovered_mid recovered_new materiality materiality2015 shared/base shared/gated shared/merged out; do mkdir -p /tmp/$d; done
+          for spec in current:$CURRENT_ARTIFACT_ID tenure:$TENURE_ARTIFACT_ID consensus:$CONSENSUS_ARTIFACT_ID pbp:$PBP_ARTIFACT_ID recovered_old:$RECOVERED_OLD_ARTIFACT_ID recovered_mid:$RECOVERED_MID_ARTIFACT_ID recovered_new:$RECOVERED_NEW_ARTIFACT_ID materiality:$MATERIALITY_ARTIFACT_ID materiality2015:$MATERIALITY_2015_ARTIFACT_ID; do
+            d=${spec%%:*}; a=${spec##*:}; gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" >/tmp/$d.zip; unzip -q /tmp/$d.zip -d /tmp/$d
+          done
+          cp -a /tmp/current/. /tmp/current_aug/
+          find /tmp/current -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/base/ \;
+      - name: Run exact-source control race
+        run: python -u scripts/treb_team_fact_source_race.py
+      - name: Union promoted exact team facts and immediately reclose
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f /tmp/shared/gated/PASS_GATE ]; then echo 'No admitted exact source or no promoted facts; reclosure skipped.'; exit 0; fi
+          python - <<'PY'
+          import csv,gzip,pathlib
+          O=pathlib.Path('/tmp/shared/merged');O.mkdir(parents=True,exist_ok=True)
+          specs=[
+            ('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz',['game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb'],[pathlib.Path('/tmp/shared/base'),pathlib.Path('/tmp/shared/gated')]),
+            ('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz',['game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'],[pathlib.Path('/tmp/shared/base')])]
+          for name,ks,vs,roots in specs:
+            rows={};fields=None
+            for root in roots:
+              for p in root.rglob(name):
+                with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
+                  rd=csv.DictReader(f); fields=fields or rd.fieldnames
+                  for r in rd:
+                    q=tuple(str(r[z]).strip().removesuffix('.0') for z in ks); vals=tuple(float(r[z]) for z in vs)
+                    if q in rows and tuple(float(rows[q][z]) for z in vs)!=vals: raise SystemExit(f'CONFLICT {name} {q}')
+                    rows[q]=r
+            if fields is None: raise SystemExit('NO_INPUT '+name)
+            with gzip.open(O/name,'wt',encoding='utf-8',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows[q] for q in sorted(rows))
+            print('UNION',name,len(rows))
+          PY
+          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/reclose_residual_shared_games.py \
+            --current-dir /tmp/current_aug --tenure-dir /tmp/tenure --consensus-dir /tmp/consensus --pbp-dir /tmp/pbp \
+            --recovered-old-dir /tmp/recovered_old --recovered-mid-dir /tmp/recovered_mid --recovered-new-dir /tmp/recovered_new \
+            --shared-dir /tmp/shared/merged --materiality-dir /tmp/materiality --materiality-2015-dir /tmp/materiality2015 \
+            --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
+            --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz \
+            --minutes-gate-seconds 60 --output-dir /tmp/out/reclosed
+          cp /tmp/shared/merged/RECOVERED_RESIDUAL_SHARED_*_GAME_PRIMITIVES.csv.gz /tmp/out/reclosed/
+      - name: Persist supervised checkpoint to production branch
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE=team_trb_all_players/rapid_dynamic_state/team_fact_source_race
+          mkdir -p "$STATE"
+          test -f /tmp/out/TEAM_FACT_SOURCE_RACE_QA.json && cp /tmp/out/TEAM_FACT_SOURCE_RACE_QA.json "$STATE/latest_source_race_qa.json" || true
+          test -f /tmp/out/reclosed/TREB_SHARED_GAME_RECLOSURE_QA.json && cp /tmp/out/reclosed/TREB_SHARED_GAME_RECLOSURE_QA.json "$STATE/latest_reclosure_qa.json" || true
+          test -f /tmp/out/reclosed/NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv && cp /tmp/out/reclosed/NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv "$STATE/latest_next_game_registry.csv" || true
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$STATE"
+          if ! git diff --cached --quiet; then git commit -m "TREB: persist exact team-fact source-race checkpoint ${{ github.run_id }}"; git push origin HEAD:agent/treb-final-exact-assembly; fi
+      - name: Upload source-race and reclosure checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-team-fact-source-race-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
