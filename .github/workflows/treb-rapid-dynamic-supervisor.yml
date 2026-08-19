@@ -1,0 +1,44 @@
+name: TREB rapid dynamic residual supervisor
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-rapid-dynamic-supervisor.yml
+      - scripts/treb_rapid_dynamic_supervisor.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-rapid-dynamic-residual-supervisor
+  cancel-in-progress: false
+
+jobs:
+  supervise:
+    name: Discover live residual -> compress games -> retained exact closure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run live fail-closed supervisor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -u scripts/treb_rapid_dynamic_supervisor.py
+      - name: Upload durable supervisor checkpoint
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TREB-rapid-dynamic-supervisor-${{ github.run_id }}
+          path: /tmp/treb_rapid_dynamic/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
