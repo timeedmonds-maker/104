@@ -1,0 +1,69 @@
+name: TREB current 21 static schedule resolution
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_current_21_static_schedule.py'
+      - '.github/workflows/treb-current-21-static-schedule-resolution.yml'
+permissions:
+  contents: write
+concurrency:
+  group: treb-current-21-static-schedule-resolution
+  cancel-in-progress: true
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build exact current-target schedules from pinned static archives
+        run: |
+          set -euo pipefail
+          TARGETS='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-tenure-boundary/TREB-current-21-tenure-boundary-32211236671/TREB_CURRENT_21_TENURE_BOUNDARY_RESOLUTION.csv'
+          test -f "$TARGETS"
+          python team_trb_all_players/treb_current_21_static_schedule.py --targets "$TARGETS" --out-dir schedule_out
+          mkdir -p team_trb_all_players/impact_database/static_exact_schedules
+          cp schedule_out/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv team_trb_all_players/impact_database/static_exact_schedules/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv
+      - name: Re-run exact transaction-state tenure resolution using new static schedule
+        run: |
+          set -euo pipefail
+          TARGETS='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-tenure-boundary/TREB-current-21-tenure-boundary-32211236671/TREB_CURRENT_21_TENURE_BOUNDARY_RESOLUTION.csv'
+          python team_trb_all_players/treb_current_tenure_transaction_resolver.py --repo-root . --targets "$TARGETS" --out-dir resolution_out
+      - name: Fail closed unless schedule and transaction resolution are complete
+        run: |
+          python - <<'PY'
+          import json
+          s=json.load(open('schedule_out/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE_SUMMARY.json'))
+          r=json.load(open('resolution_out/TREB_CURRENT_21_TRANSACTION_RESOLUTION_SUMMARY.json'))
+          print('schedule',s)
+          print('resolution',r)
+          assert s['targets']==21 and s['exact_target_schedules']==21
+          # Transaction state may still be unresolved; this is evidence, not a forced promotion.
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-21-static-schedule-resolution-${{ github.run_id }}
+          path: |
+            schedule_out/
+            resolution_out/
+          retention-days: 30
+      - name: Persist exact schedule and resolution evidence
+        run: |
+          set -euo pipefail
+          DEST="team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-static-schedule-resolution/TREB-current-21-static-schedule-resolution-${GITHUB_RUN_ID}"
+          mkdir -p "$DEST"
+          cp -a schedule_out/. "$DEST/"
+          cp -a resolution_out/. "$DEST/"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/impact_database/static_exact_schedules/TREB_CURRENT_21_STATIC_TEAM_SCHEDULE.csv "$DEST"
+          git commit -m "Persist TREB current 21 static schedule resolution ${GITHUB_RUN_ID}"
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
