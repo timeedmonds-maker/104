@@ -1,0 +1,48 @@
+name: TREB current tenure boundary resolver
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_current_tenure_boundary_resolver.py'
+      - '.github/workflows/treb-current-tenure-boundary-resolver.yml'
+permissions:
+  contents: write
+concurrency:
+  group: treb-current-tenure-boundary-resolver
+  cancel-in-progress: true
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve current tenure identities from independent retained roster evidence
+        run: |
+          set -euo pipefail
+          PROOF='team_trb_all_players/treb_recovery_status/artifacts/treb-current-schedule-audited-tail/TREB-current-schedule-audited-tail-32194579857/TREB_CURRENT_40_SCHEDULE_AUDITED_TENURE_PROOF.csv'
+          test -f "$PROOF"
+          python team_trb_all_players/treb_current_tenure_boundary_resolver.py --repo-root . --proof "$PROOF" --out-dir out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-21-tenure-boundary-${{ github.run_id }}
+          path: out/
+          retention-days: 30
+      - name: Persist tenure boundary evidence
+        run: |
+          set -euo pipefail
+          DEST="team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-tenure-boundary/TREB-current-21-tenure-boundary-${GITHUB_RUN_ID}"
+          mkdir -p "$DEST"
+          cp -a out/. "$DEST/"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$DEST"
+          git commit -m "Persist TREB current 21 tenure boundary ${GITHUB_RUN_ID}"
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
