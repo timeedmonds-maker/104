@@ -1,0 +1,21 @@
+name: Adams team OREB vs NetRtg scatter
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [agent/adams-horizontal-logo-spacing]
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install matplotlib pillow requests
+      - run: python tmp/adams_team_scatter/render_scatter.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adams-team-oreb-netrtg-scatter
+          path: STEVEN_ADAMS_TEAM_OREB_NETRTG_SCATTER_2SEASONS.png
+          if-no-files-found: error
