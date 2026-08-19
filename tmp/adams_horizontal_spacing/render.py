@@ -24,25 +24,20 @@ LOGOS={a:logo(a) for a in DATA['2024-25']}
 raw=Image.open(io.BytesIO(get('https://cdn.nba.com/headshots/nba/latest/1040x760/203500.png'))).convert('RGBA')
 bb=raw.getchannel('A').getbbox(); raw=raw.crop(bb) if bb else raw
 w,hh=raw.size
-# crop high enough to remove jersey while retaining full head/hair
 raw=raw.crop((int(.17*w),0,int(.83*w),int(.64*hh)))
-# fit portrait into canonical circular marker
 N=360
 R=174
 inner=150
 scale=min((inner*2)/raw.width,(inner*2)/raw.height)
 raw=raw.resize((round(raw.width*scale),round(raw.height*scale)),Image.Resampling.LANCZOS)
 avatar=Image.new('RGBA',(N,N),(255,255,255,0))
-# white circular base
 ad=ImageDraw.Draw(avatar)
 ad.ellipse((N//2-R,N//2-R,N//2+R,N//2+R),fill=(255,255,255,255))
-# circular clipping mask for portrait
 pm=Image.new('L',(N,N),0)
 ImageDraw.Draw(pm).ellipse((N//2-inner,N//2-inner,N//2+inner,N//2+inner),fill=255)
 portrait_layer=Image.new('RGBA',(N,N),(255,255,255,0))
 portrait_layer.alpha_composite(raw,((N-raw.width)//2,(N-raw.height)//2+7))
 avatar.alpha_composite(Image.composite(portrait_layer,Image.new('RGBA',(N,N),(255,255,255,0)),pm))
-# ONE outer ring only
 ad=ImageDraw.Draw(avatar)
 ad.ellipse((N//2-R,N//2-R,N//2+R,N//2+R),outline=(17,17,17,255),width=9)
 
@@ -69,9 +64,8 @@ for ax,season in zip(axs,['2024-25','2025-26']):
  ax.scatter([hv],[0],s=1750,facecolor='#FAFAF8',edgecolor='#111',linewidth=2.1,zorder=5)
  ax.add_artist(AnnotationBbox(OffsetImage(LOGOS['HOU'],zoom=.62),(hv,0),frameon=False,zorder=6))
  ax.text(hv,-.50,f'#1  HOU  {hv:.1f}%',ha='center',va='center',fontsize=14,fontweight='bold')
- # connector terminates at centre but is covered by the opaque white marker base
  ax.plot([hv,ON[season]],[0,0],color='#111',lw=2.5,zorder=4)
- ax.add_artist(AnnotationBbox(OffsetImage(avatar,zoom=.40),(ON[season],0),frameon=False,zorder=7))
+ ax.add_artist(AnnotationBbox(OffsetImage(avatar,zoom=.20),(ON[season],0),frameon=False,zorder=7))
  ax.text(ON[season],.47,f"{ON[season]:.1f}% | +{SW[season]:.1f}",ha='center',va='center',fontsize=19,fontweight='bold')
  ax.text(19.85,0,season,ha='right',va='center',fontsize=21,fontweight='bold')
 
