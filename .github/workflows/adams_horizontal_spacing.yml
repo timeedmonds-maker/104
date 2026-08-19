@@ -1,4 +1,4 @@
-name: Adams horizontal OREB spacing
+name: Adams team OREB vs NetRtg scatter
 on:
   pull_request:
     branches: [main]
@@ -13,9 +13,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install matplotlib pillow requests
-      - run: python tmp/adams_horizontal_spacing/render.py
+      - run: python tmp/adams_team_scatter/render_scatter.py
       - uses: actions/upload-artifact@v4
         with:
-          name: adams-horizontal-oreb-fresh
-          path: STEVEN_ADAMS_ROCKETS_OREB_HORIZONTAL_FRESH.png
+          name: adams-team-oreb-netrtg-scatter
+          path: STEVEN_ADAMS_TEAM_OREB_NETRTG_SCATTER_2SEASONS.png
           if-no-files-found: error
