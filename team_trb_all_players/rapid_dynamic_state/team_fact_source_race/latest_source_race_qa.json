@@ -1,0 +1,232 @@
+{
+  "status": "FAIL_CLOSED",
+  "admitted_sources": [],
+  "source_reports": {
+    "nba_stats": {
+      "gate_pass": false,
+      "controls_evaluated": 0,
+      "control_seasons": 0,
+      "mismatches": 0,
+      "errors": 65,
+      "mismatch_examples": [],
+      "error_examples": [
+        {
+          "season": "2000-01",
+          "game_id": "0020000628",
+          "team_id": "1610612751",
+          "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=20)\"))"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000628",
+          "team_id": "1610612760",
+          "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=20)\"))"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000897",
+          "team_id": "1610612743",
+          "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=20)\"))"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000897",
+          "team_id": "1610612758",
+          "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=20)\"))"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000964",
+          "team_id": "1610612760",
+          "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=20)\"))"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020001012",
+          "team_id": "1610612743",
+          "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=20)\"))"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020001024",
+          "team_id": "1610612758",
+          "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=20)\"))"
+        },
+        {
+          "season": "2001-02",
+          "game_id": "0020100310",
+          "team_id": "1610612742",
+          "error": "ReadTimeout(ReadTimeoutError(\"HTTPSConnectionPool(host='stats.nba.com', port=443): Read timed out. (read timeout=20)\"))"
+        }
+      ]
+    },
+    "bref": {
+      "gate_pass": false,
+      "controls_evaluated": 65,
+      "control_seasons": 13,
+      "mismatches": 65,
+      "errors": 0,
+      "mismatch_examples": [
+        {
+          "season": "2000-01",
+          "game_id": "0020000628",
+          "team_id": "1610612751",
+          "expected": [
+            12,
+            28,
+            11,
+            42
+          ],
+          "got": [
+            10,
+            28,
+            10,
+            42
+          ]
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000628",
+          "team_id": "1610612760",
+          "expected": [
+            11,
+            42,
+            12,
+            28
+          ],
+          "got": [
+            10,
+            42,
+            10,
+            28
+          ]
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000897",
+          "team_id": "1610612743",
+          "expected": [
+            13,
+            31,
+            17,
+            36
+          ],
+          "got": [
+            11,
+            29,
+            13,
+            34
+          ]
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000897",
+          "team_id": "1610612758",
+          "expected": [
+            17,
+            36,
+            13,
+            31
+          ],
+          "got": [
+            13,
+            34,
+            11,
+            29
+          ]
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000964",
+          "team_id": "1610612760",
+          "expected": [
+            13,
+            32,
+            23,
+            34
+          ],
+          "got": [
+            11,
+            28,
+            21,
+            33
+          ]
+        }
+      ],
+      "error_examples": []
+    },
+    "nba_cdn": {
+      "gate_pass": false,
+      "controls_evaluated": 0,
+      "control_seasons": 0,
+      "mismatches": 0,
+      "errors": 65,
+      "mismatch_examples": [],
+      "error_examples": [
+        {
+          "season": "2000-01",
+          "game_id": "0020000628",
+          "team_id": "1610612751",
+          "error": "HTTPError('403 Client Error: Forbidden for url: https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0020000628.json')"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000628",
+          "team_id": "1610612760",
+          "error": "HTTPError('403 Client Error: Forbidden for url: https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0020000628.json')"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000897",
+          "team_id": "1610612743",
+          "error": "HTTPError('403 Client Error: Forbidden for url: https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0020000897.json')"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000897",
+          "team_id": "1610612758",
+          "error": "HTTPError('403 Client Error: Forbidden for url: https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0020000897.json')"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020000964",
+          "team_id": "1610612760",
+          "error": "HTTPError('403 Client Error: Forbidden for url: https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0020000964.json')"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020001012",
+          "team_id": "1610612743",
+          "error": "HTTPError('403 Client Error: Forbidden for url: https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0020001012.json')"
+        },
+        {
+          "season": "2000-01",
+          "game_id": "0020001024",
+          "team_id": "1610612758",
+          "error": "HTTPError('403 Client Error: Forbidden for url: https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0020001024.json')"
+        },
+        {
+          "season": "2001-02",
+          "game_id": "0020100310",
+          "team_id": "1610612742",
+          "error": "HTTPError('403 Client Error: Forbidden for url: https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0020100310.json')"
+        }
+      ]
+    }
+  },
+  "target_team_facts_requested": 38,
+  "target_team_facts_promoted": 0,
+  "target_team_facts_unresolved": 38,
+  "target_conflicts": 0,
+  "target_errors": 0,
+  "conflict_examples": [],
+  "target_error_examples": [],
+  "integrity": {
+    "minimum_controls": 50,
+    "minimum_control_seasons": 10,
+    "zero_mismatches_required": true,
+    "modeling_used": false,
+    "opponent_inference_used": false,
+    "rounded_backsolve_used": false
+  }
+}
