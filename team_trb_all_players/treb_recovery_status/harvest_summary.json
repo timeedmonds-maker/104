@@ -16,6 +16,12 @@
       "proven_prior_no_tenure_keys": 0
     },
     {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-semantic-constraint-solver/TREB-semantic-event-constraints-32203454384/TREB_SEMANTIC_EVENT_CONSTRAINT_QA.json",
+      "type": "dict",
+      "status": "PASS_DIAGNOSTIC",
+      "mismatch_games": 8
+    },
+    {
       "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-audit/TREB-rebound-semantic-2024-25-32101050783/QA.json",
       "type": "dict",
       "season": "2024-25",
@@ -266,6 +272,52 @@
         "target_record_present",
         "target_seconds",
         "team_id"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-semantic-constraint-solver/TREB-semantic-event-constraints-32203454384/TREB_SEMANTIC_EVENT_CONSTRAINT_SOLUTIONS.csv",
+      "rows": 8,
+      "columns": [
+        "season",
+        "game_id",
+        "mismatch_constraints",
+        "candidate_generic_events",
+        "legal_event_exclusion_solutions",
+        "unique_solution",
+        "forced_eventnums"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-semantic-constraint-solver/TREB-semantic-event-constraints-32203454384/TREB_SEMANTIC_FORCED_EVENTS.csv",
+      "rows": 3,
+      "columns": [
+        "season",
+        "game_id",
+        "nba_eventnum",
+        "period",
+        "nba_elapsed",
+        "pbp_description",
+        "pbp_prev_description",
+        "nba_description",
+        "nba_eventmsgtype",
+        "nba_actiontype",
+        "nba_player1_id",
+        "nba_player1_team_id",
+        "prev_nba_description",
+        "prev_nba_eventmsgtype",
+        "prev_nba_actiontype",
+        "next_nba_description",
+        "next_nba_eventmsgtype",
+        "next_nba_actiontype",
+        "next2_nba_description",
+        "next2_nba_eventmsgtype",
+        "next2_nba_actiontype",
+        "pbp_start_time",
+        "pbp_end_time",
+        "pbp_offensive_rebounds",
+        "pbp_start_equals_end",
+        "next_same_clock",
+        "next_elapsed_delta"
       ]
     },
     {
