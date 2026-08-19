@@ -10,7 +10,7 @@ on:
 
 permissions:
   actions: read
-  contents: read
+  contents: write
 
 concurrency:
   group: treb-rapid-dynamic-residual-supervisor
@@ -33,6 +33,29 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python -u scripts/treb_rapid_dynamic_supervisor.py
+      - name: Persist latest supervisor checkpoint to production branch
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          STATE=team_trb_all_players/rapid_dynamic_state
+          mkdir -p "$STATE"
+          cp /tmp/treb_rapid_dynamic/out/RAPID_DYNAMIC_SUPERVISOR_SUMMARY.json "$STATE/latest_summary.json"
+          cp /tmp/treb_rapid_dynamic/out/SUPERVISOR_PROGRESS.json "$STATE/latest_progress.json"
+          cp /tmp/treb_rapid_dynamic/out/HIGH_YIELD_GAME_MAP.json "$STATE/latest_high_yield_game_map.json"
+          cp /tmp/treb_rapid_dynamic/out/CURRENT_BLOCKER_KEY_GAME_MAP.json "$STATE/latest_blocker_key_game_map.json"
+          cp /tmp/treb_rapid_dynamic/out/CURRENT_BLOCKERS.csv "$STATE/latest_blockers.csv"
+          cp /tmp/treb_rapid_dynamic/out/PROMOTABLE_RETAINED_FACT_CONSENSUS.csv "$STATE/latest_promotable_consensus.csv"
+          cp /tmp/treb_rapid_dynamic/out/RETAINED_FACT_CONFLICTS.json "$STATE/latest_conflicts.json"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$STATE"
+          if git diff --cached --quiet; then
+            echo NO_STATE_CHANGE
+          else
+            git commit -m "TREB: persist rapid dynamic supervisor checkpoint ${{ github.run_id }}"
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
       - name: Upload durable supervisor checkpoint
         if: always()
         uses: actions/upload-artifact@v4
