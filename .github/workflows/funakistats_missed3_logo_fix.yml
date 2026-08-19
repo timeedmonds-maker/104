@@ -5,11 +5,6 @@ on:
     paths:
       - 'tmp/funakistats_m3/**'
       - '.github/workflows/funakistats_missed3_logo_fix.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'tmp/funakistats_m3/**'
-      - '.github/workflows/funakistats_missed3_logo_fix.yml'
 jobs:
   render:
     runs-on: ubuntu-latest
@@ -19,6 +14,18 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install pandas numpy matplotlib pillow requests cairosvg
+      - name: Skip duplicate highlighted team logo
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tmp/funakistats_m3/render.py')
+          s=p.read_text()
+          old="""  for k,r in ts.iterrows():\n    x=xm[s]+((k%5)-2)*.035\n    ax.add_artist(AnnotationBbox(OffsetImage(np.asarray(logos[r.team_abbr]),zoom=.42),(x,r.pct),frameon=False,zorder=2))"""
+          new="""  for k,r in ts.iterrows():\n    if pd.notna(r.on_pct):\n      continue\n    x=xm[s]+((k%5)-2)*.035\n    ax.add_artist(AnnotationBbox(OffsetImage(np.asarray(logos[r.team_abbr]),zoom=.42),(x,r.pct),frameon=False,zorder=2))"""
+          if old not in s:
+              raise SystemExit('target render block not found')
+          p.write_text(s.replace(old,new,1))
+          PY
       - run: python tmp/funakistats_m3/render.py
       - uses: actions/upload-artifact@v4
         with:
