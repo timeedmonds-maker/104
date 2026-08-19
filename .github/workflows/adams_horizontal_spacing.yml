@@ -1,10 +1,9 @@
 name: Adams horizontal OREB spacing
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [agent/adams-horizontal-logo-spacing]
-    paths:
-      - 'tmp/adams_horizontal_spacing/**'
-      - '.github/workflows/adams_horizontal_spacing.yml'
 jobs:
   render:
     runs-on: ubuntu-latest
