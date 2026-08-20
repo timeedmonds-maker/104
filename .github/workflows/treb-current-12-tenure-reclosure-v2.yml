@@ -34,11 +34,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for d in current consensus pbp old mid newer game currentcons out; do mkdir -p "/tmp/$d"; done
+          for d in current consensus pbp old mid newer game currentcons resolution out; do mkdir -p "/tmp/$d"; done
           get(){
             local d="$1" id="$2"
             for a in 1 2 3 4; do
               rm -f "/tmp/${d}.zip"
+              rm -rf "/tmp/${d:?}"/*
               if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "/tmp/${d}.zip" && unzip -tq "/tmp/${d}.zip" >/dev/null 2>&1; then
                 unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"; return 0
               fi
@@ -54,12 +55,39 @@ jobs:
           get newer 9260439871
           get game 9262554900
           get currentcons 9263341092
+          # Exact transaction+static-schedule evidence from the successful current-21 resolver run.
+          get resolution 9385259872
+      - name: Validate retained 12-tenure resolution evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv, pathlib
+          cands=list(pathlib.Path('/tmp/resolution').rglob('TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv'))
+          if len(cands)!=1:
+              raise SystemExit(f'expected exactly one transaction resolution CSV, found {len(cands)}: {cands}')
+          p=cands[0]
+          rows=list(csv.DictReader(p.open(newline='', encoding='utf-8-sig')))
+          exact=[r for r in rows if r.get('status')=='EXACT_TRANSACTION_SCHEDULE']
+          if len(exact)!=12:
+              raise SystemExit(f'expected exactly 12 EXACT_TRANSACTION_SCHEDULE rows, found {len(exact)}')
+          keys=[]
+          for r in exact:
+              k=(r.get('season'), r.get('player_id'), r.get('team_id'))
+              if None in k or '' in k:
+                  raise SystemExit(f'missing exact-tenure key fields: {r}')
+              keys.append(k)
+          if len(set(keys))!=12:
+              raise SystemExit('duplicate exact-tenure keys in retained resolution evidence')
+          pathlib.Path('/tmp/RESOLUTION_PATH.txt').write_text(str(p))
+          print('validated retained exact tenure resolution:', p)
+          print('exact rows:', len(exact))
+          PY
       - name: Reclose transaction-proven exact tenure identities with controlling-checkpoint priority
         shell: bash
         run: |
           set -uo pipefail
-          RES='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-static-schedule-resolution/TREB-current-21-static-schedule-resolution-32307450287/TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv'
-          test -f "$RES"
+          RES="$(cat /tmp/RESOLUTION_PATH.txt)"
           python3 -u team_trb_all_players/treb_current_12_tenure_reclosure_v2.py \
             --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp \
             --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game \
