@@ -192,7 +192,12 @@
       "authoritative_no_identity_keys": 21,
       "exact_current_no_identity_tenures": 0,
       "exact_current_validation_tenures": 19,
-      "proven_total": 19
+      "proven_total": 19,
+      "reason_counts": {
+        "BLOCKED_VALIDATION|EXACT_RETAINED_SCHEDULE_AUDITED_TENURE_IDENTITY": 19,
+        "NO_EXACT_TENURE_IDENTITY|REJECT": 7,
+        "NO_EXACT_TENURE_IDENTITY|TARGET_GAME_COUNT_MISMATCH": 14
+      }
     }
   ],
   "csvs": [
