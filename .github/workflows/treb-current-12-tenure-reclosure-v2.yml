@@ -68,7 +68,7 @@ jobs:
           retention-days: 90
           compression-level: 1
           if-no-files-found: error
-      - name: Persist reclosure summary for autonomous handoff
+      - name: Persist reclosure summary and run status for autonomous handoff
         if: always()
         shell: bash
         run: |
@@ -76,13 +76,19 @@ jobs:
           DEST='team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2'
           rm -rf "$DEST"; mkdir -p "$DEST"
           for f in /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json /tmp/out/TREB_NEW_EXACT_PROMOTED.csv /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv /tmp/out/TREB_STALE_SOURCE_CONFLICTS_SHADOWED_BY_CONTROLLING_CHECKPOINT.csv; do [ -f "$f" ] && cp "$f" "$DEST/"; done
+          {
+            echo "run_id=${GITHUB_RUN_ID}"
+            echo "run_attempt=${GITHUB_RUN_ATTEMPT}"
+            echo "job_status=${{ job.status }}"
+            echo "head_sha=${GITHUB_SHA}"
+            echo "utc_finished=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "qa_present=$([ -f /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json ] && echo true || echo false)"
+          } > "$DEST/RUN_STATUS.txt"
           git config user.name 'TREB automation'
           git config user.email 'actions@users.noreply.github.com'
           git add "$DEST"
           if ! git diff --cached --quiet; then
-            git commit -m 'Persist current 12-tenure authoritative reclosure v2 summary'
+            git commit -m 'Persist current 12-tenure authoritative reclosure v2 status'
             git pull --rebase origin agent/treb-final-exact-assembly
             git push origin HEAD:agent/treb-final-exact-assembly
           fi
-
-# retriggered for autonomous completion
