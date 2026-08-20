@@ -1,0 +1,62 @@
+name: TREB recovered-tenure primitive result harvest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-recovered-tenure-harvest.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: treb-recovered-tenure-harvest
+  cancel-in-progress: true
+
+jobs:
+  harvest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 1
+      - name: Find latest targeted recovery run and persist result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/harvest team_trb_all_players/treb_recovery_status/recovered_tenure_primitives
+          RUN_JSON="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/treb-recovered-tenure-missing-primitives.yml/runs?branch=agent%2Ftreb-final-exact-assembly&per_page=20" --jq '[.workflow_runs[] | select(.status=="completed")][0]')"
+          test -n "$RUN_JSON" && test "$RUN_JSON" != "null"
+          RUN_ID="$(jq -r '.id' <<<"$RUN_JSON")"
+          CONCLUSION="$(jq -r '.conclusion' <<<"$RUN_JSON")"
+          HEAD_SHA="$(jq -r '.head_sha' <<<"$RUN_JSON")"
+          printf '%s\n' "$RUN_JSON" > team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/RUN.json
+          gh run download "$RUN_ID" -n "TREB-recovered-tenure-primitives-summary-${RUN_ID}" -D /tmp/harvest || true
+          if [ -f /tmp/harvest/SUMMARY.json ]; then
+            cp /tmp/harvest/SUMMARY.json team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/SUMMARY.json
+          fi
+          for f in PLAYER_CANDIDATES.csv TEAM_CANDIDATES.csv QA_ALL.json; do
+            [ -f "/tmp/harvest/$f" ] && cp "/tmp/harvest/$f" "team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/$f"
+          done
+          python3 - <<'PY'
+          import json,pathlib
+          d=pathlib.Path('team_trb_all_players/treb_recovery_status/recovered_tenure_primitives')
+          run=json.loads((d/'RUN.json').read_text())
+          summary=json.loads((d/'SUMMARY.json').read_text()) if (d/'SUMMARY.json').exists() else None
+          out={'run_id':run['id'],'status':run['status'],'conclusion':run['conclusion'],'head_sha':run['head_sha'],'created_at':run['created_at'],'updated_at':run['updated_at'],'summary':summary}
+          (d/'STATUS.json').write_text(json.dumps(out,indent=2)+'\n')
+          print(json.dumps(out,indent=2))
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add team_trb_all_players/treb_recovery_status/recovered_tenure_primitives
+          if ! git diff --cached --quiet; then
+            git commit -m "Persist recovered-tenure primitive recovery result ${RUN_ID}"
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
