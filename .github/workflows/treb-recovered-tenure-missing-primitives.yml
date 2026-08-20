@@ -40,15 +40,25 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/current /tmp/out
-          for a in 1 2 3 4; do
-            rm -f /tmp/current.zip
-            if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/9275527991/zip" > /tmp/current.zip && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
+          ok=0
+          for a in 1 2 3 4 5; do
+            rm -rf /tmp/current/* /tmp/current.zip
+            if curl --fail --location --silent --show-error \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9275527991/zip" \
+              -o /tmp/current.zip \
+              && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
               unzip -q /tmp/current.zip -d /tmp/current
-              break
+              if find /tmp/current -type f -name TREB_UNRESOLVED_BLOCKER_MANIFEST.csv -print -quit | grep -q .; then
+                ok=1
+                break
+              fi
             fi
-            sleep $((a*4))
+            sleep $((a*5))
           done
-          test -n "$(find /tmp/current -type f -name TREB_UNRESOLVED_BLOCKER_MANIFEST.csv -print -quit)"
+          test "$ok" -eq 1
       - name: Build exact targeted registry from authoritative reclosure diagnostics
         shell: bash
         env:
@@ -60,7 +70,7 @@ jobs:
           REG="$(find /tmp/current -type f -name NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv -print -quit)"
           test -n "$REG"
           python3 - "$DIAG" "$REG" "$SEASON" <<'PY'
-          import csv,json,sys,pathlib
+          import csv,json,sys
           diag,reg,season=sys.argv[1:]
           rows=list(csv.DictReader(open(diag,newline='',encoding='utf-8-sig')))
           by={}
