@@ -1,0 +1,86 @@
+name: TREB current 12 exact tenure reclosure v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_current_12_tenure_reclosure_v2.py'
+      - '.github/workflows/treb-current-12-tenure-reclosure-v2.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: treb-current-12-tenure-reclosure-v2
+  cancel-in-progress: true
+
+jobs:
+  reclose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - name: Download controlling authoritative checkpoint and exact fact layers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current consensus pbp old mid newer game currentcons out; do mkdir -p "/tmp/$d"; done
+          get(){
+            local d="$1" id="$2"
+            for a in 1 2 3 4; do
+              rm -f "/tmp/${d}.zip"
+              if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "/tmp/${d}.zip" && unzip -tq "/tmp/${d}.zip" >/dev/null 2>&1; then
+                unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"; return 0
+              fi
+              sleep $((a*4))
+            done
+            echo "FAILED_ARTIFACT $d $id" >&2; return 1
+          }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+      - name: Reclose transaction-proven exact tenure identities with controlling-checkpoint priority
+        shell: bash
+        run: |
+          set -euo pipefail
+          RES='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-static-schedule-resolution/TREB-current-21-static-schedule-resolution-32307450287/TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv'
+          test -f "$RES"
+          python team_trb_all_players/treb_current_12_tenure_reclosure_v2.py \
+            --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp \
+            --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game \
+            --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-12-tenure-reclosure-v2-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+      - name: Persist reclosure summary for autonomous handoff
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST='team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2'
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          for f in /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json /tmp/out/TREB_NEW_EXACT_PROMOTED.csv /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv /tmp/out/TREB_STALE_SOURCE_CONFLICTS_SHADOWED_BY_CONTROLLING_CHECKPOINT.csv; do [ -f "$f" ] && cp "$f" "$DEST/"; done
+          git config user.name 'TREB automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add "$DEST"
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist current 12-tenure authoritative reclosure v2 summary'
+            git pull --rebase origin agent/treb-final-exact-assembly
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
