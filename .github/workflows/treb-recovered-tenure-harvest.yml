@@ -2,10 +2,9 @@ name: TREB recovered-tenure primitive result harvest
 
 on:
   workflow_dispatch:
-  push:
-    branches: [agent/treb-final-exact-assembly]
-    paths:
-      - '.github/workflows/treb-recovered-tenure-harvest.yml'
+  workflow_run:
+    workflows: ['TREB recovered-tenure missing primitive exact recovery']
+    types: [completed]
 
 permissions:
   actions: read
@@ -17,6 +16,7 @@ concurrency:
 
 jobs:
   harvest:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.head_branch == 'agent/treb-final-exact-assembly' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -24,25 +24,31 @@ jobs:
         with:
           ref: agent/treb-final-exact-assembly
           fetch-depth: 1
-      - name: Find latest targeted recovery run and persist result
+      - name: Persist targeted recovery result
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_RUN_ID: ${{ github.event.workflow_run.id }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/harvest team_trb_all_players/treb_recovery_status/recovered_tenure_primitives
-          RUN_JSON="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/treb-recovered-tenure-missing-primitives.yml/runs?branch=agent%2Ftreb-final-exact-assembly&per_page=20" --jq '[.workflow_runs[] | select(.status=="completed")][0]')"
+          if [ -n "${EVENT_RUN_ID:-}" ]; then
+            RUN_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${EVENT_RUN_ID}")"
+          else
+            RUN_JSON="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/treb-recovered-tenure-missing-primitives.yml/runs?branch=agent%2Ftreb-final-exact-assembly&per_page=20" --jq '[.workflow_runs[] | select(.status=="completed")][0]')"
+          fi
           test -n "$RUN_JSON" && test "$RUN_JSON" != "null"
           RUN_ID="$(jq -r '.id' <<<"$RUN_JSON")"
-          CONCLUSION="$(jq -r '.conclusion' <<<"$RUN_JSON")"
-          HEAD_SHA="$(jq -r '.head_sha' <<<"$RUN_JSON")"
           printf '%s\n' "$RUN_JSON" > team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/RUN.json
+          rm -rf /tmp/harvest/*
           gh run download "$RUN_ID" -n "TREB-recovered-tenure-primitives-summary-${RUN_ID}" -D /tmp/harvest || true
           if [ -f /tmp/harvest/SUMMARY.json ]; then
             cp /tmp/harvest/SUMMARY.json team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/SUMMARY.json
+          else
+            rm -f team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/SUMMARY.json
           fi
           for f in PLAYER_CANDIDATES.csv TEAM_CANDIDATES.csv QA_ALL.json; do
-            [ -f "/tmp/harvest/$f" ] && cp "/tmp/harvest/$f" "team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/$f"
+            if [ -f "/tmp/harvest/$f" ]; then cp "/tmp/harvest/$f" "team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/$f"; else rm -f "team_trb_all_players/treb_recovery_status/recovered_tenure_primitives/$f"; fi
           done
           python3 - <<'PY'
           import json,pathlib
@@ -58,5 +64,6 @@ jobs:
           git add team_trb_all_players/treb_recovery_status/recovered_tenure_primitives
           if ! git diff --cached --quiet; then
             git commit -m "Persist recovered-tenure primitive recovery result ${RUN_ID}"
+            git pull --rebase origin agent/treb-final-exact-assembly
             git push origin HEAD:agent/treb-final-exact-assembly
           fi
