@@ -10,6 +10,8 @@ on:
       - TREB tail exact-evidence triage
       - TREB current tail exact analysis
       - TREB current schedule-audited tail proof
+      - TREB current 12 exact tenure reclosure
+      - TREB current validation minutes source locator
     types: [completed]
   push:
     branches:
@@ -22,6 +24,8 @@ on:
       - '.github/workflows/treb-tail-evidence-triage.yml'
       - '.github/workflows/treb-current-tail-exact-analysis.yml'
       - '.github/workflows/treb-current-schedule-audited-tail.yml'
+      - '.github/workflows/treb-current-12-tenure-reclosure.yml'
+      - '.github/workflows/treb-current-validation-minutes-source-locator.yml'
 
 permissions:
   actions: read
@@ -65,6 +69,8 @@ jobs:
               'treb-tail-evidence-triage.yml',
               'treb-current-tail-exact-analysis.yml',
               'treb-current-schedule-audited-tail.yml',
+              'treb-current-12-tenure-reclosure.yml',
+              'treb-current-validation-minutes-source-locator.yml',
           ]
           out = Path('team_trb_all_players/treb_recovery_status')
           records = []
@@ -112,7 +118,8 @@ jobs:
                               'mismatch_count','match_count','controls_checked','mismatch_games','event_rows','authoritative_validation_keys',
                               'authoritative_tenure_keys','target_records_found','proven_unique_exact_ledger_tenures','proven_validation_keys',
                               'proven_prior_no_tenure_keys','authoritative_no_identity_keys','exact_current_no_identity_tenures',
-                              'exact_current_validation_tenures','proven_total','games_total','games_unique_solution','games_ambiguous'):
+                              'exact_current_validation_tenures','proven_total','games_total','games_unique_solution','games_ambiguous',
+                              'new_exact_promotions','ending_exact_full_core','ending_production_resolved','ending_residual','reason_counts'):
                       if key in obj: item[key]=obj[key]
               summary['reports'].append(item)
           for path in root.rglob('*.csv'):
