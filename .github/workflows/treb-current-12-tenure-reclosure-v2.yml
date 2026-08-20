@@ -55,7 +55,6 @@ jobs:
           get newer 9260439871
           get game 9262554900
           get currentcons 9263341092
-          # Exact transaction+static-schedule evidence from the successful current-21 resolver run.
           get resolution 9385259872
       - name: Validate retained 12-tenure resolution evidence
         shell: bash
@@ -68,14 +67,19 @@ jobs:
               raise SystemExit(f'expected exactly one transaction resolution CSV, found {len(cands)}: {cands}')
           p=cands[0]
           rows=list(csv.DictReader(p.open(newline='', encoding='utf-8-sig')))
-          exact=[r for r in rows if r.get('status')=='EXACT_TRANSACTION_SCHEDULE']
+          verdict='EXACT_TRANSACTION_STATE_SCHEDULE_TENURE_IDENTITY'
+          exact=[r for r in rows if r.get('verdict')==verdict]
           if len(exact)!=12:
-              raise SystemExit(f'expected exactly 12 EXACT_TRANSACTION_SCHEDULE rows, found {len(exact)}')
+              raise SystemExit(f'expected exactly 12 {verdict} rows, found {len(exact)}')
           keys=[]
           for r in exact:
               k=(r.get('season'), r.get('player_id'), r.get('team_id'))
               if None in k or '' in k:
                   raise SystemExit(f'missing exact-tenure key fields: {r}')
+              accepted=[x for x in str(r.get('accepted_game_ids') or '').split('|') if x.strip()]
+              expected=int(float(r.get('expected') or 0))
+              if len(set(accepted))!=expected or expected<=0:
+                  raise SystemExit(f'bad exact schedule evidence for {k}: accepted={len(set(accepted))} expected={expected}')
               keys.append(k)
           if len(set(keys))!=12:
               raise SystemExit('duplicate exact-tenure keys in retained resolution evidence')
