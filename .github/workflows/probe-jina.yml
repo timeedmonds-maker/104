@@ -1,0 +1,9 @@
+name: Probe Jina Basketball Reference
+on:
+  workflow_dispatch:
+
+jobs:
+  disabled:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Probe disabled on the final build branch."
