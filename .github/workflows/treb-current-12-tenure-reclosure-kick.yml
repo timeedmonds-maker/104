@@ -1,0 +1,28 @@
+name: TREB current 12 tenure reclosure kick
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-current-12-tenure-reclosure-kick.yml'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch current exact tenure reclosure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/treb-current-12-tenure-reclosure.yml/dispatches" \
+            -f ref='agent/treb-final-exact-assembly'
+          echo 'Dispatched TREB current 12 exact tenure reclosure.'
