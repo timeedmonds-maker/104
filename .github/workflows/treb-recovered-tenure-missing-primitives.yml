@@ -1,0 +1,136 @@
+name: TREB recovered-tenure missing primitive exact recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-recovered-tenure-missing-primitives.yml'
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-recovered-tenure-missing-primitives
+  cancel-in-progress: true
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        season: ['2004-05','2017-18','2021-22','2022-23','2024-25']
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact recovery dependencies
+        run: python -m pip install --disable-pip-version-check -q pandas
+      - name: Download controlling authoritative checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          for a in 1 2 3 4; do
+            rm -f /tmp/current.zip
+            if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/9275527991/zip" > /tmp/current.zip && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
+              unzip -q /tmp/current.zip -d /tmp/current
+              break
+            fi
+            sleep $((a*4))
+          done
+          test -n "$(find /tmp/current -type f -name TREB_UNRESOLVED_BLOCKER_MANIFEST.csv -print -quit)"
+      - name: Build exact targeted registry from authoritative reclosure diagnostics
+        shell: bash
+        env:
+          SEASON: ${{ matrix.season }}
+        run: |
+          set -euo pipefail
+          DIAG='team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv'
+          test -f "$DIAG"
+          REG="$(find /tmp/current -type f -name NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv -print -quit)"
+          test -n "$REG"
+          python3 - "$DIAG" "$REG" "$SEASON" <<'PY'
+          import csv,json,sys,pathlib
+          diag,reg,season=sys.argv[1:]
+          rows=list(csv.DictReader(open(diag,newline='',encoding='utf-8-sig')))
+          by={}
+          for r in rows:
+              if r['season']!=season or r['status']!='BLOCKED_MISSING_PRIMITIVES': continue
+              detail=json.loads(r['detail'])
+              team=str(int(float(r['team_id']))); player=str(int(float(r['player_id'])))
+              for g in detail.get('missing_player',[]):
+                  k=str(int(float(g))); z=by.setdefault(k,{'game_id':k,'season':season,'player_targets':set(),'team_ids':set()}); z['player_targets'].add(f'{team}:{player}')
+              for g in detail.get('missing_team',[]):
+                  k=str(int(float(g))); z=by.setdefault(k,{'game_id':k,'season':season,'player_targets':set(),'team_ids':set()}); z['team_ids'].add(team)
+          out=[]
+          for k,z in sorted(by.items()):
+              out.append({'game_id':k,'season':season,'player_targets':'|'.join(sorted(z['player_targets'])),'team_ids':'|'.join(sorted(z['team_ids']))})
+          with open(reg,'w',newline='',encoding='utf-8') as f:
+              w=csv.DictWriter(f,fieldnames=['game_id','season','player_targets','team_ids']); w.writeheader(); w.writerows(out)
+          print(f'{season}: targeted games={len(out)} player primitives={sum(len(z["player_targets"]) for z in by.values())} team primitives={sum(len(z["team_ids"]) for z in by.values())}')
+          PY
+      - name: Recover only newly exposed exact primitives with broad retained controls
+        shell: bash
+        run: |
+          python3 -u team_trb_all_players/treb_target_player_interval_recovery.py \
+            --current-dir /tmp/current --out-dir /tmp/out --season '${{ matrix.season }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-recovered-tenure-primitives-${{ matrix.season }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+
+  summarize:
+    if: always()
+    needs: recover
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-recovered-tenure-primitives-*
+          path: /tmp/all
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Consolidate exact-only candidates
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,gzip,csv
+          root=pathlib.Path('/tmp/all'); q=[]; p=[]; t=[]
+          for f in root.rglob('QA.json'):
+              x=json.loads(f.read_text()); q.append(x)
+              d=f.parent
+              if x.get('control_mismatches',0)!=0: continue
+              if (d/'PLAYER_CANDIDATES.csv.gz').exists():
+                  with gzip.open(d/'PLAYER_CANDIDATES.csv.gz','rt',newline='') as h: p += list(csv.DictReader(h))
+              if (d/'TEAM_CANDIDATES.csv.gz').exists():
+                  with gzip.open(d/'TEAM_CANDIDATES.csv.gz','rt',newline='') as h: t += list(csv.DictReader(h))
+          out=pathlib.Path('/tmp/summary'); out.mkdir()
+          (out/'QA_ALL.json').write_text(json.dumps(q,indent=2)+'\n')
+          def write(name,rows):
+              if not rows:return
+              with open(out/name,'w',newline='') as h:
+                  w=csv.DictWriter(h,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
+          write('PLAYER_CANDIDATES.csv',p);write('TEAM_CANDIDATES.csv',t)
+          summary={'seasons':len(q),'source_failures':sum(x.get('status')=='SOURCE_FAILURE' for x in q),'control_mismatches':sum(int(x.get('control_mismatches',0)) for x in q),'player_candidates':len(p),'team_candidates':len(t),'promotion_performed':False}
+          (out/'SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-recovered-tenure-primitives-summary-${{ github.run_id }}
+          path: /tmp/summary
+          retention-days: 90
+          compression-level: 1
