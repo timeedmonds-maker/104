@@ -1,0 +1,9 @@
+name: Build Expanded Rebound Data Parallel
+on:
+  workflow_dispatch:
+
+jobs:
+  superseded:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Superseded by Wayback career on-off workflow."

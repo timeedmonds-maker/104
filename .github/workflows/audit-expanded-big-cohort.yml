@@ -1,0 +1,26 @@
+name: Audit Expanded Big Cohort
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/audit_expanded_big_cohort.py'
+      - '.github/workflows/audit-expanded-big-cohort.yml'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - run: python tools/audit_expanded_big_cohort.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: expanded-big-cohort-audit
+          path: cohort_audit_output/
+          if-no-files-found: error
