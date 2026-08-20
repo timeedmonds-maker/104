@@ -25,6 +25,9 @@ jobs:
         with:
           ref: agent/treb-final-exact-assembly
           fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: Download controlling authoritative checkpoint and exact fact layers
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,20 +57,24 @@ jobs:
       - name: Reclose transaction-proven exact tenure identities with controlling-checkpoint priority
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           RES='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-static-schedule-resolution/TREB-current-21-static-schedule-resolution-32307450287/TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv'
           test -f "$RES"
-          python team_trb_all_players/treb_current_12_tenure_reclosure_v2.py \
+          python3 -u team_trb_all_players/treb_current_12_tenure_reclosure_v2.py \
             --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp \
             --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game \
-            --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/out
+            --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/out \
+            2>&1 | tee /tmp/out/RECLOSURE_ENGINE.log
+          rc=${PIPESTATUS[0]}
+          exit "$rc"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: TREB-current-12-tenure-reclosure-v2-${{ github.run_id }}
           path: /tmp/out
           retention-days: 90
           compression-level: 1
-          if-no-files-found: error
+          if-no-files-found: warn
       - name: Persist reclosure summary and run status for autonomous handoff
         if: always()
         shell: bash
@@ -75,7 +82,7 @@ jobs:
           set -euo pipefail
           DEST='team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2'
           rm -rf "$DEST"; mkdir -p "$DEST"
-          for f in /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json /tmp/out/TREB_NEW_EXACT_PROMOTED.csv /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv /tmp/out/TREB_STALE_SOURCE_CONFLICTS_SHADOWED_BY_CONTROLLING_CHECKPOINT.csv; do [ -f "$f" ] && cp "$f" "$DEST/"; done
+          for f in /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json /tmp/out/TREB_NEW_EXACT_PROMOTED.csv /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv /tmp/out/TREB_STALE_SOURCE_CONFLICTS_SHADOWED_BY_CONTROLLING_CHECKPOINT.csv /tmp/out/RECLOSURE_ENGINE.log; do [ -f "$f" ] && cp "$f" "$DEST/"; done
           {
             echo "run_id=${GITHUB_RUN_ID}"
             echo "run_attempt=${GITHUB_RUN_ATTEMPT}"
@@ -88,7 +95,7 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add "$DEST"
           if ! git diff --cached --quiet; then
-            git commit -m 'Persist current 12-tenure authoritative reclosure v2 status'
+            git commit -m 'Persist current 12-tenure reclosure v2 diagnostic result'
             git pull --rebase origin agent/treb-final-exact-assembly
             git push origin HEAD:agent/treb-final-exact-assembly
           fi
