@@ -33,7 +33,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: python -m pip install --disable-pip-version-check -q pandas
+        run: python -m pip install --disable-pip-version-check -q pandas rapidfuzz
       - name: Reconstruct exact player seconds from pinned NBA plus V3 chronology
         shell: bash
         run: |
@@ -107,3 +107,4 @@ jobs:
             git pull --rebase origin agent/treb-final-exact-assembly
             git push origin HEAD:agent/treb-final-exact-assembly
           fi
+# 2026-08-21: install rapidfuzz required by validated lineup engine imports.
