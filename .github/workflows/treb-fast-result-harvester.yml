@@ -56,8 +56,11 @@ jobs:
         run: |
           set -euo pipefail
           OUT='team_trb_all_players/treb_recovery_status'
-          rm -rf "$OUT"
           mkdir -p "$OUT/artifacts"
+          # Preserve durable recovery evidence written by other workflows.  The
+          # harvester owns only these top-level status/index files plus the
+          # run-specific artifact directories it writes below.
+          rm -f "$OUT/latest_runs.json" "$OUT/downloads.json" "$OUT/file_inventory.txt" "$OUT/harvest_summary.json"
 
           python - <<'PY'
           import json, os, subprocess
