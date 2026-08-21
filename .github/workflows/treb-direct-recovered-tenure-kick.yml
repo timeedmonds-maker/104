@@ -1,0 +1,25 @@
+name: TREB direct recovered-tenure reduction kick
+
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-direct-recovered-tenure-kick.yml]
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch direct exact recovery and reclosure
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run treb-recovered-tenure-missing-primitives.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref agent/treb-final-exact-assembly
+          echo 'Dispatched direct recovery whose passing candidates immediately reclose and persist a lower residual.'
