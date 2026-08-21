@@ -1,6 +1,19 @@
 {
   "reports": [
     {
+      "path": "team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json",
+      "type": "dict",
+      "status": "PASS",
+      "new_exact_promotions": 0,
+      "ending_exact_full_core": 9080,
+      "ending_production_resolved": 9084,
+      "ending_residual": 563,
+      "reason_counts": {
+        "BLOCKED_MISSING_PRIMITIVES": 11,
+        "BLOCKED_VALIDATION": 1
+      }
+    },
+    {
       "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-tail-evidence-triage/TREB-tail-exact-evidence-32173544430/TREB_TAIL_EVIDENCE_QA.json",
       "type": "dict"
     },
@@ -219,6 +232,41 @@
     }
   ],
   "csvs": [
+    {
+      "path": "team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2/TREB_NEW_EXACT_PROMOTED.csv",
+      "rows": 0,
+      "columns": []
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2/TREB_STALE_SOURCE_CONFLICTS_SHADOWED_BY_CONTROLLING_CHECKPOINT.csv",
+      "rows": 1,
+      "columns": [
+        "authoritative_value",
+        "field",
+        "game_id",
+        "kind",
+        "player_id",
+        "stale_source",
+        "stale_value",
+        "team_id"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv",
+      "rows": 12,
+      "columns": [
+        "bad_count",
+        "detail",
+        "minutes_delta_seconds",
+        "missing_player_count",
+        "missing_team_count",
+        "player_id",
+        "season",
+        "status",
+        "team_id",
+        "zero_second_facts_used"
+      ]
+    },
     {
       "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-tail-evidence-triage/TREB-tail-exact-evidence-32173544430/TREB_TAIL_EVIDENCE_COVERAGE.csv",
       "rows": 40,
