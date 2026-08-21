@@ -4,6 +4,8 @@
 The three exclusions below are not semantic guesses: the existing exact event-constraint
 solver found each event uniquely necessary to reconcile overlapping exact player/team
 controls. Everything else uses the unchanged fail-closed target-player recovery engine.
+This path is production-targeted: any zero-mismatch candidates are intended for immediate
+conflict-check, authoritative union, and affected-key reclosure.
 """
 from __future__ import annotations
 
