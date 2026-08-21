@@ -12,6 +12,7 @@ on:
       - TREB current schedule-audited tail proof
       - TREB current 12 exact tenure reclosure
       - TREB current validation minutes source locator
+      - TREB recovered-tenure missing primitive exact recovery
     types: [completed]
   push:
     branches:
@@ -26,6 +27,7 @@ on:
       - '.github/workflows/treb-current-schedule-audited-tail.yml'
       - '.github/workflows/treb-current-12-tenure-reclosure.yml'
       - '.github/workflows/treb-current-validation-minutes-source-locator.yml'
+      - '.github/workflows/treb-recovered-tenure-missing-primitives.yml'
 
 permissions:
   actions: read
@@ -71,6 +73,7 @@ jobs:
               'treb-current-schedule-audited-tail.yml',
               'treb-current-12-tenure-reclosure.yml',
               'treb-current-validation-minutes-source-locator.yml',
+              'treb-recovered-tenure-missing-primitives.yml',
           ]
           out = Path('team_trb_all_players/treb_recovery_status')
           records = []
@@ -119,7 +122,8 @@ jobs:
                               'authoritative_tenure_keys','target_records_found','proven_unique_exact_ledger_tenures','proven_validation_keys',
                               'proven_prior_no_tenure_keys','authoritative_no_identity_keys','exact_current_no_identity_tenures',
                               'exact_current_validation_tenures','proven_total','games_total','games_unique_solution','games_ambiguous',
-                              'new_exact_promotions','ending_exact_full_core','ending_production_resolved','ending_residual','reason_counts'):
+                              'new_exact_promotions','ending_exact_full_core','ending_production_resolved','ending_residual','reason_counts',
+                              'seasons','player_candidates','team_candidates'):
                       if key in obj: item[key]=obj[key]
               summary['reports'].append(item)
           for path in root.rglob('*.csv'):
