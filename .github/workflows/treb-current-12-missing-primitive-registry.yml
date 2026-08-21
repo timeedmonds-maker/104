@@ -99,7 +99,6 @@ jobs:
                   pfields[k].add(z)
                   if z=='seconds_on' and v not in (None,''):
                       vv=float(v); old=pseconds.get(k)
-                      # Current checkpoint is loaded last and therefore authoritative on overlap.
                       pseconds[k]=vv if old is None else old
           def addprow(r):
               k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
@@ -129,7 +128,6 @@ jobs:
               with open(one(root,pat),newline='') as f:
                   for r in csv.DictReader(f): addprow(r)
 
-          # Controlling checkpoint loaded last. Its presence/value is authoritative over stale retained overlaps.
           sp=one('/tmp/current','RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz')
           with gzip.open(sp,'rt',encoding='utf-8',newline='') as f:
               for r in csv.DictReader(f):
@@ -179,7 +177,6 @@ jobs:
               status='BLOCKED_MISSING_PRIMITIVES' if (mt or mp) else ('BLOCKED_VALIDATION' if delta>60 else 'READY_EXACT')
               counts[status]+=1
               rows.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':status,'minutes_delta_seconds':delta,'missing_team_count':len(mt),'missing_player_count':len(mp),'bad_count':0,'zero_second_facts_used':0,'detail':json.dumps({'missing_team':mt,'missing_player':mp,'bad':[]},separators=(',',':'))})
-          # This registry must reproduce the already-established 11 primitive / 1 minutes split or fail closed.
           assert len(rows)==12,len(rows)
           assert counts['BLOCKED_MISSING_PRIMITIVES']==11,counts
           assert counts['BLOCKED_VALIDATION']==1,counts
@@ -217,3 +214,5 @@ jobs:
             sleep $((a*5))
           done
           exit 1
+
+# immediate exact-chain retrigger: 2026-08-21
