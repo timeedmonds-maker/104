@@ -2,10 +2,9 @@ name: TREB recovered-tenure missing primitive exact recovery
 
 on:
   workflow_dispatch:
-  push:
-    branches: [agent/treb-final-exact-assembly]
-    paths:
-      - '.github/workflows/treb-recovered-tenure-missing-primitives.yml'
+  workflow_run:
+    workflows: [TREB current 12 exact tenure reclosure]
+    types: [completed]
 
 permissions:
   actions: read
@@ -17,6 +16,7 @@ concurrency:
 
 jobs:
   recover:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     strategy:
       fail-fast: false
       max-parallel: 5
@@ -66,7 +66,7 @@ jobs:
           SEASON: ${{ matrix.season }}
         run: |
           set -euo pipefail
-          DIAG='team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure_v2/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv'
+          DIAG='team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv'
           test -f "$DIAG"
           REG="$(find /tmp/current -type f -name NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv -print -quit)"
           test -n "$REG"
@@ -145,5 +145,3 @@ jobs:
           path: /tmp/summary
           retention-days: 90
           compression-level: 1
-
-# Fixed 2026-08-21 authoritative artifact gate to require files actually present in artifact 9275527991.
