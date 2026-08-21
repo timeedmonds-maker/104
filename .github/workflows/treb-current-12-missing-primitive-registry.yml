@@ -1,0 +1,219 @@
+name: TREB current 12 missing primitive registry
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-current-12-missing-primitive-registry.yml'
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: treb-current-12-missing-primitive-registry
+  cancel-in-progress: true
+
+jobs:
+  registry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+
+      - name: Download exact retained evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current consensus pbp old mid newer game currentcons resolution out; do mkdir -p "/tmp/$d"; done
+          get(){
+            local d="$1" id="$2"
+            for a in 1 2 3 4 5; do
+              rm -f "/tmp/${d}.zip"; rm -rf "/tmp/${d:?}"/*
+              if curl --fail --location --silent --show-error \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" \
+                -o "/tmp/${d}.zip" && unzip -tq "/tmp/${d}.zip" >/dev/null 2>&1; then
+                unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"; return 0
+              fi
+              sleep $((a*4))
+            done
+            echo "FAILED_ARTIFACT $d $id" >&2; return 1
+          }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+          get resolution 9385259872
+
+      - name: Rebuild missing primitive diagnostics with checkpoint-priority presence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv,gzip,json,pathlib,collections
+          OUT=pathlib.Path('/tmp/out')
+          REQP=('seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on')
+          REQT=('team_oreb','team_dreb','opponent_oreb','opponent_dreb')
+          def pid(x): return str(x).strip().removesuffix('.0')
+          def tid(x): return str(int(float(x)))
+          def gid(x):
+              s=str(x).strip().removesuffix('.0')
+              try:return str(int(float(s))).zfill(10)
+              except:return s.zfill(10)
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          def one(root,pat):
+              m=list(pathlib.Path(root).rglob(pat)); assert len(m)==1,(root,pat,len(m)); return m[0]
+
+          current=list(csv.DictReader(open(one('/tmp/current','AUTONOMOUS_BLOCKER_MANIFEST.csv'),newline='')))
+          assert len(current)==563,len(current)
+          current_keys={key(r) for r in current}
+
+          res=one('/tmp/resolution','TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv')
+          tenure={}
+          with open(res,newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('verdict')!='EXACT_TRANSACTION_STATE_SCHEDULE_TENURE_IDENTITY': continue
+                  k=key(r); games={gid(x) for x in str(r.get('accepted_game_ids') or '').split('|') if x.strip()}
+                  expected=int(float(r['expected']))
+                  assert len(games)==expected,(k,len(games),expected)
+                  assert k in current_keys,('not_current',k)
+                  tenure[k]=games
+          assert len(tenure)==12,len(tenure)
+
+          pfields=collections.defaultdict(set); pseconds={}; tfields=collections.defaultdict(set)
+          def addp(k,z,v=None):
+              if z in REQP:
+                  pfields[k].add(z)
+                  if z=='seconds_on' and v not in (None,''):
+                      vv=float(v); old=pseconds.get(k)
+                      # Current checkpoint is loaded last and therefore authoritative on overlap.
+                      pseconds[k]=vv if old is None else old
+          def addprow(r):
+              k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+              for z in REQP:
+                  if z in r and str(r[z]).strip()!='': addp(k,z,r[z])
+          def addtrow(r):
+              k=(gid(r['game_id']),tid(r['team_id']))
+              for z in REQT:
+                  if z in r and str(r[z]).strip()!='': tfields[k].add(z)
+
+          cp=one('/tmp/consensus','PROMOTABLE_RETAINED_FACT_CONSENSUS.csv')
+          with open(cp,newline='') as f:
+              for r in csv.DictReader(f):
+                  k3=(gid(r['game_id']),tid(r['team_id']),pid(r.get('player_id','')))
+                  z=r.get('field','')
+                  if k3[2] and z in REQP: addp(k3,z,r.get('value'))
+                  elif not k3[2] and z in REQT: tfields[(k3[0],k3[1])].add(z)
+
+          def read_gz(root,pat):
+              p=one(root,pat)
+              with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
+                  for r in csv.DictReader(f): addprow(r)
+          read_gz('/tmp/old','RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          read_gz('/tmp/mid','RECOVERED_927_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          read_gz('/tmp/newer','RECOVERED_2012_2022_EXACT_PLAYER_GAME_PRIMITIVES.csv.gz')
+          for root,pat in [('/tmp/game','RECOVERED_EXACT_PLAYER_GAME_PRIMITIVES.csv'),('/tmp/currentcons','RECOVERED_CURRENT_EXACT_PLAYER_GAME_PRIMITIVES.csv')]:
+              with open(one(root,pat),newline='') as f:
+                  for r in csv.DictReader(f): addprow(r)
+
+          # Controlling checkpoint loaded last. Its presence/value is authoritative over stale retained overlaps.
+          sp=one('/tmp/current','RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz')
+          with gzip.open(sp,'rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                  for z in REQP:
+                      if str(r.get(z,'')).strip()!='':
+                          pfields[k].add(z)
+                          if z=='seconds_on': pseconds[k]=float(r[z])
+          st=one('/tmp/current','RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz')
+          with gzip.open(st,'rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f): addtrow(r)
+
+          pp=one('/tmp/pbp','TREB_143_V2_PBP_EXACT_AUDIT.csv')
+          with open(pp,newline='') as f:
+              for r in csv.DictReader(f):
+                  if r.get('status')=='PASS_EXACT' and str(r.get('validation_pass')).lower() in {'true','1'}: addtrow(r)
+          gp=one('/tmp/game','RECOVERED_EXACT_TEAM_GAME_FACTS.csv')
+          with open(gp,newline='') as f:
+              for r in csv.DictReader(f): addtrow(r)
+
+          target_seconds={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
+              for line in f:
+                  if not line.strip(): continue
+                  r=json.loads(line); k=key(r)
+                  if k in tenure: target_seconds[k]=float(r.get('seconds_on') or 0)
+          assert len(target_seconds)==12,len(target_seconds)
+          ledger={}
+          with gzip.open('team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz','rt',encoding='utf-8',newline='') as f:
+              for r in csv.DictReader(f):
+                  try:k=key(r)
+                  except:continue
+                  if k in tenure: ledger[(k,gid(r['game_id']))]=float(r.get('seconds_game') or 0)
+
+          rows=[]; counts=collections.Counter()
+          for k,games in sorted(tenure.items()):
+              mt=[]; mp=[]; secs=0.0
+              for g in sorted(games):
+                  tk=(g,k[1]); pk=(g,k[1],k[2])
+                  if not all(z in tfields.get(tk,set()) for z in REQT): mt.append(g)
+                  if all(z in pfields.get(pk,set()) for z in REQP): secs += pseconds.get(pk,0.0)
+                  else:
+                      s=ledger.get((k,g))
+                      if s is not None and abs(s)<=1e-9: pass
+                      else: mp.append(g)
+              delta=abs(secs-target_seconds[k])
+              status='BLOCKED_MISSING_PRIMITIVES' if (mt or mp) else ('BLOCKED_VALIDATION' if delta>60 else 'READY_EXACT')
+              counts[status]+=1
+              rows.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':status,'minutes_delta_seconds':delta,'missing_team_count':len(mt),'missing_player_count':len(mp),'bad_count':0,'zero_second_facts_used':0,'detail':json.dumps({'missing_team':mt,'missing_player':mp,'bad':[]},separators=(',',':'))})
+          # This registry must reproduce the already-established 11 primitive / 1 minutes split or fail closed.
+          assert len(rows)==12,len(rows)
+          assert counts['BLOCKED_MISSING_PRIMITIVES']==11,counts
+          assert counts['BLOCKED_VALIDATION']==1,counts
+          assert counts['READY_EXACT']==0,counts
+          path=OUT/'TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv'
+          with open(path,'w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+          qa={'status':'PASS','authoritative_residual':563,'exact_tenures':12,'blocked_missing_primitives':11,'blocked_validation':1,'ready_exact':0,'method':'checkpoint-priority exact-fact presence registry; no numeric promotion'}
+          (OUT/'QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(qa,indent=2,sort_keys=True))
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-12-missing-primitive-registry-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+          if-no-files-found: error
+
+      - name: Persist durable registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST='team_trb_all_players/treb_recovery_inputs/current_12_missing_primitive_registry'
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          cp /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv "$DEST/"
+          cp /tmp/out/QA.json "$DEST/"
+          git config user.name 'TREB automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add "$DEST"
+          git commit -m 'Persist current 12 missing primitive registry'
+          for a in 1 2 3; do
+            if git pull --rebase origin agent/treb-final-exact-assembly && git push origin HEAD:agent/treb-final-exact-assembly; then exit 0; fi
+            sleep $((a*5))
+          done
+          exit 1
