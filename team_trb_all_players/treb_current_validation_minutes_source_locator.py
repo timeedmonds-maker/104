@@ -105,6 +105,8 @@ def main():
     complete=len(one)==len(t['games']) and set(one)==set(t['games'])
     total=sum(one.values()) if complete else None;delta=None if total is None or t['target_seconds'] is None else total-t['target_seconds']
     if vals[k]:results.append({'season':k[0],'team_id':k[1],'player_id':k[2],'path':str(p.relative_to(root)),'value_field':vf,'proven_games':len(t['games']),'games_with_rows':len(vals[k]),'games_unique':len(one),'complete_unique':complete,'aggregate_seconds':total,'target_seconds':t['target_seconds'],'delta_seconds':delta,'within_60s_gate':bool(complete and delta is not None and abs(delta)<=GATE+1e-9)})
+  except Exception as exc:
+   schemas.append({'path':str(p.relative_to(root)),'error':repr(exc)})
  fields=sorted({x for r in results for x in r}) if results else ['season','team_id','player_id','path']
  with (out/'TREB_CURRENT_19_MINUTES_SOURCE_CANDIDATES.csv').open('w',newline='',encoding='utf-8') as f:
   w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(results)
@@ -115,6 +117,6 @@ def main():
   fs=sorted({x for r in schemas for x in r}) if schemas else ['path'];w=csv.DictWriter(f,fieldnames=fs);w.writeheader();w.writerows(schemas)
  by=defaultdict(int)
  for r in matches:by[(r['season'],r['team_id'],r['player_id'])]+=1
- qa={'status':'PASS_DIAGNOSTIC','validation_rows':19,'tabular_sources_with_usable_schema':len(schemas),'candidate_aggregates':len(results),'exact_source_matches':len(matches),'validation_rows_with_at_least_one_exact_source':len(by),'minutes_gate_seconds':GATE,'promotion_performed':False,'integrity':{'proven_schedule_tenure_games_only':True,'complete_game_coverage_required':True,'one_row_per_game_required':True,'missing_games_zero_filled':False,'canonical_target_seconds_required':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False}}
+ qa={'status':'PASS_DIAGNOSTIC','validation_rows':19,'tabular_sources_with_usable_schema':len([r for r in schemas if 'error' not in r]),'source_read_errors':len([r for r in schemas if 'error' in r]),'candidate_aggregates':len(results),'exact_source_matches':len(matches),'validation_rows_with_at_least_one_exact_source':len(by),'minutes_gate_seconds':GATE,'promotion_performed':False,'integrity':{'proven_schedule_tenure_games_only':True,'complete_game_coverage_required':True,'one_row_per_game_required':True,'missing_games_zero_filled':False,'canonical_target_seconds_required':True,'empirical_model_used':False,'rounded_percentage_backsolve_used':False}}
  (out/'TREB_CURRENT_19_MINUTES_SOURCE_LOCATOR_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n',encoding='utf-8');print(json.dumps(qa,indent=2,sort_keys=True))
 if __name__=='__main__':main()
