@@ -3,7 +3,7 @@ name: TREB recovered-tenure missing primitive exact recovery
 on:
   workflow_dispatch:
   workflow_run:
-    workflows: [TREB current 12 exact tenure reclosure]
+    workflows: [TREB current 12 missing primitive registry]
     types: [completed]
 
 permissions:
@@ -66,7 +66,7 @@ jobs:
           SEASON: ${{ matrix.season }}
         run: |
           set -euo pipefail
-          DIAG='team_trb_all_players/treb_recovery_status/current_12_tenure_reclosure/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv'
+          DIAG='team_trb_all_players/treb_recovery_inputs/current_12_missing_primitive_registry/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv'
           test -f "$DIAG"
           REG="$(find /tmp/current -type f -name NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv -print -quit)"
           test -n "$REG"
