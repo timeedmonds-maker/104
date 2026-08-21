@@ -1,0 +1,181 @@
+name: TREB direct forced current12 elimination
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-direct-forced-current12-elimination.yml]
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: treb-direct-forced-current12-elimination
+  cancel-in-progress: true
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        season: ['2004-05','2017-18','2021-22','2022-23','2024-25']
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check -q pandas rapidfuzz
+      - name: Download controlling 9084 checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          ok=0
+          for a in 1 2 3 4 5; do
+            rm -rf /tmp/current/* /tmp/current.zip
+            if curl --fail --location --silent --show-error \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9275527991/zip" \
+              -o /tmp/current.zip && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
+              unzip -q /tmp/current.zip -d /tmp/current
+              if find /tmp/current -type f -name AUTONOMOUS_BLOCKER_MANIFEST.csv -print -quit | grep -q . \
+                && find /tmp/current -type f -name NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv -print -quit | grep -q .; then ok=1; break; fi
+            fi
+            sleep $((a*4))
+          done
+          test "$ok" -eq 1
+      - name: Restrict registry to current recovered-tenure primitive gaps
+        env:
+          SEASON: ${{ matrix.season }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIAG='team_trb_all_players/treb_recovery_inputs/current_12_missing_primitive_registry/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv'
+          REG="$(find /tmp/current -type f -name NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv -print -quit)"
+          python3 - "$DIAG" "$REG" "$SEASON" <<'PY'
+          import csv,json,sys
+          diag,reg,season=sys.argv[1:]; by={}
+          for r in csv.DictReader(open(diag,newline='',encoding='utf-8-sig')):
+              if r['season']!=season or r['status']!='BLOCKED_MISSING_PRIMITIVES': continue
+              d=json.loads(r['detail']); t=str(int(float(r['team_id']))); p=str(int(float(r['player_id'])))
+              for g in d.get('missing_player',[]):
+                  k=str(int(float(g))); z=by.setdefault(k,{'game_id':k,'season':season,'player_targets':set(),'team_ids':set()}); z['player_targets'].add(f'{t}:{p}')
+              for g in d.get('missing_team',[]):
+                  k=str(int(float(g))); z=by.setdefault(k,{'game_id':k,'season':season,'player_targets':set(),'team_ids':set()}); z['team_ids'].add(t)
+          rows=[{'game_id':k,'season':season,'player_targets':'|'.join(sorted(z['player_targets'])),'team_ids':'|'.join(sorted(z['team_ids']))} for k,z in sorted(by.items())]
+          with open(reg,'w',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=['game_id','season','player_targets','team_ids']); w.writeheader(); w.writerows(rows)
+          print(season,'direct target games',len(rows))
+          PY
+      - name: Recover with only integer-forced exact rebound exclusions
+        run: |
+          python3 -u team_trb_all_players/treb_forced_event_exact_recovery.py \
+            --current-dir /tmp/current --out-dir /tmp/out --season '${{ matrix.season }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current12-forced-${{ matrix.season }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+
+  reclose:
+    if: always()
+    needs: recover
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: current12-forced-*
+          path: /tmp/all
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Admit only zero-control-mismatch candidates
+        run: |
+          python3 - <<'PY'
+          import pathlib,json,csv,gzip
+          out=pathlib.Path('/tmp/summary'); out.mkdir(); p=[]; t=[]; qa=[]
+          for f in pathlib.Path('/tmp/all').rglob('QA.json'):
+              q=json.loads(f.read_text()); qa.append(q); d=f.parent
+              if q.get('status')=='SOURCE_FAILURE' or int(q.get('control_mismatches',0))!=0: continue
+              if (d/'PLAYER_CANDIDATES.csv.gz').exists():
+                  with gzip.open(d/'PLAYER_CANDIDATES.csv.gz','rt',newline='') as h:p+=list(csv.DictReader(h))
+              if (d/'TEAM_CANDIDATES.csv.gz').exists():
+                  with gzip.open(d/'TEAM_CANDIDATES.csv.gz','rt',newline='') as h:t+=list(csv.DictReader(h))
+          def wr(n,r):
+              if r:
+                  with open(out/n,'w',newline='') as h:w=csv.DictWriter(h,fieldnames=list(r[0]));w.writeheader();w.writerows(r)
+          wr('PLAYER_CANDIDATES.csv',p); wr('TEAM_CANDIDATES.csv',t)
+          (out/'QA_ALL.json').write_text(json.dumps(qa,indent=2)+'\n')
+          (out/'SUMMARY.json').write_text(json.dumps({'player_candidates':len(p),'team_candidates':len(t),'control_mismatches':sum(int(x.get('control_mismatches',0)) for x in qa)},indent=2)+'\n')
+          print('candidates',len(p),len(t),'mismatches',sum(int(x.get('control_mismatches',0)) for x in qa))
+          if not p and not t: raise SystemExit('no zero-mismatch exact candidates')
+          PY
+      - name: Download exact layers and controlling checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current consensus pbp old mid newer game currentcons reclose; do mkdir -p /tmp/$d; done
+          get(){ d=$1; id=$2; for a in 1 2 3 4 5; do rm -rf /tmp/$d/* /tmp/$d.zip; if curl --fail --location --silent --show-error -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" -o /tmp/$d.zip && unzip -tq /tmp/$d.zip >/dev/null 2>&1; then unzip -q /tmp/$d.zip -d /tmp/$d; return 0; fi; sleep $((a*4)); done; return 1; }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+      - name: Reclose immediately and require residual reduction
+        shell: bash
+        run: |
+          set -euo pipefail
+          RES='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-static-schedule-resolution/TREB-current-21-static-schedule-resolution-32307450287/TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv'
+          args=(--current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/reclose)
+          [ -f /tmp/summary/PLAYER_CANDIDATES.csv ] && args+=(--candidate-player /tmp/summary/PLAYER_CANDIDATES.csv)
+          [ -f /tmp/summary/TEAM_CANDIDATES.csv ] && args+=(--candidate-team /tmp/summary/TEAM_CANDIDATES.csv)
+          python3 team_trb_all_players/treb_current_12_tenure_reclosure_v2.py "${args[@]}"
+          python3 - <<'PY'
+          import json
+          q=json.load(open('/tmp/reclose/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json')); print(json.dumps(q,indent=2))
+          if int(q['ending_residual']) >= 563: raise SystemExit('no residual reduction')
+          PY
+      - name: Persist lowered authoritative residual
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST='team_trb_all_players/treb_recovery_inputs/direct_residual_reduction'
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          cp /tmp/reclose/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json "$DEST/"
+          cp /tmp/reclose/TREB_NEW_EXACT_PROMOTED.csv "$DEST/"
+          cp /tmp/reclose/TREB_CUMULATIVE_EXACT_PROMOTED.csv "$DEST/"
+          cp /tmp/reclose/AUTONOMOUS_BLOCKER_MANIFEST.csv "$DEST/"
+          cp /tmp/reclose/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv "$DEST/"
+          git config user.name 'TREB automation'; git config user.email 'actions@users.noreply.github.com'
+          git add "$DEST"; git commit -m 'TREB: reduce residual with integer-forced exact rebound events'; git pull --rebase origin agent/treb-final-exact-assembly; git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current12-forced-reclosure-${{ github.run_id }}
+          path: |
+            /tmp/summary
+            /tmp/reclose
+          retention-days: 90
+          compression-level: 1
