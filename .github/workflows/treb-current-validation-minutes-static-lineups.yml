@@ -1,0 +1,109 @@
+name: TREB current validation minutes static-lineup exact recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_current_validation_minutes_static_lineups.py'
+      - '.github/workflows/treb-current-validation-minutes-static-lineups.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-current-validation-minutes-static-lineups
+  cancel-in-progress: true
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        season: ['2001-02','2005-06','2010-11','2020-21','2021-22','2022-23','2023-24','2024-25']
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check -q pandas
+      - name: Reconstruct exact player seconds from pinned NBA plus V3 chronology
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROOF='team_trb_all_players/treb_recovery_status/artifacts/treb-current-schedule-audited-tail/TREB-current-schedule-audited-tail-32194579857/TREB_CURRENT_40_SCHEDULE_AUDITED_TENURE_PROOF.csv'
+          test -f "$PROOF"
+          python3 -u team_trb_all_players/treb_current_validation_minutes_static_lineups.py \
+            --repo-root . --proof "$PROOF" --season '${{ matrix.season }}' --out-dir out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-current-validation-static-minutes-${{ matrix.season }}-${{ github.run_id }}
+          path: out/
+          if-no-files-found: warn
+          retention-days: 60
+          compression-level: 1
+
+  consolidate:
+    if: always()
+    needs: recover
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-current-validation-static-minutes-*
+          path: /tmp/all
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Consolidate exact minutes evidence
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json,pathlib,csv
+          root=pathlib.Path('/tmp/all'); q=[]; rows=[]
+          for f in root.rglob('QA.json'):
+              q.append(json.loads(f.read_text()))
+          for f in root.rglob('TARGET_RESULTS.csv'):
+              with f.open(newline='',encoding='utf-8') as h: rows += list(csv.DictReader(h))
+          out=pathlib.Path('/tmp/summary'); out.mkdir()
+          with (out/'TARGET_RESULTS.csv').open('w',newline='',encoding='utf-8') as h:
+              fields=list(rows[0]) if rows else ['season','team_id','player_id']; w=csv.DictWriter(h,fieldnames=fields); w.writeheader(); w.writerows(rows)
+          matches=[r for r in rows if str(r.get('within_60s_gate','')).lower()=='true']
+          with (out/'MATCHES.csv').open('w',newline='',encoding='utf-8') as h:
+              fields=list(rows[0]) if rows else ['season','team_id','player_id']; w=csv.DictWriter(h,fieldnames=fields); w.writeheader(); w.writerows(matches)
+          summary={'status':'PASS_DIAGNOSTIC','season_jobs':len(q),'source_failures':sum(x.get('status')=='SOURCE_FAILURE' for x in q),'partial_jobs':sum(x.get('status')=='PARTIAL' for x in q),'targets':len(rows),'targets_within_60s_gate':len(matches),'promotion_performed':False,'integrity':{'complete_lineups_required':True,'team_player_seconds_invariant_required':True,'rebound_join_used':False,'minutes_gate_seconds':60.0}}
+          (out/'SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n'); print(json.dumps(summary,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-current-validation-static-minutes-summary-${{ github.run_id }}
+          path: /tmp/summary
+          retention-days: 90
+      - name: Persist diagnostic result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-static-minutes/TREB-current-validation-static-minutes-${GITHUB_RUN_ID}"
+          mkdir -p "$DEST"
+          if [ -d /tmp/summary ]; then cp -a /tmp/summary/. "$DEST/"; fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$DEST"
+          if ! git diff --cached --quiet; then
+            git commit -m "Persist TREB current static exact minutes ${GITHUB_RUN_ID}"
+            git pull --rebase origin agent/treb-final-exact-assembly
+            git push origin HEAD:agent/treb-final-exact-assembly
+          fi
