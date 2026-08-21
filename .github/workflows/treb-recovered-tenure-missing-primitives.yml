@@ -36,7 +36,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install exact recovery dependencies
-        run: python -m pip install --disable-pip-version-check -q pandas
+        run: python -m pip install --disable-pip-version-check -q pandas rapidfuzz
       - name: Download controlling authoritative checkpoint
         env:
           GH_TOKEN: ${{ github.token }}
@@ -152,3 +152,4 @@ jobs:
 
 # Fixed 2026-08-21 authoritative artifact gate to require files actually present in artifact 9275527991.
 # Direct residual-elimination trigger 2026-08-21T19:13+12.
+# Added direct recovery dependency rapidfuzz 2026-08-21T19:20+12.
