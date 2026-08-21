@@ -1,0 +1,112 @@
+name: TREB forced-event direct exact recovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_forced_event_exact_recovery.py'
+      - '.github/workflows/treb-forced-event-direct-recovery.yml'
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: treb-forced-event-direct-recovery
+  cancel-in-progress: true
+
+jobs:
+  recover:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        season: ['2004-05','2019-20']
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install exact recovery dependencies
+        run: python -m pip install --disable-pip-version-check -q pandas rapidfuzz
+      - name: Download controlling authoritative checkpoint
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/current /tmp/out
+          ok=0
+          for a in 1 2 3 4 5; do
+            rm -rf /tmp/current/* /tmp/current.zip
+            if curl --fail --location --silent --show-error \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/9275527991/zip" \
+              -o /tmp/current.zip \
+              && unzip -tq /tmp/current.zip >/dev/null 2>&1; then
+              unzip -q /tmp/current.zip -d /tmp/current
+              if find /tmp/current -type f -name AUTONOMOUS_BLOCKER_MANIFEST.csv -print -quit | grep -q . \
+                && find /tmp/current -type f -name NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv -print -quit | grep -q .; then
+                ok=1; break
+              fi
+            fi
+            sleep $((a*5))
+          done
+          test "$ok" -eq 1
+      - name: Recover primitive candidates using exact forced exclusions
+        run: |
+          python3 -u team_trb_all_players/treb_forced_event_exact_recovery.py \
+            --current-dir /tmp/current --out-dir /tmp/out --season '${{ matrix.season }}'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-forced-event-direct-${{ matrix.season }}-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+
+  summarize:
+    if: always()
+    needs: recover
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: TREB-forced-event-direct-*
+          path: /tmp/all
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Consolidate only zero-mismatch exact candidates
+        run: |
+          python3 - <<'PY'
+          import csv,gzip,json,pathlib
+          root=pathlib.Path('/tmp/all'); out=pathlib.Path('/tmp/summary'); out.mkdir()
+          q=[]; p=[]; t=[]
+          for f in root.rglob('QA.json'):
+              x=json.loads(f.read_text()); q.append(x); d=f.parent
+              if int(x.get('control_mismatches',0)) != 0: continue
+              if (d/'PLAYER_CANDIDATES.csv.gz').exists():
+                  with gzip.open(d/'PLAYER_CANDIDATES.csv.gz','rt',newline='') as h: p += list(csv.DictReader(h))
+              if (d/'TEAM_CANDIDATES.csv.gz').exists():
+                  with gzip.open(d/'TEAM_CANDIDATES.csv.gz','rt',newline='') as h: t += list(csv.DictReader(h))
+          def write(name,rows):
+              if rows:
+                  with open(out/name,'w',newline='') as h:
+                      w=csv.DictWriter(h,fieldnames=list(rows[0])); w.writeheader(); w.writerows(rows)
+          write('PLAYER_CANDIDATES.csv',p); write('TEAM_CANDIDATES.csv',t)
+          s={'seasons':len(q),'control_mismatches':sum(int(x.get('control_mismatches',0)) for x in q),'player_candidates':len(p),'team_candidates':len(t),'promotion_performed':False}
+          (out/'QA_ALL.json').write_text(json.dumps(q,indent=2)+'\n'); (out/'SUMMARY.json').write_text(json.dumps(s,indent=2)+'\n'); print(json.dumps(s,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TREB-forced-event-direct-summary-${{ github.run_id }}
+          path: /tmp/summary
+          retention-days: 90
