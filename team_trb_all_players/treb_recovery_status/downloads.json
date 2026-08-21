@@ -3,49 +3,49 @@
     "workflow": "treb-rebound-semantic-audit.yml",
     "run_id": 32101050783,
     "conclusion": "success",
-    "ok": true,
-    "stderr": ""
+    "ok": false,
+    "stderr": "error downloading TREB-rebound-semantic-consolidated-32101050783: error extracting zip archive: error extracting \"ALL_MISMATCH_COMPONENT_EVENTS.csv.gz\": open /home/runner/work/104/104/team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-audit/TREB-rebound-semantic-consolidated-32101050783/ALL_MISMATCH_COMPONENT_EVENTS.csv.gz: file exists"
   },
   {
     "workflow": "treb-rebound-semantic-context-audit.yml",
     "run_id": 32194393859,
     "conclusion": "success",
-    "ok": true,
-    "stderr": ""
+    "ok": false,
+    "stderr": "error downloading TREB-rebound-semantic-context-consolidated-32194393859: error extracting zip archive: error extracting \"ALL_MISMATCHES.csv.gz\": open /home/runner/work/104/104/team_trb_all_players/treb_recovery_status/artifacts/treb-rebound-semantic-context-audit/TREB-rebound-semantic-context-consolidated-32194393859/ALL_MISMATCHES.csv.gz: file exists"
   },
   {
     "workflow": "treb-semantic-constraint-solver.yml",
     "run_id": 32203454384,
     "conclusion": "success",
-    "ok": true,
-    "stderr": ""
+    "ok": false,
+    "stderr": "error downloading TREB-semantic-event-constraints-32203454384: error extracting zip archive: error extracting \"TREB_SEMANTIC_EVENT_CONSTRAINT_QA.json\": open /home/runner/work/104/104/team_trb_all_players/treb_recovery_status/artifacts/treb-semantic-constraint-solver/TREB-semantic-event-constraints-32203454384/TREB_SEMANTIC_EVENT_CONSTRAINT_QA.json: file exists"
   },
   {
     "workflow": "treb-tail-evidence-triage.yml",
     "run_id": 32173544430,
     "conclusion": "success",
-    "ok": true,
-    "stderr": ""
+    "ok": false,
+    "stderr": "error downloading TREB-tail-exact-evidence-32173544430: error extracting zip archive: error extracting \"TREB_TAIL_EVIDENCE_MATCHES.csv\": open /home/runner/work/104/104/team_trb_all_players/treb_recovery_status/artifacts/treb-tail-evidence-triage/TREB-tail-exact-evidence-32173544430/TREB_TAIL_EVIDENCE_MATCHES.csv: file exists"
   },
   {
     "workflow": "treb-current-tail-exact-analysis.yml",
     "run_id": 32194333494,
     "conclusion": "success",
-    "ok": true,
-    "stderr": ""
+    "ok": false,
+    "stderr": "error downloading TREB-current-tail-exact-analysis-32194333494: error extracting zip archive: error extracting \"TREB_CURRENT_40_EXACT_TAIL_AUDIT.csv\": open /home/runner/work/104/104/team_trb_all_players/treb_recovery_status/artifacts/treb-current-tail-exact-analysis/TREB-current-tail-exact-analysis-32194333494/TREB_CURRENT_40_EXACT_TAIL_AUDIT.csv: file exists"
   },
   {
     "workflow": "treb-current-schedule-audited-tail.yml",
     "run_id": 32194579857,
     "conclusion": "success",
-    "ok": true,
-    "stderr": ""
+    "ok": false,
+    "stderr": "error downloading TREB-current-schedule-audited-tail-32194579857: error extracting zip archive: error extracting \"TREB_CURRENT_40_SCHEDULE_AUDITED_TENURE_PROOF.csv\": open /home/runner/work/104/104/team_trb_all_players/treb_recovery_status/artifacts/treb-current-schedule-audited-tail/TREB-current-schedule-audited-tail-32194579857/TREB_CURRENT_40_SCHEDULE_AUDITED_TENURE_PROOF.csv: file exists"
   },
   {
     "workflow": "treb-current-validation-minutes-source-locator.yml",
     "run_id": 32449368782,
     "conclusion": "success",
-    "ok": true,
-    "stderr": ""
+    "ok": false,
+    "stderr": "error downloading TREB-current-19-minutes-source-locator-32449368782: error extracting zip archive: error extracting \"TREB_CURRENT_19_MINUTES_SCHEMAS.csv\": open /home/runner/work/104/104/team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-minutes-source-locator/TREB-current-19-minutes-source-locator-32449368782/TREB_CURRENT_19_MINUTES_SCHEMAS.csv: file exists"
   }
 ]

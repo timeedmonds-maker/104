@@ -16,6 +16,18 @@
       "proven_prior_no_tenure_keys": 0
     },
     {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-static-minutes/TREB-current-validation-static-minutes-32452553153/SUMMARY.json",
+      "type": "dict",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-static-minutes/TREB-current-validation-static-minutes-32452457645/SUMMARY.json",
+      "type": "dict",
+      "status": "PASS_DIAGNOSTIC",
+      "source_failures": 0
+    },
+    {
       "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-semantic-constraint-solver/TREB-semantic-event-constraints-32203454384/TREB_SEMANTIC_EVENT_CONSTRAINT_QA.json",
       "type": "dict",
       "status": "PASS_DIAGNOSTIC",
@@ -283,6 +295,60 @@
         "target_record_present",
         "target_seconds",
         "team_id"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-static-minutes/TREB-current-validation-static-minutes-32452553153/MATCHES.csv",
+      "rows": 0,
+      "columns": [
+        "season",
+        "team_id",
+        "player_id",
+        "proven_games",
+        "games_reconstructed",
+        "complete_exact",
+        "aggregate_seconds",
+        "target_seconds",
+        "delta_seconds",
+        "within_60s_gate",
+        "missing_games",
+        "team_identity_mismatch_games"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-static-minutes/TREB-current-validation-static-minutes-32452553153/TARGET_RESULTS.csv",
+      "rows": 19,
+      "columns": [
+        "season",
+        "team_id",
+        "player_id",
+        "proven_games",
+        "games_reconstructed",
+        "complete_exact",
+        "aggregate_seconds",
+        "target_seconds",
+        "delta_seconds",
+        "within_60s_gate",
+        "missing_games",
+        "team_identity_mismatch_games"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-static-minutes/TREB-current-validation-static-minutes-32452457645/MATCHES.csv",
+      "rows": 0,
+      "columns": [
+        "season",
+        "team_id",
+        "player_id"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-static-minutes/TREB-current-validation-static-minutes-32452457645/TARGET_RESULTS.csv",
+      "rows": 0,
+      "columns": [
+        "season",
+        "team_id",
+        "player_id"
       ]
     },
     {
