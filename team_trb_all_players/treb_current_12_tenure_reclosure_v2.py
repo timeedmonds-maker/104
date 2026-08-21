@@ -24,6 +24,8 @@ def main():
     ap.add_argument('--game',required=True)
     ap.add_argument('--currentcons',required=True)
     ap.add_argument('--resolution',required=True)
+    ap.add_argument('--candidate-player')
+    ap.add_argument('--candidate-team')
     ap.add_argument('--out',required=True)
     a=ap.parse_args()
     OUT=pathlib.Path(a.out); OUT.mkdir(parents=True,exist_ok=True)
@@ -72,6 +74,16 @@ def main():
             stale.append({'kind':'team','game_id':k[0],'team_id':k[1],'player_id':'','field':z,'authoritative_value':v,'stale_value':old,'stale_source':oldsrc})
             team[k][z]=v; tsrc[k][z]=src; return
         raise SystemExit(f'NONAUTHORITATIVE_TEAM_CONFLICT {k} {z} {old} {oldsrc} {v} {src}')
+    def put_candidate_player(k,z,v):
+        v=float(v); old=facts[k].get(z)
+        if old is not None and abs(old-v)>1e-9:
+            raise SystemExit(f'CANDIDATE_PLAYER_CONFLICT {k} {z} {old} {fsrc[k].get(z)} {v}')
+        if old is None: facts[k][z]=v; fsrc[k][z]='direct_exact_candidate'
+    def put_candidate_team(k,z,v):
+        v=float(v); old=team[k].get(z)
+        if old is not None and abs(old-v)>1e-9:
+            raise SystemExit(f'CANDIDATE_TEAM_CONFLICT {k} {z} {old} {tsrc[k].get(z)} {v}')
+        if old is None: team[k][z]=v; tsrc[k][z]='direct_exact_candidate'
 
     # Load the controlling checkpoint first. These exact shared primitives are authoritative on overlap.
     sp=one(a.current,'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz')
@@ -119,6 +131,18 @@ def main():
             k=(gid(r['game_id']),tid(r['team_id']))
             for z in REQT: putt_field(k,z,r[z],'game_exact')
 
+    # Direct recovery candidates are admitted only as gap fills. Any disagreement with retained exact facts fails closed.
+    if a.candidate_player and pathlib.Path(a.candidate_player).exists():
+        with open(a.candidate_player,newline='') as f:
+            for r in csv.DictReader(f):
+                k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+                for z in REQP: put_candidate_player(k,z,r[z])
+    if a.candidate_team and pathlib.Path(a.candidate_team).exists():
+        with open(a.candidate_team,newline='') as f:
+            for r in csv.DictReader(f):
+                k=(gid(r['game_id']),tid(r['team_id']))
+                for z in REQT: put_candidate_team(k,z,r[z])
+
     targets={}
     with gzip.open('team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz','rt',encoding='utf-8') as f:
         for line in f:
@@ -160,7 +184,7 @@ def main():
             reasons['BLOCKED_DENOMINATOR_OR_NEGATIVE']+=1
             diag.append({'season':k[0],'team_id':k[1],'player_id':k[2],'status':'BLOCKED_DENOMINATOR_OR_NEGATIVE','minutes_delta_seconds':delta,'missing_team_count':0,'missing_player_count':0,'bad_count':0,'zero_second_facts_used':zero,'detail':''}); continue
         on=100*tr_on/(tr_on+op_on); off=100*tr_off/(tr_off+op_off)
-        new.append({'metric':'TotalReboundPct','off_corrected':off,'on':on,'on_minus_off_corrected':on-off,'player_id':k[2],'provenance':'exact transaction-state + exact pinned static schedule tenure identity; controlling-checkpoint exact shared primitives preferred on overlap; older exact layers gap-fill only','season':k[0],'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(games),'team_id':k[1]})
+        new.append({'metric':'TotalReboundPct','off_corrected':off,'on':on,'on_minus_off_corrected':on-off,'player_id':k[2],'provenance':'exact transaction-state + exact pinned static schedule tenure identity; controlling-checkpoint exact shared primitives preferred on overlap; direct recovery candidates gap-fill only after zero-conflict check; older exact layers gap-fill only','season':k[0],'seconds_on':agg['seconds_on'],'team_games_in_tenure':len(games),'team_id':k[1]})
         reasons['PROMOTED_EXACT']+=1
 
     new_keys={key(r) for r in new}; assert new_keys.issubset(current_by)
@@ -177,7 +201,7 @@ def main():
     write(OUT/'TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv',diag)
     write(OUT/'TREB_STALE_SOURCE_CONFLICTS_SHADOWED_BY_CONTROLLING_CHECKPOINT.csv',stale)
     shutil.copy(one(a.current,'TREB_MATERIALITY_ACCEPTED.csv'),OUT/'TREB_MATERIALITY_ACCEPTED.csv')
-    qa={'status':'PASS','starting_exact_full_core':9080,'starting_production_resolved':9084,'starting_residual':563,'exact_tenure_candidates_tested':12,'new_exact_promotions':len(new),'ending_exact_full_core':9080+len(new),'ending_production_resolved':9084+len(new),'ending_residual':563-len(new),'reason_counts':dict(sorted(reasons.items())),'shadowed_stale_conflicts':len(stale),'integrity':{'controlling_checkpoint_priority_on_overlap':True,'non_authoritative_conflicts_fail_closed':True,'exact_raw_counts_only':True,'exact_transaction_state_and_schedule_identity_required':True,'minutes_gate_seconds':60.0,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'unsafe_global_event_ordering_used':False}}
+    qa={'status':'PASS','starting_exact_full_core':9080,'starting_production_resolved':9084,'starting_residual':563,'exact_tenure_candidates_tested':12,'new_exact_promotions':len(new),'ending_exact_full_core':9080+len(new),'ending_production_resolved':9084+len(new),'ending_residual':563-len(new),'reason_counts':dict(sorted(reasons.items())),'shadowed_stale_conflicts':len(stale),'direct_candidate_player':bool(a.candidate_player and pathlib.Path(a.candidate_player).exists()),'direct_candidate_team':bool(a.candidate_team and pathlib.Path(a.candidate_team).exists()),'integrity':{'controlling_checkpoint_priority_on_overlap':True,'non_authoritative_conflicts_fail_closed':True,'direct_candidates_gap_fill_only_and_conflict_fail_closed':True,'exact_raw_counts_only':True,'exact_transaction_state_and_schedule_identity_required':True,'minutes_gate_seconds':60.0,'empirical_model_used':False,'rounded_percentage_backsolve_used':False,'opponent_rebound_inference_used':False,'partial_tenure_whole_team_subtraction_used':False,'unsafe_global_event_ordering_used':False}}
     (OUT/'TREB_CURRENT_12_TENURE_RECLOSURE_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n')
     print(json.dumps(qa,indent=2,sort_keys=True))
 
