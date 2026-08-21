@@ -185,6 +185,12 @@
       "event_rows": 114
     },
     {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-minutes-source-locator/TREB-current-19-minutes-source-locator-32449368782/TREB_CURRENT_19_MINUTES_SOURCE_LOCATOR_QA.json",
+      "type": "dict",
+      "status": "PASS_DIAGNOSTIC",
+      "validation_rows": 19
+    },
+    {
       "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-schedule-audited-tail/TREB-current-schedule-audited-tail-32194579857/TREB_CURRENT_40_SCHEDULE_AUDITED_TENURE_QA.json",
       "type": "dict",
       "status": "PASS_DIAGNOSTIC",
@@ -335,6 +341,56 @@
         "is_real_rebound",
         "nba_is_real_rebound",
         "event_rows"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-minutes-source-locator/TREB-current-19-minutes-source-locator-32449368782/TREB_CURRENT_19_MINUTES_SCHEMAS.csv",
+      "rows": 3,
+      "columns": [
+        "game_field",
+        "path",
+        "player_field",
+        "season_field",
+        "team_field",
+        "value_field"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-minutes-source-locator/TREB-current-19-minutes-source-locator-32449368782/TREB_CURRENT_19_MINUTES_EXACT_MATCHES.csv",
+      "rows": 0,
+      "columns": [
+        "aggregate_seconds",
+        "complete_unique",
+        "delta_seconds",
+        "games_unique",
+        "games_with_rows",
+        "path",
+        "player_id",
+        "proven_games",
+        "season",
+        "target_seconds",
+        "team_id",
+        "value_field",
+        "within_60s_gate"
+      ]
+    },
+    {
+      "path": "team_trb_all_players/treb_recovery_status/artifacts/treb-current-validation-minutes-source-locator/TREB-current-19-minutes-source-locator-32449368782/TREB_CURRENT_19_MINUTES_SOURCE_CANDIDATES.csv",
+      "rows": 23,
+      "columns": [
+        "aggregate_seconds",
+        "complete_unique",
+        "delta_seconds",
+        "games_unique",
+        "games_with_rows",
+        "path",
+        "player_id",
+        "proven_games",
+        "season",
+        "target_seconds",
+        "team_id",
+        "value_field",
+        "within_60s_gate"
       ]
     },
     {
