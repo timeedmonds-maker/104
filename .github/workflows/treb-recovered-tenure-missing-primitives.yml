@@ -5,6 +5,10 @@ on:
   workflow_run:
     workflows: [TREB current 12 missing primitive registry]
     types: [completed]
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - '.github/workflows/treb-recovered-tenure-missing-primitives.yml'
 
 permissions:
   actions: read
@@ -145,3 +149,6 @@ jobs:
           path: /tmp/summary
           retention-days: 90
           compression-level: 1
+
+# Fixed 2026-08-21 authoritative artifact gate to require files actually present in artifact 9275527991.
+# Direct residual-elimination trigger 2026-08-21T19:13+12.
