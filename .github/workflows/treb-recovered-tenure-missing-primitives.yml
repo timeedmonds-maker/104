@@ -9,10 +9,11 @@ on:
     branches: [agent/treb-final-exact-assembly]
     paths:
       - '.github/workflows/treb-recovered-tenure-missing-primitives.yml'
+      - 'team_trb_all_players/treb_current_12_tenure_reclosure_v2.py'
 
 permissions:
   actions: read
-  contents: read
+  contents: write
 
 concurrency:
   group: treb-recovered-tenure-missing-primitives
@@ -107,11 +108,16 @@ jobs:
           retention-days: 90
           compression-level: 1
 
-  summarize:
+  summarize_and_reclose:
     if: always()
     needs: recover
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           pattern: TREB-recovered-tenure-primitives-*
@@ -119,7 +125,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Consolidate exact-only candidates
+      - name: Consolidate zero-control-mismatch exact candidates
         shell: bash
         run: |
           python3 - <<'PY'
@@ -128,28 +134,96 @@ jobs:
           for f in root.rglob('QA.json'):
               x=json.loads(f.read_text()); q.append(x)
               d=f.parent
-              if x.get('control_mismatches',0)!=0: continue
+              if x.get('status')=='SOURCE_FAILURE' or int(x.get('control_mismatches',0))!=0: continue
               if (d/'PLAYER_CANDIDATES.csv.gz').exists():
                   with gzip.open(d/'PLAYER_CANDIDATES.csv.gz','rt',newline='') as h: p += list(csv.DictReader(h))
               if (d/'TEAM_CANDIDATES.csv.gz').exists():
                   with gzip.open(d/'TEAM_CANDIDATES.csv.gz','rt',newline='') as h: t += list(csv.DictReader(h))
-          out=pathlib.Path('/tmp/summary'); out.mkdir()
+          out=pathlib.Path('/tmp/summary'); out.mkdir(parents=True,exist_ok=True)
           (out/'QA_ALL.json').write_text(json.dumps(q,indent=2)+'\n')
           def write(name,rows):
               if not rows:return
               with open(out/name,'w',newline='') as h:
                   w=csv.DictWriter(h,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
           write('PLAYER_CANDIDATES.csv',p);write('TEAM_CANDIDATES.csv',t)
-          summary={'seasons':len(q),'source_failures':sum(x.get('status')=='SOURCE_FAILURE' for x in q),'control_mismatches':sum(int(x.get('control_mismatches',0)) for x in q),'player_candidates':len(p),'team_candidates':len(t),'promotion_performed':False}
+          summary={'seasons':len(q),'source_failures':sum(x.get('status')=='SOURCE_FAILURE' for x in q),'control_mismatches':sum(int(x.get('control_mismatches',0)) for x in q),'player_candidates':len(p),'team_candidates':len(t)}
           (out/'SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary,indent=2))
           PY
+      - name: Download exact layers required for immediate reclosure
+        if: hashFiles('/tmp/summary/PLAYER_CANDIDATES.csv', '/tmp/summary/TEAM_CANDIDATES.csv') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current consensus pbp old mid newer game currentcons reclose; do mkdir -p "/tmp/$d"; done
+          get(){
+            local d="$1" id="$2" ok=0
+            for a in 1 2 3 4 5; do
+              rm -rf "/tmp/${d:?}"/* "/tmp/${d}.zip"
+              if curl --fail --location --silent --show-error \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" -o "/tmp/${d}.zip" \
+                && unzip -tq "/tmp/${d}.zip" >/dev/null 2>&1; then
+                unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"; ok=1; break
+              fi
+              sleep $((a*4))
+            done
+            test "$ok" -eq 1
+          }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+      - name: Immediately reclose recovered exact primitives
+        if: hashFiles('/tmp/summary/PLAYER_CANDIDATES.csv', '/tmp/summary/TEAM_CANDIDATES.csv') != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          RES='team_trb_all_players/treb_recovery_status/artifacts/treb-current-21-static-schedule-resolution/TREB-current-21-static-schedule-resolution-32307450287/TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv'
+          test -f "$RES"
+          args=(--current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/reclose)
+          [ -f /tmp/summary/PLAYER_CANDIDATES.csv ] && args+=(--candidate-player /tmp/summary/PLAYER_CANDIDATES.csv)
+          [ -f /tmp/summary/TEAM_CANDIDATES.csv ] && args+=(--candidate-team /tmp/summary/TEAM_CANDIDATES.csv)
+          python3 team_trb_all_players/treb_current_12_tenure_reclosure_v2.py "${args[@]}"
+          python3 - <<'PY'
+          import json
+          q=json.load(open('/tmp/reclose/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json'))
+          print(json.dumps(q,indent=2))
+          if q['status']!='PASS': raise SystemExit('reclosure QA failed')
+          if int(q['new_exact_promotions']) <= 0: raise SystemExit('zero exact promotions')
+          PY
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: TREB-recovered-tenure-primitives-summary-${{ github.run_id }}
-          path: /tmp/summary
+          name: TREB-direct-reclosure-${{ github.run_id }}
+          path: |
+            /tmp/summary
+            /tmp/reclose
           retention-days: 90
           compression-level: 1
-
-# Fixed 2026-08-21 authoritative artifact gate to require files actually present in artifact 9275527991.
-# Direct residual-elimination trigger 2026-08-21T19:13+12.
-# Added direct recovery dependency rapidfuzz 2026-08-21T19:20+12.
+      - name: Persist lowered residual checkpoint when reclosure passes
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f /tmp/reclose/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json
+          DEST='team_trb_all_players/treb_recovery_inputs/direct_residual_reduction'
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          cp /tmp/reclose/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json "$DEST/"
+          cp /tmp/reclose/TREB_NEW_EXACT_PROMOTED.csv "$DEST/"
+          cp /tmp/reclose/TREB_CUMULATIVE_EXACT_PROMOTED.csv "$DEST/"
+          cp /tmp/reclose/AUTONOMOUS_BLOCKER_MANIFEST.csv "$DEST/"
+          cp /tmp/reclose/TREB_CURRENT_12_TENURE_RECLOSURE_DIAGNOSTICS.csv "$DEST/"
+          git config user.name 'TREB automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add "$DEST"
+          git commit -m 'TREB: persist direct residual reduction from recovered primitives'
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
