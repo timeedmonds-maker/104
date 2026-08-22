@@ -24,9 +24,12 @@ jobs:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     strategy:
       fail-fast: false
-      max-parallel: 5
+      max-parallel: 2
       matrix:
-        season: ['2004-05','2017-18','2021-22','2022-23','2024-25']
+        # Direct residual reduction first: both seasons previously passed the broad
+        # target-player exact-control reconstruction with zero control mismatches.
+        # Known-mismatch seasons are deliberately excluded from this production pass.
+        season: ['2017-18','2024-25']
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -91,6 +94,8 @@ jobs:
           out=[]
           for k,z in sorted(by.items()):
               out.append({'game_id':k,'season':season,'player_targets':'|'.join(sorted(z['player_targets'])),'team_ids':'|'.join(sorted(z['team_ids']))})
+          if not out:
+              raise SystemExit(f'{season}: no direct missing-primitive targets')
           with open(reg,'w',newline='',encoding='utf-8') as f:
               w=csv.DictWriter(f,fieldnames=['game_id','season','player_targets','team_ids']); w.writeheader(); w.writerows(out)
           print(f'{season}: targeted games={len(out)} player primitives={sum(len(z["player_targets"]) for z in by.values())} team primitives={sum(len(z["team_ids"]) for z in by.values())}')
@@ -148,9 +153,10 @@ jobs:
           write('PLAYER_CANDIDATES.csv',p);write('TEAM_CANDIDATES.csv',t)
           summary={'seasons':len(q),'source_failures':sum(x.get('status')=='SOURCE_FAILURE' for x in q),'control_mismatches':sum(int(x.get('control_mismatches',0)) for x in q),'player_candidates':len(p),'team_candidates':len(t)}
           (out/'SUMMARY.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary,indent=2))
+          if not p and not t:
+              raise SystemExit('no exact candidates from control-clean direct pass')
           PY
       - name: Download exact layers required for immediate reclosure
-        if: hashFiles('/tmp/summary/PLAYER_CANDIDATES.csv', '/tmp/summary/TEAM_CANDIDATES.csv') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -182,7 +188,6 @@ jobs:
           get game 9262554900
           get currentcons 9263341092
       - name: Immediately reclose recovered exact primitives
-        if: hashFiles('/tmp/summary/PLAYER_CANDIDATES.csv', '/tmp/summary/TEAM_CANDIDATES.csv') != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -228,4 +233,4 @@ jobs:
           git pull --rebase origin agent/treb-final-exact-assembly
           git push origin HEAD:agent/treb-final-exact-assembly
 
-# Direct residual-elimination retrigger 2026-08-22 16:04 NZT; no semantic changes.
+# Directly target only previously control-clean seasons for immediate residual reduction, 2026-08-22.
