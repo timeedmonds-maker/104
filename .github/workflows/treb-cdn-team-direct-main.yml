@@ -1,4 +1,4 @@
-name: TREB official CDN PBP team-fact residual reduction
+name: TREB official CDN team-rebound-field residual reduction
 
 on:
   workflow_dispatch:
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   eliminate:
-    if: github.event_name != 'issues' || contains(github.event.issue.title, 'TREB official CDN PBP direct reduction')
+    if: github.event_name != 'issues' || contains(github.event.issue.title, 'TREB official team-rebound fields direct reduction')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -46,8 +46,8 @@ jobs:
           get newer 9260439871
           get game 9262554900
           get currentcons 9263341092
-      - name: Recover exact team facts from official NBA CDN PBP cumulative rebound totals
-        run: python3 -u team_trb_all_players/treb_cdn_pbp_team_recovery.py --current /tmp/current --out /tmp/cdn
+      - name: Recover exact team facts from official NBA final boxes including official team rebound fields
+        run: python3 -u team_trb_all_players/treb_cdn_live_team_recovery.py --current /tmp/current --out /tmp/cdn
       - name: Reclose immediately
         run: |
           python3 -u team_trb_all_players/treb_direct_563_reclosure.py --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --candidate-team-dir /tmp/cdn --out /tmp/out
@@ -71,13 +71,13 @@ jobs:
           git config user.name 'TREB automation'
           git config user.email 'actions@users.noreply.github.com'
           git add -f "$DEST"
-          git commit -m "TREB: reduce production residual to ${NEW} via official NBA CDN PBP"
+          git commit -m "TREB: reduce production residual to ${NEW} via official team rebound fields"
           git pull --rebase origin agent/treb-final-exact-assembly
           git push origin HEAD:agent/treb-final-exact-assembly
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: TREB-official-CDN-PBP-team-reduction-${{ github.run_id }}
+          name: TREB-official-team-rebound-field-reduction-${{ github.run_id }}
           path: |
             /tmp/cdn
             /tmp/out
@@ -92,9 +92,9 @@ jobs:
           import json,pathlib,os
           q=pathlib.Path('/tmp/out/TREB_SHARED_GAME_RECLOSURE_QA.json'); c=pathlib.Path('/tmp/cdn/TEAM_FACT_SOURCE_RACE_QA.json')
           if q.exists():
-              x=json.loads(q.read_text()); print(f"TREB direct CDN PBP result: ending_residual={x.get('ending_residual')}; new_exact_promotions={x.get('new_exact_promotions')}; candidate_team_rows={x.get('direct_candidate_team_rows')}; run={os.environ.get('GITHUB_RUN_ID')}")
+              x=json.loads(q.read_text()); print(f"TREB team-rebound-field result: ending_residual={x.get('ending_residual')}; new_exact_promotions={x.get('new_exact_promotions')}; candidate_team_rows={x.get('direct_candidate_team_rows')}; run={os.environ.get('GITHUB_RUN_ID')}")
           elif c.exists():
-              x=json.loads(c.read_text()); print(f"TREB direct CDN PBP source result: status={x.get('status')}; controls={x.get('control_comparisons')}; mismatches={x.get('control_mismatches')}; recovered_team_facts={x.get('promoted_target_team_facts')}; failures={x.get('source_failures')}; run={os.environ.get('GITHUB_RUN_ID')}")
-          else: print(f"TREB direct CDN PBP run failed before source QA; run={os.environ.get('GITHUB_RUN_ID')}")
+              x=json.loads(c.read_text()); print(f"TREB team-rebound-field source result: status={x.get('status')}; controls={x.get('control_comparisons')}; mismatches={x.get('control_mismatches')}; recovered_team_facts={x.get('promoted_target_team_facts')}; failures={x.get('source_failures')}; run={os.environ.get('GITHUB_RUN_ID')}")
+          else: print(f"TREB team-rebound-field run failed before source QA; run={os.environ.get('GITHUB_RUN_ID')}")
           PY
           gh issue comment "${{ github.event.issue.number }}" --body-file /tmp/body.txt
