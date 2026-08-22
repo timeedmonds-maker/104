@@ -1,0 +1,104 @@
+name: TREB direct NBA CDN minutes reclosure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - 'team_trb_all_players/treb_direct_cdn_minutes_reclosure.py'
+      - '.github/workflows/treb-direct-cdn-minutes-reclosure.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: treb-direct-cdn-minutes-reclosure
+  cancel-in-progress: true
+
+jobs:
+  reclose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download exact retained layers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          get(){
+            local d="$1" id="$2" ok=0
+            mkdir -p "/tmp/$d"
+            for a in 1 2 3 4 5; do
+              rm -rf "/tmp/${d:?}"/* "/tmp/${d}.zip"
+              if curl --fail --location --silent --show-error \
+                -H "Authorization: Bearer ${GH_TOKEN}" \
+                -H "Accept: application/vnd.github+json" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" -o "/tmp/${d}.zip" \
+                && unzip -tq "/tmp/${d}.zip" >/dev/null 2>&1; then
+                unzip -q "/tmp/${d}.zip" -d "/tmp/${d}"; ok=1; break
+              fi
+              sleep $((a*4))
+            done
+            test "$ok" -eq 1
+          }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+          test -f "$(find /tmp/current -type f -name AUTONOMOUS_BLOCKER_MANIFEST.csv -print -quit)"
+      - name: Reclose validation-only rows with independent exact NBA CDN minutes
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/out; mkdir -p /tmp/out
+          python3 -u team_trb_all_players/treb_direct_cdn_minutes_reclosure.py \
+            --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp \
+            --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game \
+            --currentcons /tmp/currentcons --out /tmp/out
+          python3 - <<'PY'
+          import json
+          q=json.load(open('/tmp/out/TREB_CDN_MINUTES_RECLOSURE_QA.json'))
+          if q['status']!='PASS':raise SystemExit('QA fail')
+          print('DIRECT_PROMOTIONS',q['new_exact_promotions'],'ENDING_RESIDUAL',q['ending_residual'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-direct-CDN-minutes-${{ github.run_id }}
+          path: /tmp/out
+          retention-days: 90
+          compression-level: 1
+      - name: Persist only a real residual reduction
+        shell: bash
+        run: |
+          set -euo pipefail
+          N=$(python3 -c "import json;print(json.load(open('/tmp/out/TREB_CDN_MINUTES_RECLOSURE_QA.json'))['new_exact_promotions'])")
+          if [ "$N" -le 0 ]; then exit 0; fi
+          DEST='team_trb_all_players/treb_recovery_inputs/direct_cdn_minutes_reduction'
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          cp /tmp/out/TREB_CDN_MINUTES_RECLOSURE_QA.json "$DEST/"
+          cp /tmp/out/TREB_NEW_EXACT_PROMOTED.csv "$DEST/"
+          cp /tmp/out/TREB_CUMULATIVE_EXACT_PROMOTED.csv "$DEST/"
+          cp /tmp/out/AUTONOMOUS_BLOCKER_MANIFEST.csv "$DEST/"
+          cp /tmp/out/TREB_CDN_MINUTES_EVIDENCE.csv "$DEST/"
+          cp /tmp/out/TREB_CDN_MINUTES_BLOCKED.csv "$DEST/"
+          git config user.name 'TREB automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add "$DEST"
+          git commit -m "TREB: directly eliminate ${N} validation residuals via NBA CDN minutes"
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
