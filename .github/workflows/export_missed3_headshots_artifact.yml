@@ -1,0 +1,61 @@
+name: Export missed3 headshots artifact
+on:
+  push:
+    paths:
+      - 'trigger_missed3_artifact.txt'
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch official NBA headshots
+        run: |
+          set -e
+          rm -rf outputs/missed3_headshots
+          mkdir -p outputs/missed3_headshots
+          while IFS=',' read -r id name; do
+            curl -L --fail --retry 3 -A 'Mozilla/5.0' "https://cdn.nba.com/headshots/nba/latest/1040x760/${id}.png" -o "outputs/missed3_headshots/${id}_${name}.png"
+          done <<'EOF'
+          203500,Steven_Adams
+          1631106,Tari_Eason
+          1641708,Amen_Thompson
+          1631200,Kris_Murray
+          1629111,Jock_Landale
+          1631095,Jabari_Smith_Jr
+          1630549,DayRon_Sharpe
+          1641739,Toumani_Camara
+          1628449,Chris_Boucher
+          1630578,Alperen_Sengun
+          1629006,Josh_Okogie
+          1631222,Jake_LaRavia
+          1630692,Jordan_Goodwin
+          1630703,Scoot_Henderson
+          1630202,Payton_Pritchard
+          1642377,Jaylen_Wells
+          1631117,Walker_Kessler
+          1629048,Goga_Bitadze
+          1641764,Brandin_Podziemski
+          1629020,Jarred_Vanderbilt
+          1629630,Ja_Morant
+          1629012,Collin_Sexton
+          1628988,Aaron_Holiday
+          1629723,John_Konchar
+          1628436,Luke_Kornet
+          EOF
+          cd outputs
+          zip -r missed3_top25_headshots.zip missed3_headshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: missed3_top25_headshots
+          path: outputs/missed3_top25_headshots.zip
+          retention-days: 7
+      - name: Publish run id
+        run: |
+          echo "$GITHUB_RUN_ID" > outputs/missed3_artifact_run_id.txt
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add outputs/missed3_artifact_run_id.txt
+          git commit -m 'Publish missed3 artifact run id' || exit 0
+          git push
