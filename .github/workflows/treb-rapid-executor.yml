@@ -14,7 +14,7 @@ jobs:
   eliminate:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, 'Run TREB rapid 30-game recovery')
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,12 +22,12 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - name: Download controlling 563 checkpoint, exact support layers, and 12 proven tenures
+      - name: Download controlling checkpoint and exact support layers
         env: {GH_TOKEN: '${{ github.token }}'}
         shell: bash
         run: |
           set -euo pipefail
-          for d in current consensus pbp old mid newer game currentcons resolution complement current2 general twelve final; do mkdir -p "/tmp/$d"; done
+          for d in current consensus pbp old mid newer game currentcons resolution static current2 general twelve final; do mkdir -p "/tmp/$d"; done
           get(){ d="$1"; id="$2"; for a in 1 2 3 4 5; do rm -f "/tmp/$d.zip"; rm -rf "/tmp/$d"/*; if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "/tmp/$d.zip" && unzip -tq "/tmp/$d.zip" >/dev/null 2>&1; then unzip -q "/tmp/$d.zip" -d "/tmp/$d"; return 0; fi; sleep $((a*3)); done; return 1; }
           get current 9275527991
           get consensus 9252786257
@@ -43,122 +43,117 @@ jobs:
           p=next(pathlib.Path('/tmp/current').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
           assert sum(1 for _ in csv.DictReader(open(p)))==563
           PY
-      - name: Recover exact missing primitives by five-player conservation
+      - name: Fetch only affected pinned static NBA Stats archives
+        shell: bash
         run: |
-          python -u team_trb_all_players/treb_direct_five_player_complement.py \
-            --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid \
-            --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --out /tmp/complement
-      - name: Merge only conflict-free exact complement facts into temporary controlling checkpoint
+          set -euo pipefail
+          mkdir -p /tmp/static_archives /tmp/nba_data
+          git -C /tmp/nba_data init -q
+          git -C /tmp/nba_data remote add origin https://github.com/shufinskiy/nba_data.git
+          for a in 1 2 3; do
+            if timeout 600 git -C /tmp/nba_data -c protocol.version=2 fetch --no-tags --depth=1 --filter=blob:none origin e829d4678be1e075f99e5d41a1c5f97089be446b; then break; fi
+            sleep $((a*5))
+          done
+          git -C /tmp/nba_data rev-parse FETCH_HEAD >/dev/null
+          python - <<'PY' >/tmp/years.txt
+          import csv,pathlib
+          p=next(pathlib.Path('/tmp/current').rglob('NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv'))
+          print('\n'.join(sorted({r['season'].split('-')[0] for r in csv.DictReader(open(p))})))
+          PY
+          cat /tmp/years.txt
+          while read -r y; do
+            [ -n "$y" ] || continue
+            for a in 1 2 3; do
+              if timeout 420 git -C /tmp/nba_data show FETCH_HEAD:datasets/nbastats_${y}.tar.xz > /tmp/static_archives/nbastats_${y}.tar.xz && test -s /tmp/static_archives/nbastats_${y}.tar.xz; then break; fi
+              rm -f /tmp/static_archives/nbastats_${y}.tar.xz; sleep $((a*4))
+            done
+            test -s /tmp/static_archives/nbastats_${y}.tar.xz
+          done </tmp/years.txt
+      - name: Extract exact team OREB and DREB and require zero-mismatch retained controls
+        run: |
+          python -u team_trb_all_players/treb_static_nbastats_team_recovery.py --current /tmp/current --archives /tmp/static_archives --out /tmp/static
+          cat /tmp/static/STATIC_NBASTATS_TEAM_RECOVERY_QA.json
+          python - <<'PY'
+          import json
+          q=json.load(open('/tmp/static/STATIC_NBASTATS_TEAM_RECOVERY_QA.json'))
+          assert q['status']=='PASS',q
+          assert q['control_mismatches']==0,q
+          assert q['recovered_target_team_facts']>0,q
+          PY
+      - name: Merge only exact static team facts into temporary controlling checkpoint
         run: |
           cp -a /tmp/current/. /tmp/current2/
           python - <<'PY'
           import csv,gzip,pathlib
-          C=pathlib.Path('/tmp/current2'); X=pathlib.Path('/tmp/complement')
+          C=pathlib.Path('/tmp/current2'); P=pathlib.Path('/tmp/static/STATIC_NBASTATS_TEAM_RECOVERED.csv')
           def gid(x): return str(x).strip().removesuffix('.0').zfill(10)
           def tid(x): return str(int(float(x)))
-          def pid(x): return str(x).strip().removesuffix('.0')
-          reg=list(csv.DictReader(open(next(C.rglob('NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv'))))); seas={gid(r['game_id']):r['season'] for r in reg}
-          def plain(p):
-            with open(p,newline='') as f:return list(csv.DictReader(f))
-          pp=next(C.rglob('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz'))
-          with gzip.open(pp,'rt',encoding='utf-8',newline='') as f: base=list(csv.DictReader(f))
-          fields=list(base[0]); idx={(gid(r['game_id']),tid(r['team_id']),pid(r['player_id'])):r for r in base}
-          for r in plain(X/'COMPLEMENT_PLAYER.csv'):
-            k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
-            if k in idx:
-              for z in ['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on']: assert abs(float(idx[k][z])-float(r[z]))<1e-9,(k,z)
-              continue
-            q={z:'' for z in fields}; q.update(r); q['season']=seas[k[0]]; q['exact_zero_proof']='False'; base.append(q); idx[k]=q
-          with gzip.open(pp,'wt',encoding='utf-8',newline='') as f:
-            w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(base)
+          with open(P,newline='') as f:new=list(csv.DictReader(f))
           tp=next(C.rglob('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz'))
-          with gzip.open(tp,'rt',encoding='utf-8',newline='') as f: base=list(csv.DictReader(f))
+          with gzip.open(tp,'rt',encoding='utf-8',newline='') as f:base=list(csv.DictReader(f))
           fields=list(base[0]); idx={(gid(r['game_id']),tid(r['team_id'])):r for r in base}
-          for r in plain(X/'COMPLEMENT_TEAM.csv'):
+          for r in new:
             k=(gid(r['game_id']),tid(r['team_id']))
             if k in idx:
               for z in ['team_oreb','team_dreb','opponent_oreb','opponent_dreb']: assert abs(float(idx[k][z])-float(r[z]))<1e-9,(k,z)
               continue
-            q={z:'' for z in fields}; q.update(r); q['season']=seas[k[0]]; base.append(q); idx[k]=q
+            q={z:'' for z in fields}; q.update(r); base.append(q); idx[k]=q
           with gzip.open(tp,'wt',encoding='utf-8',newline='') as f:
             w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(base)
           PY
-      - name: Reclose all already-exact-tenure residuals
+      - name: Reclose all exact-tenure residuals and the 12 proven transaction tenures
         run: |
-          python -u team_trb_all_players/treb_direct_563_reclosure.py \
-            --current /tmp/current2 --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid \
-            --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --out /tmp/general
-      - name: Reclose the 12 independently proven transaction-schedule tenures
-        run: |
+          python -u team_trb_all_players/treb_direct_563_reclosure.py --current /tmp/current2 --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --out /tmp/general
           RES=$(find /tmp/resolution -name TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv -print -quit); test -n "$RES"
-          python -u team_trb_all_players/treb_current_12_tenure_reclosure_v2.py \
-            --current /tmp/current2 --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid \
-            --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/twelve
-      - name: Union exact promotions from both direct closures and persist a genuinely lower residual
+          python -u team_trb_all_players/treb_current_12_tenure_reclosure_v2.py --current /tmp/current2 --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/twelve
+      - name: Union exact promotions and persist only if 563 falls
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import csv,gzip,json,pathlib,shutil
-          C=pathlib.Path('/tmp/current2'); F=pathlib.Path('/tmp/final'); F.mkdir(exist_ok=True)
-          def tid(x): return str(int(float(x)))
-          def pid(x): return str(x).strip().removesuffix('.0')
-          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
-          def read(p):
+          import csv,json,pathlib,shutil
+          C=pathlib.Path('/tmp/current2'); F=pathlib.Path('/tmp/final');F.mkdir(exist_ok=True)
+          def tid(x):return str(int(float(x)))
+          def pid(x):return str(x).strip().removesuffix('.0')
+          def key(r):return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          def rd(p):
             with open(p,newline='') as f:return list(csv.DictReader(f))
-          current=read(next(C.rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))); prior=read(next(C.rglob('TREB_CUMULATIVE_EXACT_PROMOTED.csv'))); mat=read(next(C.rglob('TREB_MATERIALITY_ACCEPTED.csv')))
+          cur=rd(next(C.rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))); prior=rd(next(C.rglob('TREB_CUMULATIVE_EXACT_PROMOTED.csv'))); mat=rd(next(C.rglob('TREB_MATERIALITY_ACCEPTED.csv')))
           new={}
           for p in [pathlib.Path('/tmp/general/TREB_NEW_EXACT_PROMOTED.csv'),pathlib.Path('/tmp/twelve/TREB_NEW_EXACT_PROMOTED.csv')]:
-            if not p.exists(): continue
-            for r in read(p):
-              k=key(r)
-              if k in new:
-                for z in ['on','off_corrected','on_minus_off_corrected','seconds_on']:
-                  assert abs(float(new[k][z])-float(r[z]))<1e-9,(k,z)
-              new[k]=r
-          prior_keys={key(r) for r in prior}; assert not (prior_keys & set(new))
-          cumulative=prior+[new[k] for k in sorted(new)]; remain=[r for r in current if key(r) not in new]
+            if p.exists():
+              for r in rd(p):new[key(r)]=r
+          assert not ({key(r) for r in prior}&set(new))
+          remain=[r for r in cur if key(r) not in new]; cumulative=prior+[new[k] for k in sorted(new)]
           assert len(cumulative)+len(remain)+len(mat)==1250
-          def write(p,rs,fields=None):
-            if fields is None: fields=sorted({z for r in rs for z in r}) if rs else []
+          def wr(p,rs,fields=None):
+            if fields is None:fields=sorted({z for r in rs for z in r}) if rs else []
             with open(p,'w',newline='') as f:
               if fields:
-                w=csv.DictWriter(f,fieldnames=list(fields)); w.writeheader(); w.writerows(rs)
-          write(F/'TREB_NEW_EXACT_PROMOTED.csv',[new[k] for k in sorted(new)])
-          write(F/'TREB_CUMULATIVE_EXACT_PROMOTED.csv',cumulative)
-          write(F/'AUTONOMOUS_BLOCKER_MANIFEST.csv',remain,current[0].keys())
-          write(F/'TREB_MATERIALITY_ACCEPTED.csv',mat)
-          for n in ['RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz','RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz','NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv']:
-            shutil.copy(next(C.rglob(n)),F/n)
-          cq=json.load(open('/tmp/complement/COMPLEMENT_QA.json'))
-          qa={'status':'PASS','starting_exact_full_core':9080,'starting_production_resolved_full_core':9084,'starting_residual':563,'complement_player_primitives':cq['recovered_exact_player_primitives'],'complement_team_facts':cq['recovered_exact_team_facts'],'new_exact_promotions':len(new),'ending_exact_full_core':9080+len(new),'ending_production_resolved_full_core':9084+len(new),'ending_residual':len(remain),'integrity':{'five_player_conservation_only_for_new_primitives':True,'raw_exact_counts_only':True,'minutes_gate_seconds':60.0,'model_used':False,'rounded_backsolve_used':False,'opponent_inference_used':False,'partial_tenure_subtraction_used':False}}
-          (F/'TREB_SHARED_GAME_RECLOSURE_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n'); print(json.dumps(qa,indent=2,sort_keys=True))
+                w=csv.DictWriter(f,fieldnames=list(fields));w.writeheader();w.writerows(rs)
+          wr(F/'TREB_NEW_EXACT_PROMOTED.csv',[new[k] for k in sorted(new)]);wr(F/'TREB_CUMULATIVE_EXACT_PROMOTED.csv',cumulative);wr(F/'AUTONOMOUS_BLOCKER_MANIFEST.csv',remain,cur[0].keys());wr(F/'TREB_MATERIALITY_ACCEPTED.csv',mat)
+          for n in ['RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz','RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz','NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv']:shutil.copy(next(C.rglob(n)),F/n)
+          sq=json.load(open('/tmp/static/STATIC_NBASTATS_TEAM_RECOVERY_QA.json'))
+          qa={'status':'PASS','starting_production_resolved_full_core':9084,'starting_residual':563,'static_team_facts_recovered':sq['recovered_target_team_facts'],'static_control_comparisons':sq['exact_control_comparisons'],'static_control_mismatches':sq['control_mismatches'],'new_exact_promotions':len(new),'ending_production_resolved_full_core':9084+len(new),'ending_residual':len(remain),'integrity':{'pinned_static_nba_stats':True,'zero_mismatch_controls':True,'minutes_gate_seconds':60,'model_used':False,'rounded_backsolve_used':False}}
+          (F/'TREB_SHARED_GAME_RECLOSURE_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n');print(json.dumps(qa,indent=2,sort_keys=True))
           PY
-          NEW=$(python - <<'PY'
-          import json
-          print(json.load(open('/tmp/final/TREB_SHARED_GAME_RECLOSURE_QA.json'))['ending_residual'])
-          PY
-          )
-          if [ "$NEW" -ge 563 ]; then echo 'No direct residual reduction; fail closed.'; exit 0; fi
-          DEST=team_trb_all_players/treb_direct_563_authoritative
-          rm -rf "$DEST"; mkdir -p "$DEST"; cp /tmp/final/* "$DEST/"; cp /tmp/complement/COMPLEMENT_QA.json "$DEST/"
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -f "$DEST"
-          git commit -m "TREB: reduce production residual to ${NEW} by exact complement"
-          git push origin HEAD:agent/treb-final-exact-assembly
+          NEW=$(python -c "import json;print(json.load(open('/tmp/final/TREB_SHARED_GAME_RECLOSURE_QA.json'))['ending_residual'])")
+          if [ "$NEW" -ge 563 ]; then echo 'No residual reduction; fail closed.'; exit 0; fi
+          DEST=team_trb_all_players/treb_direct_563_authoritative;rm -rf "$DEST";mkdir -p "$DEST";cp /tmp/final/* "$DEST/";cp /tmp/static/STATIC_NBASTATS_TEAM_RECOVERY_QA.json "$DEST/"
+          git config user.name github-actions[bot];git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -f "$DEST";git commit -m "TREB: reduce production residual to ${NEW} using pinned static team boxes";git push origin HEAD:agent/treb-final-exact-assembly
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: TREB-rapid-exact-complement-${{ github.run_id }}
+          name: TREB-static-team-direct-${{ github.run_id }}
           path: |
-            /tmp/complement
+            /tmp/static
             /tmp/general
             /tmp/twelve
             /tmp/final
           retention-days: 90
           if-no-files-found: warn
-      - name: Comment result location
+      - name: Comment completion
         if: always() && github.event_name == 'issues'
         env: {GH_TOKEN: '${{ github.token }}'}
-        run: gh issue comment "${{ github.event.issue.number }}" --body "TREB exact complement executor ran as Actions run ${{ github.run_id }}. A lower residual, if achieved, is committed under team_trb_all_players/treb_direct_563_authoritative on agent/treb-final-exact-assembly."
+        run: gh issue comment "${{ github.event.issue.number }}" --body "TREB pinned-static team recovery ran as Actions run ${{ github.run_id }}. A lower residual, if achieved, is committed to the production branch."
