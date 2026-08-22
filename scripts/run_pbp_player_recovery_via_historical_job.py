@@ -1,19 +1,11 @@
 #!/usr/bin/env python3
 import csv, gzip, os, pathlib, subprocess, sys
 
-src=pathlib.Path('scripts/treb_player_game_pbpstats_recovery.py').read_text()
-old="    obj=js.get(side)"
-new="    obj=(js.get('stats') or {}).get(side)"
-if old not in src:
-    raise SystemExit('expected parser line not found')
-tmp=pathlib.Path('/tmp/treb_player_game_pbpstats_recovery_fixed.py')
-tmp.write_text(src.replace(old,new,1))
 print('TREB_PBP_FULL_GATE_START', flush=True)
 env=dict(os.environ); env['TREB_PBP_CHILD']='1'
-rc=subprocess.run([sys.executable,'-u',str(tmp)],env=env).returncode
+rc=subprocess.run([sys.executable,'-u','scripts/treb_player_game_pbpstats_recovery.py'],env=env).returncode
 print('TREB_PBP_FULL_GATE_RC',rc,flush=True)
-if rc!=0:
-    raise SystemExit(rc)
+if rc!=0: raise SystemExit(rc)
 
 pg=pathlib.Path('/tmp/shared/player_gated')
 if not (pg/'PASS_GATE').exists():
