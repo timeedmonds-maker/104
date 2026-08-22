@@ -10,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Fetch official NBA headshots
+      - name: Fetch official NBA headshots and split ZIP as text chunks
         run: |
           set -e
-          mkdir -p outputs/missed3_headshots
+          rm -rf outputs/missed3_headshots outputs/missed3_b64_chunks
+          mkdir -p outputs/missed3_headshots outputs/missed3_b64_chunks
           while IFS=',' read -r id name; do
             curl -L --fail --retry 3 -A 'Mozilla/5.0' "https://cdn.nba.com/headshots/nba/latest/1040x760/${id}.png" -o "outputs/missed3_headshots/${id}_${name}.png"
           done <<'EOF'
@@ -43,11 +44,15 @@ jobs:
           1629723,John_Konchar
           1628436,Luke_Kornet
           EOF
-          cd outputs && zip -r missed3_top25_headshots.zip missed3_headshots
-      - name: Commit ZIP
+          cd outputs
+          zip -r missed3_top25_headshots.zip missed3_headshots
+          base64 -w0 missed3_top25_headshots.zip > missed3_zip.b64
+          split -b 350000 -d -a 3 missed3_zip.b64 missed3_b64_chunks/chunk_
+          ls missed3_b64_chunks | sort > missed3_b64_manifest.txt
+      - name: Commit ZIP transfer chunks
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add outputs/missed3_top25_headshots.zip
-          git commit -m 'Export missed3 top25 headshots zip' || exit 0
+          git add outputs/missed3_b64_chunks outputs/missed3_b64_manifest.txt
+          git commit -m 'Export missed3 ZIP as text chunks' || exit 0
           git push
