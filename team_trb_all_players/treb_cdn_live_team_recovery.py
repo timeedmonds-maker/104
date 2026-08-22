@@ -28,10 +28,12 @@ def fetch_box(g):
                 if not t: continue
                 team=tid(t.get('teamId'))
                 st=t.get('statistics') or {}
-                o=st.get('reboundsOffensive'); d=st.get('reboundsDefensive')
-                if o is None or d is None:
+                po=st.get('reboundsOffensive'); pd=st.get('reboundsDefensive')
+                to=st.get('reboundsOffensiveTeam',0); td=st.get('reboundsDefensiveTeam',0)
+                if po is None or pd is None:
                     raise ValueError(f'missing rebound stats {g} {team}: {sorted(st)}')
-                out[team]=(float(o),float(d))
+                # TREB exact layer counts player rebounds plus official team/dead-ball rebounds.
+                out[team]=(float(po)+float(to or 0),float(pd)+float(td or 0))
             if len(out)!=2: raise ValueError(f'expected two teams {g}, got {out}')
             return out,url,''
         except Exception as e:
@@ -85,7 +87,7 @@ def main():
             box=fetched[g]; opp=[x for x in box if x!=t]
             if len(opp)!=1: continue
             o,dv=box[t]; oo,od=box[opp[0]]
-            recovered.append({'season':game_season[g],'game_id':g,'team_id':t,'team_oreb':o,'team_dreb':dv,'opponent_oreb':oo,'opponent_dreb':od,'provenance':'official NBA CDN liveData final boxscore; zero-mismatch exact controls'})
+            recovered.append({'season':game_season[g],'game_id':g,'team_id':t,'team_oreb':o,'team_dreb':dv,'opponent_oreb':oo,'opponent_dreb':od,'provenance':'official NBA CDN liveData final boxscore player + reboundsOffensiveTeam/reboundsDefensiveTeam; zero-mismatch exact controls'})
     def write(name,rows,fields=None):
         p=OUT/name
         if fields is None: fields=sorted({k for r in rows for k in r}) if rows else []
@@ -94,7 +96,7 @@ def main():
                 w=csv.DictWriter(f,fieldnames=list(fields)); w.writeheader(); w.writerows(rows)
     write('CDN_LIVEDATA_TEAM_FACTS.csv',recovered,['season','game_id','team_id','team_oreb','team_dreb','opponent_oreb','opponent_dreb','provenance'])
     write('CDN_LIVEDATA_CONTROLS.csv',controls); write('CDN_LIVEDATA_CONTROL_MISMATCHES.csv',mismatches); write('CDN_LIVEDATA_FAILURES.csv',failures); write('CDN_LIVEDATA_SOURCE_ROWS.csv',source_rows)
-    qa={'status':'PASS' if gate and recovered else 'FAIL_CLOSED','source':'official NBA CDN liveData final boxscore','target_team_facts':len(targets),'target_games':len(target_games),'control_comparisons':len(controls),'control_seasons':sorted(control_seasons),'control_mismatches':len(mismatches),'source_failures':len(failures),'promoted_target_team_facts':len(recovered),'targets_promoted':len(recovered),'integrity':{'official_final_boxscore_fields_only':True,'zero_control_mismatch_required':True,'raw_exact_counts_only':True,'model_used':False,'rounded_backsolve_used':False,'opponent_inference_used':False}}
+    qa={'status':'PASS' if gate and recovered else 'FAIL_CLOSED','source':'official NBA CDN liveData final boxscore player plus official team rebound fields','target_team_facts':len(targets),'target_games':len(target_games),'control_comparisons':len(controls),'control_seasons':sorted(control_seasons),'control_mismatches':len(mismatches),'source_failures':len(failures),'promoted_target_team_facts':len(recovered),'targets_promoted':len(recovered),'integrity':{'official_final_boxscore_fields_only':True,'official_team_rebound_fields_included':True,'zero_control_mismatch_required':True,'raw_exact_counts_only':True,'model_used':False,'rounded_backsolve_used':False,'opponent_inference_used':False}}
     (OUT/'TEAM_FACT_SOURCE_RACE_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n'); print(json.dumps(qa,indent=2,sort_keys=True))
     if not gate or not recovered: raise SystemExit(2)
 if __name__=='__main__': main()
