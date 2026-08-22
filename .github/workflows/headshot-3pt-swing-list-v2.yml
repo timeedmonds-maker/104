@@ -9,26 +9,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install pillow requests
-      - name: Export individual official NBA headshots
+      - name: Download official NBA headshots
         run: |
-          mkdir -p outputs/headshots_local
-          cat > /tmp/s.py <<'PY'
-          import io,requests
-          from PIL import Image
-          ids=[1627750,202331,203999,1628379,201939,202695,202681,203954,201142,1629008,1630174,1631260,1630163,203994,1630178,1630169,1629639,203468,1641706,1630703,1631094,1627777,203500,1628384,203484]
-          S=requests.Session();S.headers['User-Agent']='Mozilla/5.0'
-          for pid in ids:
-            r=S.get(f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png',timeout=30);r.raise_for_status();p=Image.open(io.BytesIO(r.content)).convert('RGBA')
-            b=p.getchannel('A').getbbox();p=p.crop(b);w,h=p.size;p=p.crop((0,0,w,int(h*.64)));b=p.getchannel('A').getbbox();p=p.crop(b)
-            sc=min(62/p.width,62/p.height);p=p.resize((int(p.width*sc),int(p.height*sc)),Image.Resampling.LANCZOS)
-            c=Image.new('RGBA',(64,64),'white');c.alpha_composite(p,((64-p.width)//2,64-p.height));c.convert('RGB').save(f'outputs/headshots_local/{pid}.jpg','JPEG',quality=70,optimize=True)
+          python -m pip install --upgrade pip
+          pip install requests
+          rm -rf outputs/nba_headshots_top25
+          mkdir -p outputs/nba_headshots_top25
+          python - <<'PY'
+          import requests, os
+          players=[
+          (1627750,'Jamal_Murray'),(202331,'Paul_George'),(203999,'Nikola_Jokic'),(1628379,'Luke_Kennard'),(201939,'Stephen_Curry'),
+          (202695,'Kawhi_Leonard'),(202681,'Kyrie_Irving'),(203954,'Joel_Embiid'),(201142,'Kevin_Durant'),(1629008,'Michael_Porter_Jr'),
+          (1630174,'Aaron_Nesmith'),(1631260,'AJ_Green'),(1630163,'LaMelo_Ball'),(203994,'Jusuf_Nurkic'),(1630178,'Tyrese_Maxey'),
+          (1630169,'Tyrese_Haliburton'),(1629639,'Tyler_Herro'),(203468,'CJ_McCollum'),(1641706,'Brandon_Miller'),(1630703,'Scoot_Henderson'),
+          (1631094,'Paolo_Banchero'),(1627777,'Georges_Niang'),(203500,'Steven_Adams'),(1628384,'OG_Anunoby'),(203484,'Kentavious_Caldwell-Pope')]
+          s=requests.Session(); s.headers['User-Agent']='Mozilla/5.0'
+          for pid,name in players:
+              url=f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png'
+              r=s.get(url,timeout=30); r.raise_for_status()
+              open(f'outputs/nba_headshots_top25/{pid}_{name}.png','wb').write(r.content)
           PY
-          python /tmp/s.py
-      - name: Commit headshots
+          cd outputs && zip -9 -r nba_headshots_top25.zip nba_headshots_top25
+      - name: Commit ZIP
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add outputs/headshots_local/*.jpg
-          git commit -m 'Export individual NBA headshots for local render' || exit 0
+          git add outputs/nba_headshots_top25.zip
+          git commit -m 'Export ZIP of official NBA headshots' || exit 0
           git push
