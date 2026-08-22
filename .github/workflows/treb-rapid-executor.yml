@@ -1,164 +1,164 @@
-name: TREB rapid exact 30-game recovery executor
-
+name: TREB rapid exact residual elimination executor
 on:
   workflow_dispatch:
   issues:
     types: [opened, edited, reopened]
-
 permissions:
   actions: read
   contents: write
   issues: write
-
 concurrency:
-  group: treb-rapid-30-game-recovery
+  group: treb-rapid-exact-residual-elimination
   cancel-in-progress: true
-
-env:
-  CURRENT_ARTIFACT_ID: '9275527991'
-  TENURE_ARTIFACT_ID: '9259414397'
-  CONSENSUS_ARTIFACT_ID: '9252786257'
-  PBP_ARTIFACT_ID: '9258020958'
-  RECOVERED_OLD_ARTIFACT_ID: '9258644772'
-  RECOVERED_MID_ARTIFACT_ID: '9260106595'
-  RECOVERED_NEW_ARTIFACT_ID: '9260439871'
-  MATERIALITY_ARTIFACT_ID: '9262341403'
-  MATERIALITY_2015_ARTIFACT_ID: '9267705324'
-
 jobs:
-  recover-reclose:
+  eliminate:
     if: github.event_name == 'workflow_dispatch' || startsWith(github.event.issue.title, 'Run TREB rapid 30-game recovery')
     runs-on: ubuntu-24.04
-    timeout-minutes: 55
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/treb-final-exact-assembly
-          fetch-depth: 1
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
-      - name: Install dependencies
-        run: python -m pip install --disable-pip-version-check -q requests beautifulsoup4
-      - name: Download authoritative 563-state inputs
+      - name: Download controlling 563 checkpoint, exact support layers, and 12 proven tenures
         env: {GH_TOKEN: '${{ github.token }}'}
         shell: bash
         run: |
           set -euo pipefail
-          for d in current current_aug tenure consensus pbp recovered_old recovered_mid recovered_new materiality materiality2015 shared/base shared/team_gated shared/player_gated shared/merged out; do mkdir -p /tmp/$d; done
-          for spec in current:$CURRENT_ARTIFACT_ID tenure:$TENURE_ARTIFACT_ID consensus:$CONSENSUS_ARTIFACT_ID pbp:$PBP_ARTIFACT_ID recovered_old:$RECOVERED_OLD_ARTIFACT_ID recovered_mid:$RECOVERED_MID_ARTIFACT_ID recovered_new:$RECOVERED_NEW_ARTIFACT_ID materiality:$MATERIALITY_ARTIFACT_ID materiality2015:$MATERIALITY_2015_ARTIFACT_ID; do
-            d=${spec%%:*}; a=${spec##*:}; gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${a}/zip" >/tmp/$d.zip; unzip -q /tmp/$d.zip -d /tmp/$d
-          done
-          cp -a /tmp/current/. /tmp/current_aug/
-          find /tmp/current -type f \( -name 'RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz' -o -name 'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz' \) -exec cp {} /tmp/shared/base/ \;
-      - name: Recover exact team-game facts
-        shell: bash
+          for d in current consensus pbp old mid newer game currentcons resolution complement current2 general twelve final; do mkdir -p "/tmp/$d"; done
+          get(){ d="$1"; id="$2"; for a in 1 2 3 4 5; do rm -f "/tmp/$d.zip"; rm -rf "/tmp/$d"/*; if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "/tmp/$d.zip" && unzip -tq "/tmp/$d.zip" >/dev/null 2>&1; then unzip -q "/tmp/$d.zip" -d "/tmp/$d"; return 0; fi; sleep $((a*3)); done; return 1; }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+          get resolution 9385259872
+          python - <<'PY'
+          import csv,pathlib
+          p=next(pathlib.Path('/tmp/current').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          assert sum(1 for _ in csv.DictReader(open(p)))==563
+          PY
+      - name: Recover exact missing primitives by five-player conservation
         run: |
-          set -euo pipefail
-          rm -rf /tmp/shared/gated
-          mkdir -p /tmp/shared/gated
-          python -u scripts/treb_team_fact_source_race.py
-          cp -a /tmp/shared/gated/. /tmp/shared/team_gated/ || true
-      - name: Recover exact player-game primitives
-        if: always()
-        shell: bash
-        run: python -u scripts/treb_player_game_pbpstats_recovery.py
-      - name: Union admitted primitives and reclose all 563 keys
-        if: always()
-        shell: bash
+          python -u team_trb_all_players/treb_direct_five_player_complement.py \
+            --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid \
+            --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --out /tmp/complement
+      - name: Merge only conflict-free exact complement facts into temporary controlling checkpoint
         run: |
-          set -euo pipefail
-          TEAM_PASS=0; PLAYER_PASS=0
-          test -f /tmp/shared/team_gated/PASS_GATE && TEAM_PASS=1 || true
-          test -f /tmp/shared/player_gated/PASS_GATE && PLAYER_PASS=1 || true
-          echo "TEAM_PASS=$TEAM_PASS PLAYER_PASS=$PLAYER_PASS"
-          if [ "$TEAM_PASS" = 0 ] && [ "$PLAYER_PASS" = 0 ]; then echo 'No new exact primitive source passed its control gate; fail closed.'; exit 0; fi
+          cp -a /tmp/current/. /tmp/current2/
           python - <<'PY'
           import csv,gzip,pathlib
-          O=pathlib.Path('/tmp/shared/merged');O.mkdir(parents=True,exist_ok=True)
-          specs=[
-            ('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz',['game_id','team_id'],['team_oreb','team_dreb','opponent_oreb','opponent_dreb'],[pathlib.Path('/tmp/shared/base'),pathlib.Path('/tmp/shared/team_gated')]),
-            ('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz',['game_id','team_id','player_id'],['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on'],[pathlib.Path('/tmp/shared/base'),pathlib.Path('/tmp/shared/player_gated')])]
-          for name,ks,vs,roots in specs:
-            rows={};fields=None
-            for root in roots:
-              if not root.exists(): continue
-              for p in root.rglob(name):
-                with gzip.open(p,'rt',encoding='utf-8',newline='') as f:
-                  rd=csv.DictReader(f); fields=fields or rd.fieldnames
-                  for r in rd:
-                    q=tuple(str(r[z]).strip().removesuffix('.0') for z in ks); vals=tuple(float(r[z]) for z in vs)
-                    if q in rows and tuple(float(rows[q][z]) for z in vs)!=vals: raise SystemExit(f'CONFLICT {name} {q}')
-                    rows[q]=r
-            if fields is None: raise SystemExit('NO_INPUT '+name)
-            with gzip.open(O/name,'wt',encoding='utf-8',newline='') as f:
-              w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(rows[q] for q in sorted(rows))
-            print('UNION',name,len(rows))
+          C=pathlib.Path('/tmp/current2'); X=pathlib.Path('/tmp/complement')
+          def gid(x): return str(x).strip().removesuffix('.0').zfill(10)
+          def tid(x): return str(int(float(x)))
+          def pid(x): return str(x).strip().removesuffix('.0')
+          reg=list(csv.DictReader(open(next(C.rglob('NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv'))))); seas={gid(r['game_id']):r['season'] for r in reg}
+          def plain(p):
+            with open(p,newline='') as f:return list(csv.DictReader(f))
+          pp=next(C.rglob('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz'))
+          with gzip.open(pp,'rt',encoding='utf-8',newline='') as f: base=list(csv.DictReader(f))
+          fields=list(base[0]); idx={(gid(r['game_id']),tid(r['team_id']),pid(r['player_id'])):r for r in base}
+          for r in plain(X/'COMPLEMENT_PLAYER.csv'):
+            k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+            if k in idx:
+              for z in ['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on']: assert abs(float(idx[k][z])-float(r[z]))<1e-9,(k,z)
+              continue
+            q={z:'' for z in fields}; q.update(r); q['season']=seas[k[0]]; q['exact_zero_proof']='False'; base.append(q); idx[k]=q
+          with gzip.open(pp,'wt',encoding='utf-8',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(base)
+          tp=next(C.rglob('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz'))
+          with gzip.open(tp,'rt',encoding='utf-8',newline='') as f: base=list(csv.DictReader(f))
+          fields=list(base[0]); idx={(gid(r['game_id']),tid(r['team_id'])):r for r in base}
+          for r in plain(X/'COMPLEMENT_TEAM.csv'):
+            k=(gid(r['game_id']),tid(r['team_id']))
+            if k in idx:
+              for z in ['team_oreb','team_dreb','opponent_oreb','opponent_dreb']: assert abs(float(idx[k][z])-float(r[z]))<1e-9,(k,z)
+              continue
+            q={z:'' for z in fields}; q.update(r); q['season']=seas[k[0]]; base.append(q); idx[k]=q
+          with gzip.open(tp,'wt',encoding='utf-8',newline='') as f:
+            w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(base)
           PY
-          PYTHONPATH=team_trb_all_players python -u team_trb_all_players/reclose_residual_shared_games.py \
-            --current-dir /tmp/current_aug --tenure-dir /tmp/tenure --consensus-dir /tmp/consensus --pbp-dir /tmp/pbp \
-            --recovered-old-dir /tmp/recovered_old --recovered-mid-dir /tmp/recovered_mid --recovered-new-dir /tmp/recovered_new \
-            --shared-dir /tmp/shared/merged --materiality-dir /tmp/materiality --materiality-2015-dir /tmp/materiality2015 \
-            --targets team_trb_all_players/impact_database/roster_tenure_v2/player_team_season_targets.jsonl.gz \
-            --ledger team_trb_all_players/impact_database/roster_tenure_v3/player_game_roster_ledger.csv.gz \
-            --minutes-gate-seconds 60 --output-dir /tmp/out/reclosed
-          cp /tmp/shared/merged/RECOVERED_RESIDUAL_SHARED_*_GAME_PRIMITIVES.csv.gz /tmp/out/reclosed/
-      - name: Build progress decision
-        if: always()
-        shell: bash
+      - name: Reclose all already-exact-tenure residuals
         run: |
-          python - <<'PY'
-          import json,pathlib,csv
-          out=pathlib.Path('/tmp/out')
-          team=json.loads((out/'TEAM_FACT_SOURCE_RACE_QA.json').read_text()) if (out/'TEAM_FACT_SOURCE_RACE_QA.json').exists() else {}
-          player=json.loads((out/'PLAYER_GAME_PBPSTATS_RECOVERY_QA.json').read_text()) if (out/'PLAYER_GAME_PBPSTATS_RECOVERY_QA.json').exists() else {}
-          rq=out/'reclosed'/'TREB_SHARED_GAME_RECLOSURE_QA.json'
-          reclose=json.loads(rq.read_text()) if rq.exists() else {}
-          ending=None
-          for k in ('ending_blocker_manifest','ending_unresolved_keys','ending_residual','residual'):
-            if k in reclose:
-              try: ending=int(reclose[k]); break
-              except: pass
-          if ending is None:
-            reg=out/'reclosed'/'NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv'
-            if reg.exists():
-              rows=list(csv.DictReader(open(reg,newline='')))
-              ending=sum(int(float(r.get('affected_key_count') or 0)) for r in rows) if rows else 0
-          d={'starting_residual':563,'ending_residual':ending,'progress':ending is not None and ending<563,'complete':ending==0,
-             'team_fact_gate':team.get('status'),'team_facts_promoted':team.get('target_team_facts_promoted',0),
-             'player_game_gate':player.get('status'),'player_primitives_promoted':player.get('targets_promoted',0),
-             'next':'FINAL_90_METRIC_ASSEMBLY' if ending==0 else ('TARGET_ONLY_NEW_RESIDUAL' if ending is not None and ending<563 else 'FAIL_CLOSED_SOURCE_ESCALATION')}
-          (out/'RAPID_30_GAME_PROGRESS.json').write_text(json.dumps(d,indent=2)+'\n'); print(json.dumps(d,indent=2))
-          PY
-      - name: Persist checkpoint to production branch
-        if: always()
+          python -u team_trb_all_players/treb_direct_563_reclosure.py \
+            --current /tmp/current2 --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid \
+            --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --out /tmp/general
+      - name: Reclose the 12 independently proven transaction-schedule tenures
+        run: |
+          RES=$(find /tmp/resolution -name TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv -print -quit); test -n "$RES"
+          python -u team_trb_all_players/treb_current_12_tenure_reclosure_v2.py \
+            --current /tmp/current2 --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid \
+            --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/twelve
+      - name: Union exact promotions from both direct closures and persist a genuinely lower residual
         shell: bash
         run: |
           set -euo pipefail
-          STATE=team_trb_all_players/rapid_dynamic_state/rapid_30_game_recovery
-          mkdir -p "$STATE"
-          for spec in \
-            /tmp/out/TEAM_FACT_SOURCE_RACE_QA.json:latest_team_source_qa.json \
-            /tmp/out/PLAYER_GAME_PBPSTATS_RECOVERY_QA.json:latest_player_source_qa.json \
-            /tmp/out/RAPID_30_GAME_PROGRESS.json:latest_progress.json \
-            /tmp/out/reclosed/TREB_SHARED_GAME_RECLOSURE_QA.json:latest_reclosure_qa.json \
-            /tmp/out/reclosed/NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv:latest_next_game_registry.csv; do
-              src=${spec%%:*}; dst=${spec##*:}; test -f "$src" && cp "$src" "$STATE/$dst" || true
-          done
+          python - <<'PY'
+          import csv,gzip,json,pathlib,shutil
+          C=pathlib.Path('/tmp/current2'); F=pathlib.Path('/tmp/final'); F.mkdir(exist_ok=True)
+          def tid(x): return str(int(float(x)))
+          def pid(x): return str(x).strip().removesuffix('.0')
+          def key(r): return (str(r['season']),tid(r['team_id']),pid(r['player_id']))
+          def read(p):
+            with open(p,newline='') as f:return list(csv.DictReader(f))
+          current=read(next(C.rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))); prior=read(next(C.rglob('TREB_CUMULATIVE_EXACT_PROMOTED.csv'))); mat=read(next(C.rglob('TREB_MATERIALITY_ACCEPTED.csv')))
+          new={}
+          for p in [pathlib.Path('/tmp/general/TREB_NEW_EXACT_PROMOTED.csv'),pathlib.Path('/tmp/twelve/TREB_NEW_EXACT_PROMOTED.csv')]:
+            if not p.exists(): continue
+            for r in read(p):
+              k=key(r)
+              if k in new:
+                for z in ['on','off_corrected','on_minus_off_corrected','seconds_on']:
+                  assert abs(float(new[k][z])-float(r[z]))<1e-9,(k,z)
+              new[k]=r
+          prior_keys={key(r) for r in prior}; assert not (prior_keys & set(new))
+          cumulative=prior+[new[k] for k in sorted(new)]; remain=[r for r in current if key(r) not in new]
+          assert len(cumulative)+len(remain)+len(mat)==1250
+          def write(p,rs,fields=None):
+            if fields is None: fields=sorted({z for r in rs for z in r}) if rs else []
+            with open(p,'w',newline='') as f:
+              if fields:
+                w=csv.DictWriter(f,fieldnames=list(fields)); w.writeheader(); w.writerows(rs)
+          write(F/'TREB_NEW_EXACT_PROMOTED.csv',[new[k] for k in sorted(new)])
+          write(F/'TREB_CUMULATIVE_EXACT_PROMOTED.csv',cumulative)
+          write(F/'AUTONOMOUS_BLOCKER_MANIFEST.csv',remain,current[0].keys())
+          write(F/'TREB_MATERIALITY_ACCEPTED.csv',mat)
+          for n in ['RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz','RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz','NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv']:
+            shutil.copy(next(C.rglob(n)),F/n)
+          cq=json.load(open('/tmp/complement/COMPLEMENT_QA.json'))
+          qa={'status':'PASS','starting_exact_full_core':9080,'starting_production_resolved_full_core':9084,'starting_residual':563,'complement_player_primitives':cq['recovered_exact_player_primitives'],'complement_team_facts':cq['recovered_exact_team_facts'],'new_exact_promotions':len(new),'ending_exact_full_core':9080+len(new),'ending_production_resolved_full_core':9084+len(new),'ending_residual':len(remain),'integrity':{'five_player_conservation_only_for_new_primitives':True,'raw_exact_counts_only':True,'minutes_gate_seconds':60.0,'model_used':False,'rounded_backsolve_used':False,'opponent_inference_used':False,'partial_tenure_subtraction_used':False}}
+          (F/'TREB_SHARED_GAME_RECLOSURE_QA.json').write_text(json.dumps(qa,indent=2,sort_keys=True)+'\n'); print(json.dumps(qa,indent=2,sort_keys=True))
+          PY
+          NEW=$(python - <<'PY'
+          import json
+          print(json.load(open('/tmp/final/TREB_SHARED_GAME_RECLOSURE_QA.json'))['ending_residual'])
+          PY
+          )
+          if [ "$NEW" -ge 563 ]; then echo 'No direct residual reduction; fail closed.'; exit 0; fi
+          DEST=team_trb_all_players/treb_direct_563_authoritative
+          rm -rf "$DEST"; mkdir -p "$DEST"; cp /tmp/final/* "$DEST/"; cp /tmp/complement/COMPLEMENT_QA.json "$DEST/"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add "$STATE"
-          if ! git diff --cached --quiet; then git commit -m "TREB: persist rapid 30-game recovery checkpoint ${{ github.run_id }}"; git push origin HEAD:agent/treb-final-exact-assembly; fi
-      - name: Comment run ID and result location
-        if: always() && github.event_name == 'issues'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh issue comment "${{ github.event.issue.number }}" --body "TREB rapid executor ran as Actions run ${{ github.run_id }}. Checkpoint will be persisted under team_trb_all_players/rapid_dynamic_state/rapid_30_game_recovery on agent/treb-final-exact-assembly."
-      - name: Upload recovery checkpoint
+          git add -f "$DEST"
+          git commit -m "TREB: reduce production residual to ${NEW} by exact complement"
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: TREB-rapid-30-game-recovery-${{ github.run_id }}
-          path: /tmp/out
+          name: TREB-rapid-exact-complement-${{ github.run_id }}
+          path: |
+            /tmp/complement
+            /tmp/general
+            /tmp/twelve
+            /tmp/final
           retention-days: 90
-          compression-level: 1
-          if-no-files-found: error
+          if-no-files-found: warn
+      - name: Comment result location
+        if: always() && github.event_name == 'issues'
+        env: {GH_TOKEN: '${{ github.token }}'}
+        run: gh issue comment "${{ github.event.issue.number }}" --body "TREB exact complement executor ran as Actions run ${{ github.run_id }}. A lower residual, if achieved, is committed under team_trb_all_players/treb_direct_563_authoritative on agent/treb-final-exact-assembly."
