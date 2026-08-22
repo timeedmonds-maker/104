@@ -1,0 +1,115 @@
+name: TREB direct current12 complement reclosure
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths: [.github/workflows/treb-direct-current12-complement-reclosure.yml]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: treb-direct-current12-complement-reclosure
+  cancel-in-progress: true
+jobs:
+  close:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: agent/treb-final-exact-assembly, fetch-depth: 0}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Download controlling state, exact layers, and proven tenure resolution
+        env: {GH_TOKEN: '${{ github.token }}'}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current consensus pbp old mid newer game currentcons resolution complement current2 out; do mkdir -p "/tmp/$d"; done
+          get(){ d="$1"; id="$2"; for a in 1 2 3 4 5; do rm -f "/tmp/$d.zip"; rm -rf "/tmp/$d"/*; if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "/tmp/$d.zip" && unzip -tq "/tmp/$d.zip" >/dev/null 2>&1; then unzip -q "/tmp/$d.zip" -d "/tmp/$d"; return 0; fi; sleep $((a*3)); done; return 1; }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+          get resolution 9385259872
+      - name: Recover exact complement primitives on all current blocker games
+        run: |
+          python -u team_trb_all_players/treb_direct_five_player_complement.py \
+            --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid \
+            --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --out /tmp/complement
+      - name: Merge only conflict-free complement facts into a temporary controlling checkpoint
+        run: |
+          cp -a /tmp/current/. /tmp/current2/
+          python - <<'PY'
+          import csv,gzip,pathlib
+          C=pathlib.Path('/tmp/current2'); X=pathlib.Path('/tmp/complement')
+          def gid(x): return str(x).strip().removesuffix('.0').zfill(10)
+          def tid(x): return str(int(float(x)))
+          def pid(x): return str(x).strip().removesuffix('.0')
+          reg=list(csv.DictReader(open(next(C.rglob('NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv'))))); seas={gid(r['game_id']):r['season'] for r in reg}
+          def cr(p):
+              with open(p,newline='') as f:return list(csv.DictReader(f))
+          pp=next(C.rglob('RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz'))
+          with gzip.open(pp,'rt',encoding='utf-8',newline='') as f: base=list(csv.DictReader(f))
+          fields=list(base[0]); idx={(gid(r['game_id']),tid(r['team_id']),pid(r['player_id'])):r for r in base}
+          for r in cr(X/'COMPLEMENT_PLAYER.csv'):
+              k=(gid(r['game_id']),tid(r['team_id']),pid(r['player_id']))
+              if k in idx:
+                  for z in ['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on']: assert abs(float(idx[k][z])-float(r[z]))<1e-9
+                  continue
+              q={z:'' for z in fields}; q.update(r); q['season']=seas[k[0]]; q['exact_zero_proof']='False'; base.append(q); idx[k]=q
+          with gzip.open(pp,'wt',encoding='utf-8',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(base)
+          tp=next(C.rglob('RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz'))
+          with gzip.open(tp,'rt',encoding='utf-8',newline='') as f: base=list(csv.DictReader(f))
+          fields=list(base[0]); idx={(gid(r['game_id']),tid(r['team_id'])):r for r in base}
+          for r in cr(X/'COMPLEMENT_TEAM.csv'):
+              k=(gid(r['game_id']),tid(r['team_id']))
+              if k in idx:
+                  for z in ['team_oreb','team_dreb','opponent_oreb','opponent_dreb']: assert abs(float(idx[k][z])-float(r[z]))<1e-9
+                  continue
+              q={z:'' for z in fields}; q.update(r); q['season']=seas[k[0]]; base.append(q); idx[k]=q
+          with gzip.open(tp,'wt',encoding='utf-8',newline='') as f:
+              w=csv.DictWriter(f,fieldnames=fields); w.writeheader(); w.writerows(base)
+          PY
+      - name: Reclose the 12 independently proven tenure identities now
+        run: |
+          RES=$(find /tmp/resolution -name TREB_CURRENT_21_TRANSACTION_RESOLUTION.csv -print -quit)
+          test -n "$RES"
+          python -u team_trb_all_players/treb_current_12_tenure_reclosure_v2.py \
+            --current /tmp/current2 --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid \
+            --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --resolution "$RES" --out /tmp/out
+          cat /tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json
+      - name: Persist only if the 563 residual is directly reduced
+        run: |
+          set -euo pipefail
+          NEW=$(python - <<'PY'
+          import json
+          q=json.load(open('/tmp/out/TREB_CURRENT_12_TENURE_RECLOSURE_QA.json')); print(q['ending_residual'])
+          PY
+          )
+          if [ "$NEW" -ge 563 ]; then exit 0; fi
+          DEST=team_trb_all_players/treb_direct_563_authoritative
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          cp /tmp/out/* "$DEST/"
+          cp /tmp/complement/COMPLEMENT_QA.json "$DEST/"
+          cp /tmp/current2/RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz "$DEST/" 2>/dev/null || cp "$(find /tmp/current2 -name RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz -print -quit)" "$DEST/"
+          cp /tmp/current2/RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz "$DEST/" 2>/dev/null || cp "$(find /tmp/current2 -name RECOVERED_RESIDUAL_SHARED_TEAM_GAME_PRIMITIVES.csv.gz -print -quit)" "$DEST/"
+          git config user.name 'TREB direct current12 closure'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -f "$DEST"
+          git commit -m "TREB reduce residual to ${NEW} via proven tenure exact complement"
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-direct-current12-complement-${{ github.run_id }}
+          path: |
+            /tmp/complement
+            /tmp/out
+          retention-days: 90
+          if-no-files-found: warn
