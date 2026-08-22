@@ -13,7 +13,7 @@ jobs:
       - run: |
           rm -rf outputs/missed3_contact_chunks
           mkdir -p outputs/missed3_contact_chunks
-          split -b 80000 -d -a 3 outputs/missed3_contactsheet.b64 outputs/missed3_contact_chunks/chunk_
+          split -b 12000 -d -a 3 outputs/missed3_contactsheet.b64 outputs/missed3_contact_chunks/chunk_
           ls outputs/missed3_contact_chunks | sort > outputs/missed3_contact_chunks_manifest.txt
       - run: |
           git config user.name github-actions
