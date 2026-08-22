@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   render:
-    if: github.event.issue.title == 'render-headshot-3pt-swing-list-v2-20260822'
+    if: github.event.issue.title == 'render-headshot-3pt-swing-list-v3-20260822'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,18 +22,31 @@ jobs:
         run: |
           mkdir -p outputs
           cat > /tmp/render.py <<'PY'
-          import io, requests
+          import io, requests, time
           from PIL import Image, ImageDraw, ImageFont
           import pillow_avif
           players=[
           (1,1627750,'Jamal Murray',4.421957),(2,202331,'Paul George',3.560839),(3,203999,'Nikola Jokić',3.327061),(4,1628379,'Luke Kennard',3.185049),(5,201939,'Stephen Curry',3.156923),(6,202695,'Kawhi Leonard',2.975750),(7,202681,'Kyrie Irving',2.959188),(8,203954,'Joel Embiid',2.798739),(9,201142,'Kevin Durant',2.716807),(10,1629008,'Michael Porter Jr.',2.661839),(11,1630174,'Aaron Nesmith',2.647158),(12,1631260,'AJ Green',2.608743),(13,1630163,'LaMelo Ball',2.576754),(14,203994,'Jusuf Nurkić',2.536215),(15,1630178,'Tyrese Maxey',2.519183),(16,1630169,'Tyrese Haliburton',2.373862),(17,1629639,'Tyler Herro',2.353698),(18,203468,'CJ McCollum',2.344965),(19,1641706,'Brandon Miller',2.226628),(20,1630703,'Scoot Henderson',2.210929),(21,1631094,'Paolo Banchero',2.210135),(22,1627777,'Georges Niang',2.180776),(23,203500,'Steven Adams',2.165567),(24,1628384,'OG Anunoby',2.161761),(25,203484,'Kentavious Caldwell-Pope',2.129610)]
+          seasons=['2021-22','2022-23','2023-24','2024-25','2025-26']
+          ids={p[1] for p in players}; threes={pid:0 for pid in ids}
+          headers={'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36','Referer':'https://www.nba.com/','Origin':'https://www.nba.com','Accept':'application/json, text/plain, */*'}
+          sess=requests.Session(); sess.headers.update(headers)
+          for season in seasons:
+              url='https://stats.nba.com/stats/leaguedashplayerstats'
+              params={'College':'','Conference':'','Country':'','DateFrom':'','DateTo':'','Division':'','DraftPick':'','DraftYear':'','GameScope':'','GameSegment':'','Height':'','LastNGames':0,'LeagueID':'00','Location':'','MeasureType':'Base','Month':0,'OpponentTeamID':0,'Outcome':'','PORound':0,'PaceAdjust':'N','PerMode':'Totals','Period':0,'PlayerExperience':'','PlayerPosition':'','PlusMinus':'N','Rank':'N','Season':season,'SeasonSegment':'','SeasonType':'Regular Season','ShotClockRange':'','StarterBench':'','TeamID':0,'VsConference':'','VsDivision':'','Weight':''}
+              r=sess.get(url,params=params,timeout=45); r.raise_for_status(); js=r.json()['resultSets'][0]
+              hdr=js['headers']; pid_i=hdr.index('PLAYER_ID'); a_i=hdr.index('FG3A')
+              for row in js['rowSet']:
+                  pid=int(row[pid_i])
+                  if pid in threes: threes[pid]+=int(row[a_i] or 0)
+              time.sleep(.6)
           W=1600;H=1600;bg=(248,247,243);navy=(28,38,48);muted=(91,99,107);blue=(158,202,225);red=(157,55,55);line=(224,223,218)
           im=Image.new('RGB',(W,H),bg);d=ImageDraw.Draw(im)
           def F(sz,b=False): return ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf' if b else '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',sz)
-          titlef=F(58,1);subf=F(26);rankf=F(28,1);namef=F(30,1);valf=F(30,1);footf=F(23,1)
+          titlef=F(56,1);subf=F(25);rankf=F(27,1);namef=F(28,1);statf=F(22);valf=F(28,1);footf=F(23,1)
           d.text((90,65),'BIGGEST TEAM 3PT% ON-OFF SWING',font=titlef,fill=navy)
-          d.text((90,142),'2021-22 to 2025-26  |  3,500+ minutes (315 players)  |  percentage points',font=subf,fill=muted)
-          d.line((90,200,1510,200),fill=line,width=2)
+          d.text((90,140),'2021-22 to 2025-26  |  3,500+ minutes  |  total 3PA shown for each player',font=subf,fill=muted)
+          d.line((90,198,1510,198),fill=line,width=2)
           S=requests.Session();S.headers.update({'User-Agent':'Mozilla/5.0','Accept':'image/avif,image/webp,image/*,*/*;q=0.8'})
           cache={}
           def head(pid):
@@ -42,29 +55,33 @@ jobs:
               pic=Image.open(io.BytesIO(r.content)).convert('RGBA');bb=pic.getchannel('A').getbbox()
               if bb:pic=pic.crop(bb)
               w,h=pic.size;pic=pic.crop((0,0,w,int(h*.78)))
-              sc=min(94/pic.height,94/pic.width);nw=max(1,int(pic.width*sc));nh=max(1,int(pic.height*sc));pic=pic.resize((nw,nh),Image.Resampling.LANCZOS)
-              c=Image.new('RGBA',(100,100),(0,0,0,0));c.alpha_composite(pic,((100-nw)//2,100-nh));cache[pid]=c;return c
-          cols=[(players[:13],90),(players[13:],825)];row0=230;rowh=96
+              sc=min(92/pic.height,92/pic.width);nw=max(1,int(pic.width*sc));nh=max(1,int(pic.height*sc));pic=pic.resize((nw,nh),Image.Resampling.LANCZOS)
+              c=Image.new('RGBA',(98,98),(0,0,0,0));c.alpha_composite(pic,((98-nw)//2,98-nh));cache[pid]=c;return c
+          cols=[(players[:13],90),(players[13:],825)];row0=226;rowh=96
           for group,x0 in cols:
               for j,(rank,pid,name,val) in enumerate(group):
                   y=row0+j*rowh
                   if j:d.line((x0,y-7,x0+665,y-7),fill=line,width=1)
                   d.text((x0,y+31),f'{rank:>2}',font=rankf,fill=muted,anchor='lm')
                   hs=head(pid);im.paste(hs,(x0+50,y-2),hs)
-                  d.text((x0+165,y+31),name,font=namef,fill=navy,anchor='lm')
+                  d.text((x0+160,y+24),name,font=namef,fill=navy,anchor='lm')
+                  d.text((x0+160,y+55),f'{threes[pid]:,} 3PA',font=statf,fill=muted,anchor='lm')
                   d.text((x0+650,y+31),f'+{val:.2f}',font=valf,fill=navy,anchor='rm')
-                  bx=x0+165;by=y+70;maxw=485
-                  d.rounded_rectangle((bx,by,bx+maxw,by+7),radius=4,fill=(232,236,238))
-                  d.rounded_rectangle((bx,by,bx+maxw*(val/players[0][3]),by+7),radius=4,fill=blue)
-          d.text((90,1545),'Team 3PT% ON minus OFF',font=footf,fill=muted,anchor='ls')
+                  bx=x0+160;by=y+75;maxw=490
+                  d.rounded_rectangle((bx,by,bx+maxw,by+6),radius=3,fill=(232,236,238))
+                  d.rounded_rectangle((bx,by,bx+maxw*(val/players[0][3]),by+6),radius=3,fill=blue)
+          d.text((90,1545),'Team 3PT% ON minus OFF  |  3PA = regular-season three-point attempts in period',font=footf,fill=muted,anchor='ls')
           d.text((1510,1545),'@funakistats',font=footf,fill=red,anchor='rs')
-          im.save('outputs/top25_team_3pt_swing_headshots.png','PNG',optimize=True)
+          im.save('outputs/top25_team_3pt_swing_headshots_3pa.png','PNG',optimize=True)
+          with open('outputs/top25_team_3pt_swing_3pa.csv','w') as f:
+              f.write('rank,player_id,player,team_3pt_swing_pp,three_point_attempts\n')
+              for rank,pid,name,val in players:f.write(f'{rank},{pid},"{name}",{val:.6f},{threes[pid]}\n')
           PY
           python /tmp/render.py
       - name: Commit output
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add outputs/top25_team_3pt_swing_headshots.png
-          git commit -m 'Render top 25 team 3PT swing headshot list' || exit 0
+          git add outputs/top25_team_3pt_swing_headshots_3pa.png outputs/top25_team_3pt_swing_3pa.csv
+          git commit -m 'Add 3PA totals to top 25 team 3PT swing headshot list' || exit 0
           git push
