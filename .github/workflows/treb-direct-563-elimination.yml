@@ -1,0 +1,109 @@
+name: TREB direct 563 elimination
+on:
+  push:
+    branches: [agent/treb-final-exact-assembly]
+    paths:
+      - .github/workflows/treb-direct-563-elimination.yml
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: treb-direct-563-elimination
+  cancel-in-progress: true
+jobs:
+  eliminate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Install direct recovery dependencies
+        run: python -m pip install --disable-pip-version-check -q requests beautifulsoup4
+      - name: Download controlling checkpoint and exact support layers
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current consensus pbp recovered_old recovered_mid recovered_new game currentcons; do mkdir -p "/tmp/$d"; done
+          get(){ d="$1"; id="$2"; for a in 1 2 3 4 5; do rm -f "/tmp/$d.zip"; rm -rf "/tmp/$d"/*; if gh api "repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" > "/tmp/$d.zip" && unzip -tq "/tmp/$d.zip" >/dev/null 2>&1; then unzip -q "/tmp/$d.zip" -d "/tmp/$d"; return 0; fi; sleep $((a*3)); done; return 1; }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get recovered_old 9258644772
+          get recovered_mid 9260106595
+          get recovered_new 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+          test "$(python - <<'PY'
+          import csv,pathlib
+          p=next(pathlib.Path('/tmp/current').rglob('AUTONOMOUS_BLOCKER_MANIFEST.csv'))
+          print(sum(1 for _ in csv.DictReader(open(p))))
+          PY
+          )" = 563
+          mkdir -p /tmp/shared/base /tmp/shared/gated /tmp/shared/player_gated /tmp/recovery_qa /tmp/reclose
+          cp "$(find /tmp/current -name RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz -print -quit)" /tmp/shared/base/CURRENT_PLAYER_GAME_PRIMITIVES.csv.gz
+      - name: Run direct player and team primitive recovery in parallel
+        shell: bash
+        run: |
+          set +e
+          python -u scripts/treb_player_game_pbpstats_recovery.py > /tmp/player.log 2>&1 & P1=$!
+          python -u scripts/treb_team_fact_source_race.py > /tmp/team.log 2>&1 & P2=$!
+          wait $P1; R1=$?
+          wait $P2; R2=$?
+          set -e
+          [ -f /tmp/out/PLAYER_GAME_PBPSTATS_RECOVERY_QA.json ] && cp /tmp/out/PLAYER_GAME_PBPSTATS_RECOVERY_QA.json /tmp/shared/player_gated/
+          [ -f /tmp/out/TEAM_FACT_SOURCE_RACE_QA.json ] && cp /tmp/out/TEAM_FACT_SOURCE_RACE_QA.json /tmp/shared/gated/
+          echo "player_rc=$R1 team_rc=$R2"
+          cat /tmp/player.log || true
+          cat /tmp/team.log || true
+      - name: Reclose every current exact-tenure residual with direct candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -u team_trb_all_players/treb_direct_563_reclosure.py \
+            --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp \
+            --old /tmp/recovered_old --mid /tmp/recovered_mid --newer /tmp/recovered_new \
+            --game /tmp/game --currentcons /tmp/currentcons \
+            --candidate-player-dir /tmp/shared/player_gated --candidate-team-dir /tmp/shared/gated \
+            --out /tmp/reclose
+          cat /tmp/reclose/TREB_SHARED_GAME_RECLOSURE_QA.json
+      - name: Persist only a genuinely reduced authoritative checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          NEW=$(python - <<'PY'
+          import json
+          print(json.load(open('/tmp/reclose/TREB_SHARED_GAME_RECLOSURE_QA.json'))['ending_residual'])
+          PY
+          )
+          echo "ending_residual=$NEW"
+          if [ "$NEW" -ge 563 ]; then exit 0; fi
+          DEST=team_trb_all_players/treb_direct_563_authoritative
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          cp /tmp/reclose/* "$DEST/"
+          cp /tmp/player.log "$DEST/PLAYER_RECOVERY.log"
+          cp /tmp/team.log "$DEST/TEAM_RECOVERY.log"
+          git config user.name 'TREB direct recovery'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -f "$DEST"
+          git commit -m "TREB reduce production residual below 563"
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-direct-563-elimination-${{ github.run_id }}
+          path: |
+            /tmp/reclose
+            /tmp/shared/player_gated
+            /tmp/shared/gated
+            /tmp/player.log
+            /tmp/team.log
+          retention-days: 90
+          if-no-files-found: warn
