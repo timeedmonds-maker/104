@@ -1,0 +1,30 @@
+import io, requests, pandas as pd
+from PIL import Image, ImageDraw, ImageFont
+players=[(1,1627750,'Jamal Murray',4.421957),(2,202331,'Paul George',3.560839),(3,203999,'Nikola Jokić',3.327061),(4,1628379,'Luke Kennard',3.185049),(5,201939,'Stephen Curry',3.156923),(6,202695,'Kawhi Leonard',2.975750),(7,202681,'Kyrie Irving',2.959188),(8,203954,'Joel Embiid',2.798739),(9,201142,'Kevin Durant',2.716807),(10,1629008,'Michael Porter Jr.',2.661839),(11,1630174,'Aaron Nesmith',2.647158),(12,1631260,'AJ Green',2.608743),(13,1630163,'LaMelo Ball',2.576754),(14,203994,'Jusuf Nurkić',2.536215),(15,1630178,'Tyrese Maxey',2.519183),(16,1630169,'Tyrese Haliburton',2.373862),(17,1629639,'Tyler Herro',2.353698),(18,203468,'CJ McCollum',2.344965),(19,1641706,'Brandon Miller',2.226628),(20,1630703,'Scoot Henderson',2.210929),(21,1631094,'Paolo Banchero',2.210135),(22,1627777,'Georges Niang',2.180776),(23,203500,'Steven Adams',2.165567),(24,1628384,'OG Anunoby',2.161761),(25,203484,'Kentavious Caldwell-Pope',2.129610)]
+ids={p[1] for p in players}; threes={pid:0 for pid in ids}
+for yr in [2022,2023,2024,2025,2026]:
+    df=pd.read_parquet(f'https://raw.githubusercontent.com/llimllib/nba_data/main/data/players_{yr}.parquet')
+    sub=df[df.player_id.isin(ids)]
+    for pid,g in sub.groupby('player_id'):
+        if 'TOT' in set(g.team_abbreviation.astype(str)):
+            v=g.loc[g.team_abbreviation.astype(str)=='TOT','fg3a'].iloc[0]
+        else:v=g.fg3a.sum()
+        threes[int(pid)]+=int(v or 0)
+W=1600;H=1600;bg=(248,247,243);navy=(28,38,48);muted=(91,99,107);blue=(158,202,225);red=(157,55,55);line=(224,223,218)
+im=Image.new('RGB',(W,H),bg);d=ImageDraw.Draw(im)
+def F(sz,b=False):return ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf' if b else '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',sz)
+d.text((90,65),'BIGGEST TEAM 3PT% ON-OFF SWING',font=F(56,1),fill=navy);d.text((90,140),'2021-22 to 2025-26  |  3,500+ minutes  |  total 3PA shown for each player',font=F(25),fill=muted);d.line((90,198,1510,198),fill=line,width=2)
+S=requests.Session();S.headers.update({'User-Agent':'Mozilla/5.0','Accept':'image/avif,image/webp,image/*,*/*;q=0.8'})
+def head(pid):
+    r=S.get(f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png',timeout=30);r.raise_for_status();pic=Image.open(io.BytesIO(r.content)).convert('RGBA');bb=pic.getchannel('A').getbbox();pic=pic.crop(bb) if bb else pic;w,h=pic.size;pic=pic.crop((0,0,w,int(h*.78)));sc=min(92/pic.height,92/pic.width);nw,nh=max(1,int(pic.width*sc)),max(1,int(pic.height*sc));pic=pic.resize((nw,nh),Image.Resampling.LANCZOS);c=Image.new('RGBA',(98,98),(0,0,0,0));c.alpha_composite(pic,((98-nw)//2,98-nh));return c
+cols=[(players[:13],90),(players[13:],825)];row0=226;rowh=96
+for group,x0 in cols:
+    for j,(rank,pid,name,val) in enumerate(group):
+        y=row0+j*rowh
+        if j:d.line((x0,y-7,x0+665,y-7),fill=line,width=1)
+        d.text((x0,y+31),f'{rank:>2}',font=F(27,1),fill=muted,anchor='lm');hs=head(pid);im.paste(hs,(x0+50,y-2),hs);d.text((x0+160,y+24),name,font=F(28,1),fill=navy,anchor='lm');d.text((x0+160,y+55),f'{threes[pid]:,} 3PA',font=F(22),fill=muted,anchor='lm');d.text((x0+650,y+31),f'+{val:.2f}',font=F(28,1),fill=navy,anchor='rm')
+d.text((90,1545),'Team 3PT% ON minus OFF  |  3PA = regular-season three-point attempts in period',font=F(23,1),fill=muted,anchor='ls');d.text((1510,1545),'@funakistats',font=F(23,1),fill=red,anchor='rs')
+im.save('outputs/top25_team_3pt_swing_headshots_3pa.png','PNG',optimize=True)
+with open('outputs/top25_team_3pt_swing_3pa.csv','w') as f:
+    f.write('rank,player_id,player,team_3pt_swing_pp,three_point_attempts\n')
+    for rank,pid,name,val in players:f.write(f'{rank},{pid},"{name}",{val:.6f},{threes[pid]}\n')
