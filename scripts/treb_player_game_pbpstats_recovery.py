@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import csv, gzip, json, pathlib
+import csv, gzip, json, pathlib, time
 from collections import defaultdict
 import requests
 
@@ -10,7 +10,7 @@ OUT=pathlib.Path('/tmp/out'); OUT.mkdir(parents=True,exist_ok=True)
 REG_PATH=next(CUR.rglob('NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv'))
 
 S=requests.Session(); S.headers.update({'User-Agent':'Mozilla/5.0','Accept':'application/json','Origin':'https://www.pbpstats.com','Referer':'https://www.pbpstats.com/'})
-cache={}; meta_cache={}
+cache={}
 
 def gid(v): return str(v).strip().removesuffix('.0').zfill(10)
 def tid(v): return str(v).strip().removesuffix('.0')
@@ -26,38 +26,31 @@ def seconds(r):
         a,b=m.split(':',1); return 60*float(a)+float(b)
     return 60*float(m or 0)
 
-def game_meta(season):
-    if season in meta_cache:return meta_cache[season]
-    out={}
-    def walk(x):
-        if isinstance(x,dict):
-            lower={str(k).lower().replace('_',''):k for k in x}
-            kg=lower.get('gameid') or lower.get('idgame'); kh=lower.get('hometeamid') or lower.get('teamidhome'); ka=lower.get('awayteamid') or lower.get('visitorteamid') or lower.get('teamidaway')
-            if kg and kh and ka: out[gid(x[kg])]={'Home':tid(x[kh]),'Away':tid(x[ka])}
-            for v in x.values(): walk(v)
-        elif isinstance(x,list):
-            for v in x: walk(v)
-    for st in ('Regular Season','Playoffs','Play In'):
-        try:
-            r=S.get('https://api.pbpstats.com/get-games/nba',params={'Season':season,'SeasonType':st},timeout=30); r.raise_for_status(); walk(r.json())
-        except Exception:
-            if st=='Regular Season' and not out: raise
-    meta_cache[season]=out; return out
-
 def get_stats(game,typ):
     ck=(gid(game),typ)
     if ck in cache:return cache[ck]
-    r=S.get('https://api.pbpstats.com/get-game-stats',params={'GameId':gid(game),'Type':typ},timeout=30); r.raise_for_status(); js=r.json(); cache[ck]=js; return js
+    last=None
+    for attempt in range(6):
+        try:
+            r=S.get('https://api.pbpstats.com/get-game-stats',params={'GameId':gid(game),'Type':typ},timeout=30)
+            if getattr(r,'status_code',200)==200:
+                js=r.json(); cache[ck]=js; time.sleep(.18); return js
+            last=RuntimeError(f'HTTP_{getattr(r,"status_code",None)}')
+        except Exception as e:
+            last=e
+        time.sleep(min(6.0, .75*(2**attempt)))
+    raise last or RuntimeError('PBP_REQUEST_FAILED')
 
-def side_for(season,game,team):
-    m=game_meta(season).get(gid(game))
-    if not m: raise RuntimeError('NO_GAME_META')
-    for side,t in m.items():
-        if tid(t)==tid(team): return side
-    raise RuntimeError('TEAM_NOT_IN_GAME_META')
+def side_for(js,team):
+    home=tid(js.get('home_team_id'))
+    away=tid(js.get('away_team_id'))
+    t=tid(team)
+    if t==home:return 'Home'
+    if t==away:return 'Away'
+    raise RuntimeError(f'TEAM_NOT_IN_RESPONSE:{t}:home={home}:away={away}')
 
 def iter_side_rows(js,side):
-    obj=js.get(side)
+    obj=(js.get('stats') or {}).get(side)
     if not isinstance(obj,dict): raise RuntimeError(f'NO_{side}_BLOCK')
     for period,rows in obj.items():
         if not str(period).isdigit() or int(period)<1 or not isinstance(rows,list): continue
@@ -68,11 +61,20 @@ def lineup_contains(row,player):
     return pid(player) in {pid(x) for x in str(row.get('EntityId') or '').split('-') if x}
 
 def derive(season,game,team,player):
-    side=side_for(season,game,team)
-    ownrows=[r for r in iter_side_rows(get_stats(game,'Lineup'),side) if lineup_contains(r,player)]
-    oprows=[r for r in iter_side_rows(get_stats(game,'LineupOpponent'),side) if lineup_contains(r,player)]
-    if not ownrows: raise RuntimeError('NO_MATCHING_OWN_LINEUPS')
-    if not oprows: raise RuntimeError('NO_MATCHING_OPP_LINEUPS')
+    own=get_stats(game,'Lineup')
+    opp=get_stats(game,'LineupOpponent')
+    side=side_for(own,team)
+    if side_for(opp,team)!=side: raise RuntimeError('SIDE_DISAGREEMENT')
+    ownrows=[r for r in iter_side_rows(own,side) if lineup_contains(r,player)]
+    oprows=[r for r in iter_side_rows(opp,side) if lineup_contains(r,player)]
+    if not ownrows:
+        other='Away' if side=='Home' else 'Home'
+        other_hits=sum(1 for r in iter_side_rows(own,other) if lineup_contains(r,player))
+        raise RuntimeError(f'NO_MATCHING_OWN_LINEUPS:side={side}:other_hits={other_hits}')
+    if not oprows:
+        other='Away' if side=='Home' else 'Home'
+        other_hits=sum(1 for r in iter_side_rows(opp,other) if lineup_contains(r,player))
+        raise RuntimeError(f'NO_MATCHING_OPP_LINEUPS:side={side}:other_hits={other_hits}')
     return {
         'seconds_on':sum(seconds(r) for r in ownrows),
         'team_oreb_on':sum(num(r,'OffRebounds') for r in ownrows),
@@ -81,7 +83,7 @@ def derive(season,game,team,player):
         'opponent_dreb_on':sum(num(r,'DefRebounds') for r in oprows),
     }
 
-# Production targets are ONLY the current unresolved shared-game registry.
+# Production targets: only current unresolved player primitives.
 targets=[]
 with open(REG_PATH,newline='',encoding='utf-8-sig') as f:
     for r in csv.DictReader(f):
@@ -91,7 +93,7 @@ with open(REG_PATH,newline='',encoding='utf-8-sig') as f:
             targets.append({'season':r['season'],'game_id':gid(r['game_id']),'team_id':tid(team),'player_id':pid(player)})
 targets=list({(x['season'],x['game_id'],x['team_id'],x['player_id']):x for x in targets}.values())
 
-# Controls can come from any retained exact player-game primitive set. They never become production rows.
+# Controls: retained exact player-game primitives; one player per game keeps HTTP load low.
 control_roots=[pathlib.Path('/tmp/recovered_old'),pathlib.Path('/tmp/recovered_mid'),pathlib.Path('/tmp/recovered_new'),BASE]
 control_files=[]
 for root in control_roots:
@@ -112,7 +114,7 @@ for s in sorted(by):
     for r in sorted(by[s],key=lambda z:(z['game_id'],z['team_id'],z['player_id'])):
         if r['game_id'] in seen_games: continue
         seen_games.add(r['game_id']); controls.append(r)
-        if len(seen_games)>=7: break
+        if len(seen_games)>=6: break
 
 fields=['seconds_on','team_oreb_on','team_dreb_on','opponent_oreb_on','opponent_dreb_on']
 evaluated=[]; mism=[]; errors=[]; seasons=set()
@@ -123,8 +125,9 @@ for r in controls:
         rec={'season':r['season'],'game_id':r['game_id'],'team_id':r['team_id'],'player_id':r['player_id'],'expected':exp,'got':got,'rebound_exact':reb_ok,'seconds_within_1s':sec_ok}
         evaluated.append(rec); seasons.add(r['season'])
         if not (reb_ok and sec_ok): mism.append(rec)
-    except Exception as e: errors.append({'season':r['season'],'game_id':r['game_id'],'team_id':r['team_id'],'player_id':r['player_id'],'error':repr(e)})
-    if len(evaluated)>=84: break
+    except Exception as e:
+        errors.append({'season':r['season'],'game_id':r['game_id'],'team_id':r['team_id'],'player_id':r['player_id'],'error':repr(e)})
+    if len(evaluated)>=72: break
 
 gate=len(evaluated)>=50 and len(seasons)>=10 and not mism
 promoted=[]; target_errors=[]
@@ -138,6 +141,6 @@ if gate:
 outp=GATED/'RECOVERED_RESIDUAL_SHARED_PLAYER_GAME_PRIMITIVES.csv.gz'; outfields=['season','game_id','team_id','player_id']+fields+['provenance']
 with gzip.open(outp,'wt',encoding='utf-8',newline='') as f:
     w=csv.DictWriter(f,fieldnames=outfields); w.writeheader(); w.writerows(promoted)
-qa={'status':'PASS' if gate and promoted else 'FAIL_CLOSED','gate_pass':gate,'control_files':len(control_files),'control_candidates':len(seen_control),'controls_evaluated':len(evaluated),'control_seasons':len(seasons),'control_mismatches':len(mism),'control_errors':len(errors),'targets_requested':len(targets),'targets_promoted':len(promoted),'targets_unresolved':len(targets)-len(promoted),'mismatch_examples':mism[:5],'control_error_examples':errors[:8],'target_error_examples':target_errors[:12],'integrity':{'minimum_controls':50,'minimum_control_seasons':10,'zero_rebound_mismatches_required':True,'seconds_tolerance':1.01,'modeling_used':False,'rounded_backsolve_used':False,'opponent_inference_used':False}}
+qa={'status':'PASS' if gate and promoted else 'FAIL_CLOSED','gate_pass':gate,'control_files':len(control_files),'control_candidates':len(seen_control),'controls_evaluated':len(evaluated),'control_seasons':len(seasons),'control_mismatches':len(mism),'control_errors':len(errors),'targets_requested':len(targets),'targets_promoted':len(promoted),'targets_unresolved':len(targets)-len(promoted),'mismatch_examples':mism[:8],'control_error_examples':errors[:12],'target_error_examples':target_errors[:12],'integrity':{'minimum_controls':50,'minimum_control_seasons':10,'zero_rebound_mismatches_required':True,'seconds_tolerance':1.01,'modeling_used':False,'rounded_backsolve_used':False,'opponent_inference_used':False}}
 (OUT/'PLAYER_GAME_PBPSTATS_RECOVERY_QA.json').write_text(json.dumps(qa,indent=2)+'\n'); print(json.dumps(qa,indent=2),flush=True)
 if gate and promoted: (GATED/'PASS_GATE').write_text(str(len(promoted)))
