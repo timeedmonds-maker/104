@@ -10,29 +10,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install pillow requests
-      - name: Export compact official NBA headshot strips
+      - name: Export individual official NBA headshots
         run: |
-          mkdir -p outputs/headshot_strips
+          mkdir -p outputs/headshots_local
           cat > /tmp/s.py <<'PY'
           import io,requests
           from PIL import Image
           ids=[1627750,202331,203999,1628379,201939,202695,202681,203954,201142,1629008,1630174,1631260,1630163,203994,1630178,1630169,1629639,203468,1641706,1630703,1631094,1627777,203500,1628384,203484]
           S=requests.Session();S.headers['User-Agent']='Mozilla/5.0'
-          def face(pid):
+          for pid in ids:
             r=S.get(f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png',timeout=30);r.raise_for_status();p=Image.open(io.BytesIO(r.content)).convert('RGBA')
             b=p.getchannel('A').getbbox();p=p.crop(b);w,h=p.size;p=p.crop((0,0,w,int(h*.64)));b=p.getchannel('A').getbbox();p=p.crop(b)
-            sc=min(68/p.width,68/p.height);p=p.resize((int(p.width*sc),int(p.height*sc)),Image.Resampling.LANCZOS)
-            c=Image.new('RGBA',(72,72),'white');c.alpha_composite(p,((72-p.width)//2,72-p.height));return c.convert('RGB')
-          for s in range(5):
-            out=Image.new('RGB',(360,72),'white')
-            for j,pid in enumerate(ids[s*5:s*5+5]):out.paste(face(pid),(j*72,0))
-            out.save(f'outputs/headshot_strips/strip_{s+1}.jpg','JPEG',quality=68,optimize=True)
+            sc=min(62/p.width,62/p.height);p=p.resize((int(p.width*sc),int(p.height*sc)),Image.Resampling.LANCZOS)
+            c=Image.new('RGBA',(64,64),'white');c.alpha_composite(p,((64-p.width)//2,64-p.height));c.convert('RGB').save(f'outputs/headshots_local/{pid}.jpg','JPEG',quality=70,optimize=True)
           PY
           python /tmp/s.py
-      - name: Commit strips
+      - name: Commit headshots
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add outputs/headshot_strips/*.jpg
-          git commit -m 'Export compact NBA headshot strips' || exit 0
+          git add outputs/headshots_local/*.jpg
+          git commit -m 'Export individual NBA headshots for local render' || exit 0
           git push
