@@ -1,0 +1,22 @@
+name: Fetch NBA Headshot Assets
+on:
+  push:
+    paths:
+      - 'headshot_assets_trigger.txt'
+permissions:
+  contents: read
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch official NBA headshots
+        run: |
+          mkdir -p headshots
+          for id in 1627750 202331 203999 1628379 201939 202695 202681 203954 201142 1629008 1630174 1631260 1630163 203994 1630178 1630169 1629639 203468 1641706 1630703 1631094 1627777 203500 1628384 203484; do
+            curl -L --fail --retry 3 -A 'Mozilla/5.0' "https://cdn.nba.com/headshots/nba/latest/1040x760/${id}.png" -o "headshots/${id}.png"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nba-headshots-top25
+          path: headshots/*.png
