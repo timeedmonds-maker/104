@@ -1,0 +1,81 @@
+name: TREB official CDN team-fact residual reduction
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/treb-cdn-team-direct-main.yml']
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: treb-official-cdn-team-direct
+  cancel-in-progress: true
+
+jobs:
+  eliminate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/treb-final-exact-assembly
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download controlling checkpoint and exact support
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in current consensus pbp old mid newer game currentcons cdn out; do mkdir -p "/tmp/$d"; done
+          get(){ d="$1"; id="$2"; ok=0; for a in 1 2 3 4 5; do rm -rf "/tmp/${d:?}"/* "/tmp/$d.zip"; if curl --fail --location --silent --show-error -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/artifacts/${id}/zip" -o "/tmp/$d.zip" && unzip -tq "/tmp/$d.zip" >/dev/null 2>&1; then unzip -q "/tmp/$d.zip" -d "/tmp/$d"; ok=1; break; fi; sleep $((a*3)); done; test "$ok" -eq 1; }
+          get current 9275527991
+          get consensus 9252786257
+          get pbp 9258020958
+          get old 9258644772
+          get mid 9260106595
+          get newer 9260439871
+          get game 9262554900
+          get currentcons 9263341092
+      - name: Recover exact team facts from official NBA CDN final boxes
+        run: python3 -u team_trb_all_players/treb_cdn_live_team_recovery.py --current /tmp/current --out /tmp/cdn
+      - name: Reclose immediately
+        run: |
+          python3 -u team_trb_all_players/treb_direct_563_reclosure.py --current /tmp/current --consensus /tmp/consensus --pbp /tmp/pbp --old /tmp/old --mid /tmp/mid --newer /tmp/newer --game /tmp/game --currentcons /tmp/currentcons --candidate-team-dir /tmp/cdn --out /tmp/out
+          python3 - <<'PY'
+          import json
+          q=json.load(open('/tmp/out/TREB_SHARED_GAME_RECLOSURE_QA.json'))
+          print(json.dumps(q,indent=2))
+          assert q['status']=='PASS' and int(q['new_exact_promotions'])>0 and int(q['ending_residual'])<563
+          PY
+      - name: Persist lower residual to production branch
+        run: |
+          set -euo pipefail
+          cp "$(find /tmp/current -name NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv -print -quit)" /tmp/out/NEXT_RESIDUAL_SHARED_GAME_REGISTRY.csv
+          DEST=team_trb_all_players/treb_direct_563_authoritative
+          rm -rf "$DEST"; mkdir -p "$DEST"; cp /tmp/out/* "$DEST/"; cp /tmp/cdn/TEAM_FACT_SOURCE_RACE_QA.json "$DEST/"
+          NEW=$(python3 - <<'PY'
+          import json
+          print(json.load(open('/tmp/out/TREB_SHARED_GAME_RECLOSURE_QA.json'))['ending_residual'])
+          PY
+          )
+          git config user.name 'TREB automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -f "$DEST"
+          git commit -m "TREB: reduce production residual to ${NEW} via official NBA CDN final boxes"
+          git pull --rebase origin agent/treb-final-exact-assembly
+          git push origin HEAD:agent/treb-final-exact-assembly
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TREB-official-CDN-team-reduction-${{ github.run_id }}
+          path: |
+            /tmp/cdn
+            /tmp/out
+          retention-days: 90
+          compression-level: 1
