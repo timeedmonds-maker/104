@@ -5,10 +5,13 @@ on:
   push:
     branches: [main]
     paths: ['.github/workflows/treb-cdn-team-direct-main.yml']
+  issues:
+    types: [opened]
 
 permissions:
   actions: read
   contents: write
+  issues: write
 
 concurrency:
   group: treb-official-cdn-team-direct
@@ -16,6 +19,7 @@ concurrency:
 
 jobs:
   eliminate:
+    if: github.event_name != 'issues' || contains(github.event.issue.title, 'TREB official CDN direct reduction')
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -79,3 +83,20 @@ jobs:
             /tmp/out
           retention-days: 90
           compression-level: 1
+      - name: Post direct recovery result
+        if: always() && github.event_name == 'issues'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY' > /tmp/body.txt
+          import json,pathlib,os
+          q=pathlib.Path('/tmp/out/TREB_SHARED_GAME_RECLOSURE_QA.json')
+          c=pathlib.Path('/tmp/cdn/TEAM_FACT_SOURCE_RACE_QA.json')
+          if q.exists():
+              x=json.loads(q.read_text()); print(f"TREB direct CDN result: ending_residual={x.get('ending_residual')}; new_exact_promotions={x.get('new_exact_promotions')}; candidate_team_rows={x.get('direct_candidate_team_rows')}; run={os.environ.get('GITHUB_RUN_ID')}")
+          elif c.exists():
+              x=json.loads(c.read_text()); print(f"TREB direct CDN source result: status={x.get('status')}; controls={x.get('control_comparisons')}; mismatches={x.get('control_mismatches')}; recovered_team_facts={x.get('promoted_target_team_facts')}; failures={x.get('source_failures')}; run={os.environ.get('GITHUB_RUN_ID')}")
+          else:
+              print(f"TREB direct CDN run failed before source QA; run={os.environ.get('GITHUB_RUN_ID')}")
+          PY
+          gh issue comment "${{ github.event.issue.number }}" --body-file /tmp/body.txt
