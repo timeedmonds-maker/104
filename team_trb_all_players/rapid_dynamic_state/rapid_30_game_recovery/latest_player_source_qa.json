@@ -1,0 +1,82 @@
+{
+  "status": "FAIL_CLOSED",
+  "gate_pass": false,
+  "control_files": 4,
+  "control_candidates": 18522,
+  "controls_evaluated": 0,
+  "control_seasons": 0,
+  "control_mismatches": 0,
+  "control_errors": 113,
+  "targets_requested": 211,
+  "targets_promoted": 0,
+  "targets_unresolved": 211,
+  "mismatch_examples": [],
+  "control_error_examples": [
+    {
+      "season": "2000-01",
+      "game_id": "0020000002",
+      "team_id": "1610612751",
+      "player_id": "1496",
+      "error": "RuntimeError('NO_Home_BLOCK')"
+    },
+    {
+      "season": "2000-01",
+      "game_id": "0020000006",
+      "team_id": "1610612758",
+      "player_id": "1715",
+      "error": "RuntimeError('NO_Away_BLOCK')"
+    },
+    {
+      "season": "2000-01",
+      "game_id": "0020000013",
+      "team_id": "1610612760",
+      "player_id": "1023",
+      "error": "RuntimeError('NO_Away_BLOCK')"
+    },
+    {
+      "season": "2000-01",
+      "game_id": "0020000018",
+      "team_id": "1610612758",
+      "player_id": "1715",
+      "error": "RuntimeError('NO_Away_BLOCK')"
+    },
+    {
+      "season": "2000-01",
+      "game_id": "0020000020",
+      "team_id": "1610612743",
+      "player_id": "1763",
+      "error": "HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-game-stats?GameId=0020000020&Type=Lineup')"
+    },
+    {
+      "season": "2000-01",
+      "game_id": "0020000025",
+      "team_id": "1610612743",
+      "player_id": "1763",
+      "error": "HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-game-stats?GameId=0020000025&Type=Lineup')"
+    },
+    {
+      "season": "2000-01",
+      "game_id": "0020000032",
+      "team_id": "1610612758",
+      "player_id": "1715",
+      "error": "HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-game-stats?GameId=0020000032&Type=Lineup')"
+    },
+    {
+      "season": "2001-02",
+      "game_id": "0020100095",
+      "team_id": "1610612765",
+      "player_id": "2349",
+      "error": "HTTPError('503 Server Error: Service Temporarily Unavailable for url: https://api.pbpstats.com/get-games/nba?Season=2001-02&SeasonType=Regular+Season')"
+    }
+  ],
+  "target_error_examples": [],
+  "integrity": {
+    "minimum_controls": 50,
+    "minimum_control_seasons": 10,
+    "zero_rebound_mismatches_required": true,
+    "seconds_tolerance": 1.01,
+    "modeling_used": false,
+    "rounded_backsolve_used": false,
+    "opponent_inference_used": false
+  }
+}
