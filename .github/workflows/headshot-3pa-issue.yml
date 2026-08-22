@@ -1,13 +1,12 @@
-name: Headshot 3PA Issue Render
+name: Headshot 3PA Professional Render
 on:
-  issues:
-    types: [opened]
+  push:
+    paths:
+      - 'tmp/professional_headshot_render_trigger.txt'
 permissions:
   contents: write
-  issues: read
 jobs:
   render:
-    if: github.event.issue.title == 'render-headshot-3pa-final-20260822'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -17,5 +16,5 @@ jobs:
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add outputs/top25_team_3pt_swing_headshots_3pa.png outputs/top25_team_3pt_swing_3pa.csv
-          git commit -m 'Render final top 25 3PT swing list with 3PA' || exit 0
+          git commit -m 'Render professional top 25 3PT swing headshot graphic' || exit 0
           git push
