@@ -1,51 +1,38 @@
 name: Headshot 3PT Swing List V2
-
 on:
   push:
-    paths:
-      - 'trigger_marker_v3.txt'
-
+    paths: ['trigger_marker_v3.txt']
 permissions:
   contents: write
-
 jobs:
   render:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pillow requests pandas pyarrow
-      - name: Export official NBA headshot strips
+      - run: pip install pillow requests
+      - name: Export compact official NBA headshot strips
         run: |
           mkdir -p outputs/headshot_strips
-          cat > /tmp/strips.py <<'PY'
-          import io, requests
+          cat > /tmp/s.py <<'PY'
+          import io,requests
           from PIL import Image
           ids=[1627750,202331,203999,1628379,201939,202695,202681,203954,201142,1629008,1630174,1631260,1630163,203994,1630178,1630169,1629639,203468,1641706,1630703,1631094,1627777,203500,1628384,203484]
-          S=requests.Session(); S.headers.update({'User-Agent':'Mozilla/5.0','Accept':'image/avif,image/webp,image/*,*/*;q=0.8'})
+          S=requests.Session();S.headers['User-Agent']='Mozilla/5.0'
           def face(pid):
-              r=S.get(f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png',timeout=30); r.raise_for_status()
-              p=Image.open(io.BytesIO(r.content)).convert('RGBA')
-              bb=p.getchannel('A').getbbox(); p=p.crop(bb) if bb else p
-              w,h=p.size
-              # established Funaki treatment: retain head/neck, crop jersey aggressively
-              p=p.crop((0,0,w,int(h*.64)))
-              bb=p.getchannel('A').getbbox(); p=p.crop(bb) if bb else p
-              sc=min(92/p.width,92/p.height); p=p.resize((int(p.width*sc),int(p.height*sc)),Image.Resampling.LANCZOS)
-              c=Image.new('RGB',(96,96),'white'); rgba=Image.new('RGBA',(96,96),(255,255,255,255)); rgba.alpha_composite(p,((96-p.width)//2,max(0,96-p.height)))
-              return rgba.convert('RGB')
+            r=S.get(f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png',timeout=30);r.raise_for_status();p=Image.open(io.BytesIO(r.content)).convert('RGBA')
+            b=p.getchannel('A').getbbox();p=p.crop(b);w,h=p.size;p=p.crop((0,0,w,int(h*.64)));b=p.getchannel('A').getbbox();p=p.crop(b)
+            sc=min(68/p.width,68/p.height);p=p.resize((int(p.width*sc),int(p.height*sc)),Image.Resampling.LANCZOS)
+            c=Image.new('RGBA',(72,72),'white');c.alpha_composite(p,((72-p.width)//2,72-p.height));return c.convert('RGB')
           for s in range(5):
-              strip=Image.new('RGB',(480,96),'white')
-              for j,pid in enumerate(ids[s*5:(s+1)*5]): strip.paste(face(pid),(j*96,0))
-              strip.save(f'outputs/headshot_strips/strip_{s+1}.jpg','JPEG',quality=93,optimize=True,subsampling=0)
+            out=Image.new('RGB',(360,72),'white')
+            for j,pid in enumerate(ids[s*5:s*5+5]):out.paste(face(pid),(j*72,0))
+            out.save(f'outputs/headshot_strips/strip_{s+1}.jpg','JPEG',quality=68,optimize=True)
           PY
-          python /tmp/strips.py
+          python /tmp/s.py
       - name: Commit strips
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
           git add outputs/headshot_strips/*.jpg
-          git commit -m 'Export official NBA headshot strips' || exit 0
+          git commit -m 'Export compact NBA headshot strips' || exit 0
           git push
