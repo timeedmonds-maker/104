@@ -16,63 +16,36 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pillow pillow-avif-plugin requests pandas pyarrow
-      - name: Render
+          pip install pillow requests pandas pyarrow
+      - name: Export official NBA headshot strips
         run: |
-          mkdir -p outputs
-          cat > /tmp/render.py <<'PY'
-          import io, requests, pandas as pd
-          from PIL import Image, ImageDraw, ImageFont
-          import pillow_avif
-          players=[(1,1627750,'Jamal Murray',4.421957),(2,202331,'Paul George',3.560839),(3,203999,'Nikola Jokic',3.327061),(4,1628379,'Luke Kennard',3.185049),(5,201939,'Stephen Curry',3.156923),(6,202695,'Kawhi Leonard',2.975750),(7,202681,'Kyrie Irving',2.959188),(8,203954,'Joel Embiid',2.798739),(9,201142,'Kevin Durant',2.716807),(10,1629008,'Michael Porter Jr.',2.661839),(11,1630174,'Aaron Nesmith',2.647158),(12,1631260,'AJ Green',2.608743),(13,1630163,'LaMelo Ball',2.576754),(14,203994,'Jusuf Nurkic',2.536215),(15,1630178,'Tyrese Maxey',2.519183),(16,1630169,'Tyrese Haliburton',2.373862),(17,1629639,'Tyler Herro',2.353698),(18,203468,'CJ McCollum',2.344965),(19,1641706,'Brandon Miller',2.226628),(20,1630703,'Scoot Henderson',2.210929),(21,1631094,'Paolo Banchero',2.210135),(22,1627777,'Georges Niang',2.180776),(23,203500,'Steven Adams',2.165567),(24,1628384,'OG Anunoby',2.161761),(25,203484,'Kentavious Caldwell-Pope',2.129610)]
-          ids={p[1] for p in players}; threes={pid:0 for pid in ids}
-          for yr in [2022,2023,2024,2025,2026]:
-              df=pd.read_parquet(f'https://raw.githubusercontent.com/llimllib/nba_data/main/data/players_{yr}.parquet')
-              sub=df[df.player_id.isin(ids)].copy()
-              for pid,g in sub.groupby('player_id'):
-                  val=g.loc[g.team_abbreviation.astype(str)=='TOT','fg3a'].iloc[0] if 'TOT' in set(g.team_abbreviation.astype(str)) else g.fg3a.sum()
-                  threes[int(pid)]+=int(val or 0)
-          W,H=1350,1600
-          white=(255,255,255); black=(15,16,17); gray=(110,112,115); line=(224,225,226); cell=(246,247,247); green=(207,244,211); green2=(180,235,190); red=(190,35,43)
-          im=Image.new('RGB',(W,H),white); d=ImageDraw.Draw(im)
-          def F(sz,b=False): return ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf' if b else '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',sz)
-          title=F(47,1); sub=F(22); headf=F(20,1); rankf=F(21,1); namef=F(24,1); statf=F(23,1); small=F(17); foot=F(17,1)
-          d.text((68,48),'BIGGEST TEAM 3PT% ON-OFF SWING',font=title,fill=black)
-          d.text((70,112),'LAST 5 SEASONS  |  3,500+ MINUTES',font=sub,fill=gray)
-          x_rank=70; x_head=112; x_name=205; x_3pa=965; x_swing=1160
-          yhead=174; rowh=52
-          d.text((x_name,yhead),'PLAYER',font=headf,fill=black)
-          d.text((x_3pa,yhead),'3PA',font=headf,fill=black,anchor='ma')
-          d.text((x_swing,yhead),'3PT% SWING',font=headf,fill=black,anchor='ma')
-          d.line((68,207,1282,207),fill=line,width=2)
+          mkdir -p outputs/headshot_strips
+          cat > /tmp/strips.py <<'PY'
+          import io, requests
+          from PIL import Image
+          ids=[1627750,202331,203999,1628379,201939,202695,202681,203954,201142,1629008,1630174,1631260,1630163,203994,1630178,1630169,1629639,203468,1641706,1630703,1631094,1627777,203500,1628384,203484]
           S=requests.Session(); S.headers.update({'User-Agent':'Mozilla/5.0','Accept':'image/avif,image/webp,image/*,*/*;q=0.8'})
-          def head(pid):
-              r=S.get(f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png',timeout=30); r.raise_for_status(); pic=Image.open(io.BytesIO(r.content)).convert('RGBA'); bb=pic.getchannel('A').getbbox(); pic=pic.crop(bb) if bb else pic; w,h=pic.size; pic=pic.crop((0,0,w,int(h*.72))); sc=min(64/pic.height,76/pic.width); nw,nh=int(pic.width*sc),int(pic.height*sc); pic=pic.resize((nw,nh),Image.Resampling.LANCZOS); c=Image.new('RGBA',(80,52),(0,0,0,0)); c.alpha_composite(pic,((80-nw)//2,max(-5,52-nh))); return c
-          for i,(rank,pid,name,val) in enumerate(players):
-              y=218+i*rowh
-              if i%2==1: d.rectangle((68,y,1282,y+rowh),fill=(252,252,252))
-              d.rectangle((900,y,1030,y+rowh),fill=cell)
-              fill=green2 if val>=3.0 else green
-              d.rectangle((1050,y,1282,y+rowh),fill=fill)
-              d.line((68,y+rowh,1282,y+rowh),fill=line,width=1)
-              d.text((x_rank,y+26),str(rank),font=rankf,fill=gray,anchor='mm')
-              hs=head(pid); im.paste(hs,(x_head,y),hs)
-              d.text((x_name,y+26),name,font=namef,fill=black,anchor='lm')
-              d.text((x_3pa,y+26),f'{threes[pid]:,}',font=statf,fill=black,anchor='mm')
-              d.text((x_swing,y+26),f'+{val:.2f}',font=statf,fill=black,anchor='mm')
-          fy=1540
-          d.text((70,fy),'Team 3PT% ON minus OFF  |  2021-22 to 2025-26 regular season',font=small,fill=gray)
-          d.text((1280,fy),'@funakistats',font=foot,fill=red,anchor='ra')
-          im.save('outputs/top25_team_3pt_swing_headshots_3pa.png','PNG',optimize=True)
-          with open('outputs/top25_team_3pt_swing_3pa.csv','w') as f:
-              f.write('rank,player_id,player,team_3pt_swing_pp,three_point_attempts\n')
-              for rank,pid,name,val in players:f.write(f'{rank},{pid},"{name}",{val:.6f},{threes[pid]}\n')
+          def face(pid):
+              r=S.get(f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png',timeout=30); r.raise_for_status()
+              p=Image.open(io.BytesIO(r.content)).convert('RGBA')
+              bb=p.getchannel('A').getbbox(); p=p.crop(bb) if bb else p
+              w,h=p.size
+              # established Funaki treatment: retain head/neck, crop jersey aggressively
+              p=p.crop((0,0,w,int(h*.64)))
+              bb=p.getchannel('A').getbbox(); p=p.crop(bb) if bb else p
+              sc=min(92/p.width,92/p.height); p=p.resize((int(p.width*sc),int(p.height*sc)),Image.Resampling.LANCZOS)
+              c=Image.new('RGB',(96,96),'white'); rgba=Image.new('RGBA',(96,96),(255,255,255,255)); rgba.alpha_composite(p,((96-p.width)//2,max(0,96-p.height)))
+              return rgba.convert('RGB')
+          for s in range(5):
+              strip=Image.new('RGB',(480,96),'white')
+              for j,pid in enumerate(ids[s*5:(s+1)*5]): strip.paste(face(pid),(j*96,0))
+              strip.save(f'outputs/headshot_strips/strip_{s+1}.jpg','JPEG',quality=93,optimize=True,subsampling=0)
           PY
-          python /tmp/render.py
-      - name: Commit output
+          python /tmp/strips.py
+      - name: Commit strips
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git add outputs/top25_team_3pt_swing_headshots_3pa.png outputs/top25_team_3pt_swing_3pa.csv
-          git commit -m 'Render reference-style top 25 3PT swing table' || exit 0
+          git add outputs/headshot_strips/*.jpg
+          git commit -m 'Export official NBA headshot strips' || exit 0
           git push
