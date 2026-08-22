@@ -1,0 +1,40 @@
+name: Launch TREB rapid 30-game recovery
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  actions: write
+  issues: write
+  contents: read
+
+jobs:
+  launch:
+    if: startsWith(github.event.issue.title, 'Run TREB rapid 30-game recovery')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch production recovery workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            repos/${GITHUB_REPOSITORY}/actions/workflows/treb-team-fact-source-race.yml/dispatches \
+            -f ref='agent/treb-final-exact-assembly'
+
+          run_id=''
+          for i in $(seq 1 20); do
+            sleep 3
+            run_id=$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/treb-team-fact-source-race.yml/runs?branch=agent%2Ftreb-final-exact-assembly&event=workflow_dispatch&per_page=5" --jq '.workflow_runs[0].id // empty')
+            if [ -n "$run_id" ]; then break; fi
+          done
+          if [ -z "$run_id" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body 'Dispatch API returned successfully, but no recovery run ID was discoverable after polling.'
+            exit 1
+          fi
+          url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
+          gh issue comment "$ISSUE_NUMBER" --body "TREB rapid recovery dispatched. Run ID: ${run_id} — ${url}"
+          echo "RUN_ID=${run_id}" >> "$GITHUB_ENV"
