@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import csv, gzip, pathlib, subprocess, sys
+import csv, gzip, os, pathlib, subprocess, sys
 
 src=pathlib.Path('scripts/treb_player_game_pbpstats_recovery.py').read_text()
 old="    obj=js.get(side)"
@@ -9,7 +9,8 @@ if old not in src:
 tmp=pathlib.Path('/tmp/treb_player_game_pbpstats_recovery_fixed.py')
 tmp.write_text(src.replace(old,new,1))
 print('TREB_PBP_FULL_GATE_START', flush=True)
-rc=subprocess.run([sys.executable,'-u',str(tmp)]).returncode
+env=dict(os.environ); env['TREB_PBP_CHILD']='1'
+rc=subprocess.run([sys.executable,'-u',str(tmp)],env=env).returncode
 print('TREB_PBP_FULL_GATE_RC',rc,flush=True)
 if rc!=0:
     raise SystemExit(rc)
