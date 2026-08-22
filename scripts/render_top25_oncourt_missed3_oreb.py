@@ -1,0 +1,19 @@
+from PIL import Image,ImageDraw,ImageFont
+from io import BytesIO
+import requests,os
+P=[(1,203500,'STEVEN ADAMS',35.49,4657),(2,1631106,'TARI EASON',34.23,5144),(3,1641708,'AMEN THOMPSON',33.06,6524),(4,1631200,'KRIS MURRAY',33.05,3671),(5,1629111,'JOCK LANDALE',32.04,4316),(6,1631095,'JABARI SMITH JR.',30.78,9226),(7,1630549,"DAY'RON SHARPE",30.52,3908),(8,1641739,'TOUMANI CAMARA',30.02,6952),(9,1628449,'CHRIS BOUCHER',29.88,4855),(10,1630578,'ALPEREN SENGUN',29.75,10447),(11,1629006,'JOSH OKOGIE',29.67,4726),(12,1630692,'JORDAN GOODWIN',29.66,4251),(13,1631222,'JAKE LARAVIA',29.36,4575),(14,1630703,'SCOOT HENDERSON',29.30,4214),(15,1630202,'PAYTON PRITCHARD',28.43,8221),(16,1642377,'JAYLEN WELLS',28.41,3864),(17,1631117,'WALKER KESSLER',27.87,5095),(18,1629048,'GOGA BITADZE',27.83,4487),(19,1641764,'BRANDIN PODZIEMSKI',27.73,5963),(20,1629020,'JARRED VANDERBILT',27.71,5995),(21,1629630,'JA MORANT',27.65,6242),(22,1629012,'COLLIN SEXTON',27.42,6853),(23,1628988,'AARON HOLIDAY',27.40,4651),(24,1629723,'JOHN KONCHAR',27.36,5533),(25,1628436,'LUKE KORNET',27.31,4631)]
+W=H=1800;BG=(0,0,0);CARD=(10,16,22);WHITE=(244,244,242);GOLD=(211,163,88);G2=(142,104,55);MUTED=(179,182,184);EDGE=(32,45,55)
+im=Image.new('RGB',(W,H),BG);d=ImageDraw.Draw(im);fd='/usr/share/fonts/truetype/dejavu'
+def F(s,b=True):return ImageFont.truetype(f'{fd}/DejaVuSansCondensed-Bold.ttf' if b else f'{fd}/DejaVuSansCondensed.ttf',s)
+d.text((900,70),'TOP 25 3PT MISS OREB%',font=F(100),fill=GOLD,anchor='mm');d.text((900,160),'ON COURT TEAM OREB%',font=F(72),fill=WHITE,anchor='mm');d.text((900,220),'LAST 5 SEASONS  •  2021-22 TO 2025-26',font=F(27),fill=GOLD,anchor='mm');d.text((900,258),'MINIMUM 3,500 MINUTES  •  315 PLAYERS',font=F(20),fill=MUTED,anchor='mm');d.line((98,292,1702,292),fill=(75,65,49),width=1)
+margin=54;gap=12;top=310;bottom=1662;cw=(W-2*margin-4*gap)/5;ch=(bottom-top-4*gap)/5
+def portrait(pid,bw,bh):
+ r=requests.get(f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png',timeout=30);r.raise_for_status();p=Image.open(BytesIO(r.content)).convert('RGBA');bb=p.getchannel('A').getbbox();p=p.crop(bb) if bb else p;w,h=p.size;p=p.crop((0,0,w,int(h*.74)));bb=p.getchannel('A').getbbox();p=p.crop(bb) if bb else p;sc=min((bw-6)/p.width,(bh+30)/p.height);p=p.resize((max(1,int(p.width*sc)),max(1,int(p.height*sc))),Image.Resampling.LANCZOS);lay=Image.new('RGBA',(int(bw),int(bh)),(0,0,0,0));lay.alpha_composite(p,((lay.width-p.width)//2,max(-12,lay.height-p.height-5)));return lay
+for i,(rank,pid,name,val,mins) in enumerate(P):
+ r,c=divmod(i,5);x=margin+c*(cw+gap);y=top+r*(ch+gap);x2=x+cw;d.rounded_rectangle((x,y,x2,y+ch),radius=13,fill=CARD,outline=EDGE,width=2);ax1=x+13;ax2=x2-13;at=y+25;ab=y+169;d.rounded_rectangle((ax1,at,ax2,ab+38),radius=66,outline=GOLD,width=2);d.rectangle((ax1-4,ab-4,ax2+4,ab+42),fill=CARD)
+ try:hs=portrait(pid,cw-10,184);im.paste(hs,(int(x+5),int(y+1)),hs)
+ except Exception as e:print('headshot',pid,e)
+ d.text((x+18,y+18),str(rank),font=F(18),fill=GOLD);nf=F(22)
+ while d.textbbox((0,0),name,font=nf)[2]>cw-18 and nf.size>15:nf=F(nf.size-1)
+ d.text(((x+x2)/2,y+203),name,font=nf,fill=WHITE,anchor='mm');d.text(((x+x2)/2,y+241),f'{val:.2f}%',font=F(39),fill=GOLD,anchor='mm');d.text(((x+x2)/2,y+274),f'{mins:,} MIN',font=F(14,False),fill=MUTED,anchor='mm')
+d.text((900,1751),'@funakistats',font=F(24),fill=MUTED,anchor='mm');os.makedirs('outputs',exist_ok=True);im.save('outputs/top25_oncourt_3pt_miss_oreb.png',optimize=True);im.resize((7200,7200),Image.Resampling.LANCZOS).save('outputs/top25_oncourt_3pt_miss_oreb_7200.png',optimize=True,dpi=(300,300))
