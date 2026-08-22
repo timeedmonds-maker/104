@@ -1,0 +1,54 @@
+name: Export missed3 headshots base64
+on:
+  push:
+    paths:
+      - 'trigger_missed3_headshots.txt'
+      - '.github/workflows/export_missed3_headshots_b64.yml'
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build compact contact sheet and base64 text
+        run: |
+          python - <<'PY'
+          import os, io, base64, urllib.request
+          from PIL import Image
+          ids=[203500,1631106,1641708,1631200,1629111,1631095,1630549,1641739,1628449,1630578,1629006,1631222,1630692,1630703,1630202,1642377,1631117,1629048,1641764,1629020,1629630,1629012,1628988,1629723,1628436]
+          names=['Steven Adams','Tari Eason','Amen Thompson','Kris Murray','Jock Landale','Jabari Smith Jr.','DayRon Sharpe','Toumani Camara','Chris Boucher','Alperen Sengun','Josh Okogie','Jake LaRavia','Jordan Goodwin','Scoot Henderson','Payton Pritchard','Jaylen Wells','Walker Kessler','Goga Bitadze','Brandin Podziemski','Jarred Vanderbilt','Ja Morant','Collin Sexton','Aaron Holiday','John Konchar','Luke Kornet']
+          cellw,cellh=150,120
+          sheet=Image.new('RGB',(cellw*5,cellh*5),(0,0,0))
+          for i,pid in enumerate(ids):
+              url=f'https://cdn.nba.com/headshots/nba/latest/1040x760/{pid}.png'
+              req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+              with urllib.request.urlopen(req,timeout=30) as r: data=r.read()
+              im=Image.open(io.BytesIO(data)).convert('RGBA')
+              bb=im.getchannel('A').getbbox()
+              if bb: im=im.crop(bb)
+              w,h=im.size
+              im=im.crop((0,0,w,int(h*.74)))
+              bb=im.getchannel('A').getbbox()
+              if bb: im=im.crop(bb)
+              sc=min((cellw-8)/im.width,(cellh+20)/im.height)
+              im=im.resize((max(1,int(im.width*sc)),max(1,int(im.height*sc))),Image.Resampling.LANCZOS)
+              bg=Image.new('RGBA',(cellw,cellh),(0,0,0,0))
+              x=(cellw-im.width)//2; y=max(-8,cellh-im.height-2)
+              bg.alpha_composite(im,(x,y))
+              rgb=Image.new('RGB',(cellw,cellh),(0,0,0)); rgb.paste(bg,(0,0),bg)
+              x0=(i%5)*cellw; y0=(i//5)*cellh
+              sheet.paste(rgb,(x0,y0))
+          os.makedirs('outputs',exist_ok=True)
+          buf=io.BytesIO(); sheet.save(buf,'JPEG',quality=88,optimize=True)
+          payload=base64.b64encode(buf.getvalue()).decode('ascii')
+          open('outputs/missed3_headshots_contactsheet.b64','w').write(payload)
+          open('outputs/missed3_headshots_ids.txt','w').write('\n'.join(f'{pid},{name}' for pid,name in zip(ids,names)))
+          PY
+      - name: Commit outputs
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add outputs/missed3_headshots_contactsheet.b64 outputs/missed3_headshots_ids.txt
+          git commit -m 'Export missed3 headshot contact sheet' || exit 0
+          git push
